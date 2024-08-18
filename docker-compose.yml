@@ -1,0 +1,67 @@
+version: '3.8'
+services:
+  # nginx
+  gg-nginx:
+    container_name: gg-nginx-container
+    image: nginx:stable-alpine
+    ports:
+      - "${NGINX_TO_PORT}:${NGINX_FROM_PORT}"
+    volumes:
+      - ./src:/var/www/gg
+      - ./_docker/nginx/${NGINX_CONFIG}:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - gg-php_8.2
+      - gg-mariadb
+    networks:
+      - gg
+
+  #php
+  gg-php_8.2:
+    container_name: gg-php-8-container
+    build:
+      context: .
+      dockerfile: ./_docker/php/php.dockerfile
+    volumes:
+      - ./src/:/var/www/gg
+      - ./_docker/php/php.ini:/usr/local/etc/php/php.ini
+    command: php-fpm
+    depends_on:
+      - gg-mariadb
+    ports:
+      - "3004:3004"
+    networks:
+      - gg
+
+  #mysql
+  gg-mariadb:
+    container_name: gg-mariadb-container
+    image: mariadb:10.1.14
+    ports:
+      - "${DB_TO_PORT}:${DB_FROM_PORT}"
+    volumes:
+      - ./_docker/mysql:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+    environment:
+      MYSQL_DATABASE: gg
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      - gg
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    links:
+      - gg-mariadb:db
+    restart: always
+    ports:
+      - "3002:80"
+    environment:
+      UPLOAD_LIMIT: 500M
+      PMA_ARBITRARY: 1
+    networks:
+      - gg
+
+networks:
+  gg:
