@@ -35,7 +35,7 @@ services:
   #mysql
   gg-mariadb:
     container_name: gg-mariadb-container
-    image: mariadb:10.1.14
+    image: mariadb:latest
     ports:
       - "${DB_TO_PORT}:${DB_FROM_PORT}"
     volumes:

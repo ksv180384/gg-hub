@@ -26,3 +26,4 @@ COPY ./src /var/www/gg
 RUN chown -R www-data:www-data /var/www/gg
 
 EXPOSE 9000
+#CMD ["php-fpm"]
