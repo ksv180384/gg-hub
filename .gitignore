@@ -1,2 +1,5 @@
 .env
+/.fleet
+/.idea
+/.vscode
 /_docker/mysql
