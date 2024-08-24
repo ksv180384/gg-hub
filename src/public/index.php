@@ -1,5 +1,4 @@
 <?php
-echo 'ok'; exit();
 
 use Illuminate\Http\Request;
 
