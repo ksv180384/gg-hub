@@ -11,7 +11,7 @@ ENV DOMAIN_EMAIL=$DOMAIN_EMAIL
 ENV DOMAIN_URL=$DOMAIN_URL
 
 WORKDIR /certbot
-COPY . /certbot
+COPY ./_docker/certbot /certbot
 WORKDIR /certbot
 
 RUN apt-get update
