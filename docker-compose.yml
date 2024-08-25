@@ -6,9 +6,12 @@ services:
     image: nginx:stable-alpine
     ports:
       - "${NGINX_TO_PORT}:${NGINX_FROM_PORT}"
+      - "${NGINX_TO_PORT_SSL}:${NGINX_FROM_PORT_SSL}"
     volumes:
       - ./src:/var/www/gg
       - ./_docker/nginx/${NGINX_CONFIG}:/etc/nginx/conf.d/default.conf
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
     depends_on:
       - gg-php_8.2
       - gg-mariadb
@@ -64,20 +67,26 @@ services:
       - gg
 
   certbot:
-    ports:
-      - "6000:80"
-    env_file:
-      - .env
+    image: certbot/certbot
+    container_name: certbot
+#    ports:
+#      - "6000:80"
+#    env_file:
+#      - .env
     # и снова мониторуем директорию nginx
     volumes:
-      - ./nginx/:/etc/nginx/
-    build:
-      context: .
-      dockerfile: ./_docker/certbot/certbot.dockerfile
-      # задаем переменные среды
-      args:
-        DOMAIN_EMAIL: ${DOMAIN_EMAIL}
-        DOMAIN_URL: ${DOMAIN_URL}
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email ${DOMAIN_EMAIL} -d ${DOMAIN_URL} --agree-tos
+    #    build:
+#      context: .
+#      dockerfile: ./_docker/certbot/certbot.dockerfile
+#      # задаем переменные среды
+#      args:
+#        DOMAIN_EMAIL: ${DOMAIN_EMAIL}
+#        DOMAIN_URL: ${DOMAIN_URL}
+    depends_on:
+      - gg-nginx
     networks:
       - gg
 
