@@ -27,7 +27,7 @@ services:
     volumes:
       - ./src/:/var/www/gg
       - ./_docker/php/php.ini:/usr/local/etc/php/php.ini
-    command: php-fpm
+    command: sh -c "php artisan inertia:start-ssr & php-fpm"
     depends_on:
       - gg-mariadb
     ports:
