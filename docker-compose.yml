@@ -77,7 +77,7 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    command: certbot certonly --webroot -w /var/www/certbot --force-renewal --email ${DOMAIN_EMAIL} -d gg-hub.ru -d admin.gg-hub.ru -d tl.gg-hub.ru --agree-tos
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email ${DOMAIN_EMAIL} -d gg-hub.ru -d admin.gg-hub.ru -d tl.gg-hub.ru --agree-tos
 #    command: certonly --manual --preferred-challenges=dns --email ${DOMAIN_EMAIL} --server https://acme-v02.api.letsencrypt.org/directory --agree-tos -d ${DOMAIN_URL} -d *.${DOMAIN_URL}
     depends_on:
       - gg-nginx
