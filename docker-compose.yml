@@ -77,14 +77,7 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    command: certonly --webroot -w /var/www/certbot --force-renewal --email ${DOMAIN_EMAIL} -d ${DOMAIN_URL} --agree-tos
-    #    build:
-#      context: .
-#      dockerfile: ./_docker/certbot/certbot.dockerfile
-#      # задаем переменные среды
-#      args:
-#        DOMAIN_EMAIL: ${DOMAIN_EMAIL}
-#        DOMAIN_URL: ${DOMAIN_URL}
+#    command: certonly --webroot -w /var/www/certbot --force-renewal --email ${DOMAIN_EMAIL} -d ${DOMAIN_URL} --agree-tos
     depends_on:
       - gg-nginx
     networks:
