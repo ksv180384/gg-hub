@@ -17,5 +17,10 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+    <script>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     </body>
 </html>

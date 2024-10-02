@@ -27,3 +27,15 @@ RUN chown -R www-data:www-data /var/www/gg
 
 EXPOSE 9000
 #CMD ["php-fpm"]
+#CMD ["php", "artisan", "queue:work"]
+#CMD ["sh", "-c", "php-fpm & npm run dev & php artisan queue:work"]
+# Запуск команд в зависимости от окружения
+#CMD if [ "$APP_ENV" = "dev" ]; then \
+#        php-fpm & \
+#        php artisan queue:work & \
+#        npm run dev & \
+#    else \
+#        php-fpm & \
+#        php artisan queue:work; \
+#        php artisan inertia:start-ssr; \
+#    fi
