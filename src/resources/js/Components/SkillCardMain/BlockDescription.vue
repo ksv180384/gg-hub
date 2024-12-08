@@ -12,7 +12,7 @@ const arString = computed(() => {
     return [];
   }
   const separators = /\[\[|\]\]/; // Регулярное выражение для разделителей
-  const arDescription = props.description.content_ru.split(separators).map(part => part.trim()).filter(part => part);
+  const arDescription = props.description.content_ru.replace(/\n/g, '<br>').split(separators).map(part => part.trim()).filter(part => part);
   const items = [...props.description.items];
   const arElements = [];
   for (const descriptionKey in arDescription){
@@ -30,6 +30,9 @@ const arString = computed(() => {
   }
   return arElements;
 });
+
+// console.log(arString.value);
+// console.log(arString.value);
 
 // ЭТО ОПТИМИЗИРОВАННЫЙ ВАРИАНТ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // const arString = computed(() => {
@@ -58,10 +61,8 @@ const arString = computed(() => {
                  :is="ItemElement"
                  :text-original="element.data.text_original"
                  :text-ru="element.data.text_ru" />
-      <span v-else>{{ element.description }}</span>
+      <span v-else v-html="element.description.replace(/\n/g, '<br>')"/>
     </template>
-    <hr>
-
   </div>
 </template>
 

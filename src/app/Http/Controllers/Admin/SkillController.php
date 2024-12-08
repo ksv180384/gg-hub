@@ -85,7 +85,8 @@ class SkillController extends Controller
                 'value' => $skillTranslatorService->translator($infoItem['value']),
             ];
         });
-        $arDescription = $this->textToTranslateJson($request->description);
+//        dd(str_replace("<br />", "\n", str_replace("\n", '', $request->description)));
+        $arDescription = $this->textToTranslateJson(str_replace("\n", '', $request->description));
         $arUpdateLvl = Arr::map($request->update_lvl ?? [], function ($updateLvlItem) use ($skillTranslatorService){
             return [
                 'name_original' => $updateLvlItem['name'],
@@ -174,7 +175,17 @@ class SkillController extends Controller
 
         $arTextOriginals = array_column($arText['items'], 'text_original');
         $content = preg_replace('#<br\s*/?>#i', "\n", $arText['content']);
-        $contentRu = $skillTranslatorService->translator($content);
+
+        $arContent = explode("\n", $content);
+        $contentRu = '';
+        foreach ($arContent as $contentItem){
+            if($contentItem){
+                $contentRu .= $skillTranslatorService->translator($contentItem) . "\n";
+            }
+            else{
+                $contentRu .= "\n";
+            }
+        }
 
         $arText['content_ru'] = $this->replacePlaceholders($contentRu, $arTextOriginals);
         $arText['items'] = Arr::map($arText['items'], function ($item) use ($skillTranslatorService) {
@@ -238,11 +249,11 @@ class SkillController extends Controller
      * @return array|mixed|string|string[]
      */
     private function replacePlaceholders($string, $replacements) {
-        // Находим все подстроки в формате {{...}} с помощью регулярного выражения
+        // Находим все подстроки в формате [[...]] с помощью регулярного выражения
         preg_match_all('/\[\[(.*?)\]\]/', $string, $matches);
 
         // Проверяем, сколько найдено подстрок
-        $placeholders = $matches[0]; // полные строки с "{{...}}"
+        $placeholders = $matches[0]; // полные строки с "[[...]]"
         $keys = $matches[1] ?? []; // текст внутри скобок
 
         // Проходим по каждому ключу и заменяем его на соответствующее значение из массива $replacements
