@@ -7,7 +7,7 @@ services:
             - "${NGINX_TO_PORT}:${NGINX_FROM_PORT}"
             - "${NGINX_TO_PORT_SSL}:${NGINX_FROM_PORT_SSL}"
         volumes:
-            - ./src:/var/www/gg
+            - ./backend:/var/www/gg
             - ./_docker/nginx/${NGINX_CONFIG}:/etc/nginx/conf.d/default.conf
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
@@ -17,6 +17,18 @@ services:
         networks:
             - gg
 
+    # Сервис для Node.js с Vue 3 (фронтенд)
+    gg-frontend:
+        container_name: gg_frontend
+        build:
+            context: .
+            dockerfile: ./_docker/frontend/node.dockerfile
+        volumes:
+            - ./frontend:/gg
+        ports:
+            - "3008:3008"
+        networks:
+            - gg
     #php
     gg-php_8.2:
         container_name: gg-php-8-container
@@ -24,7 +36,7 @@ services:
             context: .
             dockerfile: ./_docker/php/php.dockerfile
         volumes:
-            - ./src/:/var/www/gg
+            - ./backend/:/var/www/gg
             - ./_docker/php/php.ini:/usr/local/etc/php/php.ini
         #    command: sh -c "php artisan inertia:start-ssr & php-fpm"
 #        command: php-fpm

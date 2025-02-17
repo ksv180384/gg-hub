@@ -20,7 +20,7 @@ RUN npm install npm@latest -g
 RUN command -v node
 RUN command -v npm
 
-COPY ./src /var/www/gg
+COPY ./backend /var/www/gg
 #COPY ./_docker/php /var/www/gg/php
 
 RUN chown -R www-data:www-data /var/www/gg
