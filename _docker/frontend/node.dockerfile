@@ -13,5 +13,7 @@ RUN npm install
 
 COPY ./frontend ./gg
 
+RUN npm run build
+
 # start app
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "preview"]
