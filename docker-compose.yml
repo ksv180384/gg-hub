@@ -23,8 +23,6 @@ services:
         build:
             context: .
             dockerfile: ./_docker/frontend/node.dockerfile
-            args:
-                NODE_ENV: ${NODE_ENV:-production}
         volumes:
             - ./frontend:/gg
         ports:
