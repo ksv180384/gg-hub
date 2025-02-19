@@ -11,8 +11,8 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3008,
     hmr: {
-      host: 'gg-hub.local',
-      clientPort: 3010
+      host: 'gg-hub.ru',
+      clientPort: 80
     },
     // Добавляем разрешенные хосты
     allowedHosts: [
@@ -22,7 +22,7 @@ export default defineConfig({
     ],
     proxy: {
       '/api/v1': {
-        target: 'http://gg-nginx:3010',
+        target: 'http://gg-nginx:80',
         changeOrigin: true,
         secure: false,
         // logLevel: 'debug'
