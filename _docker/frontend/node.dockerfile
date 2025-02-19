@@ -1,6 +1,5 @@
 FROM node:latest as builder
 
-# Устанавливаем рабочую директорию
 WORKDIR /app
 
 # Копируем package.json и package-lock.json
@@ -12,12 +11,8 @@ RUN npm install
 # Копируем все файлы проекта
 COPY ./frontend .
 
-# Копируем соответствующий .env файл
-ARG NODE_ENV
-COPY ./frontend/.env.${NODE_ENV} ./.env
-
-# Проверяем содержимое директории (для отладки)
-RUN ls -la
+# Используем переменную окружения
+ENV NODE_ENV=production
 
 # Собираем приложение
 RUN npm run build
