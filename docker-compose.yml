@@ -25,6 +25,8 @@ services:
             dockerfile: ./_docker/frontend/node.dockerfile
         volumes:
             - ./frontend:/gg
+        args:
+            - NODE_ENV=${NODE_ENV:-production}
         ports:
             - "3008:3008"
         networks:
