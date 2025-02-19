@@ -11,7 +11,7 @@ ENV PATH /gg/node_modules/.bin:$PATH
 COPY ./frontend/package.json /gg/package.json
 RUN npm install
 
-COPY ./frontend ./imagines
+COPY ./frontend ./gg
 
 # start app
 CMD ["npm", "run", "dev"]
