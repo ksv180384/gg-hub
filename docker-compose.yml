@@ -107,16 +107,10 @@ services:
     certbot:
         image: certbot/certbot
         container_name: certbot
-        #    ports:
-        #      - "6000:80"
-        #    env_file:
-        #      - .env
-        # и снова мониторуем директорию nginx
         volumes:
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
-        #    command: certonly --webroot -w /var/www/certbot --force-renewal --email ${DOMAIN_EMAIL} -d gg-hub.ru -d admin.gg-hub.ru -d tl.gg-hub.ru --agree-tos
-        #    command: certonly --manual --preferred-challenges=dns --email ${DOMAIN_EMAIL} --server https://acme-v02.api.letsencrypt.org/directory --agree-tos -d ${DOMAIN_URL} -d *.${DOMAIN_URL}
+        entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
         depends_on:
             - gg-nginx
         networks:
