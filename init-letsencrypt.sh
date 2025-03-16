@@ -2,7 +2,7 @@
 
 domains=(gg-hub.ru *.gg-hub.ru)
 email="ksv180384@yandex.ru" # Замените на ваш email
-staging=0 # Установите 1 для тестирования
+staging=1 # Установите 1 для тестирования
 
 data_path="./certbot"
 rsa_key_size=4096
@@ -22,22 +22,26 @@ if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/
 fi
 
 echo "### Создание временного сертификата для первого запуска..."
-path="/etc/letsencrypt/live/$domains"
-mkdir -p "$data_path/conf/live/$domains"
-docker-compose run --rm --entrypoint "\
-  openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1\
-    -keyout '$path/privkey.pem' \
-    -out '$path/fullchain.pem' \
-    -subj '/CN=localhost'" certbot
+for domain in "${domains[@]}"; do
+  path="/etc/letsencrypt/live/$domain"
+  mkdir -p "$data_path/conf/live/$domain"
+  docker-compose run --rm --entrypoint "\
+    openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1\
+      -keyout '$path/privkey.pem' \
+      -out '$path/fullchain.pem' \
+      -subj '/CN=localhost'" certbot
+done
 
 echo "### Запуск nginx..."
 docker-compose up --force-recreate -d gg-nginx
 
 echo "### Удаление временного сертификата..."
-docker-compose run --rm --entrypoint "\
-  rm -Rf /etc/letsencrypt/live/$domains && \
-  rm -Rf /etc/letsencrypt/archive/$domains && \
-  rm -Rf /etc/letsencrypt/renewal/$domains.conf" certbot
+for domain in "${domains[@]}"; do
+  docker-compose run --rm --entrypoint "\
+    rm -Rf /etc/letsencrypt/live/$domain && \
+    rm -Rf /etc/letsencrypt/archive/$domain && \
+    rm -Rf /etc/letsencrypt/renewal/$domain.conf" certbot
+done
 
 echo "### Запрос Let's Encrypt сертификата..."
 docker-compose run --rm --entrypoint "\
