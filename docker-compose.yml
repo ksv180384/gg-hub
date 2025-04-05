@@ -33,8 +33,7 @@ services:
             - NODE_ENV=${NODE_ENV}
         networks:
             - gg
-        networks:
-            - gg
+
     #php
     gg-php_8.2:
         container_name: gg-php-8-container
