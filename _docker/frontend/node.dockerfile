@@ -14,5 +14,10 @@ RUN npm install
 COPY ./frontend ./gg
 
 # start app
-CMD ["npm", "run", "dev"]
+#CMD ["npm", "run", "dev"]
 #CMD ["npm", "run", "preview"]
+CMD if [ "$NODE_ENV" = "production" ]; then \
+      npm run build; \
+    else \
+      npm run dev; \
+    fi

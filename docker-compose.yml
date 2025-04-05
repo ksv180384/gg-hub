@@ -27,6 +27,12 @@ services:
             - ./frontend:/gg
         ports:
             - "3008:3008"
+            - "24678:24678"
+        environment:
+            - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
+            - NODE_ENV=${NODE_ENV}
+        networks:
+            - gg
         networks:
             - gg
     #php

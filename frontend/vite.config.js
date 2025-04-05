@@ -10,8 +10,6 @@ import {PrimeVueResolver} from '@primevue/auto-import-resolver';
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
 
-  console.log(mode);
-
   const env = loadEnv(mode, process.cwd() + '/frontend');
 
   return {
@@ -19,8 +17,12 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 3008,
       hmr: {
-        host: 'gg-hub.ru',
-        clientPort: 80
+        host: 'localhost',
+        protocol: 'ws',
+        clientPort: 3008
+      },
+      watch: {
+        usePolling: true
       },
       // Добавляем разрешенные хосты
       allowedHosts: [
