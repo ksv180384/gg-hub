@@ -10,6 +10,8 @@ import {PrimeVueResolver} from '@primevue/auto-import-resolver';
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
 
+  console.log(mode);
+
   const env = loadEnv(mode, process.cwd() + '/frontend');
 
   return {
@@ -17,7 +19,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 3008,
       hmr: {
-        host: 'localhost',
+        host: mode === 'development' ? 'localhost' : 'gg-hub.local',
         protocol: 'ws',
         clientPort: 3008
       },

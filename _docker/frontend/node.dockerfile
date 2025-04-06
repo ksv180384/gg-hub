@@ -1,5 +1,5 @@
 # base image
-FROM node:latest
+FROM node:22-alpine
 
 # set working directory
 WORKDIR /gg
@@ -13,11 +13,12 @@ RUN npm install
 
 COPY ./frontend ./gg
 
-# start app
-#CMD ["npm", "run", "dev"]
-#CMD ["npm", "run", "preview"]
+# Добавляем глобальную установку serve
+RUN npm install -g serve
+
+# Изменяем команду запуска
 CMD if [ "$NODE_ENV" = "production" ]; then \
-      npm run build; \
+      npm run build && serve -s dist -l 3008; \
     else \
       npm run dev; \
     fi

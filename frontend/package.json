@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --mode development",
     "build": "vite build --mode production",
-    "preview": "vite preview --mode production"
+    "preview": "vite preview --mode production",
+    "serve": "serve -s dist -l 3008"
   },
   "dependencies": {
     "@primeuix/themes": "^1.0.1",
