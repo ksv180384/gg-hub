@@ -8,6 +8,7 @@ services:
             - "${NGINX_TO_PORT_SSL}:${NGINX_FROM_PORT_SSL}"
         volumes:
             - ./backend:/var/www/gg
+            - ./frontend/dist:/var/www/frontend/dist
             - ./_docker/nginx/${NGINX_CONFIG}:/etc/nginx/conf.d/default.conf
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
@@ -25,6 +26,7 @@ services:
             dockerfile: ./_docker/frontend/node.dockerfile
         volumes:
             - ./frontend:/gg
+            - ./frontend/dist:/gg/dist
         ports:
             - "3008:3008"
             - "24678:24678"
