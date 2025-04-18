@@ -19,8 +19,12 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 3008,
       hmr: {
-        host: 'gg-hub.ru',
-        clientPort: 80
+        host: mode === 'development' ? 'localhost' : 'gg-hub.local',
+        protocol: 'ws',
+        clientPort: 3008
+      },
+      watch: {
+        usePolling: true
       },
       // Добавляем разрешенные хосты
       allowedHosts: [
