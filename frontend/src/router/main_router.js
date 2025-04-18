@@ -5,7 +5,6 @@ import { get } from '@/services/api/query';
 import appRoutes from '@/app/router/app_router.js';
 import adminRoutes from '@/admin/router/admin_router.js';
 
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [

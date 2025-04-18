@@ -1,11 +1,10 @@
 <script setup>
-import Button from "primevue/button";
-import MainLayout from "@/app/layouts/MainLayout.vue";
+import MainLayout from '@/app/layouts/MainLayout.vue';
 </script>
 
 <template>
 
   <main-layout>
-    sdfsdfs
+    App
   </main-layout>
 </template>
