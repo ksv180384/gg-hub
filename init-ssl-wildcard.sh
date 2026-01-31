@@ -21,7 +21,6 @@ docker compose run --rm -it --entrypoint "" certbot certbot certonly \
   --email "$CERT_EMAIL" \
   --agree-tos \
   --no-eff-email \
-  --manual-public-ip-logging-ok \
   -d "gg-hub.ru" \
   -d "*.gg-hub.ru" \
   --cert-name "$CERT_NAME"
