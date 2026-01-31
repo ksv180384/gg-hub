@@ -15,7 +15,7 @@ echo "### Certbot попросит добавить TXT-запись в DNS. П�
 echo ""
 
 # Интерактивный режим (-it) нужен: certbot попросит ввести TXT и нажать Enter
-docker compose run --rm -it --entrypoint "" certbot certonly \
+docker compose run --rm -it --entrypoint "" certbot certbot certonly \
   --manual \
   --preferred-challenges=dns \
   --email "$CERT_EMAIL" \
