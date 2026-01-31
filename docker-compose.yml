@@ -119,6 +119,8 @@ services:
         volumes:
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
+            # для автообновления wildcard (Cloudflare); см. certbot/cloudflare.ini.example
+            - ./certbot/cloudflare.ini:/opt/cloudflare.ini:ro
             - /var/run/docker.sock:/var/run/docker.sock
         entrypoint: >
             /bin/sh -c

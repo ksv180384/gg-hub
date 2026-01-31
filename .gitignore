@@ -3,3 +3,4 @@
 /.idea
 /.vscode
 /_docker/mysql
+certbot/cloudflare.ini
