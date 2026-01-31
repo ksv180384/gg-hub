@@ -19,9 +19,9 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 3008,
       hmr: {
-        host: mode === 'development' ? 'localhost' : 'gg-hub.local',
+        host: mode === 'development' ? 'gg-hub.local' : 'gg-hub.local',
         protocol: 'ws',
-        clientPort: 3008
+        clientPort: mode === 'development' ? 80 : 3008
       },
       watch: {
         usePolling: true
