@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode development",
-    "build": "vite build --mode production",
+    "build": "vue-tsc --noEmit && vite build --mode production",
     "preview": "vite preview --mode production",
-    "serve": "serve -s dist -l 3008"
+    "serve": "serve -s dist -l 3008",
+    "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@primeuix/themes": "^2.0.3",
@@ -25,9 +26,12 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/node": "^25.1.0",
     "@vitejs/plugin-vue": "^6.0.3",
+    "typescript": "^5.9.3",
     "unplugin-vue-components": "^28.4.1",
     "vite": "^7.3.1",
-    "vite-plugin-vue-devtools": "^7.7.1"
+    "vite-plugin-vue-devtools": "^7.7.1",
+    "vue-tsc": "^3.2.4"
   }
 }
