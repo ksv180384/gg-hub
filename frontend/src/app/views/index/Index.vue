@@ -5,6 +5,6 @@ import MainLayout from '@/app/layouts/MainLayout.vue';
 <template>
 
   <main-layout>
-    App
+    App--
   </main-layout>
 </template>
