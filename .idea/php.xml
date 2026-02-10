@@ -12,7 +12,7 @@
   </component>
   <component name="PhpCodeSniffer">
     <phpcs_settings>
-      <phpcs_by_interpreter asDefaultInterpreter="true" interpreter_id="46df0523-3d37-4447-b7f7-b9c1e8b1de03" timeout="30000" />
+      <phpcs_by_interpreter interpreter_id="46df0523-3d37-4447-b7f7-b9c1e8b1de03" timeout="30000" />
     </phpcs_settings>
   </component>
   <component name="PhpIncludePathManager">
@@ -261,6 +261,14 @@
       <path value="$PROJECT_DIR$/backend/vendor/graham-campbell/result-type" />
       <path value="$PROJECT_DIR$/backend/vendor/tijsverkoyen/css-to-inline-styles" />
       <path value="$PROJECT_DIR$/backend/vendor/dragonmantank/cron-expression" />
+      <path value="$PROJECT_DIR$/backend/vendor/symfony/polyfill-php84" />
+      <path value="$PROJECT_DIR$/backend/vendor/symfony/polyfill-php85" />
+      <path value="$PROJECT_DIR$/backend/vendor/pragmarx/google2fa" />
+      <path value="$PROJECT_DIR$/backend/vendor/dasprid/enum" />
+      <path value="$PROJECT_DIR$/backend/vendor/paragonie/constant_time_encoding" />
+      <path value="$PROJECT_DIR$/backend/vendor/bacon/bacon-qr-code" />
+      <path value="$PROJECT_DIR$/backend/vendor/laravel/fortify" />
+      <path value="$PROJECT_DIR$/backend/vendor/_laravel_idea" />
     </include_path>
   </component>
   <component name="PhpInterpreters">
@@ -336,7 +344,7 @@
   <component name="PhpProjectSharedConfiguration" php_language_level="8.2" />
   <component name="PhpStan">
     <PhpStan_settings>
-      <phpstan_by_interpreter asDefaultInterpreter="true" interpreter_id="46df0523-3d37-4447-b7f7-b9c1e8b1de03" timeout="60000" />
+      <phpstan_by_interpreter interpreter_id="46df0523-3d37-4447-b7f7-b9c1e8b1de03" timeout="60000" />
     </PhpStan_settings>
   </component>
   <component name="PhpStanOptionsConfiguration">
@@ -349,7 +357,7 @@
   </component>
   <component name="Psalm">
     <Psalm_settings>
-      <psalm_fixer_by_interpreter asDefaultInterpreter="true" interpreter_id="46df0523-3d37-4447-b7f7-b9c1e8b1de03" timeout="60000" />
+      <psalm_fixer_by_interpreter interpreter_id="46df0523-3d37-4447-b7f7-b9c1e8b1de03" timeout="60000" />
     </Psalm_settings>
   </component>
   <component name="PsalmOptionsConfiguration">

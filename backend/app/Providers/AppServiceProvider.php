@@ -2,7 +2,12 @@
 
 namespace App\Providers;
 
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Contracts\Repositories\CharacterRepositoryInterface;
+use App\Contracts\Repositories\GameRepositoryInterface;
+use App\Contracts\Repositories\GuildRepositoryInterface;
+use App\Repositories\Eloquent\EloquentCharacterRepository;
+use App\Repositories\Eloquent\EloquentGameRepository;
+use App\Repositories\Eloquent\EloquentGuildRepository;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -12,7 +17,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(GameRepositoryInterface::class, EloquentGameRepository::class);
+        $this->app->bind(GuildRepositoryInterface::class, EloquentGuildRepository::class);
+        $this->app->bind(CharacterRepositoryInterface::class, EloquentCharacterRepository::class);
     }
 
     /**
@@ -20,8 +27,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
-            return config('app.frontend_url')."/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
-        });
+        //
     }
 }

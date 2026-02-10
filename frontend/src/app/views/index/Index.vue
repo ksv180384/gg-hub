@@ -4,7 +4,7 @@ import MainLayout from '@/app/layouts/MainLayout.vue';
 import SpinWheel from '@/features/spin-wheel/ui/SpinWheel.vue';
 import {onMounted, ref} from 'vue';
 
-const options = ref([]);
+const options = ref<string[]>([]);
 
 onMounted(() => {
   for (let i = 0; i < 40; i++){
