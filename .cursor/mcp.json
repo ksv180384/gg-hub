@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "laravel-boost": {
+      "command": "docker",
+      "args": ["exec", "-i", "gg-php-8-container", "php", "/var/www/gg/artisan", "boost:mcp"]
+    }
+  }
+}
