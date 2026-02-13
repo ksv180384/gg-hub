@@ -14,5 +14,3 @@ Route::get('/admin', function (Request $request) {
 Route::middleware(['auth'])->get('/user', function (Request $request) {
     return $request->user();
 });
-
-require __DIR__.'/auth.php';
