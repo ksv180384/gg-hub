@@ -1,5 +1,6 @@
 export { default as Button } from './button/Button.vue';
 export * from './card';
+export * from './dropdown-menu';
 export { default as Input } from './input/Input.vue';
 export { default as Label } from './label/Label.vue';
 export { default as Sheet } from './sheet/Sheet.vue';

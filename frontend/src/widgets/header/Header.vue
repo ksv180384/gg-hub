@@ -2,12 +2,35 @@
 import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
-import { Button, Sheet, Separator } from '@/shared/ui';
+import {
+  Button,
+  Sheet,
+  Separator,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
+import type { ThemePreference } from '@/stores/theme';
 
 const route = useRoute();
 const auth = useAuthStore();
+const theme = useThemeStore();
 const mobileMenuOpen = ref(false);
+
+const themeOptions: { value: ThemePreference; label: string }[] = [
+  { value: 'light', label: 'Светлая' },
+  { value: 'dark', label: 'Тёмная' },
+  { value: 'system', label: 'Системная' },
+];
+
+function setTheme(value: ThemePreference) {
+  theme.setPreference(value);
+}
 
 watch(
   () => route.path,
@@ -44,6 +67,31 @@ const navItems = [
       </nav>
 
       <div class="flex flex-1 items-center justify-end gap-2 md:flex-none">
+        <!-- Тема: dropdown в стиле shadcn -->
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button variant="outline" size="icon" class="h-9 w-9" aria-label="Тема оформления">
+              <svg v-if="theme.preference === 'light'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-[1.125rem] w-[1.125rem]">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+              <svg v-else-if="theme.preference === 'dark'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-[1.125rem] w-[1.125rem]">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-[1.125rem] w-[1.125rem]">
+                <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
+              </svg>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent class="w-40" align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuItem v-for="opt in themeOptions" :key="opt.value" @select="setTheme(opt.value)">
+                <span class="mr-2 w-4 text-center">{{ theme.preference === opt.value ? '✓' : '' }}</span>
+                {{ opt.label }}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <!-- Авторизован: имя, смена пароля, выход -->
         <template v-if="auth.isAuthenticated">
           <span class="hidden text-sm text-muted-foreground md:inline">{{ auth.user?.name }}</span>
@@ -71,6 +119,35 @@ const navItems = [
             </Button>
           </template>
           <div class="flex flex-col gap-4 pt-8">
+            <div class="flex items-center gap-2 px-3">
+              <span class="text-sm font-medium text-muted-foreground">Тема</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <Button variant="outline" size="sm" class="gap-2">
+                    <svg v-if="theme.preference === 'light'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                      <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                    </svg>
+                    <svg v-else-if="theme.preference === 'dark'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                      <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
+                    </svg>
+                    {{ themeOptions.find(o => o.value === theme.preference)?.label ?? 'Тема' }}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent class="w-40" align="start">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Тема</DropdownMenuLabel>
+                    <DropdownMenuItem v-for="opt in themeOptions" :key="opt.value" @select="setTheme(opt.value)">
+                      <span class="mr-2 w-4 text-center">{{ theme.preference === opt.value ? '✓' : '' }}</span>
+                      {{ opt.label }}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <Separator />
             <RouterLink
               v-for="item in navItems"
               :key="item.to"
