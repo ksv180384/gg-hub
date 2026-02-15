@@ -26,7 +26,7 @@ Route::get('/php-info', function (){
 
 Route::middleware(['auth'])->group(function () {
     Route::post('/games', [GameController::class, 'store'])->middleware('admin.subdomain');
-    Route::put('/games/{game}', [GameController::class, 'update'])->middleware('admin.subdomain');
+    Route::post('/games/{game}', [GameController::class, 'update'])->middleware('admin.subdomain');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->middleware('admin.subdomain');
     Route::post('/games/{game}/localizations', [LocalizationController::class, 'store'])->middleware('admin.subdomain');
     Route::post('/guilds', [GuildController::class, 'store'])->middleware('admin.subdomain');
