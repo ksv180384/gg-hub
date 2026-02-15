@@ -3,7 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Contracts\Repositories\GameRepositoryInterface;
-use Domains\Game\Models\Game;
+use App\Models\Game;
 use Illuminate\Support\Collection;
 
 class EloquentGameRepository implements GameRepositoryInterface

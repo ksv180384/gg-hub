@@ -265,6 +265,9 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/polyfill-php84" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/polyfill-php85" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/_laravel_idea" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/intervention/gif" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/intervention/image" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/intervention/image-laravel" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

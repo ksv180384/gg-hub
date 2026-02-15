@@ -3,7 +3,10 @@ FROM php:8.2.19-fpm
 WORKDIR /var/www/gg
 
 RUN apt-get update && apt-get install -y nodejs npm zlib1g-dev g++ git libicu-dev zip libzip-dev zip \
-    && docker-php-ext-install intl opcache pdo pdo_mysql\
+    libpng-dev libjpeg-dev libwebp-dev libfreetype6-dev \
+    && docker-php-ext-install intl opcache pdo pdo_mysql \
+    && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
+    && docker-php-ext-install gd \
     && pecl install apcu \
     && docker-php-ext-enable apcu \
     && docker-php-ext-configure zip \

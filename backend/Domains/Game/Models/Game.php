@@ -16,6 +16,7 @@ class Game extends Model
         'name',
         'slug',
         'description',
+        'image',
         'is_active',
     ];
 

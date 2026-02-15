@@ -272,6 +272,9 @@
       <path value="$PROJECT_DIR$/backend/vendor/laravel/roster" />
       <path value="$PROJECT_DIR$/backend/vendor/laravel/boost" />
       <path value="$PROJECT_DIR$/backend/vendor/laravel/mcp" />
+      <path value="$PROJECT_DIR$/backend/vendor/intervention/image-laravel" />
+      <path value="$PROJECT_DIR$/backend/vendor/intervention/gif" />
+      <path value="$PROJECT_DIR$/backend/vendor/intervention/image" />
     </include_path>
   </component>
   <component name="PhpInterpreters">

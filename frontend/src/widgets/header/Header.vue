@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
 import {
@@ -14,13 +14,21 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
+import { useSiteContextStore } from '@/stores/siteContext';
 import { useThemeStore } from '@/stores/theme';
 import type { ThemePreference } from '@/stores/theme';
 
 const route = useRoute();
 const auth = useAuthStore();
+const siteContext = useSiteContextStore();
 const theme = useThemeStore();
 const mobileMenuOpen = ref(false);
+
+const siteTitle = computed(() => {
+  if (siteContext.isAdmin) return 'Админ · GG Hub';
+  if (siteContext.game) return `${siteContext.game.name} · GG Hub`;
+  return 'GG Hub';
+});
 
 const themeOptions: { value: ThemePreference; label: string }[] = [
   { value: 'light', label: 'Светлая' },
@@ -43,6 +51,7 @@ const navItems = [
   { to: '/', label: 'Главная' },
   { to: '/news', label: 'Новости' },
   { to: '/guilds', label: 'Гильдии' },
+  { to: '/games', label: 'Игры' },
 ];
 </script>
 
@@ -51,7 +60,7 @@ const navItems = [
     <div class="flex h-14 items-center gap-4 px-4 md:px-6">
       <RouterLink to="/" class="flex items-center gap-2 font-semibold md:mr-6">
         <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground text-lg">⚔</span>
-        <span class="hidden font-bold sm:inline-block">GG Hub</span>
+        <span class="hidden font-bold sm:inline-block">{{ siteTitle }}</span>
       </RouterLink>
 
       <nav class="hidden flex-1 items-center gap-6 md:flex">
