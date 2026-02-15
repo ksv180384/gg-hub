@@ -234,7 +234,7 @@ onMounted(() => loadGames());
       </div>
 
       <div v-if="!loading && games.length === 0" class="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-        Игр пока нет. Добавьте первую игру.
+        Игр пока нет.
       </div>
     </div>
 

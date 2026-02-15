@@ -56,10 +56,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Application domain (for subdomain parsing: admin.gg-hub.local, aion2.gg-hub.local)
+    | Domains for subdomain parsing (admin.gg-hub.local, admin.gg-hub.ru, etc.)
+    | Used to detect admin / game subdomains. Both local and prod domains supported.
     |--------------------------------------------------------------------------
     */
-    'domain' => env('APP_DOMAIN', 'gg-hub.local'),
+    'domains' => array_values(array_filter(array_unique(array_merge(
+        array_filter([env('APP_DOMAIN')]),
+        [parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?? ''],
+        ['gg-hub.local', 'gg-hub.ru'],
+    )))),
 
     /*
     |--------------------------------------------------------------------------
