@@ -91,8 +91,8 @@ async function submit() {
     const err = e as Error & { errors?: Record<string, string[]> };
     if (err.errors) {
       fieldErrors.value = Object.fromEntries(
-        Object.entries(err.errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : String(v)])
-      );
+        Object.entries(err.errors).map(([k, v]) => [k, Array.isArray(v) ? (v[0] ?? '') : String(v)])
+      ) as Record<string, string>;
     }
     error.value = err.message ?? 'Не удалось создать игру';
   } finally {

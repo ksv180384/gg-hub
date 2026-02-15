@@ -92,10 +92,11 @@ async function submitLocalization() {
       name: locName.value.trim(),
     });
     const idx = games.value.findIndex((g) => g.id === selectedGame.value!.id);
-    if (idx !== -1 && games.value[idx].localizations) {
+    const gameAtIdx = idx !== -1 ? games.value[idx] : undefined;
+    if (gameAtIdx?.localizations) {
       const updated = await gamesApi.getGames();
       const found = updated.find((g) => g.id === selectedGame.value!.id);
-      if (found) games.value[idx] = found;
+      if (found && idx !== -1) games.value[idx] = found;
     } else {
       await loadGames();
     }
