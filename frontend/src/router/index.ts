@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import MainLayout from '@/app/layouts/MainLayout.vue';
+import { ROLE_ADMIN_SLUG } from '@/shared/api/authApi';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 
@@ -7,6 +8,8 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** Редирект на логин при 401 только если текущая страница для авторизованных */
     requiresAuth?: boolean;
+    /** Требуемый permission (slug). Если у пользователя роль Admin — доступ разрешён ко всем. */
+    permission?: string;
   }
 }
 
@@ -27,19 +30,63 @@ const router = createRouter({
           path: 'games/create',
           name: 'games-create',
           component: () => import('@/pages/games/create/index.vue'),
-          meta: { requiresAuth: true },
+          meta: { requiresAuth: true, permission: 'games.manage' },
         },
         {
           path: 'games/:id/edit',
           name: 'games-edit',
           component: () => import('@/pages/games/edit/index.vue'),
-          meta: { requiresAuth: true },
+          meta: { requiresAuth: true, permission: 'games.manage' },
         },
         {
           path: 'change-password',
           name: 'change-password',
           component: () => import('@/pages/auth/change-password/index.vue'),
           meta: { requiresAuth: true },
+        },
+        { path: 'characters', name: 'characters', component: () => import('@/pages/characters/index.vue') },
+        { path: 'guild', name: 'guild', component: () => import('@/pages/guild/index.vue') },
+        {
+          path: 'admin/roles',
+          name: 'admin-roles',
+          component: () => import('@/pages/admin/roles/index.vue'),
+          meta: { requiresAuth: true, permission: 'access.admin' },
+        },
+        {
+          path: 'admin/permissions',
+          name: 'admin-permissions',
+          component: () => import('@/pages/admin/permissions/index.vue'),
+          meta: { requiresAuth: true, permission: 'access.admin' },
+        },
+        {
+          path: 'admin/permission-groups',
+          name: 'admin-permission-groups',
+          component: () => import('@/pages/admin/permission-groups/index.vue'),
+          meta: { requiresAuth: true, permission: 'access.admin' },
+        },
+        {
+          path: 'admin/permission-groups/create',
+          name: 'admin-permission-groups-create',
+          component: () => import('@/pages/admin/permission-groups/create.vue'),
+          meta: { requiresAuth: true, permission: 'access.admin' },
+        },
+        {
+          path: 'admin/permissions/create',
+          name: 'admin-permissions-create',
+          component: () => import('@/pages/admin/permissions/create.vue'),
+          meta: { requiresAuth: true, permission: 'access.admin' },
+        },
+        {
+          path: 'admin/roles/create',
+          name: 'admin-roles-create',
+          component: () => import('@/pages/admin/roles/create.vue'),
+          meta: { requiresAuth: true, permission: 'access.admin' },
+        },
+        {
+          path: 'admin/roles/:id/edit',
+          name: 'admin-roles-edit',
+          component: () => import('@/pages/admin/roles/edit.vue'),
+          meta: { requiresAuth: true, permission: 'access.admin' },
         },
       ],
     },
@@ -50,23 +97,43 @@ const router = createRouter({
   ],
 });
 
-const adminOnlyRouteNames = ['games-create', 'games-edit'] as const;
+// Только эти маршруты требуют админ-субдомен (остальные — только permission)
+const adminSubdomainOnlyRouteNames = ['games-create', 'games-edit'] as const;
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
   const siteContext = useSiteContextStore();
+  await siteContext.fetchContext();
+  await auth.fetchUser();
+
+  // Админ-субдомен доступен только пользователям с ролью Admin. Загружаем user по возврату, не по стору.
+  if (typeof window !== 'undefined') {
+    const host = window.location.host;
+    const isOnAdminSubdomain = host.startsWith('admin.');
+    if (isOnAdminSubdomain) {
+      const user = auth.user;
+      const hasAdminRole = user?.roles?.some((r) => r.slug === ROLE_ADMIN_SLUG) ?? false;
+      if (!hasAdminRole) {
+        const mainHost = host.replace(/^admin\./, '');
+        window.location.href = `${window.location.protocol}//${mainHost}/`;
+        return false;
+      }
+    }
+  }
+
   const isGuestRoute = to.name && guestRouteNames.includes(to.name as (typeof guestRouteNames)[number]);
   if (isGuestRoute) {
-    // Не вызываем fetchUser() здесь — иначе при 401 интерцептор редиректит на login,
-    // guard снова вызывает fetchUser() → бесконечный цикл. Загрузка пользователя только в main.ts.
     if (auth.isAuthenticated) {
       return { path: '/', replace: true };
     }
   }
-  // Создание и редактирование игр — только с админского субдомена
-  const isAdminOnlyRoute = to.name && adminOnlyRouteNames.includes(to.name as (typeof adminOnlyRouteNames)[number]);
-  if (isAdminOnlyRoute && !siteContext.isAdmin) {
+  const requiresAdminSubdomain = to.name && adminSubdomainOnlyRouteNames.includes(to.name as (typeof adminSubdomainOnlyRouteNames)[number]);
+  if (requiresAdminSubdomain && !siteContext.isAdmin) {
     return { path: '/games', replace: true };
+  }
+  const requiredPermission = to.meta.permission as string | undefined;
+  if (requiredPermission && auth.isAuthenticated && !auth.hasPermission(requiredPermission)) {
+    return { path: '/', replace: true };
   }
 });
 

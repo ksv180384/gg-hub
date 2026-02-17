@@ -18,10 +18,15 @@ function throwOnError<T>(res: HttpResponse<T>, fallbackMessage: string): asserts
   }
 }
 
+/** Пользователь; permissions и roles приходят с api/v1/user (и при логине/регистрации). */
 export interface User {
   id: number;
   name: string;
   email: string;
+  /** Слаги прав доступа (для проверки hasPermission). */
+  permissions?: string[];
+  /** Роли (isAdmin по slug === 'admin'). */
+  roles?: { id: number; name: string; slug: string }[];
 }
 
 export interface LoginResponse {
@@ -36,16 +41,28 @@ export interface UserResponse {
   user: User;
 }
 
+const ROLE_ADMIN_SLUG = 'admin';
+
 function pickUser(data: unknown): User | null {
   if (!data || typeof data !== 'object') return null;
   const d = data as Record<string, unknown>;
   const candidate = d.user ?? (d.data as Record<string, unknown>)?.user ?? d;
   if (candidate && typeof candidate === 'object' && 'id' in candidate && 'email' in candidate) {
-    const u = candidate as User;
-    return { id: u.id, name: u.name ?? '', email: u.email };
+    const u = candidate as Record<string, unknown>;
+    const permissions = Array.isArray(u.permissions) ? (u.permissions as string[]) : undefined;
+    const roles = Array.isArray(u.roles) ? (u.roles as { id: number; name: string; slug: string }[]) : undefined;
+    return {
+      id: u.id as number,
+      name: (u.name as string) ?? '',
+      email: u.email as string,
+      permissions,
+      roles,
+    };
   }
   return null;
 }
+
+export { ROLE_ADMIN_SLUG };
 
 export const authApi = {
   async login(email: string, password: string): Promise<LoginResponse> {

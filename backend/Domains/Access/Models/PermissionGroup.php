@@ -2,20 +2,17 @@
 
 namespace Domains\Access\Models;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-/**
- * Роль администратора сайта.
- */
-class Role extends Model
+class PermissionGroup extends Model
 {
+    protected $table = 'permission_groups';
+
     protected $fillable = [
         'name',
         'slug',
-        'description',
     ];
 
     protected static function booted(): void
@@ -34,13 +31,8 @@ class Role extends Model
         return is_string($name) && $name !== '' && (trim((string) $slug) === '');
     }
 
-    public function permissions(): BelongsToMany
+    public function permissions(): HasMany
     {
-        return $this->belongsToMany(Permission::class, 'role_permission');
-    }
-
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'user_role');
+        return $this->hasMany(Permission::class, 'permission_group_id');
     }
 }

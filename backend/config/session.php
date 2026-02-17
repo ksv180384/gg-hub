@@ -2,6 +2,15 @@
 
 use Illuminate\Support\Str;
 
+// Домен cookie для шаринга сессии между доменом и субдоменами (gg-hub.local, tl.gg-hub.local, admin.gg-hub.local)
+//$sessionDomain = env('SESSION_DOMAIN');
+//if ($sessionDomain === null || $sessionDomain === '' || $sessionDomain === 'null') {
+//    $host = parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST);
+//    $sessionDomain = ($host && ! in_array($host, ['localhost', '127.0.0.1'], true) && ! filter_var($host, FILTER_VALIDATE_IP))
+//        ? '.'.$host
+//        : null;
+//}
+
 return [
 
     /*
@@ -156,7 +165,7 @@ return [
     |
     */
 
-    'domain' => env('SESSION_DOMAIN'),
+    'domain' => env('SESSION_DOMAIN', null),
 
     /*
     |--------------------------------------------------------------------------

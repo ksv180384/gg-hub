@@ -4,6 +4,11 @@ use App\Http\Controllers\Api\ContextController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\GuildController;
 use App\Http\Controllers\Api\LocalizationController;
+use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\PermissionGroupController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\UserRolePermissionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,18 +25,26 @@ Route::get('/context', [ContextController::class, 'show']);
 Route::get('/games', [GameController::class, 'index']);
 Route::get('/games/{game}', [GameController::class, 'show']);
 Route::get('/guilds', [GuildController::class, 'index']);
-Route::get('/php-info', function (){
-    phpinfo();
-});
+
+Route::get('/user', [UserController::class, 'show']);
 
 Route::middleware(['auth'])->group(function () {
+
     Route::post('/games', [GameController::class, 'store'])->middleware('admin.subdomain');
     Route::post('/games/{game}', [GameController::class, 'update'])->middleware('admin.subdomain');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->middleware('admin.subdomain');
     Route::post('/games/{game}/localizations', [LocalizationController::class, 'store'])->middleware('admin.subdomain');
     Route::post('/guilds', [GuildController::class, 'store'])->middleware('admin.subdomain');
-});
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
+    Route::middleware('admin.subdomain')->group(function () {
+        Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
+        Route::post('/permission-groups', [PermissionGroupController::class, 'store']);
+        Route::get('/permissions', [PermissionController::class, 'index']);
+        Route::post('/permissions', [PermissionController::class, 'store']);
+        Route::get('/roles', [RoleController::class, 'index']);
+        Route::post('/roles', [RoleController::class, 'store']);
+        Route::get('/roles/{role}', [RoleController::class, 'show']);
+        Route::put('/roles/{role}', [RoleController::class, 'update']);
+        Route::put('/users/{user}/roles-permissions', [UserRolePermissionController::class, 'update']);
+    });
 });

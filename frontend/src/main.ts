@@ -22,12 +22,4 @@ setupHttpInterceptors();
 const theme = useThemeStore();
 theme.init();
 
-// Контекст субдомена (admin / игра по слагу)
-const siteContext = useSiteContextStore();
-siteContext.fetchContext();
-
-// Загружаем пользователя при старте (если есть сессия)
-const auth = useAuthStore();
-auth.fetchUser();
-
 app.mount('#app');

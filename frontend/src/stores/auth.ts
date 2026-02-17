@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { authApi, type User } from '@/shared/api/authApi';
+import { authApi, type User, ROLE_ADMIN_SLUG } from '@/shared/api/authApi';
 import router from '@/router';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -9,6 +9,21 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null);
 
   const isAuthenticated = computed(() => !!user.value);
+
+  // isAdmin и права определяются только из ответа api/v1/user (при загрузке страницы и после логина)
+  const isAdmin = computed(
+    () => !!user.value?.roles?.some((r) => r.slug === ROLE_ADMIN_SLUG)
+  );
+
+  function hasPermission(slug: string): boolean {
+    if (!user.value) return false;
+    if (isAdmin.value) return true;
+    return !!user.value.permissions?.includes(slug);
+  }
+
+  function hasRole(slug: string): boolean {
+    return !!user.value?.roles?.some((r) => r.slug === slug);
+  }
 
   async function fetchUser() {
     loading.value = true;
@@ -146,6 +161,9 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     isAuthenticated,
+    isAdmin,
+    hasPermission,
+    hasRole,
     fetchUser,
     login,
     register,
