@@ -2,36 +2,7 @@
  * API гильдий.
  */
 
-import axios, { type AxiosError } from 'axios';
-
-const BASE = '/api/v1';
-
-const api = axios.create({
-  baseURL: BASE,
-  headers: { Accept: 'application/json' },
-  withCredentials: true,
-});
-
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined' && window.location?.host) {
-    config.headers.set('X-Site-Host', window.location.host);
-  }
-  return config;
-});
-
-api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError<{ message?: string; errors?: Record<string, string[]> }>) => {
-    const data = error.response?.data;
-    const err = new Error(data?.message || error.message) as Error & {
-      status?: number;
-      errors?: Record<string, string[]>;
-    };
-    err.status = error.response?.status;
-    err.errors = data?.errors;
-    return Promise.reject(err);
-  }
-);
+import { http } from '@/shared/api/http';
 
 export interface GuildGame {
   id: number;
@@ -71,10 +42,18 @@ export interface GuildsListResponse {
 }
 
 export const guildsApi = {
-  async getGuilds(params?: { per_page?: number; page?: number }): Promise<{ guilds: Guild[]; meta: GuildsListResponse['meta'] }> {
-    const { data } = await api.get<GuildsListResponse>('/guilds', { params });
-    const list = Array.isArray((data as GuildsListResponse)?.data) ? (data as GuildsListResponse).data : [];
-    const meta = (data as GuildsListResponse)?.meta ?? { current_page: 1, last_page: 1, per_page: 15, total: 0 };
+  async getGuilds(params?: { per_page?: number; page?: number }): Promise<{
+    guilds: Guild[];
+    meta: GuildsListResponse['meta'];
+  }> {
+    const res = await http.fetchGet<GuildsListResponse>('/guilds', { params });
+    if (res.status >= 400) {
+      const d = res.data as { message?: string } | null;
+      throw new Error(d?.message ?? 'Ошибка загрузки гильдий');
+    }
+    const data = res.data as GuildsListResponse | null;
+    const list = Array.isArray(data?.data) ? data.data : [];
+    const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 15, total: 0 };
     return { guilds: list, meta };
   },
 };

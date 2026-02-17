@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { RouterLink } from 'vue-router';
+import { ref, onMounted, watch } from 'vue';
+import { useRouter, RouterLink } from 'vue-router';
 import { Button, Input, Label, Card, CardContent } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
 
+const router = useRouter();
 const auth = useAuthStore();
 const email = ref('');
 const sent = ref(false);
+
+watch(
+  () => auth.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) router.replace('/');
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   auth.clearError();

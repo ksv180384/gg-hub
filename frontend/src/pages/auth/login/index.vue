@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
 import { Button, Input, Label, Card, CardContent } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
@@ -9,6 +9,15 @@ const auth = useAuthStore();
 
 const email = ref('');
 const password = ref('');
+
+// Редирект на главную, если пользователь уже авторизован (например, fetchUser из main.ts завершился)
+watch(
+  () => auth.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) router.replace('/');
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   auth.clearError();

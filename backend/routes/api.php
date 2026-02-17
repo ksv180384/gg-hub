@@ -32,6 +32,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds', [GuildController::class, 'store'])->middleware('admin.subdomain');
 });
 
-Route::middleware(['auth'])->get('/user', function (Request $request) {
+Route::get('/user', function (Request $request) {
     return $request->user();
 });

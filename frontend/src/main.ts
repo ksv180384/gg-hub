@@ -6,6 +6,7 @@ import router from './router';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { useThemeStore } from '@/stores/theme';
+import { setupHttpInterceptors } from '@/shared/api/http-interceptors';
 
 import '@/assets/main.css';
 
@@ -14,6 +15,8 @@ const pinia = createPinia();
 
 app.use(pinia);
 app.use(router);
+
+setupHttpInterceptors();
 
 // Тема: применить сохранённую или системную до первого рендера
 const theme = useThemeStore();

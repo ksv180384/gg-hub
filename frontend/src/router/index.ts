@@ -3,6 +3,13 @@ import MainLayout from '@/app/layouts/MainLayout.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** Редирект на логин при 401 только если текущая страница для авторизованных */
+    requiresAuth?: boolean;
+  }
+}
+
 const guestRouteNames = ['login', 'register', 'forgot-password', 'reset-password'] as const;
 
 const router = createRouter({
@@ -16,9 +23,24 @@ const router = createRouter({
         { path: 'news', name: 'news', component: () => import('@/pages/news/index.vue') },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
         { path: 'games', name: 'games', component: () => import('@/pages/games/index.vue') },
-        { path: 'games/create', name: 'games-create', component: () => import('@/pages/games/create/index.vue') },
-        { path: 'games/:id/edit', name: 'games-edit', component: () => import('@/pages/games/edit/index.vue') },
-        { path: 'change-password', name: 'change-password', component: () => import('@/pages/auth/change-password/index.vue') },
+        {
+          path: 'games/create',
+          name: 'games-create',
+          component: () => import('@/pages/games/create/index.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'games/:id/edit',
+          name: 'games-edit',
+          component: () => import('@/pages/games/edit/index.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'change-password',
+          name: 'change-password',
+          component: () => import('@/pages/auth/change-password/index.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
     { path: '/login', name: 'login', component: () => import('@/pages/auth/login/index.vue') },
@@ -35,13 +57,8 @@ router.beforeEach(async (to) => {
   const siteContext = useSiteContextStore();
   const isGuestRoute = to.name && guestRouteNames.includes(to.name as (typeof guestRouteNames)[number]);
   if (isGuestRoute) {
-    if (!auth.user) {
-      try {
-        await auth.fetchUser();
-      } catch {
-        // не авторизован — остаёмся на странице входа/регистрации
-      }
-    }
+    // Не вызываем fetchUser() здесь — иначе при 401 интерцептор редиректит на login,
+    // guard снова вызывает fetchUser() → бесконечный цикл. Загрузка пользователя только в main.ts.
     if (auth.isAuthenticated) {
       return { path: '/', replace: true };
     }

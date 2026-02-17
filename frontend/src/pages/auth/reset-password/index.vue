@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { Button, Input, Label, Card, CardContent } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
@@ -13,6 +13,14 @@ const email = ref((route.query.email as string) ?? '');
 const password = ref('');
 const passwordConfirmation = ref('');
 const success = ref(false);
+
+watch(
+  () => auth.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) router.replace('/');
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   auth.clearError();

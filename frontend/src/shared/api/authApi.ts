@@ -1,42 +1,22 @@
 /**
- * Авторизация через /api/v1 (axios).
+ * Авторизация (единый http-клиент, base /api/v1 в http.ts).
  */
 
-import axios, { type AxiosError } from 'axios';
+import { http } from '@/shared/api/http';
+import type { HttpResponse } from '@/shared/api/http';
 
-const BASE = '/api/v1';
-
-const api = axios.create({
-  baseURL: BASE,
-  headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
-});
-
-api.interceptors.request.use((config) => {
-  return config;
-});
-
-api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError<{ message?: string; errors?: Record<string, string[]> }>) => {
-    if (error.response?.status === 401) {
-      // if (typeof window !== 'undefined') {
-      //   window.location.href = '/login';
-      // }
-    }
-    const data = error.response?.data;
-    const err = new Error(data?.message || error.message) as Error & {
+function throwOnError<T>(res: HttpResponse<T>, fallbackMessage: string): asserts res is HttpResponse<T> & { data: T } {
+  if (res.status >= 400) {
+    const data = res.data as { message?: string; errors?: Record<string, string[]> } | null;
+    const err = new Error(data?.message ?? fallbackMessage) as Error & {
       status?: number;
       errors?: Record<string, string[]>;
     };
-    err.status = error.response?.status;
+    err.status = res.status;
     err.errors = data?.errors;
-    return Promise.reject(err);
+    throw err;
   }
-);
+}
 
 export interface User {
   id: number;
@@ -68,10 +48,10 @@ function pickUser(data: unknown): User | null {
 }
 
 export const authApi = {
-
   async login(email: string, password: string): Promise<LoginResponse> {
-    const { data } = await api.post<unknown>('/login', { email, password });
-    const user = pickUser(data);
+    const res = await http.fetchPost<unknown>('/login', { email, password });
+    throwOnError(res, 'Ошибка входа');
+    const user = pickUser(res.data);
     if (!user) throw new Error('Сервер не вернул пользователя');
     return { user };
   },
@@ -82,42 +62,42 @@ export const authApi = {
     password: string;
     password_confirmation: string;
   }): Promise<RegisterResponse> {
-    const { data } = await api.post<unknown>('/register', payload);
-    const user = pickUser(data);
+    const res = await http.fetchPost<unknown>('/register', payload);
+    throwOnError(res, 'Ошибка регистрации');
+    const user = pickUser(res.data);
     if (!user) throw new Error('Сервер не вернул пользователя');
     return { user };
   },
 
   async logout(): Promise<void> {
-    try {
-      await api.post('/logout');
-    } finally {
-
+    const res = await http.fetchPost<unknown>('/logout');
+    if (res.status >= 400) {
+      // всё равно считаем выход выполненным
     }
   },
 
   async getUser(): Promise<User | null> {
-    try {
-      const { data } = await api.get<unknown>('/user');
-      const user = pickUser(data) ?? pickUser((data as Record<string, unknown>)?.user);
-      return user ?? null;
-    } catch {
-      return null;
-    }
+    const res = await http.fetchGet<unknown>('/user');
+    if (res.status >= 400) return null;
+    const user = pickUser(res.data) ?? pickUser((res.data as Record<string, unknown>)?.user);
+    return user ?? null;
   },
 
   async forgotPassword(email: string): Promise<{ message: string }> {
-    const { data } = await api.post<{ message?: string }>('/forgot-password', { email });
-    return { message: data?.message ?? '' };
+    const res = await http.fetchPost<{ message?: string }>('/forgot-password', { email });
+    throwOnError(res, 'Ошибка');
+    return { message: res.data?.message ?? '' };
   },
 
   async resetPassword(payload: {
+    token: string;
     email: string;
     password: string;
     password_confirmation: string;
   }): Promise<{ message: string }> {
-    const { data } = await api.post<{ message?: string }>('/reset-password', payload);
-    return { message: data?.message ?? '' };
+    const res = await http.fetchPost<{ message?: string }>('/reset-password', payload);
+    throwOnError(res, 'Ошибка');
+    return { message: res.data?.message ?? '' };
   },
 
   async updatePassword(payload: {
@@ -125,7 +105,8 @@ export const authApi = {
     password: string;
     password_confirmation: string;
   }): Promise<{ message: string }> {
-    const { data } = await api.put<{ message?: string }>('/user/password', payload);
-    return { message: data?.message ?? '' };
+    const res = await http.fetchPut<{ message?: string }>('/user/password', payload);
+    throwOnError(res, 'Ошибка');
+    return { message: res.data?.message ?? '' };
   },
 };

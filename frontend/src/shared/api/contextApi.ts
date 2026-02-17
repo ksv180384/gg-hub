@@ -1,24 +1,9 @@
 /**
  * API контекста сайта (субдомен: admin / игра по слагу).
+ * X-Site-Host добавляется в http-interceptors.
  */
 
-import axios, { type AxiosError } from 'axios';
-
-const BASE = '/api/v1';
-
-const api = axios.create({
-  baseURL: BASE,
-  headers: { Accept: 'application/json' },
-  withCredentials: true,
-});
-
-// Чтобы бэкенд определял контекст по субдомену при прокси (dev)
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined' && window.location?.host) {
-    config.headers.set('X-Site-Host', window.location.host);
-  }
-  return config;
-});
+import { http } from '@/shared/api/http';
 
 export interface GameContext {
   id: number;
@@ -37,7 +22,10 @@ export interface SiteContextData {
 
 export const contextApi = {
   async getContext(): Promise<SiteContextData> {
-    const { data } = await api.get<{ data: SiteContextData }>('/context');
-    return (data as { data?: SiteContextData })?.data ?? (data as unknown as SiteContextData);
+    const res = await http.fetchGet<{ data: SiteContextData } | SiteContextData>('/context');
+    const data = res.data;
+    if (!data) throw new Error('Нет данных контекста');
+    const wrapped = data as { data?: SiteContextData };
+    return wrapped?.data ?? (data as SiteContextData);
   },
 };
