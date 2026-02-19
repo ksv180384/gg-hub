@@ -12,7 +12,8 @@ class UpdateUserRolesPermissionsAction
     public function execute(User $user, array $data): User
     {
         if (array_key_exists('role_ids', $data)) {
-            $user->roles()->sync($data['role_ids']);
+            $roleIds = $data['role_ids'];
+            $user->roles()->sync(is_array($roleIds) && count($roleIds) > 0 ? [reset($roleIds)] : []);
         }
         if (array_key_exists('permission_ids', $data)) {
             $user->directPermissions()->sync($data['permission_ids']);

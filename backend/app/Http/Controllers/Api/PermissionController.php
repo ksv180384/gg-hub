@@ -25,6 +25,10 @@ class PermissionController extends Controller
 
     public function store(StorePermissionRequest $request): JsonResponse
     {
+        $user = $request->user();
+        if (!$user || !in_array('obshhie-roli', $user->getAllPermissionSlugs(), true)) {
+            abort(403, 'Недостаточно прав для создания прав.');
+        }
         $permission = $this->createPermissionAction->execute($request->validated());
         return (new PermissionResource($permission))->response()->setStatusCode(201);
     }

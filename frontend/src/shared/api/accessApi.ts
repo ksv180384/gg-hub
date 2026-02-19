@@ -4,6 +4,9 @@
 
 import { http } from '@/shared/api/http';
 
+/** Слаг права: создание и редактирование ролей, прав и категорий прав. */
+export const PERMISSION_MANAGE_ROLES = 'obshhie-roli';
+
 export interface PermissionGroupDto {
   id: number;
   name: string;
@@ -64,6 +67,26 @@ export interface UserRolesPermissionsResponse {
     permissions: string[];
     roles: { id: number; name: string; slug: string }[];
   };
+}
+
+/** Пользователь в админке (список / карточка). */
+export interface AdminUserDto {
+  id: number;
+  name: string;
+  email: string;
+  banned_at: string | null;
+  permissions: string[];
+  roles: { id: number; name: string; slug: string }[];
+}
+
+/** Ответ сервера: список пользователей. */
+export interface UsersListResponse {
+  data: AdminUserDto[];
+}
+
+/** Ответ сервера: один пользователь. */
+export interface UserResponse {
+  data: AdminUserDto;
 }
 
 function unwrap<T>(res: { data: T | null; status: number }): T {
@@ -142,9 +165,27 @@ export const accessApi = {
   ): Promise<{ permissions: string[]; roles: { id: number; name: string; slug: string }[] }> {
     const res = await http.fetchPut<UserRolesPermissionsResponse>(
       `/users/${userId}/roles-permissions`,
-      payload
+      payload as unknown as Record<string, unknown>
     );
     const data = unwrap(res) as UserRolesPermissionsResponse;
     return data?.data ?? { permissions: [], roles: [] };
+  },
+
+  async getUsers(): Promise<AdminUserDto[]> {
+    const res = await http.fetchGet<UsersListResponse>('/users');
+    const data = unwrap(res) as UsersListResponse;
+    return data?.data ?? [];
+  },
+
+  async getUser(userId: number): Promise<AdminUserDto> {
+    const res = await http.fetchGet<UserResponse>(`/users/${userId}`);
+    const data = unwrap(res) as UserResponse;
+    return data?.data ?? (unwrap(res) as unknown as AdminUserDto);
+  },
+
+  async updateUserBan(userId: number, banned: boolean): Promise<AdminUserDto> {
+    const res = await http.fetchPut<UserResponse>(`/users/${userId}`, { banned } as unknown as Record<string, unknown>);
+    const data = unwrap(res) as UserResponse;
+    return data?.data ?? (unwrap(res) as unknown as AdminUserDto);
   },
 };

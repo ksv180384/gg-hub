@@ -2,7 +2,10 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, TooltipProvider, Tooltip } from '@/shared/ui';
-import { accessApi, type PermissionGroupDto } from '@/shared/api/accessApi';
+import { useAuthStore } from '@/stores/auth';
+import { accessApi, type PermissionGroupDto, PERMISSION_MANAGE_ROLES } from '@/shared/api/accessApi';
+
+const auth = useAuthStore();
 
 function slugFromName(name: string): string {
   return name
@@ -45,6 +48,10 @@ async function loadRole() {
 }
 
 onMounted(async () => {
+  if (!auth.hasPermission(PERMISSION_MANAGE_ROLES)) {
+    router.replace('/admin/roles');
+    return;
+  }
   try {
     const [groupsData, _] = await Promise.all([accessApi.getPermissionGroups(), loadRole()]);
     groups.value = groupsData;

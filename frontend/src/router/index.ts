@@ -47,6 +47,18 @@ const router = createRouter({
         { path: 'characters', name: 'characters', component: () => import('@/pages/characters/index.vue') },
         { path: 'guild', name: 'guild', component: () => import('@/pages/guild/index.vue') },
         {
+          path: 'admin/users',
+          name: 'admin-users',
+          component: () => import('@/pages/admin/users/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/users/:id',
+          name: 'admin-users-show',
+          component: () => import('@/pages/admin/users/[id]/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
           path: 'admin/roles',
           name: 'admin-roles',
           component: () => import('@/pages/admin/roles/index.vue'),

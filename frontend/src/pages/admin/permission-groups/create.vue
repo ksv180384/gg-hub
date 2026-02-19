@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label } from '@/shared/ui';
-import { accessApi } from '@/shared/api/accessApi';
+import { useAuthStore } from '@/stores/auth';
+import { accessApi, PERMISSION_MANAGE_ROLES } from '@/shared/api/accessApi';
+
+const auth = useAuthStore();
 
 function slugFromName(name: string): string {
   return name
@@ -23,6 +26,12 @@ const error = ref<string | null>(null);
 const suggestedSlug = computed(() => slugFromName(name.value));
 const effectiveSlug = computed(() => (slug.value.trim() || suggestedSlug.value));
 const canSubmit = computed(() => name.value.trim().length);
+
+onMounted(() => {
+  if (!auth.hasPermission(PERMISSION_MANAGE_ROLES)) {
+    router.replace('/admin/permission-groups');
+  }
+});
 
 async function submit() {
   if (!canSubmit.value) return;

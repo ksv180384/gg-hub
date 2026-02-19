@@ -23,6 +23,42 @@ class AccessSeeder extends Seeder
             ]
         );
 
+        Permission::firstOrCreate(
+            ['slug' => 'zablokirovat-polzovatelia'],
+            [
+                'name' => 'Блокировка пользователей',
+                'description' => 'Право блокировать и разблокировать пользователей',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            ['slug' => 'izmeniat-rol-polzovatelia'],
+            [
+                'name' => 'Изменение роли пользователя',
+                'description' => 'Право назначать и менять роль пользователя',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            ['slug' => 'izmeniat-prava-polzovatelia'],
+            [
+                'name' => 'Изменение прав пользователя',
+                'description' => 'Право назначать и менять права пользователя',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            ['slug' => 'obshhie-roli'],
+            [
+                'name' => 'Общие роли и права',
+                'description' => 'Создание и редактирование ролей, прав и категорий прав',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
         $gamesGroup = PermissionGroup::firstOrCreate(
             ['slug' => 'games'],
             ['name' => 'Игры']
@@ -41,6 +77,14 @@ class AccessSeeder extends Seeder
             [
                 'name' => 'Администратор',
                 'description' => 'Полный доступ ко всем разделам',
+            ]
+        );
+
+        Role::firstOrCreate(
+            ['slug' => 'polzovatel'],
+            [
+                'name' => 'Пользователь',
+                'description' => 'Роль по умолчанию для зарегистрированных пользователей',
             ]
         );
     }

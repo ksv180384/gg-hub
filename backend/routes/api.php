@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\LocalizationController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PermissionGroupController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
 use Illuminate\Http\Request;
@@ -45,6 +46,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/roles', [RoleController::class, 'store']);
         Route::get('/roles/{role}', [RoleController::class, 'show']);
         Route::put('/roles/{role}', [RoleController::class, 'update']);
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{user}', [AdminUserController::class, 'show']);
+        Route::put('/users/{user}', [AdminUserController::class, 'update']);
         Route::put('/users/{user}/roles-permissions', [UserRolePermissionController::class, 'update']);
     });
 });

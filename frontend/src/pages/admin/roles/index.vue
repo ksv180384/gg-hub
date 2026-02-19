@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
-import { accessApi, type RoleDto } from '@/shared/api/accessApi';
+import { useAuthStore } from '@/stores/auth';
+import { accessApi, type RoleDto, PERMISSION_MANAGE_ROLES } from '@/shared/api/accessApi';
 
+const auth = useAuthStore();
+const canManageRoles = computed(() => auth.hasPermission(PERMISSION_MANAGE_ROLES));
 const roles = ref<RoleDto[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -23,7 +26,7 @@ onMounted(async () => {
   <div class="container py-6">
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-semibold">Роли пользователей</h1>
-      <RouterLink to="/admin/roles/create">
+      <RouterLink v-if="canManageRoles" to="/admin/roles/create">
         <Button>Добавить роль</Button>
       </RouterLink>
     </div>
@@ -36,7 +39,7 @@ onMounted(async () => {
             <CardTitle class="text-base">{{ role.name }} ({{ role.slug }})</CardTitle>
             <p v-if="role.description" class="mt-1 text-sm text-muted-foreground">{{ role.description }}</p>
           </div>
-          <RouterLink :to="`/admin/roles/${role.id}/edit`">
+          <RouterLink v-if="canManageRoles" :to="`/admin/roles/${role.id}/edit`">
             <Button variant="outline" size="sm">Изменить</Button>
           </RouterLink>
         </CardHeader>

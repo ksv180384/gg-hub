@@ -15,7 +15,10 @@ import {
   SelectContent,
   SelectItem,
 } from '@/shared/ui';
-import { accessApi, type PermissionGroupDto } from '@/shared/api/accessApi';
+import { useAuthStore } from '@/stores/auth';
+import { accessApi, type PermissionGroupDto, PERMISSION_MANAGE_ROLES } from '@/shared/api/accessApi';
+
+const auth = useAuthStore();
 
 function slugFromName(name: string): string {
   return name
@@ -52,6 +55,10 @@ const canSubmit = computed(
 );
 
 onMounted(async () => {
+  if (!auth.hasPermission(PERMISSION_MANAGE_ROLES)) {
+    router.replace('/admin/permissions');
+    return;
+  }
   try {
     groups.value = await accessApi.getPermissionGroups();
     const first = groups.value[0];

@@ -25,6 +25,10 @@ class PermissionGroupController extends Controller
 
     public function store(StorePermissionGroupRequest $request): JsonResponse
     {
+        $user = $request->user();
+        if (!$user || !in_array('obshhie-roli', $user->getAllPermissionSlugs(), true)) {
+            abort(403, 'Недостаточно прав для создания категорий прав.');
+        }
         $group = $this->createPermissionGroupAction->execute($request->validated());
         return (new PermissionGroupResource($group))->response()->setStatusCode(201);
     }

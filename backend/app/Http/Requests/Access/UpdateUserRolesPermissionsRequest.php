@@ -17,7 +17,7 @@ class UpdateUserRolesPermissionsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'role_ids' => ['sometimes', 'array'],
+            'role_ids' => ['sometimes', 'array', 'max:1'],
             'role_ids.*' => ['integer', 'exists:roles,id'],
             'permission_ids' => ['sometimes', 'array'],
             'permission_ids.*' => ['integer', 'exists:permissions,id'],
@@ -30,7 +30,8 @@ class UpdateUserRolesPermissionsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'role_ids.array' => 'Список ролей должен быть массивом.',
+            'role_ids.array' => 'Роль должна быть указана массивом с одним элементом.',
+            'role_ids.max' => 'Пользователю можно назначить только одну роль.',
             'role_ids.*.integer' => 'Каждый идентификатор роли должен быть числом.',
             'role_ids.*.exists' => 'Одна или несколько указанных ролей не найдены.',
             'permission_ids.array' => 'Список прав должен быть массивом.',

@@ -37,12 +37,20 @@ class RoleController extends Controller
 
     public function store(StoreRoleRequest $request): JsonResponse
     {
+        $user = $request->user();
+        if (!$user || !in_array('obshhie-roli', $user->getAllPermissionSlugs(), true)) {
+            abort(403, 'Недостаточно прав для создания ролей.');
+        }
         $role = $this->createRoleAction->execute($request->validated());
         return (new RoleResource($role))->response()->setStatusCode(201);
     }
 
     public function update(UpdateRoleRequest $request, Role $role): RoleResource
     {
+        $user = $request->user();
+        if (!$user || !in_array('obshhie-roli', $user->getAllPermissionSlugs(), true)) {
+            abort(403, 'Недостаточно прав для редактирования ролей.');
+        }
         $role = $this->updateRoleAction->execute($role, $request->validated());
         return new RoleResource($role);
     }

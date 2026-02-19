@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
-import { accessApi, type PermissionGroupDto } from '@/shared/api/accessApi';
+import { useAuthStore } from '@/stores/auth';
+import { accessApi, type PermissionGroupDto, PERMISSION_MANAGE_ROLES } from '@/shared/api/accessApi';
 
+const auth = useAuthStore();
+const canManageRoles = computed(() => auth.hasPermission(PERMISSION_MANAGE_ROLES));
 const groups = ref<PermissionGroupDto[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -23,7 +26,7 @@ onMounted(async () => {
   <div class="container py-6">
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-semibold">Категории прав</h1>
-      <RouterLink to="/admin/permission-groups/create">
+      <RouterLink v-if="canManageRoles" to="/admin/permission-groups/create">
         <Button>Добавить категорию</Button>
       </RouterLink>
     </div>

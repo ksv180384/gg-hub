@@ -2,7 +2,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, TooltipProvider, Tooltip } from '@/shared/ui';
-import { accessApi, type PermissionGroupDto } from '@/shared/api/accessApi';
+import { useAuthStore } from '@/stores/auth';
+import { accessApi, type PermissionGroupDto, PERMISSION_MANAGE_ROLES } from '@/shared/api/accessApi';
+
+const auth = useAuthStore();
 
 function slugFromName(name: string): string {
   return name
@@ -25,7 +28,7 @@ const error = ref<string | null>(null);
 
 const suggestedSlug = computed(() => slugFromName(name.value));
 const effectiveSlug = computed(() => (slug.value.trim() || suggestedSlug.value));
-const canSubmit = computed(() => name.value.trim().length > 0 && effectiveSlug.value.length > 0);
+const canSubmit = computed(() => name.value.trim().length > 0);
 
 function togglePermission(id: number) {
   const idx = selectedPermissionIds.value.indexOf(id);
@@ -36,6 +39,10 @@ function togglePermission(id: number) {
 const hasAnyPermissions = computed(() => groups.value.some((g) => g.permissions?.length));
 
 onMounted(async () => {
+  if (!auth.hasPermission(PERMISSION_MANAGE_ROLES)) {
+    router.replace('/admin/roles');
+    return;
+  }
   try {
     groups.value = await accessApi.getPermissionGroups();
   } catch {

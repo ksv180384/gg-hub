@@ -17,7 +17,19 @@ class UserRolePermissionController extends Controller
 
     public function update(UpdateUserRolesPermissionsRequest $request, User $user): JsonResponse
     {
-        $user = $this->updateUserRolesPermissionsAction->execute($user, $request->validated());
+        $data = $request->validated();
+        $currentUser = $request->user();
+        if (array_key_exists('role_ids', $data)) {
+            if (!$currentUser || !in_array('izmeniat-rol-polzovatelia', $currentUser->getAllPermissionSlugs(), true)) {
+                abort(403, 'Недостаточно прав для изменения роли пользователя.');
+            }
+        }
+        if (array_key_exists('permission_ids', $data)) {
+            if (!$currentUser || !in_array('izmeniat-prava-polzovatelia', $currentUser->getAllPermissionSlugs(), true)) {
+                abort(403, 'Недостаточно прав для изменения прав пользователя.');
+            }
+        }
+        $user = $this->updateUserRolesPermissionsAction->execute($user, $data);
         return (new UserRolesPermissionsResource($user))->response();
     }
 }

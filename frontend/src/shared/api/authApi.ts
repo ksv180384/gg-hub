@@ -75,7 +75,7 @@ export interface UpdatePasswordPayload {
 const ROLE_ADMIN_SLUG = 'admin';
 
 /** Слаг права доступа к админ-субдомену и разделам управления (роли, права и т.д.). */
-export const PERMISSION_ACCESS_ADMIN = 'access.admin';
+export const PERMISSION_ACCESS_ADMIN = 'admnistrirovanie';
 
 function pickUser(data: unknown): User | null {
   if (!data || typeof data !== 'object') return null;
