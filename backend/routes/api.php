@@ -36,7 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/games/{game}/localizations', [LocalizationController::class, 'store'])->middleware('admin.subdomain');
     Route::post('/guilds', [GuildController::class, 'store'])->middleware('admin.subdomain');
 
-    Route::middleware('admin.subdomain')->group(function () {
+    Route::middleware(['admin.subdomain', 'permission:access.admin'])->group(function () {
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
         Route::post('/permission-groups', [PermissionGroupController::class, 'store']);
         Route::get('/permissions', [PermissionController::class, 'index']);

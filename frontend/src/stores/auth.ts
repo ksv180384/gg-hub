@@ -1,6 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { authApi, type User, ROLE_ADMIN_SLUG } from '@/shared/api/authApi';
+import {
+  authApi,
+  type RegisterPayload,
+  type ResetPasswordPayload,
+  type UpdatePasswordPayload,
+  type User,
+  ROLE_ADMIN_SLUG,
+} from '@/shared/api/authApi';
+import { getErrorMessage } from '@/shared/lib/errorMessage';
 import router from '@/router';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -48,20 +56,14 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = data.user;
       return data;
     } catch (e: unknown) {
-      const err = e as { errors?: Record<string, string[]>; message?: string };
-      error.value = err.errors?.email?.[0] ?? err.message ?? 'Ошибка входа';
+      error.value = getErrorMessage(e, { fields: ['email'], fallback: 'Ошибка входа' });
       throw e;
     } finally {
       loading.value = false;
     }
   }
 
-  async function register(payload: {
-    name: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-  }) {
+  async function register(payload: RegisterPayload) {
     loading.value = true;
     error.value = null;
     try {
@@ -69,9 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = data.user;
       return data;
     } catch (e: unknown) {
-      const err = e as { errors?: Record<string, string[]>; message?: string };
-      const firstError = err.errors ? Object.values(err.errors).flat()[0] : err.message;
-      error.value = firstError ?? 'Ошибка регистрации';
+      error.value = getErrorMessage(e, { fallback: 'Ошибка регистрации' });
       throw e;
     } finally {
       loading.value = false;
@@ -98,46 +98,36 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       return await authApi.forgotPassword(email);
     } catch (e: unknown) {
-      const err = e as { errors?: Record<string, string[]>; message?: string };
-      error.value = err.errors?.email?.[0] ?? err.message ?? 'Ошибка';
+      error.value = getErrorMessage(e, { fields: ['email'] });
       throw e;
     } finally {
       loading.value = false;
     }
   }
 
-  async function resetPassword(payload: {
-    token: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-  }) {
+  async function resetPassword(payload: ResetPasswordPayload) {
     loading.value = true;
     error.value = null;
     try {
       return await authApi.resetPassword(payload);
     } catch (e: unknown) {
-      const err = e as { errors?: Record<string, string[]>; message?: string };
-      error.value = err.errors?.email?.[0] ?? err.message ?? 'Ошибка';
+      error.value = getErrorMessage(e, { fields: ['email'] });
       throw e;
     } finally {
       loading.value = false;
     }
   }
 
-  async function updatePassword(payload: {
-    current_password: string;
-    password: string;
-    password_confirmation: string;
-  }) {
+  async function updatePassword(payload: UpdatePasswordPayload) {
     loading.value = true;
     error.value = null;
     try {
       return await authApi.updatePassword(payload);
     } catch (e: unknown) {
-      const err = e as { errors?: Record<string, string[]>; message?: string };
-      error.value =
-        err.errors?.current_password?.[0] ?? err.errors?.password?.[0] ?? err.message ?? 'Ошибка';
+      error.value = getErrorMessage(e, {
+        fields: ['current_password', 'password'],
+        fallback: 'Ошибка',
+      });
       throw e;
     } finally {
       loading.value = false;

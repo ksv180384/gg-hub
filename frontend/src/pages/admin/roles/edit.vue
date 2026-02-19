@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label } from '@/shared/ui';
-import { accessApi, type PermissionDto } from '@/shared/api/accessApi';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, TooltipProvider, Tooltip } from '@/shared/ui';
+import { accessApi, type PermissionGroupDto } from '@/shared/api/accessApi';
 
 function slugFromName(name: string): string {
   return name
@@ -17,7 +17,7 @@ function slugFromName(name: string): string {
 const router = useRouter();
 const route = useRoute();
 const roleId = computed(() => Number(route.params.id));
-const permissions = ref<PermissionDto[]>([]);
+const groups = ref<PermissionGroupDto[]>([]);
 const name = ref('');
 const slug = ref('');
 const description = ref('');
@@ -46,8 +46,8 @@ async function loadRole() {
 
 onMounted(async () => {
   try {
-    const [perms, _] = await Promise.all([accessApi.getPermissions(), loadRole()]);
-    permissions.value = perms;
+    const [groupsData, _] = await Promise.all([accessApi.getPermissionGroups(), loadRole()]);
+    groups.value = groupsData;
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка загрузки';
   } finally {
@@ -78,51 +78,75 @@ async function submit() {
 </script>
 
 <template>
-  <div class="container max-w-lg py-6">
-    <Card>
-      <CardHeader>
-        <CardTitle>Редактировать роль</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
-        <div v-if="loading" class="text-sm text-muted-foreground">Загрузка…</div>
-        <template v-else>
-          <div class="space-y-2">
-            <Label for="name">Название</Label>
-            <Input id="name" v-model="name" />
-          </div>
-          <div class="space-y-2">
-            <Label for="slug">Слаг</Label>
-            <Input id="slug" v-model="slug" />
-          </div>
-          <div class="space-y-2">
-            <Label for="description">Описание</Label>
-            <Input id="description" v-model="description" />
-          </div>
-          <div class="space-y-2">
-            <Label>Права</Label>
-            <div class="mt-2 max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
-              <label
-                v-for="p in permissions"
-                :key="p.id"
-                class="flex cursor-pointer items-center gap-2 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  :checked="selectedPermissionIds.includes(p.id)"
-                  @change="togglePermission(p.id)"
-                />
-                <span>{{ p.name }}</span>
-                <span class="text-muted-foreground">({{ p.slug }})</span>
-              </label>
+  <div class="container max-w-5xl py-6">
+    <div class="flex flex-col gap-6 sm:flex-row">
+      <!-- Левая колонка: форма (sticky) -->
+      <div class="sm:w-80 sm:shrink-0 sm:sticky sm:top-6 sm:self-start">
+        <Card>
+          <CardHeader>
+            <CardTitle>Редактировать роль</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+            <div v-if="loading" class="text-sm text-muted-foreground">Загрузка…</div>
+            <template v-else>
+              <div class="space-y-2">
+                <Label for="name">Название</Label>
+                <Input id="name" v-model="name" />
+              </div>
+              <div class="space-y-2">
+                <Label for="slug">Слаг</Label>
+                <Input id="slug" v-model="slug" />
+              </div>
+              <div class="space-y-2">
+                <Label for="description">Описание</Label>
+                <Input id="description" v-model="description" />
+              </div>
+              <div class="flex gap-2 pt-2">
+                <Button :disabled="!canSubmit || submitting" @click="submit">Сохранить</Button>
+                <Button variant="outline" @click="router.push('/admin/roles')">Отмена</Button>
+              </div>
+            </template>
+          </CardContent>
+        </Card>
+      </div>
+      <!-- Правая колонка: права -->
+      <div class="sm:min-w-0 sm:flex-1">
+      <Card>
+        <CardHeader>
+          <CardTitle class="text-base">Права</CardTitle>
+          <p class="text-xs text-muted-foreground">Отметьте права, которые получают пользователи с этой ролью.</p>
+        </CardHeader>
+        <CardContent>
+          <TooltipProvider>
+            <div class="max-h-[calc(100vh-12rem)] space-y-4 overflow-y-auto rounded-md border p-3">
+              <div v-for="group in groups" :key="group.id" class="space-y-2">
+                <div class="text-xs font-medium text-muted-foreground">{{ group.name }}</div>
+                <div class="space-y-1.5 pl-1">
+                  <Tooltip
+                    v-for="p in (group.permissions ?? [])"
+                    :key="p.id"
+                    :content="p.description ?? ''"
+                  >
+                    <label
+                      class="flex cursor-pointer items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        :checked="selectedPermissionIds.includes(p.id)"
+                        @change="togglePermission(p.id)"
+                      />
+                      <span>{{ p.name }}</span>
+                      <span class="text-muted-foreground">({{ p.slug }})</span>
+                    </label>
+                  </Tooltip>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="flex gap-2 pt-2">
-            <Button :disabled="!canSubmit || submitting" @click="submit">Сохранить</Button>
-            <Button variant="outline" @click="router.push('/admin/roles')">Отмена</Button>
-          </div>
-        </template>
-      </CardContent>
-    </Card>
+          </TooltipProvider>
+        </CardContent>
+      </Card>
+      </div>
+    </div>
   </div>
 </template>

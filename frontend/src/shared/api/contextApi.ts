@@ -20,12 +20,17 @@ export interface SiteContextData {
   game: GameContext | null;
 }
 
+/** Ответ сервера: контекст сайта (GET /context). */
+export interface ContextResponse {
+  data: SiteContextData;
+}
+
 export const contextApi = {
   async getContext(): Promise<SiteContextData> {
-    const res = await http.fetchGet<{ data: SiteContextData } | SiteContextData>('/context');
+    const res = await http.fetchGet<ContextResponse | SiteContextData>('/context');
     const data = res.data;
     if (!data) throw new Error('Нет данных контекста');
-    const wrapped = data as { data?: SiteContextData };
+    const wrapped = data as ContextResponse;
     return wrapped?.data ?? (data as SiteContextData);
   },
 };

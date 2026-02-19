@@ -36,9 +36,15 @@ export interface Guild {
   server?: GuildServer;
 }
 
+/** Ответ сервера: список гильдий с пагинацией (GET /guilds). */
 export interface GuildsListResponse {
   data: Guild[];
   meta: { current_page: number; last_page: number; per_page: number; total: number };
+}
+
+/** Ответ сервера при ошибке (message). */
+export interface ErrorMessageResponse {
+  message?: string;
 }
 
 export const guildsApi = {
@@ -48,7 +54,7 @@ export const guildsApi = {
   }> {
     const res = await http.fetchGet<GuildsListResponse>('/guilds', { params });
     if (res.status >= 400) {
-      const d = res.data as { message?: string } | null;
+      const d = res.data as ErrorMessageResponse | null;
       throw new Error(d?.message ?? 'Ошибка загрузки гильдий');
     }
     const data = res.data as GuildsListResponse | null;

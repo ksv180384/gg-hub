@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import MainLayout from '@/app/layouts/MainLayout.vue';
-import { ROLE_ADMIN_SLUG } from '@/shared/api/authApi';
+import { PERMISSION_ACCESS_ADMIN } from '@/shared/api/authApi';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 
@@ -8,7 +8,7 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** Редирект на логин при 401 только если текущая страница для авторизованных */
     requiresAuth?: boolean;
-    /** Требуемый permission (slug). Если у пользователя роль Admin — доступ разрешён ко всем. */
+    /** Требуемый permission (slug). Если у пользователя роль Admin — доступ разрешён ко всем (hasPermission в store). */
     permission?: string;
   }
 }
@@ -50,43 +50,43 @@ const router = createRouter({
           path: 'admin/roles',
           name: 'admin-roles',
           component: () => import('@/pages/admin/roles/index.vue'),
-          meta: { requiresAuth: true, permission: 'access.admin' },
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
           path: 'admin/permissions',
           name: 'admin-permissions',
           component: () => import('@/pages/admin/permissions/index.vue'),
-          meta: { requiresAuth: true, permission: 'access.admin' },
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
           path: 'admin/permission-groups',
           name: 'admin-permission-groups',
           component: () => import('@/pages/admin/permission-groups/index.vue'),
-          meta: { requiresAuth: true, permission: 'access.admin' },
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
           path: 'admin/permission-groups/create',
           name: 'admin-permission-groups-create',
           component: () => import('@/pages/admin/permission-groups/create.vue'),
-          meta: { requiresAuth: true, permission: 'access.admin' },
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
           path: 'admin/permissions/create',
           name: 'admin-permissions-create',
           component: () => import('@/pages/admin/permissions/create.vue'),
-          meta: { requiresAuth: true, permission: 'access.admin' },
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
           path: 'admin/roles/create',
           name: 'admin-roles-create',
           component: () => import('@/pages/admin/roles/create.vue'),
-          meta: { requiresAuth: true, permission: 'access.admin' },
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
           path: 'admin/roles/:id/edit',
           name: 'admin-roles-edit',
           component: () => import('@/pages/admin/roles/edit.vue'),
-          meta: { requiresAuth: true, permission: 'access.admin' },
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
       ],
     },
@@ -106,18 +106,14 @@ router.beforeEach(async (to) => {
   await siteContext.fetchContext();
   await auth.fetchUser();
 
-  // Админ-субдомен доступен только пользователям с ролью Admin. Загружаем user по возврату, не по стору.
+  // Админ-субдомен доступен только пользователям с правом «Администрирование» (access.admin).
   if (typeof window !== 'undefined') {
     const host = window.location.host;
     const isOnAdminSubdomain = host.startsWith('admin.');
-    if (isOnAdminSubdomain) {
-      const user = auth.user;
-      const hasAdminRole = user?.roles?.some((r) => r.slug === ROLE_ADMIN_SLUG) ?? false;
-      if (!hasAdminRole) {
-        const mainHost = host.replace(/^admin\./, '');
-        window.location.href = `${window.location.protocol}//${mainHost}/`;
-        return false;
-      }
+    if (isOnAdminSubdomain && !auth.hasPermission(PERMISSION_ACCESS_ADMIN)) {
+      const mainHost = host.replace(/^admin\./, '');
+      window.location.href = `${window.location.protocol}//${mainHost}/`;
+      return false;
     }
   }
 

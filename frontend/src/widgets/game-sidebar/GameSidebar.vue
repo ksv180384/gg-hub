@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
+import { PERMISSION_ACCESS_ADMIN } from '@/shared/api/authApi';
 import { cn } from '@/shared/lib/utils';
 
 const route = useRoute();
@@ -22,8 +23,10 @@ const adminItems = [
   { to: '/admin/permission-groups', label: 'Категории прав' },
 ];
 
-// isAdmin и права — из данных пользователя с сервера (api/v1/user при загрузке страницы)
-const showAdminBlock = computed(() => auth.isAdmin);
+// Блок «Управление» только на админ-субдомене и только при наличии права «Администрирование»
+const showAdminBlock = computed(
+  () => siteContext.isAdmin && auth.hasPermission(PERMISSION_ACCESS_ADMIN)
+);
 
 const sidebarTitle = computed(() => {
   if (showAdminBlock.value) return 'Админ';

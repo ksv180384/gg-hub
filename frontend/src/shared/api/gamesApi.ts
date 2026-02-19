@@ -45,6 +45,21 @@ export interface CreateLocalizationPayload {
   name: string;
 }
 
+/** Ответ сервера: список игр (GET /games). */
+export interface GamesListResponse {
+  data: Game[];
+}
+
+/** Ответ сервера: одна игра (GET/POST/PUT /games, /games/:id). */
+export interface GameResponse {
+  data: Game;
+}
+
+/** Ответ сервера: локализация (POST /games/:id/localizations). */
+export interface LocalizationResponse {
+  data: Localization;
+}
+
 function unwrapData<T>(res: { data: T | null; status: number }, fallback: T): T {
   if (res.status >= 400) {
     const d = res.data as { message?: string; errors?: Record<string, string[]> } | null;
@@ -63,20 +78,20 @@ function unwrapData<T>(res: { data: T | null; status: number }, fallback: T): T 
 
 export const gamesApi = {
   async getGames(): Promise<Game[]> {
-    const res = await http.fetchGet<{ data: Game[] } | Game[]>('/games');
+    const res = await http.fetchGet<GamesListResponse | Game[]>('/games');
     if (res.status >= 400) {
       const d = res.data as { message?: string } | null;
       throw new Error(d?.message ?? 'Ошибка загрузки игр');
     }
     const data = res.data;
-    return Array.isArray((data as { data?: Game[] })?.data)
-      ? (data as { data: Game[] }).data
+    return Array.isArray((data as GamesListResponse)?.data)
+      ? (data as GamesListResponse).data
       : (Array.isArray(data) ? data : []);
   },
 
   async getGame(id: number): Promise<Game> {
-    const res = await http.fetchGet<{ data: Game } | Game>(`/games/${id}`);
-    return unwrapData(res, {} as Game);
+    const res = await http.fetchGet<GameResponse | Game>(`/games/${id}`);
+    return unwrapData(res, {} as Game) as Game;
   },
 
   async createGame(payload: CreateGamePayload): Promise<Game> {
@@ -85,8 +100,8 @@ export const gamesApi = {
     form.append('slug', payload.slug);
     if (payload.description != null) form.append('description', payload.description);
     if (payload.image) form.append('image', payload.image);
-    const res = await http.fetchPost<{ data: Game } | Game>('/games', form);
-    return unwrapData(res, {} as Game);
+    const res = await http.fetchPost<GameResponse | Game>('/games', form);
+    return unwrapData(res, {} as Game) as Game;
   },
 
   async updateGame(id: number, payload: UpdateGamePayload): Promise<Game> {
@@ -96,20 +111,20 @@ export const gamesApi = {
     if (payload.description != null) form.append('description', payload.description);
     if (payload.remove_image) form.append('remove_image', '1');
     if (payload.image) form.append('image', payload.image);
-    const res = await http.fetchPost<{ data: Game } | Game>(`/games/${id}`, form);
-    return unwrapData(res, {} as Game);
+    const res = await http.fetchPost<GameResponse | Game>(`/games/${id}`, form);
+    return unwrapData(res, {} as Game) as Game;
   },
 
   async createLocalization(gameId: number, payload: CreateLocalizationPayload): Promise<Localization> {
-    const res = await http.fetchPost<{ data: Localization } | Localization>(
+    const res = await http.fetchPost<LocalizationResponse | Localization>(
       `/games/${gameId}/localizations`,
-      payload
+      payload as unknown as Record<string, unknown>
     );
-    return unwrapData(res, {} as Localization);
+    return unwrapData(res, {} as Localization) as Localization;
   },
 
   async deleteGame(gameId: number): Promise<void> {
-    const res = await http.fetchDelete<unknown>(`/games/${gameId}`);
+    const res = await http.fetchDelete<{ message?: string }>(`/games/${gameId}`);
     if (res.status >= 400) {
       const d = res.data as { message?: string } | null;
       throw new Error(d?.message ?? 'Ошибка удаления');

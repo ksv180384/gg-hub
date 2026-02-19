@@ -29,19 +29,53 @@ export interface User {
   roles?: { id: number; name: string; slug: string }[];
 }
 
+/** Ответ сервера: логин / регистрация (возвращает user). */
 export interface LoginResponse {
   user: User;
 }
 
+/** Ответ сервера: регистрация. */
 export interface RegisterResponse {
   user: User;
 }
 
+/** Ответ сервера: данные текущего пользователя (GET /user). */
 export interface UserResponse {
   user: User;
 }
 
+/** Ответ сервера: сброс пароля, восстановление и т.п. (только message). */
+export interface MessageResponse {
+  message?: string;
+}
+
+/** Тело запроса: регистрация. */
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+/** Тело запроса: сброс пароля (по ссылке из письма). */
+export interface ResetPasswordPayload {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+/** Тело запроса: смена пароля (текущий + новый). */
+export interface UpdatePasswordPayload {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
 const ROLE_ADMIN_SLUG = 'admin';
+
+/** Слаг права доступа к админ-субдомену и разделам управления (роли, права и т.д.). */
+export const PERMISSION_ACCESS_ADMIN = 'access.admin';
 
 function pickUser(data: unknown): User | null {
   if (!data || typeof data !== 'object') return null;
@@ -66,20 +100,15 @@ export { ROLE_ADMIN_SLUG };
 
 export const authApi = {
   async login(email: string, password: string): Promise<LoginResponse> {
-    const res = await http.fetchPost<unknown>('/login', { email, password });
+    const res = await http.fetchPost<LoginResponse>('/login', { email, password });
     throwOnError(res, 'Ошибка входа');
     const user = pickUser(res.data);
     if (!user) throw new Error('Сервер не вернул пользователя');
     return { user };
   },
 
-  async register(payload: {
-    name: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-  }): Promise<RegisterResponse> {
-    const res = await http.fetchPost<unknown>('/register', payload);
+  async register(payload: RegisterPayload): Promise<RegisterResponse> {
+    const res = await http.fetchPost<RegisterResponse>('/register', payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Ошибка регистрации');
     const user = pickUser(res.data);
     if (!user) throw new Error('Сервер не вернул пользователя');
@@ -94,35 +123,26 @@ export const authApi = {
   },
 
   async getUser(): Promise<User | null> {
-    const res = await http.fetchGet<unknown>('/user');
+    const res = await http.fetchGet<UserResponse>('/user');
     if (res.status >= 400) return null;
-    const user = pickUser(res.data) ?? pickUser((res.data as Record<string, unknown>)?.user);
+    const user = pickUser(res.data) ?? pickUser((res.data as unknown as Record<string, unknown>)?.user);
     return user ?? null;
   },
 
   async forgotPassword(email: string): Promise<{ message: string }> {
-    const res = await http.fetchPost<{ message?: string }>('/forgot-password', { email });
+    const res = await http.fetchPost<MessageResponse>('/forgot-password', { email });
     throwOnError(res, 'Ошибка');
     return { message: res.data?.message ?? '' };
   },
 
-  async resetPassword(payload: {
-    token: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-  }): Promise<{ message: string }> {
-    const res = await http.fetchPost<{ message?: string }>('/reset-password', payload);
+  async resetPassword(payload: ResetPasswordPayload): Promise<{ message: string }> {
+    const res = await http.fetchPost<MessageResponse>('/reset-password', payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Ошибка');
     return { message: res.data?.message ?? '' };
   },
 
-  async updatePassword(payload: {
-    current_password: string;
-    password: string;
-    password_confirmation: string;
-  }): Promise<{ message: string }> {
-    const res = await http.fetchPut<{ message?: string }>('/user/password', payload);
+  async updatePassword(payload: UpdatePasswordPayload): Promise<{ message: string }> {
+    const res = await http.fetchPut<MessageResponse>('/user/password', payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Ошибка');
     return { message: res.data?.message ?? '' };
   },

@@ -1,7 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label } from '@/shared/ui';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+  SelectRoot,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/shared/ui';
 import { accessApi, type PermissionGroupDto } from '@/shared/api/accessApi';
 
 function slugFromName(name: string): string {
@@ -26,18 +39,24 @@ const error = ref<string | null>(null);
 
 const suggestedSlug = computed(() => slugFromName(name.value));
 const effectiveSlug = computed(() => (slug.value.trim() || suggestedSlug.value));
+const permissionGroupValue = computed({
+  get: () => (permissionGroupId.value === '' ? '' : String(permissionGroupId.value)),
+  set: (v: string) => {
+    permissionGroupId.value = v === '' ? '' : Number(v);
+  },
+});
 const canSubmit = computed(
   () =>
     name.value.trim().length > 0 &&
-    effectiveSlug.value.length > 0 &&
     permissionGroupId.value !== ''
 );
 
 onMounted(async () => {
   try {
     groups.value = await accessApi.getPermissionGroups();
-    if (groups.value.length && permissionGroupId.value === '') {
-      permissionGroupId.value = groups.value[0].id;
+    const first = groups.value[0];
+    if (first && permissionGroupId.value === '') {
+      permissionGroupId.value = first.id;
     }
   } catch {
     error.value = 'Не удалось загрузить группы прав';
@@ -86,15 +105,24 @@ async function submit() {
           <Input id="description" v-model="description" placeholder="Краткое описание права" />
         </div>
         <div class="space-y-2">
-          <Label for="group">Группа прав</Label>
-          <select
-            id="group"
-            v-model="permissionGroupId"
-            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="">Выберите группу</option>
-            <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }} ({{ g.slug }})</option>
-          </select>
+          <Label>Группа прав</Label>
+          <SelectRoot v-model="permissionGroupValue" :disabled="!groups.length">
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Выберите группу" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem
+                v-for="g in groups"
+                :key="g.id"
+                :value="String(g.id)"
+              >
+                {{ g.name }} ({{ g.slug }})
+              </SelectItem>
+            </SelectContent>
+          </SelectRoot>
+          <p v-if="!groups.length" class="text-xs text-muted-foreground">
+            Сначала создайте категорию прав на странице «Категории прав».
+          </p>
         </div>
         <div class="flex gap-2 pt-2">
           <Button :disabled="!canSubmit || submitting" @click="submit">Создать</Button>
