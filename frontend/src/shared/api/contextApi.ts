@@ -3,6 +3,7 @@
  * X-Site-Host добавляется в http-interceptors.
  */
 
+import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 
 export interface GameContext {
@@ -28,8 +29,8 @@ export interface ContextResponse {
 export const contextApi = {
   async getContext(): Promise<SiteContextData> {
     const res = await http.fetchGet<ContextResponse | SiteContextData>('/context');
+    throwOnError(res, 'Нет данных контекста');
     const data = res.data;
-    if (!data) throw new Error('Нет данных контекста');
     const wrapped = data as ContextResponse;
     return wrapped?.data ?? (data as SiteContextData);
   },

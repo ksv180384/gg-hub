@@ -2,6 +2,7 @@
  * API гильдий.
  */
 
+import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 
 export interface GuildGame {
@@ -53,10 +54,7 @@ export const guildsApi = {
     meta: GuildsListResponse['meta'];
   }> {
     const res = await http.fetchGet<GuildsListResponse>('/guilds', { params });
-    if (res.status >= 400) {
-      const d = res.data as ErrorMessageResponse | null;
-      throw new Error(d?.message ?? 'Ошибка загрузки гильдий');
-    }
+    throwOnError(res, 'Ошибка загрузки гильдий');
     const data = res.data as GuildsListResponse | null;
     const list = Array.isArray(data?.data) ? data.data : [];
     const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 15, total: 0 };

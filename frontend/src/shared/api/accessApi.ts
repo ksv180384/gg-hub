@@ -2,6 +2,7 @@
  * API групп прав, прав, ролей и назначения пользователям.
  */
 
+import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 
 /** Слаг права: создание и редактирование ролей, прав и категорий прав. */
@@ -89,31 +90,43 @@ export interface UserResponse {
   data: AdminUserDto;
 }
 
-function unwrap<T>(res: { data: T | null; status: number }): T {
-  if (res.status >= 400 || !res.data) {
-    const d = res.data as { message?: string } | null;
-    throw new Error(d?.message ?? 'Ошибка запроса');
-  }
-  return res.data as T;
+function unwrapResponse<T>(data: unknown): T {
+  const wrapped = data as { data?: T };
+  return wrapped?.data ?? (data as T);
 }
 
 export const accessApi = {
   async getPermissionGroups(): Promise<PermissionGroupDto[]> {
     const res = await http.fetchGet<PermissionGroupsResponse>('/permission-groups');
-    const data = unwrap(res) as PermissionGroupsResponse;
-    return data?.data ?? [];
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<PermissionGroupDto[]>(res.data) ?? [];
   },
 
   async createPermissionGroup(payload: { name: string; slug: string }): Promise<PermissionGroupDto> {
     const res = await http.fetchPost<PermissionGroupResponse>('/permission-groups', payload);
-    const data = unwrap(res) as PermissionGroupResponse;
-    return data?.data ?? (unwrap(res) as unknown as PermissionGroupDto);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<PermissionGroupDto>(res.data)!;
+  },
+
+  async getPermissionGroup(id: number): Promise<PermissionGroupDto> {
+    const res = await http.fetchGet<PermissionGroupResponse>(`/permission-groups/${id}`);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<PermissionGroupDto>(res.data)!;
+  },
+
+  async updatePermissionGroup(
+    id: number,
+    payload: { name?: string; slug?: string }
+  ): Promise<PermissionGroupDto> {
+    const res = await http.fetchPut<PermissionGroupResponse>(`/permission-groups/${id}`, payload);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<PermissionGroupDto>(res.data)!;
   },
 
   async getPermissions(): Promise<PermissionDto[]> {
     const res = await http.fetchGet<PermissionsResponse>('/permissions');
-    const data = unwrap(res) as PermissionsResponse;
-    return data?.data ?? [];
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<PermissionDto[]>(res.data) ?? [];
   },
 
   async createPermission(payload: {
@@ -123,20 +136,35 @@ export const accessApi = {
     permission_group_id: number;
   }): Promise<PermissionDto> {
     const res = await http.fetchPost<PermissionResponse>('/permissions', payload);
-    const data = unwrap(res) as PermissionResponse;
-    return data?.data ?? (unwrap(res) as unknown as PermissionDto);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<PermissionDto>(res.data)!;
+  },
+
+  async getPermission(id: number): Promise<PermissionDto> {
+    const res = await http.fetchGet<PermissionResponse>(`/permissions/${id}`);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<PermissionDto>(res.data)!;
+  },
+
+  async updatePermission(
+    id: number,
+    payload: { name?: string; slug?: string; description?: string; permission_group_id?: number }
+  ): Promise<PermissionDto> {
+    const res = await http.fetchPut<PermissionResponse>(`/permissions/${id}`, payload);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<PermissionDto>(res.data)!;
   },
 
   async getRoles(): Promise<RoleDto[]> {
     const res = await http.fetchGet<RolesResponse>('/roles');
-    const data = unwrap(res) as RolesResponse;
-    return data?.data ?? [];
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<RoleDto[]>(res.data) ?? [];
   },
 
   async getRole(id: number): Promise<RoleDto> {
     const res = await http.fetchGet<RoleResponse>(`/roles/${id}`);
-    const data = unwrap(res) as RoleResponse;
-    return data?.data ?? (unwrap(res) as unknown as RoleDto);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<RoleDto>(res.data)!;
   },
 
   async createRole(payload: {
@@ -146,8 +174,8 @@ export const accessApi = {
     permission_ids?: number[];
   }): Promise<RoleDto> {
     const res = await http.fetchPost<RoleResponse>('/roles', payload);
-    const data = unwrap(res) as RoleResponse;
-    return data?.data ?? (unwrap(res) as unknown as RoleDto);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<RoleDto>(res.data)!;
   },
 
   async updateRole(
@@ -155,8 +183,8 @@ export const accessApi = {
     payload: { name?: string; slug?: string; description?: string; permission_ids?: number[] }
   ): Promise<RoleDto> {
     const res = await http.fetchPut<RoleResponse>(`/roles/${id}`, payload);
-    const data = unwrap(res) as RoleResponse;
-    return data?.data ?? (unwrap(res) as unknown as RoleDto);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<RoleDto>(res.data)!;
   },
 
   async updateUserRolesPermissions(
@@ -167,25 +195,25 @@ export const accessApi = {
       `/users/${userId}/roles-permissions`,
       payload as unknown as Record<string, unknown>
     );
-    const data = unwrap(res) as UserRolesPermissionsResponse;
-    return data?.data ?? { permissions: [], roles: [] };
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<{ permissions: string[]; roles: { id: number; name: string; slug: string }[] }>(res.data) ?? { permissions: [], roles: [] };
   },
 
   async getUsers(): Promise<AdminUserDto[]> {
     const res = await http.fetchGet<UsersListResponse>('/users');
-    const data = unwrap(res) as UsersListResponse;
-    return data?.data ?? [];
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<AdminUserDto[]>(res.data) ?? [];
   },
 
   async getUser(userId: number): Promise<AdminUserDto> {
     const res = await http.fetchGet<UserResponse>(`/users/${userId}`);
-    const data = unwrap(res) as UserResponse;
-    return data?.data ?? (unwrap(res) as unknown as AdminUserDto);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<AdminUserDto>(res.data)!;
   },
 
   async updateUserBan(userId: number, banned: boolean): Promise<AdminUserDto> {
     const res = await http.fetchPut<UserResponse>(`/users/${userId}`, { banned } as unknown as Record<string, unknown>);
-    const data = unwrap(res) as UserResponse;
-    return data?.data ?? (unwrap(res) as unknown as AdminUserDto);
+    throwOnError(res, 'Ошибка запроса');
+    return unwrapResponse<AdminUserDto>(res.data)!;
   },
 };

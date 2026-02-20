@@ -16,6 +16,7 @@ class Server extends Model
         'name',
         'slug',
         'is_active',
+        'merged_into_server_id',
     ];
 
     protected function casts(): array
@@ -33,5 +34,11 @@ class Server extends Model
     public function localization(): BelongsTo
     {
         return $this->belongsTo(Localization::class);
+    }
+
+    /** Сервер, в который был объединён этот (после merge). */
+    public function mergedInto(): BelongsTo
+    {
+        return $this->belongsTo(Server::class, 'merged_into_server_id');
     }
 }

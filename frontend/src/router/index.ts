@@ -27,18 +27,6 @@ const router = createRouter({
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
         { path: 'games', name: 'games', component: () => import('@/pages/games/index.vue') },
         {
-          path: 'games/create',
-          name: 'games-create',
-          component: () => import('@/pages/games/create/index.vue'),
-          meta: { requiresAuth: true, permission: 'games.manage' },
-        },
-        {
-          path: 'games/:id/edit',
-          name: 'games-edit',
-          component: () => import('@/pages/games/edit/index.vue'),
-          meta: { requiresAuth: true, permission: 'games.manage' },
-        },
-        {
           path: 'profile',
           name: 'profile',
           component: () => import('@/pages/profile/index.vue'),
@@ -87,9 +75,21 @@ const router = createRouter({
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
+          path: 'admin/permission-groups/:id/edit',
+          name: 'admin-permission-groups-edit',
+          component: () => import('@/pages/admin/permission-groups/edit.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
           path: 'admin/permissions/create',
           name: 'admin-permissions-create',
           component: () => import('@/pages/admin/permissions/create.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/permissions/:id/edit',
+          name: 'admin-permissions-edit',
+          component: () => import('@/pages/admin/permissions/edit.vue'),
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
@@ -104,6 +104,24 @@ const router = createRouter({
           component: () => import('@/pages/admin/roles/edit.vue'),
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
+        {
+          path: 'admin/games',
+          name: 'admin-games',
+          component: () => import('@/pages/admin/games/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/games/create',
+          name: 'admin-games-create',
+          component: () => import('@/pages/admin/games/create.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/games/:id/edit',
+          name: 'admin-games-edit',
+          component: () => import('@/pages/admin/games/edit.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
       ],
     },
     { path: '/login', name: 'login', component: () => import('@/pages/auth/login/index.vue') },
@@ -112,9 +130,6 @@ const router = createRouter({
     { path: '/reset-password', name: 'reset-password', component: () => import('@/pages/auth/reset-password/index.vue') },
   ],
 });
-
-// Только эти маршруты требуют админ-субдомен (остальные — только permission)
-const adminSubdomainOnlyRouteNames = ['games-create', 'games-edit'] as const;
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
@@ -138,10 +153,6 @@ router.beforeEach(async (to) => {
     if (auth.isAuthenticated) {
       return { path: '/', replace: true };
     }
-  }
-  const requiresAdminSubdomain = to.name && adminSubdomainOnlyRouteNames.includes(to.name as (typeof adminSubdomainOnlyRouteNames)[number]);
-  if (requiresAdminSubdomain && !siteContext.isAdmin) {
-    return { path: '/games', replace: true };
   }
   const requiredPermission = to.meta.permission as string | undefined;
   if (requiredPermission && auth.isAuthenticated && !auth.hasPermission(requiredPermission)) {

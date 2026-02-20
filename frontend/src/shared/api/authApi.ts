@@ -2,21 +2,8 @@
  * Авторизация (единый http-клиент, base /api/v1 в http.ts).
  */
 
+import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
-import type { HttpResponse } from '@/shared/api/http';
-
-function throwOnError<T>(res: HttpResponse<T>, fallbackMessage: string): asserts res is HttpResponse<T> & { data: T } {
-  if (res.status >= 400) {
-    const data = res.data as { message?: string; errors?: Record<string, string[]> } | null;
-    const err = new Error(data?.message ?? fallbackMessage) as Error & {
-      status?: number;
-      errors?: Record<string, string[]>;
-    };
-    err.status = res.status;
-    err.errors = data?.errors;
-    throw err;
-  }
-}
 
 /** Пользователь; permissions и roles приходят с api/v1/user (и при логине/регистрации). */
 export interface User {

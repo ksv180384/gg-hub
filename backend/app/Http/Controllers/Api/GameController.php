@@ -30,7 +30,7 @@ class GameController extends Controller
 
     public function show(Game $game): GameResource
     {
-        $game->load('localizations');
+        $game->load(['localizations' => fn ($q) => $q->with(['servers' => fn ($q) => $q->whereNull('merged_into_server_id')->orderBy('name')])]);
         return new GameResource($game);
     }
 

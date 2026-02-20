@@ -54,6 +54,9 @@ onMounted(async () => {
                 <span class="ml-2 text-muted-foreground">{{ p.slug }}</span>
                 <p v-if="p.description" class="mt-1 text-xs text-muted-foreground">{{ p.description }}</p>
               </div>
+              <RouterLink v-if="canManageRoles" :to="{ name: 'admin-permissions-edit', params: { id: p.id } }">
+                <Button variant="ghost" size="sm">Редактировать</Button>
+              </RouterLink>
             </li>
           </ul>
           <p v-else class="text-sm text-muted-foreground">Нет прав в группе</p>

@@ -39,6 +39,9 @@ onMounted(async () => {
             <CardTitle class="text-base">{{ group.name }}</CardTitle>
             <p class="mt-1 text-sm text-muted-foreground">Слаг: {{ group.slug }}</p>
           </div>
+          <RouterLink v-if="canManageRoles" :to="{ name: 'admin-permission-groups-edit', params: { id: group.id } }">
+            <Button variant="outline" size="sm">Редактировать</Button>
+          </RouterLink>
         </CardHeader>
         <CardContent v-if="group.permissions?.length">
           <p class="text-xs text-muted-foreground">Права в категории:</p>

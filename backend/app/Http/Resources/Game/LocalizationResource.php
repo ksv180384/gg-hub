@@ -17,6 +17,7 @@ class LocalizationResource extends JsonResource
             'code' => $this->code,
             'name' => $this->name,
             'is_active' => $this->is_active,
+            'servers' => ServerResource::collection($this->whenLoaded('servers')),
         ];
     }
 }

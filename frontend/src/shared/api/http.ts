@@ -55,15 +55,35 @@ const httpClient = ({ baseUrl, defaultHeaders }: HttpConfig): HttpClient => {
       });
       return { data, status };
     } catch (err: unknown) {
+      // Ошибка с response (стандартное поведение axios)
       if (axios.isAxiosError(err) && err.response) {
-        if (err.response.status === 419 && csrfInitialized) {
+        const status = err.response.status ?? 500;
+        const responseData = err.response.data;
+        if (status === 419 && csrfInitialized) {
           await getCsrfToken();
           return request<T>(config);
         }
+        if (status === 422) {
+          const data =
+            responseData != null && typeof responseData === 'object' && ('message' in responseData || 'errors' in responseData)
+              ? (responseData as T)
+              : ({ message: typeof err.message === 'string' ? err.message : 'Ошибка валидации' } as T);
+          return { data, status };
+        }
         return {
-          data: (err.response.data ?? null) as T | null,
-          status: err.response.status ?? 500,
+          data: (responseData ?? null) as T | null,
+          status,
         };
+      }
+      // Ошибка с полями status и message напрямую (без err.response)
+      const errObj = err as { status?: number; message?: string; data?: unknown };
+      if (errObj && typeof errObj === 'object' && typeof errObj.status === 'number') {
+        const status = errObj.status;
+        const data =
+          errObj.data != null && typeof errObj.data === 'object' && ('message' in errObj.data || 'errors' in errObj.data)
+            ? (errObj.data as T)
+            : ({ message: typeof errObj.message === 'string' ? errObj.message : 'Ошибка' } as T);
+        return { data, status };
       }
       return { data: null, status: 500 };
     }

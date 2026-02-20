@@ -18,6 +18,7 @@ const navItems = [
 ];
 
 const adminItems = [
+  { to: '/admin/games', label: 'Игры' },
   { to: '/admin/users', label: 'Пользователи' },
   { to: '/admin/roles', label: 'Роли пользователей' },
   { to: '/admin/permissions', label: 'Права пользователей' },
