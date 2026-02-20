@@ -5,6 +5,7 @@ import {
   type RegisterPayload,
   type ResetPasswordPayload,
   type UpdatePasswordPayload,
+  type UpdateProfilePayload,
   type User,
   ROLE_ADMIN_SLUG,
 } from '@/shared/api/authApi';
@@ -134,6 +135,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateProfile(payload: UpdateProfilePayload) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await authApi.updateProfile(payload);
+      user.value = data.user;
+      return data;
+    } catch (e: unknown) {
+      error.value = getErrorMessage(e, { fields: ['name', 'timezone', 'avatar'], fallback: 'Ошибка сохранения профиля' });
+      throw e;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   function setUser(u: User | null) {
     user.value = u;
   }
@@ -161,6 +177,7 @@ export const useAuthStore = defineStore('auth', () => {
     forgotPassword,
     resetPassword,
     updatePassword,
+    updateProfile,
     setUser,
     clearError,
     setError,

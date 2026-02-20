@@ -23,6 +23,10 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  /** URL аватара (если загружен). */
+  avatar_url?: string | null;
+  /** Часовой пояс пользователя (например Europe/Moscow). */
+  timezone?: string;
   /** Слаги прав доступа (для проверки hasPermission). */
   permissions?: string[];
   /** Роли (isAdmin по slug === 'admin'). */
@@ -72,6 +76,13 @@ export interface UpdatePasswordPayload {
   password_confirmation: string;
 }
 
+/** Тело запроса: обновление профиля (имя, часовой пояс, аватар). */
+export interface UpdateProfilePayload {
+  name: string;
+  timezone?: string;
+  avatar?: File | null;
+}
+
 const ROLE_ADMIN_SLUG = 'admin';
 
 /** Слаг права доступа к админ-субдомену и разделам управления (роли, права и т.д.). */
@@ -89,6 +100,8 @@ function pickUser(data: unknown): User | null {
       id: u.id as number,
       name: (u.name as string) ?? '',
       email: u.email as string,
+      avatar_url: typeof u.avatar_url === 'string' ? u.avatar_url : null,
+      timezone: typeof u.timezone === 'string' ? u.timezone : undefined,
       permissions,
       roles,
     };
@@ -145,5 +158,19 @@ export const authApi = {
     const res = await http.fetchPut<MessageResponse>('/user/password', payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Ошибка');
     return { message: res.data?.message ?? '' };
+  },
+
+  async updateProfile(payload: UpdateProfilePayload): Promise<{ user: User }> {
+    const form = new FormData();
+    form.append('name', payload.name);
+    if (payload.timezone !== undefined) form.append('timezone', payload.timezone ?? 'UTC');
+    if (payload.avatar) {
+      form.append('avatar', payload.avatar, payload.avatar.name || 'avatar.jpg');
+    }
+    const res = await http.fetchPost<UserResponse>('/user', form);
+    throwOnError(res, 'Ошибка сохранения профиля');
+    const user = pickUser(res.data);
+    if (!user) throw new Error('Сервер не вернул пользователя');
+    return { user };
   },
 };

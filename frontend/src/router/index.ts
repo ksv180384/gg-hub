@@ -39,10 +39,14 @@ const router = createRouter({
           meta: { requiresAuth: true, permission: 'games.manage' },
         },
         {
-          path: 'change-password',
-          name: 'change-password',
-          component: () => import('@/pages/auth/change-password/index.vue'),
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/pages/profile/index.vue'),
           meta: { requiresAuth: true },
+        },
+        {
+          path: 'change-password',
+          redirect: { name: 'profile' },
         },
         { path: 'characters', name: 'characters', component: () => import('@/pages/characters/index.vue') },
         { path: 'guild', name: 'guild', component: () => import('@/pages/guild/index.vue') },

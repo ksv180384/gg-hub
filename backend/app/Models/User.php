@@ -26,6 +26,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar',
+        'timezone',
         'banned_at',
     ];
 
@@ -66,6 +68,11 @@ class User extends Authenticatable
     public function directPermissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'user_permission');
+    }
+
+    public function notifications(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Notification::class);
     }
 
     /**

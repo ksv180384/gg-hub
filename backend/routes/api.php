@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PermissionGroupController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\AdminUserController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
 use Illuminate\Http\Request;
@@ -30,6 +31,12 @@ Route::get('/guilds', [GuildController::class, 'index']);
 Route::get('/user', [UserController::class, 'show']);
 
 Route::middleware(['auth'])->group(function () {
+
+    Route::post('/user', [UserController::class, 'update']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
     Route::post('/games', [GameController::class, 'store'])->middleware('admin.subdomain');
     Route::post('/games/{game}', [GameController::class, 'update'])->middleware('admin.subdomain');

@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
       v-if="props.src"
       :src="props.src"
       :alt="props.alt ?? ''"
-      class="aspect-square h-full w-full"
+      class="aspect-square h-full w-full object-cover"
     />
     <AvatarFallback
       class="flex h-full w-full items-center justify-center rounded-full bg-muted text-sm font-medium"

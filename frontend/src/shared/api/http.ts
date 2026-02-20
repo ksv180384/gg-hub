@@ -103,7 +103,9 @@ const httpClient = ({ baseUrl, defaultHeaders }: HttpConfig): HttpClient => {
     const isFormData = data instanceof FormData;
     const headers = {
       ...config.headers,
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(isFormData
+        ? { 'Content-Type': false }
+        : { 'Content-Type': 'application/json' }),
     };
     return request<T>({
       ...config,
