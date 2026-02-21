@@ -6,6 +6,7 @@ use App\Http\Resources\Character\CharacterResource;
 use App\Http\Resources\Game\GameResource;
 use App\Http\Resources\Game\LocalizationResource;
 use App\Http\Resources\Game\ServerResource;
+use App\Http\Resources\Tag\TagResource;
 use App\Services\GuildLogoService;
 use Domains\Guild\Models\Guild;
 use Illuminate\Http\Request;
@@ -40,6 +41,7 @@ class GuildResource extends JsonResource
             'game' => new GameResource($this->whenLoaded('game')),
             'localization' => new LocalizationResource($this->whenLoaded('localization')),
             'server' => new ServerResource($this->whenLoaded('server')),
+            'tags' => TagResource::collection($this->whenLoaded('tags')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

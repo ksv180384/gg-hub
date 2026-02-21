@@ -1,13 +1,5 @@
 <script setup lang="ts">
 import {
-  DialogRoot,
-  DialogPortal,
-  DialogOverlay,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from 'radix-vue';
-import {
   Card,
   CardHeader,
   CardTitle,
@@ -16,6 +8,7 @@ import {
   Sheet,
   Input,
   Label,
+  ConfirmDialog,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -43,6 +36,7 @@ const deleteDialogOpen = ref(false);
 const gameToDelete = ref<Game | null>(null);
 
 function openDeleteDialog(game: Game) {
+  if (deleteDialogOpen.value) return;
   gameToDelete.value = game;
   deleteDialogOpen.value = true;
 }
@@ -230,32 +224,16 @@ onMounted(() => loadGames());
       </div>
     </div>
 
-    <DialogRoot v-model:open="deleteDialogOpen" @update:open="(v: boolean) => !v && closeDeleteDialog()">
-      <DialogPortal>
-        <DialogOverlay
-          class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-        />
-        <DialogContent
-          class="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
-          :aria-describedby="undefined"
-        >
-          <DialogTitle class="text-lg font-semibold">Удалить игру?</DialogTitle>
-          <DialogDescription class="text-sm text-muted-foreground">
-            Игра «{{ gameToDelete?.name }}» и все связанные данные будут удалены безвозвратно.
-          </DialogDescription>
-          <div class="flex justify-end gap-2 pt-4">
-            <Button variant="outline" @click="deleteDialogOpen = false">Отмена</Button>
-            <Button
-              variant="destructive"
-              :disabled="deletingGameId === gameToDelete?.id"
-              @click="confirmDeleteGame()"
-            >
-              {{ deletingGameId === gameToDelete?.id ? 'Удаление...' : 'Удалить' }}
-            </Button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+    <ConfirmDialog
+      :open="deleteDialogOpen"
+      title="Удалить игру?"
+      :description="gameToDelete ? `Игра «${gameToDelete.name}» и все связанные данные будут удалены безвозвратно.` : ''"
+      confirm-label="Удалить"
+      cancel-label="Отмена"
+      :loading="deletingGameId === gameToDelete?.id"
+      @update:open="(v) => { deleteDialogOpen = v; if (!v) closeDeleteDialog(); }"
+      @confirm="confirmDeleteGame"
+    />
 
     <Sheet v-model:open="sheetOpen" side="right" class="w-full max-w-sm">
       <template #trigger>

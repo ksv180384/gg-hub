@@ -15,6 +15,14 @@ interface CharacterRepositoryInterface
     public function getByUserWithContext(int $userId, ?int $gameId = null): Collection;
 
     /**
+     * Персонажи пользователя на указанном сервере, которые не состоят ни в какой гильдии
+     * и не являются лидером другой гильдии (для выбора лидера гильдии).
+     *
+     * @return Collection<int, Character>
+     */
+    public function getByUserAvailableForGuildLeader(int $userId, int $gameId, int $serverId): Collection;
+
+    /**
      * Персонаж по id, принадлежащий пользователю.
      */
     public function findByIdAndUser(int $id, int $userId): ?Character;

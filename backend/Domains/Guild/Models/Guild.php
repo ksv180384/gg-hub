@@ -11,6 +11,7 @@ use Domains\Game\Models\Server;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Guild extends Model
@@ -79,5 +80,10 @@ class Guild extends Model
     public function roles(): HasMany
     {
         return $this->hasMany(GuildRole::class);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'guild_tag');
     }
 }

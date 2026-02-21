@@ -17,6 +17,7 @@ import {
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
+import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
@@ -50,6 +51,14 @@ const logoPreview = ref<string | null>(null);
 const removeLogo = ref(false);
 const dragOver = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+const allTags = ref<Tag[]>([]);
+const selectedTagIds = ref<number[]>([]);
+const tagToAddFromSelect = ref('');
+const newTagName = ref('');
+const creatingTag = ref(false);
+const createTagError = ref<string | null>(null);
+const addingNewTag = ref(false);
 
 const games = ref<Game[]>([]);
 const servers = ref<Server[]>([]);
@@ -142,6 +151,7 @@ async function loadGuild() {
     showRosterToAll.value = guild.value.show_roster_to_all ?? false;
     aboutText.value = guild.value.about_text ?? '';
     charterText.value = guild.value.charter_text ?? '';
+    selectedTagIds.value = (guild.value.tags ?? []).map((t) => t.id);
   } catch {
     error.value = 'Не удалось загрузить гильдию';
   } finally {
@@ -181,6 +191,53 @@ watch(selectedLocalizationId, (locId) => {
   });
 });
 
+function toggleTag(tagId: number) {
+  const idx = selectedTagIds.value.indexOf(tagId);
+  if (idx >= 0) {
+    selectedTagIds.value = selectedTagIds.value.filter((id) => id !== tagId);
+  } else {
+    selectedTagIds.value = [...selectedTagIds.value, tagId];
+  }
+}
+
+const tagsNotSelected = computed(() =>
+  allTags.value.filter((t) => !selectedTagIds.value.includes(t.id))
+);
+function onAddTagFromSelect(value?: string) {
+  const raw = value ?? tagToAddFromSelect.value;
+  const id = raw ? Number(raw) : 0;
+  if (id && !selectedTagIds.value.includes(id)) {
+    selectedTagIds.value = [...selectedTagIds.value, id];
+    tagToAddFromSelect.value = '';
+  }
+}
+
+function cancelNewTag() {
+  addingNewTag.value = false;
+  newTagName.value = '';
+  createTagError.value = null;
+}
+
+async function createAndAddTag() {
+  const name = newTagName.value.trim();
+  if (!name || creatingTag.value) return;
+  creatingTag.value = true;
+  createTagError.value = null;
+  try {
+    const tag = await tagsApi.createTag({ name });
+    if (!allTags.value.some((t) => t.id === tag.id)) {
+      allTags.value = [...allTags.value, tag];
+    }
+    newTagName.value = '';
+    addingNewTag.value = false;
+    tagToAddFromSelect.value = '';
+  } catch (e) {
+    createTagError.value = e instanceof Error ? e.message : 'Не удалось создать тег';
+  } finally {
+    creatingTag.value = false;
+  }
+}
+
 async function saveSettings() {
   if (!guild.value) return;
   saving.value = true;
@@ -192,6 +249,7 @@ async function saveSettings() {
       localization_id: Number(selectedLocalizationId.value),
       server_id: Number(selectedServerId.value),
       show_roster_to_all: showRosterToAll.value,
+      tag_ids: selectedTagIds.value,
     });
   } catch (e: unknown) {
     const err = e as Error & { errors?: Record<string, string[]> };
@@ -254,9 +312,14 @@ const logoDisplayUrl = computed(() => {
   return guild.value?.logo_url ? storageImageUrl(guild.value.logo_url) : null;
 });
 
-onMounted(() => {
+onMounted(async () => {
   loadGames();
   loadGuild();
+  try {
+    allTags.value = await tagsApi.getTags(false);
+  } catch {
+    allTags.value = [];
+  }
 });
 
 const tabs: { id: TabId; label: string }[] = [
@@ -460,6 +523,100 @@ const tabs: { id: TabId; label: string }[] = [
               </Label>
             </div>
 
+            <div class="space-y-3">
+              <Label>Теги гильдии</Label>
+              <p class="text-xs text-muted-foreground">
+                Выберите теги для гильдии или добавьте новый — он станет доступен всем.
+              </p>
+              <div v-if="selectedTagIds.length" class="flex flex-wrap gap-2">
+                <label
+                  v-for="tag in allTags.filter((t) => selectedTagIds.includes(t.id))"
+                  :key="tag.id"
+                  class="flex cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
+                  :class="{ 'bg-primary text-primary-foreground': selectedTagIds.includes(tag.id) }"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="true"
+                    class="sr-only"
+                    @change="toggleTag(tag.id)"
+                  >
+                  {{ tag.name }}
+                </label>
+              </div>
+              <div class="space-y-1">
+                <Label for="tag-select" class="text-muted-foreground">Добавить тег</Label>
+                <SelectRoot
+                  id="tag-select"
+                  v-model="tagToAddFromSelect"
+                  @update:model-value="(v) => onAddTagFromSelect(v)"
+                >
+                  <SelectTrigger class="w-full">
+                    <SelectValue placeholder="Выберите тег" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      v-for="tag in tagsNotSelected"
+                      :key="tag.id"
+                      :value="String(tag.id)"
+                    >
+                      {{ tag.name }}
+                    </SelectItem>
+                    <div
+                      class="border-t border-border p-1"
+                      @mousedown.prevent
+                    >
+                      <template v-if="!addingNewTag">
+                        <button
+                          type="button"
+                          class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
+                          @click="addingNewTag = true"
+                        >
+                          <span class="text-base leading-none">+</span>
+                          Добавить новый
+                        </button>
+                      </template>
+                      <template v-else>
+                        <div class="flex flex-col gap-2 p-1">
+                          <Input
+                            v-model="newTagName"
+                            placeholder="Название тега"
+                            class="h-8 text-sm"
+                            :disabled="creatingTag"
+                            @keydown.enter.prevent="createAndAddTag"
+                          />
+                          <div class="flex gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              class="flex-1"
+                              :disabled="!newTagName.trim() || creatingTag"
+                              @click="createAndAddTag"
+                            >
+                              {{ creatingTag ? '…' : 'Создать' }}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              :disabled="creatingTag"
+                              @click="cancelNewTag"
+                            >
+                              Отмена
+                            </Button>
+                          </div>
+                          <p v-if="createTagError" class="text-xs text-destructive">
+                            {{ createTagError }}
+                          </p>
+                        </div>
+                      </template>
+                    </div>
+                  </SelectContent>
+                </SelectRoot>
+              </div>
+            </div>
+
             <Button :disabled="saving" @click="saveSettings">
               {{ saving ? 'Сохранение…' : 'Сохранить настройки' }}
             </Button>
@@ -471,7 +628,7 @@ const tabs: { id: TabId; label: string }[] = [
           <CardHeader>
             <CardTitle>О гильдии</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-4">
+          <CardContent class="space-y-6">
             <div class="space-y-2">
               <Label for="about-text">Текст «О гильдии»</Label>
               <textarea
@@ -482,6 +639,7 @@ const tabs: { id: TabId; label: string }[] = [
                 placeholder="Расскажите о гильдии, целях и правилах…"
               />
             </div>
+
             <Button :disabled="saving" @click="saveAbout">
               {{ saving ? 'Сохранение…' : 'Сохранить' }}
             </Button>

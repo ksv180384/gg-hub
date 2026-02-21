@@ -30,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Route::bind('tag', function (string $value) {
+            return \Domains\Tag\Models\Tag::findOrFail($value);
+        });
     }
 }

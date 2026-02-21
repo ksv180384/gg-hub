@@ -45,7 +45,12 @@ class CreateGuildAction
             'joined_at' => now(),
         ]);
 
-        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader']);
+        $tagIds = isset($data['tag_ids']) && is_array($data['tag_ids'])
+            ? array_map('intval', $data['tag_ids'])
+            : [];
+        $guild->tags()->sync(array_filter($tagIds));
+
+        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
         return $guild;
     }
 }

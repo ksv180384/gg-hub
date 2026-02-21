@@ -33,10 +33,18 @@ class UpdateCharacterRequest extends FormRequest
                 'integer',
                 Rule::exists('servers', 'id')->where('localization_id', $localizationId),
             ],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('characters')->where('server_id', $this->input('server_id'))->ignore($characterId),
+            ],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'remove_avatar' => ['nullable', 'boolean'],
+            'is_main' => ['nullable', 'boolean'],
             'game_class_ids' => ['nullable', 'array', 'max:' . $maxClasses],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'exists:tags,id'],
         ];
         if ($gameId) {
             $rules['game_class_ids.*'] = ['integer', Rule::exists('game_classes', 'id')->where('game_id', $gameId)];
@@ -59,6 +67,7 @@ class UpdateCharacterRequest extends FormRequest
             'name.required' => 'Введите имя персонажа.',
             'name.string' => 'Имя должно быть строкой.',
             'name.max' => 'Имя не должно превышать 255 символов.',
+            'name.unique' => 'На этом сервере уже есть персонаж с таким именем. Выберите другое имя.',
             'avatar.image' => 'Файл аватара должен быть изображением (JPEG, PNG, GIF или WebP).',
             'avatar.mimes' => 'Аватар должен быть в формате JPEG, PNG, GIF или WebP.',
             'avatar.max' => 'Размер файла аватара не должен превышать 2 МБ.',

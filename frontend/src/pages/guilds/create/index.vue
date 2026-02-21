@@ -7,17 +7,15 @@ import {
   Button,
   Input,
   Label,
-  SelectRoot,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
+  Select,
+  type SelectOption,
 } from '@/shared/ui';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { useAuthStore } from '@/stores/auth';
 import { guildsApi } from '@/shared/api/guildsApi';
 import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
+import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -37,7 +35,10 @@ const fieldErrors = ref<Record<string, string>>({});
 const games = ref<Game[]>([]);
 const localizations = ref<Localization[]>([]);
 const servers = ref<Server[]>([]);
-const characters = ref<Character[]>([]);
+/** Персонажи, доступные для лидера: не состоят в гильдии и не лидер другой гильдии (загружаются при выборе сервера). */
+const charactersForLeader = ref<Character[]>([]);
+const tags = ref<Tag[]>([]);
+const selectedTagIds = ref<number[]>([]);
 const loadingGames = ref(true);
 const loadingCharacters = ref(false);
 
@@ -47,12 +48,19 @@ const availableLocalizations = computed(() => {
   return selectedGame.value.localizations.filter((l) => l.is_active !== false);
 });
 const availableServers = computed(() => servers.value);
-/** Персонажи пользователя на выбранном сервере (лидер должен быть с этого сервера). */
-const charactersOnServer = computed(() => {
-  const serverId = selectedServerId.value ? Number(selectedServerId.value) : 0;
-  if (!serverId) return [];
-  return characters.value.filter((c) => c.server_id === serverId);
-});
+
+const gameOptions = computed<SelectOption[]>(() =>
+  games.value.map((g) => ({ value: String(g.id), label: g.name }))
+);
+const localizationOptions = computed<SelectOption[]>(() =>
+  availableLocalizations.value.map((loc) => ({ value: String(loc.id), label: loc.name }))
+);
+const serverOptions = computed<SelectOption[]>(() =>
+  availableServers.value.map((s) => ({ value: String(s.id), label: s.name }))
+);
+const leaderCharacterOptions = computed<SelectOption[]>(() =>
+  charactersForLeader.value.map((c) => ({ value: String(c.id), label: c.name }))
+);
 
 const canSubmit = computed(
   () =>
@@ -113,27 +121,26 @@ watch(selectedLocalizationId, () => {
 
 watch(selectedServerId, () => {
   selectedLeaderCharacterId.value = '';
+  loadCharactersForLeader();
 });
 
-async function loadCharacters() {
+/** Загружает персонажей, доступных для выбора лидером (не в гильдии, не лидер другой гильдии). */
+async function loadCharactersForLeader() {
   const gameId = selectedGame.value?.id;
-  if (!gameId) {
-    characters.value = [];
+  const serverId = selectedServerId.value ? Number(selectedServerId.value) : 0;
+  if (!gameId || !serverId) {
+    charactersForLeader.value = [];
     return;
   }
   loadingCharacters.value = true;
   try {
-    characters.value = await charactersApi.getCharacters(gameId);
+    charactersForLeader.value = await charactersApi.getCharactersForGuildLeader(gameId, serverId);
   } catch {
-    characters.value = [];
+    charactersForLeader.value = [];
   } finally {
     loadingCharacters.value = false;
   }
 }
-
-watch(selectedGameId, () => {
-  loadCharacters();
-});
 
 async function submit() {
   if (!canSubmit.value) return;
@@ -146,6 +153,7 @@ async function submit() {
       localization_id: Number(selectedLocalizationId.value),
       server_id: Number(selectedServerId.value),
       leader_character_id: Number(selectedLeaderCharacterId.value),
+      ...(selectedTagIds.value.length > 0 && { tag_ids: selectedTagIds.value }),
     });
     await router.push({ name: 'guild-settings', params: { id: String(guild.id) } });
   } catch (e: unknown) {
@@ -161,12 +169,26 @@ async function submit() {
   }
 }
 
-onMounted(() => {
+function toggleTag(tagId: number) {
+  const idx = selectedTagIds.value.indexOf(tagId);
+  if (idx >= 0) {
+    selectedTagIds.value = selectedTagIds.value.filter((id) => id !== tagId);
+  } else {
+    selectedTagIds.value = [...selectedTagIds.value, tagId];
+  }
+}
+
+onMounted(async () => {
   if (!authStore.isAuthenticated) {
     router.replace('/login');
     return;
   }
   loadGames();
+  try {
+    tags.value = await tagsApi.getTags(false);
+  } catch {
+    tags.value = [];
+  }
 });
 
 watch(availableLocalizations, (list) => {
@@ -207,41 +229,24 @@ watch(availableLocalizations, (list) => {
 
             <div v-if="!siteContext.game" class="space-y-2">
               <Label>Игра</Label>
-              <SelectRoot v-model="selectedGameId" :disabled="loadingGames || !games.length">
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Выберите игру" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="g in games"
-                    :key="g.id"
-                    :value="String(g.id)"
-                  >
-                    {{ g.name }}
-                  </SelectItem>
-                </SelectContent>
-              </SelectRoot>
+              <Select
+                v-model="selectedGameId"
+                :options="gameOptions"
+                placeholder="Выберите игру"
+                :disabled="loadingGames || !games.length"
+                trigger-class="w-full"
+              />
             </div>
 
             <div class="space-y-2">
               <Label>Локализация *</Label>
-              <SelectRoot
+              <Select
                 v-model="selectedLocalizationId"
+                :options="localizationOptions"
+                placeholder="Выберите локализацию"
                 :disabled="!availableLocalizations.length"
-              >
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Выберите локализацию" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="loc in availableLocalizations"
-                    :key="loc.id"
-                    :value="String(loc.id)"
-                  >
-                    {{ loc.name }}
-                  </SelectItem>
-                </SelectContent>
-              </SelectRoot>
+                trigger-class="w-full"
+              />
               <p v-if="fieldErrors.localization_id" class="text-sm text-destructive">
                 {{ fieldErrors.localization_id }}
               </p>
@@ -249,49 +254,49 @@ watch(availableLocalizations, (list) => {
 
             <div class="space-y-2">
               <Label>Сервер *</Label>
-              <SelectRoot
+              <Select
                 v-model="selectedServerId"
+                :options="serverOptions"
+                placeholder="Выберите сервер"
                 :disabled="!availableServers.length"
-              >
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Выберите сервер" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="srv in availableServers"
-                    :key="srv.id"
-                    :value="String(srv.id)"
-                  >
-                    {{ srv.name }}
-                  </SelectItem>
-                </SelectContent>
-              </SelectRoot>
+                trigger-class="w-full"
+              />
               <p v-if="fieldErrors.server_id" class="text-sm text-destructive">
                 {{ fieldErrors.server_id }}
               </p>
             </div>
 
+            <div v-if="tags.length" class="space-y-2">
+              <Label>Теги</Label>
+              <div class="flex flex-wrap gap-2">
+                <label
+                  v-for="tag in tags"
+                  :key="tag.id"
+                  class="flex cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
+                  :class="{ 'bg-primary text-primary-foreground': selectedTagIds.includes(tag.id) }"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="selectedTagIds.includes(tag.id)"
+                    class="sr-only"
+                    @change="toggleTag(tag.id)"
+                  >
+                  {{ tag.name }}
+                </label>
+              </div>
+            </div>
+
             <div class="space-y-2">
               <Label>Лидер гильдии *</Label>
-              <SelectRoot
+              <Select
                 v-model="selectedLeaderCharacterId"
-                :disabled="!charactersOnServer.length || loadingCharacters"
-              >
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Выберите персонажа на этом сервере" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="char in charactersOnServer"
-                    :key="char.id"
-                    :value="String(char.id)"
-                  >
-                    {{ char.name }}
-                  </SelectItem>
-                </SelectContent>
-              </SelectRoot>
+                :options="leaderCharacterOptions"
+                placeholder="Выберите персонажа на этом сервере"
+                :disabled="!charactersForLeader.length || loadingCharacters"
+                trigger-class="w-full"
+              />
               <p class="text-xs text-muted-foreground">
-                Персонаж должен быть на выбранном сервере и не состоять в другой гильдии.
+                Показываются только персонажи, которые не состоят ни в какой гильдии (и не являются лидером другой).
               </p>
               <p v-if="fieldErrors.leader_character_id" class="text-sm text-destructive">
                 {{ fieldErrors.leader_character_id }}

@@ -24,7 +24,15 @@ class Character extends Model
         'server_id',
         'name',
         'avatar',
+        'is_main',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_main' => 'boolean',
+        ];
+    }
 
     public function user(): BelongsTo
     {
@@ -56,5 +64,10 @@ class Character extends Model
     public function guildMember(): HasOne
     {
         return $this->hasOne(GuildMember::class);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'character_tag');
     }
 }

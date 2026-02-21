@@ -4,6 +4,7 @@
 
 import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
+import type { Tag } from '@/shared/api/tagsApi';
 
 export interface GuildGame {
   id: number;
@@ -28,6 +29,13 @@ export interface GuildLeader {
   server_id: number;
 }
 
+/** Гильдия пользователя для меню (текущая игра). */
+export interface UserGuildItem {
+  id: number;
+  name: string;
+  is_leader: boolean;
+}
+
 export interface Guild {
   id: number;
   name: string;
@@ -49,6 +57,7 @@ export interface Guild {
   game?: GuildGame;
   localization?: GuildLocalization;
   server?: GuildServer;
+  tags?: Tag[];
 }
 
 export interface CreateGuildPayload {
@@ -57,6 +66,7 @@ export interface CreateGuildPayload {
   server_id: number;
   leader_character_id: number;
   description?: string;
+  tag_ids?: number[];
 }
 
 export interface UpdateGuildPayload {
@@ -68,6 +78,7 @@ export interface UpdateGuildPayload {
   charter_text?: string | null;
   logo?: File | null;
   remove_logo?: boolean;
+  tag_ids?: number[];
 }
 
 /** Ответ сервера: список гильдий с пагинацией (GET /guilds). */
@@ -88,6 +99,16 @@ function unwrapGuild(res: { data: unknown }): Guild {
 }
 
 export const guildsApi = {
+  /** Гильдии текущей игры, в которых состоит пользователь (по персонажам). */
+  async getMyGuildsForGame(gameId: number): Promise<UserGuildItem[]> {
+    const res = await http.fetchGet<{ data: UserGuildItem[] }>('/user/guilds', {
+      params: { game_id: gameId },
+    });
+    throwOnError(res, 'Ошибка загрузки гильдий');
+    const raw = res.data as { data?: UserGuildItem[] } | null;
+    return raw?.data ?? [];
+  },
+
   async getGuilds(params?: { per_page?: number; page?: number; game_id?: number; localization_id?: number; server_id?: number }): Promise<{
     guilds: Guild[];
     meta: GuildsListResponse['meta'];
@@ -113,6 +134,7 @@ export const guildsApi = {
       server_id: payload.server_id,
       leader_character_id: payload.leader_character_id,
       ...(payload.description != null && payload.description !== '' && { description: payload.description }),
+      ...(payload.tag_ids?.length && { tag_ids: payload.tag_ids }),
     });
     throwOnError(res, 'Ошибка создания гильдии');
     return unwrapGuild(res);
@@ -128,6 +150,9 @@ export const guildsApi = {
     if (payload.charter_text !== undefined) form.append('charter_text', payload.charter_text ?? '');
     if (payload.remove_logo) form.append('remove_logo', '1');
     if (payload.logo) form.append('logo', payload.logo);
+    if (payload.tag_ids !== undefined) {
+      payload.tag_ids.forEach((id) => form.append('tag_ids[]', String(id)));
+    }
     form.append('_method', 'PUT');
     const res = await http.fetchPost<{ data: Guild } | Guild>(`/guilds/${id}`, form);
     throwOnError(res, 'Ошибка сохранения гильдии');

@@ -38,8 +38,13 @@ class UpdateGuildAction
         }
 
         unset($data['logo'], $data['remove_logo']);
+        if (array_key_exists('tag_ids', $data)) {
+            $tagIds = is_array($data['tag_ids']) ? array_map('intval', $data['tag_ids']) : [];
+            $guild->tags()->sync(array_filter($tagIds));
+            unset($data['tag_ids']);
+        }
         $guild = $this->guildRepository->update($guild, $data);
-        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader']);
+        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
         return $guild;
     }
 }

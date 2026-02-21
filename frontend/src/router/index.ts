@@ -3,6 +3,7 @@ import MainLayout from '@/app/layouts/MainLayout.vue';
 import { PERMISSION_ACCESS_ADMIN } from '@/shared/api/authApi';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
+import { useRouteLoadingStore } from '@/stores/routeLoading';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -25,6 +26,60 @@ const router = createRouter({
         { path: '', name: 'home', component: () => import('@/pages/home/index.vue') },
         { path: 'news', name: 'news', component: () => import('@/pages/news/index.vue') },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
+        {
+          path: 'guilds/:id',
+          name: 'guild-show',
+          component: () => import('@/pages/guilds/[id]/index.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'guilds/:id/roster',
+          name: 'guild-roster',
+          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          meta: { requiresAuth: true, title: 'Состав гильдии' },
+        },
+        {
+          path: 'guilds/:id/raids',
+          name: 'guild-raids',
+          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          meta: { requiresAuth: true, title: 'Рейды | Группы | КП' },
+        },
+        {
+          path: 'guilds/:id/applications',
+          name: 'guild-applications',
+          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          meta: { requiresAuth: true, title: 'Заявки и приглашения' },
+        },
+        {
+          path: 'guilds/:id/calendar',
+          name: 'guild-calendar',
+          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          meta: { requiresAuth: true, title: 'Календарь событий' },
+        },
+        {
+          path: 'guilds/:id/events',
+          name: 'guild-events',
+          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          meta: { requiresAuth: true, title: 'События' },
+        },
+        {
+          path: 'guilds/:id/polls',
+          name: 'guild-polls',
+          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          meta: { requiresAuth: true, title: 'Голосования' },
+        },
+        {
+          path: 'guilds/:id/auction',
+          name: 'guild-auction',
+          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          meta: { requiresAuth: true, title: 'Аукцион' },
+        },
+        {
+          path: 'guilds/:id/roles',
+          name: 'guild-roles',
+          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          meta: { requiresAuth: true, title: 'Роли членов гильдии' },
+        },
         {
           path: 'guilds/create',
           name: 'guilds-create',
@@ -72,6 +127,24 @@ const router = createRouter({
           path: 'admin/permissions',
           name: 'admin-permissions',
           component: () => import('@/pages/admin/permissions/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/tags',
+          name: 'admin-tags',
+          component: () => import('@/pages/admin/tags/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/tags/create',
+          name: 'admin-tags-create',
+          component: () => import('@/pages/admin/tags/create.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/tags/:id/edit',
+          name: 'admin-tags-edit',
+          component: () => import('@/pages/admin/tags/edit.vue'),
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
@@ -144,6 +217,8 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+  const routeLoading = useRouteLoadingStore();
+  routeLoading.setLoading(true);
   const auth = useAuthStore();
   const siteContext = useSiteContextStore();
   await siteContext.fetchContext();
@@ -170,6 +245,10 @@ router.beforeEach(async (to) => {
   if (requiredPermission && auth.isAuthenticated && !auth.hasPermission(requiredPermission)) {
     return { path: '/', replace: true };
   }
+});
+
+router.afterEach(() => {
+  useRouteLoadingStore().setLoading(false);
 });
 
 export default router;

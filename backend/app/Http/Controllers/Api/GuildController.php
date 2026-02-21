@@ -32,7 +32,7 @@ class GuildController extends Controller
 
     public function show(Guild $guild): JsonResponse
     {
-        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader']);
+        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
         return response()->json(new GuildResource($guild));
     }
 

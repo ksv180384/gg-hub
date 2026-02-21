@@ -9,11 +9,8 @@ import {
   Button,
   Input,
   Label,
-  SelectRoot,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
+  Select,
+  type SelectOption,
 } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
 import { accessApi, type PermissionGroupDto, PERMISSION_MANAGE_ROLES } from '@/shared/api/accessApi';
@@ -52,6 +49,10 @@ const canSubmit = computed(
   () =>
     name.value.trim().length > 0 &&
     permissionGroupId.value !== ''
+);
+
+const groupOptions = computed<SelectOption[]>(() =>
+  groups.value.map((g) => ({ value: String(g.id), label: `${g.name} (${g.slug})` }))
 );
 
 onMounted(async () => {
@@ -113,20 +114,13 @@ async function submit() {
         </div>
         <div class="space-y-2">
           <Label>Группа прав</Label>
-          <SelectRoot v-model="permissionGroupValue" :disabled="!groups.length">
-            <SelectTrigger class="w-full">
-              <SelectValue placeholder="Выберите группу" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="g in groups"
-                :key="g.id"
-                :value="String(g.id)"
-              >
-                {{ g.name }} ({{ g.slug }})
-              </SelectItem>
-            </SelectContent>
-          </SelectRoot>
+          <Select
+            v-model="permissionGroupValue"
+            :options="groupOptions"
+            placeholder="Выберите группу"
+            :disabled="!groups.length"
+            trigger-class="w-full"
+          />
           <p v-if="!groups.length" class="text-xs text-muted-foreground">
             Сначала создайте категорию прав на странице «Категории прав».
           </p>

@@ -24,9 +24,24 @@ class UpdateCharacterAction
             $data['avatar'] = null;
         }
         $gameClassIds = $data['game_class_ids'] ?? [];
-        unset($data['avatar'], $data['remove_avatar'], $data['game_class_ids']);
+        $tagIds = $data['tag_ids'] ?? null;
+        $isMain = isset($data['is_main']) ? (bool) $data['is_main'] : null;
+        unset($data['avatar'], $data['remove_avatar'], $data['game_class_ids'], $data['tag_ids'], $data['is_main']);
+        if ($isMain === true) {
+            Character::query()
+                ->where('user_id', $character->user_id)
+                ->where('game_id', $character->game_id)
+                ->where('id', '!=', $character->id)
+                ->update(['is_main' => false]);
+            $data['is_main'] = true;
+        } elseif ($isMain === false) {
+            $data['is_main'] = false;
+        }
         $character = $this->characterRepository->update($character, $data);
         $character->gameClasses()->sync(is_array($gameClassIds) ? $gameClassIds : []);
+        if ($tagIds !== null) {
+            $character->tags()->sync(is_array($tagIds) ? array_map('intval', $tagIds) : []);
+        }
         if ($avatar) {
             if ($character->avatar) {
                 $this->characterAvatarService->deleteAvatar($character->avatar);
@@ -34,7 +49,7 @@ class UpdateCharacterAction
             $avatarDir = $this->characterAvatarService->storeAvatar($avatar, $character->id);
             $character = $this->characterRepository->update($character, ['avatar' => $avatarDir]);
         }
-        $character->load(['game', 'localization', 'server', 'gameClasses']);
+        $character->load(['game', 'localization', 'server', 'gameClasses', 'tags']);
         return $character;
     }
 }

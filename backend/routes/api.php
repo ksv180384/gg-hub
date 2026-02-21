@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
+use App\Http\Controllers\Api\TagController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -39,10 +40,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/user', [UserController::class, 'update']);
 
+    Route::get('/user/guilds', [UserController::class, 'guilds']);
     Route::get('/characters', [CharacterController::class, 'index']);
     Route::get('/characters/{character}', [CharacterController::class, 'show']);
     Route::post('/characters', [CharacterController::class, 'store']);
     Route::match(['put', 'post'], '/characters/{character}', [CharacterController::class, 'update']);
+    Route::delete('/characters/{character}', [CharacterController::class, 'destroy']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
@@ -50,6 +53,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/guilds', [GuildController::class, 'store']);
     Route::match(['put', 'patch'], '/guilds/{guild}', [GuildController::class, 'update']);
+
+    Route::get('/tags', [TagController::class, 'index']);
+    Route::post('/tags', [TagController::class, 'store']);
 
     Route::middleware(['admin.subdomain', 'permission:admnistrirovanie'])->group(function () {
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
@@ -84,5 +90,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/servers/{server}', [ServerController::class, 'destroy'])->middleware('permission:udaliat-server');
 
         Route::post('/games/{game}/localizations/{localization}/servers/merge', [ServerController::class, 'merge'])->middleware('permission:obieediniat-servera');
+
+        Route::put('/tags/{tag}', [TagController::class, 'update']);
+        Route::delete('/tags/{tag}', [TagController::class, 'destroy']);
     });
 });

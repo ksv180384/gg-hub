@@ -3,6 +3,7 @@
  */
 
 import type { Game, GameClass, Localization, Server } from '@/shared/api/gamesApi';
+import type { Tag } from '@/shared/api/tagsApi';
 import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 
@@ -12,6 +13,7 @@ export interface Character {
   name: string;
   avatar: string | null;
   avatar_url: string | null;
+  is_main: boolean;
   game_id: number;
   localization_id: number;
   server_id: number;
@@ -19,6 +21,8 @@ export interface Character {
   localization?: Localization;
   server?: Server;
   game_classes?: GameClass[];
+  tags?: Tag[];
+  guild?: { id: number; name: string } | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -30,6 +34,7 @@ export interface CreateCharacterPayload {
   server_id: number;
   avatar?: File | null;
   game_class_ids?: number[];
+  tag_ids?: number[];
 }
 
 export interface UpdateCharacterPayload {
@@ -38,7 +43,9 @@ export interface UpdateCharacterPayload {
   server_id: number;
   avatar?: File | null;
   remove_avatar?: boolean;
+  is_main?: boolean;
   game_class_ids?: number[];
+  tag_ids?: number[];
 }
 
 export interface CharactersListResponse {
@@ -67,6 +74,21 @@ export const charactersApi = {
     return Array.isArray(data) ? data : [];
   },
 
+  /**
+   * Персонажи, доступные для выбора лидером гильдии: на указанном сервере,
+   * не состоят ни в какой гильдии и не являются лидером другой гильдии.
+   */
+  async getCharactersForGuildLeader(gameId: number, serverId: number): Promise<Character[]> {
+    const path = `/characters?game_id=${gameId}&server_id=${serverId}&available_for_guild_leader=1`;
+    const res = await http.fetchGet<CharactersListResponse | Character[]>(path);
+    throwOnError(res, 'Ошибка загрузки списка персонажей');
+    const data = res.data;
+    if (Array.isArray((data as CharactersListResponse)?.data)) {
+      return (data as CharactersListResponse).data;
+    }
+    return Array.isArray(data) ? data : [];
+  },
+
   async getCharacter(id: number): Promise<Character> {
     const res = await http.fetchGet<CharacterResponse | Character>(`/characters/${id}`);
     throwOnError(res, 'Ошибка загрузки персонажа');
@@ -81,9 +103,15 @@ export const charactersApi = {
     form.append('server_id', String(payload.server_id));
     if (payload.avatar) form.append('avatar', payload.avatar);
     (payload.game_class_ids ?? []).forEach((id) => form.append('game_class_ids[]', String(id)));
+    (payload.tag_ids ?? []).forEach((id) => form.append('tag_ids[]', String(id)));
     const res = await http.fetchPost<CharacterResponse | Character>('/characters', form);
     throwOnError(res, 'Ошибка создания персонажа');
     return unwrapData(res, {} as Character) as Character;
+  },
+
+  async deleteCharacter(id: number): Promise<void> {
+    const res = await http.fetchDelete(`/characters/${id}`);
+    throwOnError(res, 'Ошибка удаления персонажа');
   },
 
   async updateCharacter(id: number, payload: UpdateCharacterPayload): Promise<Character> {
@@ -93,8 +121,12 @@ export const charactersApi = {
     form.append('localization_id', String(payload.localization_id));
     form.append('server_id', String(payload.server_id));
     if (payload.remove_avatar) form.append('remove_avatar', '1');
+    if (payload.is_main !== undefined) form.append('is_main', payload.is_main ? '1' : '0');
     if (payload.avatar) form.append('avatar', payload.avatar);
     (payload.game_class_ids ?? []).forEach((id) => form.append('game_class_ids[]', String(id)));
+    if (payload.tag_ids !== undefined) {
+      payload.tag_ids.forEach((tagId) => form.append('tag_ids[]', String(tagId)));
+    }
     const res = await http.fetchPost<CharacterResponse | Character>(`/characters/${id}`, form);
     throwOnError(res, 'Ошибка обновления персонажа');
     return unwrapData(res, {} as Character) as Character;

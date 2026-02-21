@@ -20,6 +20,7 @@ import {
   type CreateCharacterPayload,
   type UpdateCharacterPayload,
 } from '@/shared/api/charactersApi';
+import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 
 const props = defineProps<{
   open: boolean;
@@ -38,9 +39,12 @@ const name = ref('');
 const localizationId = ref('');
 const serverId = ref('');
 const selectedClassIds = ref<number[]>([]);
+const allTags = ref<Tag[]>([]);
+const selectedTagIds = ref<number[]>([]);
 const avatarFile = ref<File | null>(null);
 const avatarPreview = ref<string | null>(null);
 const removeAvatar = ref(false);
+const isMain = ref(false);
 const formSaving = ref(false);
 const formError = ref('');
 const avatarDragOver = ref(false);
@@ -90,9 +94,11 @@ watch(
       name.value = editing.name;
       localizationId.value = String(editing.localization_id);
       selectedClassIds.value = editing.game_classes?.map((c) => c.id) ?? [];
+      selectedTagIds.value = editing.tags?.map((t) => t.id) ?? [];
       avatarFile.value = null;
       avatarPreview.value = null;
       removeAvatar.value = false;
+      isMain.value = editing.is_main ?? false;
       // Сбрасываем сервер при смене локализации в watch(localizationId); задаём выбранный сервер после этого
       serverId.value = '';
       await nextTick();
@@ -102,14 +108,28 @@ watch(
       localizationId.value = '';
       serverId.value = '';
       selectedClassIds.value = [];
+      selectedTagIds.value = [];
       avatarFile.value = null;
       avatarPreview.value = null;
       removeAvatar.value = false;
+      isMain.value = false;
     }
     serverSearch.value = '';
     formError.value = '';
+    if (open) {
+      tagsApi.getTags(false).then((list) => { allTags.value = list; }).catch(() => { allTags.value = []; });
+    }
   }
 );
+
+function toggleTag(tagId: number) {
+  const idx = selectedTagIds.value.indexOf(tagId);
+  if (idx >= 0) {
+    selectedTagIds.value = selectedTagIds.value.filter((id) => id !== tagId);
+  } else {
+    selectedTagIds.value = [...selectedTagIds.value, tagId];
+  }
+}
 
 watch(localizationId, () => {
   serverId.value = '';
@@ -173,7 +193,9 @@ async function submitForm() {
         localization_id: Number(localizationId.value),
         server_id: Number(serverId.value),
         remove_avatar: removeAvatar.value,
+        is_main: isMain.value,
         game_class_ids: selectedClassIds.value,
+        tag_ids: selectedTagIds.value,
       };
       if (avatarFile.value) payload.avatar = avatarFile.value;
       await charactersApi.updateCharacter(props.editingCharacter.id, payload);
@@ -184,6 +206,7 @@ async function submitForm() {
         localization_id: Number(localizationId.value),
         server_id: Number(serverId.value),
         game_class_ids: selectedClassIds.value,
+        tag_ids: selectedTagIds.value,
       };
       if (avatarFile.value) payload.avatar = avatarFile.value;
       await charactersApi.createCharacter(payload);
@@ -263,6 +286,38 @@ async function submitForm() {
             </SelectItem>
           </SelectContent>
         </SelectRoot>
+      </div>
+
+      <div v-if="editingCharacter != null" class="flex items-center gap-2">
+        <input
+          id="char-is-main"
+          v-model="isMain"
+          type="checkbox"
+          class="h-4 w-4 rounded border-input"
+        />
+        <Label for="char-is-main" class="cursor-pointer font-normal">
+          Основной персонаж в игре (только один в игре, можно менять)
+        </Label>
+      </div>
+
+      <div v-if="allTags.length" class="space-y-2">
+        <Label>Теги</Label>
+        <div class="flex flex-wrap gap-2">
+          <label
+            v-for="tag in allTags"
+            :key="tag.id"
+            class="flex cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
+            :class="{ 'bg-primary text-primary-foreground': selectedTagIds.includes(tag.id) }"
+          >
+            <input
+              type="checkbox"
+              :checked="selectedTagIds.includes(tag.id)"
+              class="sr-only"
+              @change="toggleTag(tag.id)"
+            >
+            {{ tag.name }}
+          </label>
+        </div>
       </div>
 
       <div v-if="gameClasses.length" class="space-y-2">

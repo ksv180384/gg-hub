@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Guild;
 
 use Domains\Character\Models\Character;
+use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -25,6 +26,8 @@ class StoreGuildRequest extends FormRequest
             'server_id' => ['required', 'integer', 'exists:servers,id'],
             'leader_character_id' => ['required', 'integer', 'exists:characters,id'],
             'description' => ['nullable', 'string'],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'exists:tags,id'],
         ];
     }
 
@@ -68,6 +71,10 @@ class StoreGuildRequest extends FormRequest
             }
             if (GuildMember::query()->where('character_id', $leaderId)->exists()) {
                 $validator->errors()->add('leader_character_id', 'Этот персонаж уже состоит в гильдии. Персонаж может быть только в одной гильдии.');
+                return;
+            }
+            if (Guild::query()->where('leader_character_id', $leaderId)->exists()) {
+                $validator->errors()->add('leader_character_id', 'Этот персонаж уже является лидером другой гильдии. Лидером может быть только персонаж, который не возглавляет другую гильдию.');
             }
         });
     }
