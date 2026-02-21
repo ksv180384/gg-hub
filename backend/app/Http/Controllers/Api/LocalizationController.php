@@ -18,7 +18,7 @@ class LocalizationController extends Controller
     public function store(StoreLocalizationRequest $request, Game $game): JsonResponse
     {
         $validated = $request->validated();
-        $localization = $this->createLocalizationAction->execute($game, $validated);
+        $localization = ($this->createLocalizationAction)($game, $validated);
         return (new LocalizationResource($localization))->response()->setStatusCode(201);
     }
 }

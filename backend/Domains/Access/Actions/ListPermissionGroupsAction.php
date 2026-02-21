@@ -10,7 +10,7 @@ class ListPermissionGroupsAction
     /**
      * @return Collection<int, PermissionGroup>
      */
-    public function execute(): Collection
+    public function __invoke(): Collection
     {
         return PermissionGroup::with('permissions')->orderBy('name')->get();
     }

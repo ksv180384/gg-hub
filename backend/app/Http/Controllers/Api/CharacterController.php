@@ -26,10 +26,7 @@ class CharacterController extends Controller
 
     public function store(StoreCharacterRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $validated['user_id'] = $request->user()->id;
-        $character = $this->createCharacterAction->execute($validated);
-        $character->load(['game', 'localization', 'server']);
+        $character = ($this->createCharacterAction)($request->user(), $request->validated());
         return (new CharacterResource($character))->response()->setStatusCode(201);
     }
 }

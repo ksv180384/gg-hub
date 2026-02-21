@@ -6,7 +6,7 @@ use Domains\Event\Models\Event;
 
 class CreateEventAction
 {
-    public function execute(array $data): Event
+    public function __invoke(array $data): Event
     {
         return Event::create($data);
     }

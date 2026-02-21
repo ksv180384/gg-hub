@@ -10,7 +10,7 @@ class ListRolesAction
     /**
      * @return Collection<int, Role>
      */
-    public function execute(): Collection
+    public function __invoke(): Collection
     {
         return Role::with('permissions')->orderBy('name')->get();
     }

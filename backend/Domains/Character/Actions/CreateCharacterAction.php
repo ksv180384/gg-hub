@@ -3,6 +3,7 @@
 namespace Domains\Character\Actions;
 
 use App\Contracts\Repositories\CharacterRepositoryInterface;
+use App\Models\User;
 use Domains\Character\Models\Character;
 
 class CreateCharacterAction
@@ -11,8 +12,14 @@ class CreateCharacterAction
         private CharacterRepositoryInterface $characterRepository
     ) {}
 
-    public function execute(array $data): Character
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function __invoke(User $user, array $data): Character
     {
-        return $this->characterRepository->create($data);
+        $data['user_id'] = $user->id;
+        $character = $this->characterRepository->create($data);
+        $character->load(['game', 'localization', 'server']);
+        return $character;
     }
 }

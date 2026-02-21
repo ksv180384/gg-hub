@@ -12,7 +12,7 @@ class CreateLocalizationAction
         private LocalizationRepositoryInterface $localizationRepository
     ) {}
 
-    public function execute(Game $game, array $data): Localization
+    public function __invoke(Game $game, array $data): Localization
     {
         return $this->localizationRepository->createForGame($game, $data);
     }

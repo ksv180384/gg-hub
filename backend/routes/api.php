@@ -44,20 +44,20 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['admin.subdomain', 'permission:admnistrirovanie'])->group(function () {
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
         Route::get('/permission-groups/{permission_group}', [PermissionGroupController::class, 'show']);
-        Route::post('/permission-groups', [PermissionGroupController::class, 'store']);
-        Route::put('/permission-groups/{permission_group}', [PermissionGroupController::class, 'update']);
+        Route::post('/permission-groups', [PermissionGroupController::class, 'store'])->middleware('permission:obshhie-roli');
+        Route::put('/permission-groups/{permission_group}', [PermissionGroupController::class, 'update'])->middleware('permission:obshhie-roli');
         Route::get('/permissions', [PermissionController::class, 'index']);
         Route::get('/permissions/{permission}', [PermissionController::class, 'show']);
-        Route::post('/permissions', [PermissionController::class, 'store']);
-        Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
+        Route::post('/permissions', [PermissionController::class, 'store'])->middleware('permission:obshhie-roli');
+        Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->middleware('permission:obshhie-roli');
         Route::get('/roles', [RoleController::class, 'index']);
-        Route::post('/roles', [RoleController::class, 'store']);
+        Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:obshhie-roli');
         Route::get('/roles/{role}', [RoleController::class, 'show']);
-        Route::put('/roles/{role}', [RoleController::class, 'update']);
+        Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:obshhie-roli');
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::get('/users/{user}', [AdminUserController::class, 'show']);
-        Route::put('/users/{user}', [AdminUserController::class, 'update']);
-        Route::put('/users/{user}/roles-permissions', [UserRolePermissionController::class, 'update']);
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->middleware('permission:zablokirovat-polzovatelia');
+        Route::put('/users/{user}/roles-permissions', [UserRolePermissionController::class, 'update'])->middleware('permission.roles-permissions');
 
         Route::post('/games', [GameController::class, 'store'])->middleware('permission:dobavliat-igru');
         Route::post('/games/{game}', [GameController::class, 'update'])->middleware('permission:redaktirovat-igru');

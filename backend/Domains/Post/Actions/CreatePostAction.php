@@ -6,7 +6,7 @@ use Domains\Post\Models\Post;
 
 class CreatePostAction
 {
-    public function execute(array $data): Post
+    public function __invoke(array $data): Post
     {
         return Post::create($data);
     }

@@ -11,7 +11,7 @@ class CreateGameAction
         private GameRepositoryInterface $gameRepository
     ) {}
 
-    public function execute(array $data): Game
+    public function __invoke(array $data): Game
     {
         return $this->gameRepository->create($data);
     }

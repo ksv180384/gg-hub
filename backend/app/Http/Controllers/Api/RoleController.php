@@ -25,33 +25,25 @@ class RoleController extends Controller
 
     public function index(): AnonymousResourceCollection
     {
-        $roles = $this->listRolesAction->execute();
+        $roles = ($this->listRolesAction)();
         return RoleResource::collection($roles);
     }
 
     public function show(Role $role): RoleResource
     {
-        $role = $this->getRoleAction->execute($role);
+        $role = ($this->getRoleAction)($role);
         return new RoleResource($role);
     }
 
     public function store(StoreRoleRequest $request): JsonResponse
     {
-        $user = $request->user();
-        if (!$user || !in_array('obshhie-roli', $user->getAllPermissionSlugs(), true)) {
-            abort(403, 'Недостаточно прав для создания ролей.');
-        }
-        $role = $this->createRoleAction->execute($request->validated());
+        $role = ($this->createRoleAction)($request->validated());
         return (new RoleResource($role))->response()->setStatusCode(201);
     }
 
     public function update(UpdateRoleRequest $request, Role $role): RoleResource
     {
-        $user = $request->user();
-        if (!$user || !in_array('obshhie-roli', $user->getAllPermissionSlugs(), true)) {
-            abort(403, 'Недостаточно прав для редактирования ролей.');
-        }
-        $role = $this->updateRoleAction->execute($role, $request->validated());
+        $role = ($this->updateRoleAction)($role, $request->validated());
         return new RoleResource($role);
     }
 }

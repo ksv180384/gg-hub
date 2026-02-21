@@ -23,7 +23,7 @@ class PermissionGroupController extends Controller
 
     public function index(): AnonymousResourceCollection
     {
-        $groups = $this->listPermissionGroupsAction->execute();
+        $groups = ($this->listPermissionGroupsAction)();
         return PermissionGroupResource::collection($groups);
     }
 
@@ -34,21 +34,13 @@ class PermissionGroupController extends Controller
 
     public function store(StorePermissionGroupRequest $request): JsonResponse
     {
-        $user = $request->user();
-        if (!$user || !in_array('obshhie-roli', $user->getAllPermissionSlugs(), true)) {
-            abort(403, 'Недостаточно прав для создания категорий прав.');
-        }
-        $group = $this->createPermissionGroupAction->execute($request->validated());
+        $group = ($this->createPermissionGroupAction)($request->validated());
         return (new PermissionGroupResource($group))->response()->setStatusCode(201);
     }
 
     public function update(UpdatePermissionGroupRequest $request, PermissionGroup $permissionGroup): PermissionGroupResource
     {
-        $user = $request->user();
-        if (!$user || !in_array('obshhie-roli', $user->getAllPermissionSlugs(), true)) {
-            abort(403, 'Недостаточно прав для редактирования категорий прав.');
-        }
-        $this->updatePermissionGroupAction->execute($permissionGroup, $request->validated());
+        ($this->updatePermissionGroupAction)($permissionGroup, $request->validated());
         return new PermissionGroupResource($permissionGroup);
     }
 }

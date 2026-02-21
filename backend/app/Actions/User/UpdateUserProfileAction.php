@@ -19,7 +19,7 @@ class UpdateUserProfileAction
      *
      * @param  array{name: string, timezone?: string|null}  $data
      */
-    public function execute(User $user, array $data, ?UploadedFile $avatarFile = null): User
+    public function __invoke(User $user, array $data, ?UploadedFile $avatarFile = null): User
     {
         $user->name = $data['name'];
 

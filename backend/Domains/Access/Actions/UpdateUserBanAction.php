@@ -7,7 +7,7 @@ use Carbon\Carbon;
 
 class UpdateUserBanAction
 {
-    public function execute(User $user, bool $banned): User
+    public function __invoke(User $user, bool $banned): User
     {
         $user->banned_at = $banned ? Carbon::now() : null;
         $user->save();

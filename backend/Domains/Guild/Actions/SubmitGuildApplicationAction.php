@@ -7,7 +7,7 @@ use Domains\Guild\Models\Guild;
 
 class SubmitGuildApplicationAction
 {
-    public function execute(Guild $guild, int $characterId, array $formData): GuildApplication
+    public function __invoke(Guild $guild, int $characterId, array $formData): GuildApplication
     {
         return GuildApplication::create([
             'guild_id' => $guild->id,

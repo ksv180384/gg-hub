@@ -2,29 +2,33 @@
 
 namespace App\Actions\Game;
 
-use App\Contracts\Repositories\GameRepositoryInterface;
 use App\Models\Game;
 use App\Services\GameImageService;
 use Illuminate\Http\UploadedFile;
 
-class CreateGameAction
+class UpdateGameAction
 {
     public function __construct(
-        private GameRepositoryInterface $gameRepository,
         private GameImageService $gameImageService
     ) {}
 
     /**
      * @param array<string, mixed> $data
      */
-    public function __invoke(array $data, ?UploadedFile $image = null): Game
+    public function __invoke(Game $game, array $data, ?UploadedFile $image = null, bool $removeImage = false): Game
     {
-        unset($data['image']);
-        $game = $this->gameRepository->create($data);
-        if ($image !== null) {
+        unset($data['image'], $data['remove_image']);
+        $game->update($data);
+
+        if ($removeImage) {
+            $game->deleteImageFiles();
+            $game->update(['image' => null]);
+        } elseif ($image !== null) {
+            $game->deleteImageFiles();
             $path = $this->gameImageService->storeWithVariants($image, $game->id);
             $game->update(['image' => $path]);
         }
+
         $game->load('localizations');
         return $game;
     }

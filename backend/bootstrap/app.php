@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin.subdomain' => \App\Http\Middleware\EnsureAdminSubdomain::class,
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
+            'permission.roles-permissions' => \App\Http\Middleware\EnsureUserCanUpdateUserRolesPermissions::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

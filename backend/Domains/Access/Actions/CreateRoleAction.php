@@ -9,7 +9,7 @@ class CreateRoleAction
     /**
      * @param array{name: string, slug?: string|null, description?: string|null, permission_ids?: array<int>} $data
      */
-    public function execute(array $data): Role
+    public function __invoke(array $data): Role
     {
         $permissionIds = $data['permission_ids'] ?? [];
         unset($data['permission_ids']);

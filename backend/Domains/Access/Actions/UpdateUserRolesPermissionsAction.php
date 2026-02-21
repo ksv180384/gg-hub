@@ -9,7 +9,7 @@ class UpdateUserRolesPermissionsAction
     /**
      * @param array{role_ids?: array<int>, permission_ids?: array<int>} $data
      */
-    public function execute(User $user, array $data): User
+    public function __invoke(User $user, array $data): User
     {
         if (array_key_exists('role_ids', $data)) {
             $roleIds = $data['role_ids'];

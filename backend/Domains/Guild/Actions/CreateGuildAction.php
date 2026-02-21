@@ -3,6 +3,7 @@
 namespace Domains\Guild\Actions;
 
 use App\Contracts\Repositories\GuildRepositoryInterface;
+use App\Models\User;
 use Domains\Guild\Models\Guild;
 
 class CreateGuildAction
@@ -11,8 +12,14 @@ class CreateGuildAction
         private GuildRepositoryInterface $guildRepository
     ) {}
 
-    public function execute(array $data): Guild
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function __invoke(User $user, array $data): Guild
     {
-        return $this->guildRepository->create($data);
+        $data['owner_id'] = $user->id;
+        $guild = $this->guildRepository->create($data);
+        $guild->load(['game', 'localization', 'server']);
+        return $guild;
     }
 }

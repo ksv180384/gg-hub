@@ -9,7 +9,7 @@ class UpdateRoleAction
     /**
      * @param array{name?: string, slug?: string|null, description?: string|null, permission_ids?: array<int>} $data
      */
-    public function execute(Role $role, array $data): Role
+    public function __invoke(Role $role, array $data): Role
     {
         if (isset($data['permission_ids'])) {
             $role->permissions()->sync($data['permission_ids']);

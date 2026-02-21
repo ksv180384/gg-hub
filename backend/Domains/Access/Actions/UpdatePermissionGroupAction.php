@@ -9,7 +9,7 @@ class UpdatePermissionGroupAction
     /**
      * @param array{name?: string, slug?: string|null} $data
      */
-    public function execute(PermissionGroup $group, array $data): PermissionGroup
+    public function __invoke(PermissionGroup $group, array $data): PermissionGroup
     {
         $group->update($data);
         return $group;

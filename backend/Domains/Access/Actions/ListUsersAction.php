@@ -10,7 +10,7 @@ class ListUsersAction
     /**
      * @return Collection<int, User>
      */
-    public function execute(): Collection
+    public function __invoke(): Collection
     {
         return User::with('roles', 'directPermissions')
             ->orderBy('name')
