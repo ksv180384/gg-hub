@@ -8,13 +8,13 @@ import {
   Sheet,
   Input,
   Label,
-  ConfirmDialog,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { gamesApi, type Game } from '@/shared/api/gamesApi';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';

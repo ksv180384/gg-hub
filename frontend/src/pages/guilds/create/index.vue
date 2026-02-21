@@ -78,8 +78,9 @@ async function loadGames() {
       const g = games.value.find((x) => x.id === siteContext.game!.id);
       if (g) selectedGameId.value = String(g.id);
     }
-    if (!selectedGameId.value && games.value.length > 0) {
-      selectedGameId.value = String(games.value[0].id);
+    const firstGame = games.value[0];
+    if (!selectedGameId.value && firstGame) {
+      selectedGameId.value = String(firstGame.id);
     }
   } catch {
     error.value = 'Не удалось загрузить список игр';
@@ -108,8 +109,9 @@ watch(selectedGameId, () => {
   selectedServerId.value = '';
   servers.value = [];
   const g = selectedGame.value;
-  if (g?.localizations?.length) {
-    selectedLocalizationId.value = String(g.localizations[0].id);
+  const firstLoc = g?.localizations?.[0];
+  if (firstLoc) {
+    selectedLocalizationId.value = String(firstLoc.id);
   }
 });
 
@@ -192,8 +194,9 @@ onMounted(async () => {
 });
 
 watch(availableLocalizations, (list) => {
-  if (selectedLocalizationId.value === '' && list.length > 0) {
-    selectedLocalizationId.value = String(list[0].id);
+  const first = list[0];
+  if (selectedLocalizationId.value === '' && first) {
+    selectedLocalizationId.value = String(first.id);
   }
 });
 </script>

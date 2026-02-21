@@ -245,16 +245,19 @@ const navItems = [
                   <p class="px-2 py-4 text-sm text-muted-foreground">Нет оповещений</p>
                 </template>
                 <template v-else>
-                  <button
+                  <div
                     v-for="n in notifications"
                     :key="n.id"
-                    type="button"
-                    class="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                    role="button"
+                    tabindex="0"
+                    class="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent cursor-pointer"
                     :class="[
                     { 'bg-muted/50': expandedId === n.id },
                     !n.read_at && 'bg-primary/10'
                   ]"
                     @click="onNotificationClick(n)"
+                    @keydown.enter.prevent="onNotificationClick(n)"
+                    @keydown.space.prevent="onNotificationClick(n)"
                     @mouseenter="onNotificationMouseEnter(n)"
                   >
                     <div class="min-w-0 flex-1">
@@ -270,7 +273,7 @@ const navItems = [
                       class="shrink-0 rounded p-1 opacity-70 hover:opacity-100 hover:bg-destructive/20 disabled:pointer-events-none"
                       aria-label="Удалить"
                       :disabled="deletingNotificationId === n.id"
-                      @click="deleteNotification($event, n.id)"
+                      @click.stop="deleteNotification($event, n.id)"
                     >
                       <svg
                         v-if="deletingNotificationId === n.id"
@@ -301,7 +304,7 @@ const navItems = [
                         <line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>
                       </svg>
                     </button>
-                  </button>
+                  </div>
                   <div v-if="loadingMoreNotifications" class="flex items-center justify-center gap-2 px-2 py-3">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4 shrink-0 animate-spin text-muted-foreground">
                     <path d="M21 12a9 9 0 1 1-6.22-8.56" />

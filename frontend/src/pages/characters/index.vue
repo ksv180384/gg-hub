@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { Button, Card, CardContent, CardHeader, CardTitle, ConfirmDialog, TooltipProvider } from '@/shared/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, TooltipProvider } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import CharacterListItem from './CharacterListItem.vue';

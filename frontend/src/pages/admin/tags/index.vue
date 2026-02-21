@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
-import { Button, ConfirmDialog } from '@/shared/ui';
+import { Button } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 import TagCard from './components/TagCard.vue';
 
