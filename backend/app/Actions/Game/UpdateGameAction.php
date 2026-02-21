@@ -18,6 +18,12 @@ class UpdateGameAction
     public function __invoke(Game $game, array $data, ?UploadedFile $image = null, bool $removeImage = false): Game
     {
         unset($data['image'], $data['remove_image']);
+        if (array_key_exists('max_classes_per_character', $data)) {
+            $data['max_classes_per_character'] = (int) $data['max_classes_per_character'];
+            if ($data['max_classes_per_character'] < 0) {
+                $data['max_classes_per_character'] = 0;
+            }
+        }
         $game->update($data);
 
         if ($removeImage) {

@@ -168,11 +168,14 @@ const navItems = [
 
 <template>
   <header class="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-    <div class="flex h-14 items-center gap-4 px-4 md:px-6">
-      <RouterLink to="/" class="flex items-center gap-2 font-semibold md:mr-6">
+    <div class="flex h-14 items-center gap-2 md:gap-4 px-4 md:px-6">
+      <RouterLink to="/" class="flex items-center gap-2 font-semibold md:mr-6 shrink-0">
         <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground text-lg">⚔</span>
         <span class="hidden font-bold sm:inline-block">{{ siteTitle }}</span>
       </RouterLink>
+      <div class="md:hidden shrink-0">
+        <slot name="sidebar-trigger" />
+      </div>
 
       <nav class="hidden flex-1 items-center gap-6 md:flex">
         <RouterLink

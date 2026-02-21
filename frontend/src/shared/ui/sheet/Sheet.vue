@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useSlots } from 'vue';
 import {
   DialogRoot,
   DialogTrigger,
@@ -22,11 +23,12 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const open = defineModel<boolean>('open', { default: false });
+const slots = useSlots();
 </script>
 
 <template>
   <DialogRoot v-model:open="open">
-    <DialogTrigger as-child>
+    <DialogTrigger v-if="slots.trigger" as-child>
       <slot name="trigger" />
     </DialogTrigger>
     <DialogPortal>

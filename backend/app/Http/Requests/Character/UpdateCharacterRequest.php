@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests\Character;
 
-use App\Models\Game;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreCharacterRequest extends FormRequest
+class UpdateCharacterRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,18 +17,17 @@ class StoreCharacterRequest extends FormRequest
      */
     public function rules(): array
     {
-        $gameId = (int) $this->input('game_id');
         $localizationId = $this->input('localization_id');
-        $game = $gameId ? Game::find($gameId) : null;
+        $characterId = $this->route('character');
+        $character = is_numeric($characterId)
+            ? \Domains\Character\Models\Character::with('game')->find($characterId)
+            : null;
+        $game = $character?->game;
         $maxClasses = $game ? (int) $game->max_classes_per_character : 1;
+        $gameId = $game?->id;
 
-        return [
-            'game_id' => ['required', 'integer', 'exists:games,id'],
-            'localization_id' => [
-                'required',
-                'integer',
-                Rule::exists('localizations', 'id')->where('game_id', $gameId),
-            ],
+        $rules = [
+            'localization_id' => ['required', 'integer', 'exists:localizations,id'],
             'server_id' => [
                 'required',
                 'integer',
@@ -37,8 +35,12 @@ class StoreCharacterRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:255'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+            'remove_avatar' => ['nullable', 'boolean'],
             'game_class_ids' => ['nullable', 'array', 'max:' . $maxClasses],
-            'game_class_ids.*' => ['integer', Rule::exists('game_classes', 'id')->where('game_id', $gameId)],
         ];
+        if ($gameId) {
+            $rules['game_class_ids.*'] = ['integer', Rule::exists('game_classes', 'id')->where('game_id', $gameId)];
+        }
+        return $rules;
     }
 }

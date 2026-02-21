@@ -12,6 +12,7 @@ class GetGameAction
             'localizations' => fn ($q) => $q->with([
                 'servers' => fn ($q) => $q->whereNull('merged_into_server_id')->orderBy('name'),
             ]),
+            'gameClasses',
         ]);
         return $game;
     }

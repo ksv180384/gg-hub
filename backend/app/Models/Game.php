@@ -18,12 +18,14 @@ class Game extends Model
         'description',
         'image',
         'is_active',
+        'max_classes_per_character',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'max_classes_per_character' => 'integer',
         ];
     }
 
@@ -62,5 +64,10 @@ class Game extends Model
     public function servers(): HasMany
     {
         return $this->hasMany(Server::class);
+    }
+
+    public function gameClasses(): HasMany
+    {
+        return $this->hasMany(GameClass::class);
     }
 }

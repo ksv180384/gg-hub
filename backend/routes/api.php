@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\ContextController;
+use App\Http\Controllers\Api\GameClassController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\GuildController;
 use App\Http\Controllers\Api\LocalizationController;
@@ -35,6 +37,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/user', [UserController::class, 'update']);
 
+    Route::get('/characters', [CharacterController::class, 'index']);
+    Route::get('/characters/{character}', [CharacterController::class, 'show']);
+    Route::post('/characters', [CharacterController::class, 'store']);
+    Route::match(['put', 'post'], '/characters/{character}', [CharacterController::class, 'update']);
+
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
@@ -62,6 +69,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/games', [GameController::class, 'store'])->middleware('permission:dobavliat-igru');
         Route::post('/games/{game}', [GameController::class, 'update'])->middleware('permission:redaktirovat-igru');
         Route::delete('/games/{game}', [GameController::class, 'destroy'])->middleware('permission:udaliat-igru');
+        Route::get('/games/{game}/game-classes', [GameClassController::class, 'index'])->middleware('permission:redaktirovat-igru');
+        Route::post('/games/{game}/game-classes', [GameClassController::class, 'store'])->middleware('permission:redaktirovat-igru');
+        Route::match(['put', 'post'], '/game-classes/{game_class}', [GameClassController::class, 'update'])->middleware('permission:redaktirovat-igru');
+        Route::delete('/game-classes/{game_class}', [GameClassController::class, 'destroy'])->middleware('permission:redaktirovat-igru');
         Route::post('/games/{game}/localizations', [LocalizationController::class, 'store'])->middleware('permission:dobavliat-lokalizaciia');
 
         Route::get('/games/{game}/localizations/{localization}/servers', [ServerController::class, 'index'])->middleware('permission:dobaliat-server');

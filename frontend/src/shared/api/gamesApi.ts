@@ -12,6 +12,19 @@ export interface Server {
   is_active: boolean;
 }
 
+export interface GameClass {
+  id: number;
+  game_id: number;
+  name: string;
+  name_ru: string | null;
+  slug: string;
+  image: string | null;
+  image_preview?: string | null;
+  image_thumb?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Localization {
   id: number;
   code: string;
@@ -29,7 +42,9 @@ export interface Game {
   image_preview?: string | null;
   image_thumb?: string | null;
   is_active: boolean;
+  max_classes_per_character?: number;
   localizations?: Localization[];
+  game_classes?: GameClass[];
   created_at?: string;
   updated_at?: string;
 }
@@ -45,6 +60,22 @@ export interface UpdateGamePayload {
   name: string;
   slug: string;
   description?: string;
+  image?: File | null;
+  remove_image?: boolean;
+  max_classes_per_character?: number;
+}
+
+export interface CreateGameClassPayload {
+  name: string;
+  name_ru?: string | null;
+  slug?: string;
+  image?: File | null;
+}
+
+export interface UpdateGameClassPayload {
+  name: string;
+  name_ru?: string | null;
+  slug?: string;
   image?: File | null;
   remove_image?: boolean;
 }
@@ -110,9 +141,55 @@ export const gamesApi = {
     if (payload.description != null) form.append('description', payload.description);
     if (payload.remove_image) form.append('remove_image', '1');
     if (payload.image) form.append('image', payload.image);
+    if (payload.max_classes_per_character !== undefined) {
+      form.append('max_classes_per_character', String(payload.max_classes_per_character));
+    }
     const res = await http.fetchPost<GameResponse | Game>(`/games/${id}`, form);
     throwOnError(res, 'Ошибка обновления игры');
     return unwrapData(res, {} as Game) as Game;
+  },
+
+  async getGameClasses(gameId: number): Promise<GameClass[]> {
+    const res = await http.fetchGet<{ data: GameClass[] }>(`/games/${gameId}/game-classes`);
+    throwOnError(res, 'Ошибка загрузки классов');
+    const raw = res.data as { data?: GameClass[] } | null;
+    return raw?.data ?? [];
+  },
+
+  async createGameClass(gameId: number, payload: CreateGameClassPayload): Promise<GameClass> {
+    const form = new FormData();
+    form.append('name', payload.name);
+    if (payload.name_ru != null && payload.name_ru.trim() !== '') form.append('name_ru', payload.name_ru.trim());
+    if (payload.slug != null && payload.slug !== '') form.append('slug', payload.slug);
+    if (payload.image) form.append('image', payload.image);
+    const res = await http.fetchPost<{ data: GameClass } | GameClass>(
+      `/games/${gameId}/game-classes`,
+      form
+    );
+    throwOnError(res, 'Ошибка создания класса');
+    return unwrapData(res, {} as GameClass) as GameClass;
+  },
+
+  async updateGameClass(id: number, payload: UpdateGameClassPayload): Promise<GameClass> {
+    const form = new FormData();
+    form.append('_method', 'PUT');
+    form.append('name', payload.name);
+    if (payload.name_ru != null && payload.name_ru.trim() !== '') form.append('name_ru', payload.name_ru.trim());
+    else form.append('name_ru', '');
+    if (payload.slug != null && payload.slug !== '') form.append('slug', payload.slug);
+    if (payload.remove_image) form.append('remove_image', '1');
+    if (payload.image) form.append('image', payload.image);
+    const res = await http.fetchPost<{ data: GameClass } | GameClass>(
+      `/game-classes/${id}`,
+      form
+    );
+    throwOnError(res, 'Ошибка обновления класса');
+    return unwrapData(res, {} as GameClass) as GameClass;
+  },
+
+  async deleteGameClass(id: number): Promise<void> {
+    const res = await http.fetchDelete<{ message?: string }>(`/game-classes/${id}`);
+    throwOnError(res, 'Ошибка удаления класса');
   },
 
   async createLocalization(gameId: number, payload: CreateLocalizationPayload): Promise<Localization> {
