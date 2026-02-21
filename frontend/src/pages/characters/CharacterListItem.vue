@@ -1,20 +1,13 @@
 <script setup lang="ts">
 import { Avatar, Button, Tooltip } from '@/shared/ui';
-import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import type { Character } from '@/shared/api/charactersApi';
+import CharacterClassBadge from './CharacterClassBadge.vue';
 
 defineProps<{
   character: Character;
 }>();
 
 const emit = defineEmits<{ (e: 'edit'): void }>();
-
-function locationString(c: Character): string {
-  const parts: string[] = [];
-  if (c.localization?.name) parts.push(c.localization.name);
-  if (c.server?.name) parts.push(c.server.name);
-  return parts.join(' · ') || '—';
-}
 </script>
 
 <template>
@@ -29,18 +22,18 @@ function locationString(c: Character): string {
     />
     <div class="min-w-0 flex-1">
       <p class="font-medium">{{ character.name }}</p>
-      <p class="text-sm text-muted-foreground">{{ locationString(character) }}</p>
+      <p class="text-sm text-muted-foreground">
+        <span v-if="character.localization?.name" :title="'Локализация'">{{ character.localization.name }}</span>
+        <template v-if="character.localization?.name && character.server?.name"> · </template>
+        <span v-if="character.server?.name" :title="'Сервер'">{{ character.server.name }}</span>
+        <template v-if="!character.localization?.name && !character.server?.name">—</template>
+      </p>
       <div v-if="character.game_classes?.length" class="mt-1 flex flex-wrap items-center gap-1.5">
-        <template v-for="gc in character.game_classes" :key="gc.id">
-          <img
-            v-if="gc.image_thumb || gc.image"
-            :src="storageImageUrl(gc.image_thumb || gc.image || '')"
-            :alt="gc.name_ru || gc.name"
-            :title="gc.name_ru || gc.name"
-            class="h-6 w-6 rounded object-cover"
-          />
-          <span v-else class="text-xs text-muted-foreground">{{ gc.name_ru || gc.name }}</span>
-        </template>
+        <CharacterClassBadge
+          v-for="gc in character.game_classes"
+          :key="gc.id"
+          :game-class="gc"
+        />
       </div>
     </div>
     <Tooltip content="Редактировать">

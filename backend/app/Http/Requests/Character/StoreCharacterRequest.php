@@ -36,9 +36,52 @@ class StoreCharacterRequest extends FormRequest
                 Rule::exists('servers', 'id')->where('localization_id', $localizationId),
             ],
             'name' => ['required', 'string', 'max:255'],
-            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'game_class_ids' => ['nullable', 'array', 'max:' . $maxClasses],
             'game_class_ids.*' => ['integer', Rule::exists('game_classes', 'id')->where('game_id', $gameId)],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'game_id.required' => 'Укажите игру.',
+            'game_id.integer' => 'Игра должна быть указана числом.',
+            'game_id.exists' => 'Выбранная игра не найдена.',
+            'localization_id.required' => 'Выберите локализацию.',
+            'localization_id.integer' => 'Локализация должна быть указана числом.',
+            'localization_id.exists' => 'Выбранная локализация не найдена или не относится к этой игре.',
+            'server_id.required' => 'Выберите сервер.',
+            'server_id.integer' => 'Сервер должен быть указан числом.',
+            'server_id.exists' => 'Выбранный сервер не найден или не относится к выбранной локализации.',
+            'name.required' => 'Введите имя персонажа.',
+            'name.string' => 'Имя должно быть строкой.',
+            'name.max' => 'Имя не должно превышать 255 символов.',
+            'avatar.image' => 'Файл аватара должен быть изображением (JPEG, PNG, GIF или WebP).',
+            'avatar.mimes' => 'Аватар должен быть в формате JPEG, PNG, GIF или WebP.',
+            'avatar.max' => 'Размер файла аватара не должен превышать 2 МБ.',
+            'game_class_ids.array' => 'Классы должны быть указаны списком.',
+            'game_class_ids.max' => 'Можно выбрать не более :max классов для персонажа.',
+            'game_class_ids.*.integer' => 'Каждый класс должен быть указан числом.',
+            'game_class_ids.*.exists' => 'Один из выбранных классов не найден или не относится к этой игре.',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'game_id' => 'игра',
+            'localization_id' => 'локализация',
+            'server_id' => 'сервер',
+            'name' => 'имя персонажа',
+            'avatar' => 'аватар',
+            'game_class_ids' => 'классы',
         ];
     }
 }

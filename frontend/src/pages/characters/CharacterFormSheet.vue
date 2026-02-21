@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import {
   Avatar,
   Button,
@@ -45,6 +45,7 @@ const formSaving = ref(false);
 const formError = ref('');
 const avatarDragOver = ref(false);
 const avatarFileInputRef = ref<HTMLInputElement | null>(null);
+const serverSearch = ref('');
 
 const localizations = computed((): Localization[] => props.gameFull?.localizations ?? []);
 const gameClasses = computed((): GameClass[] => props.gameFull?.game_classes ?? []);
@@ -53,6 +54,20 @@ const servers = computed((): Server[] => {
   if (!localizationId.value) return [];
   const loc = localizations.value.find((l) => String(l.id) === localizationId.value);
   return loc?.servers ?? [];
+});
+
+const filteredServers = computed((): Server[] => {
+  const list = servers.value;
+  const q = serverSearch.value.trim().toLowerCase();
+  if (!q) return list;
+  const filtered = list.filter((s) => s.name.toLowerCase().includes(q));
+  // Выбранный сервер всегда показываем в списке
+  const id = serverId.value;
+  if (id && !filtered.some((s) => String(s.id) === id)) {
+    const selected = list.find((s) => String(s.id) === id);
+    if (selected) return [selected, ...filtered];
+  }
+  return filtered;
 });
 
 const canSubmit = computed(
@@ -69,16 +84,19 @@ const avatarDisplayUrl = computed(() => {
 
 watch(
   () => [props.open, props.editingCharacter] as const,
-  ([open, editing]) => {
+  async ([open, editing]) => {
     if (!open) return;
     if (editing) {
       name.value = editing.name;
       localizationId.value = String(editing.localization_id);
-      serverId.value = String(editing.server_id);
       selectedClassIds.value = editing.game_classes?.map((c) => c.id) ?? [];
       avatarFile.value = null;
       avatarPreview.value = null;
       removeAvatar.value = false;
+      // Сбрасываем сервер при смене локализации в watch(localizationId); задаём выбранный сервер после этого
+      serverId.value = '';
+      await nextTick();
+      serverId.value = String(editing.server_id);
     } else {
       name.value = '';
       localizationId.value = '';
@@ -88,12 +106,14 @@ watch(
       avatarPreview.value = null;
       removeAvatar.value = false;
     }
+    serverSearch.value = '';
     formError.value = '';
   }
 );
 
 watch(localizationId, () => {
   serverId.value = '';
+  serverSearch.value = '';
 });
 
 function toggleClassId(id: number) {
@@ -224,8 +244,21 @@ async function submitForm() {
           <SelectTrigger id="char-server" class="w-full">
             <SelectValue placeholder="Выберите сервер" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="srv in servers" :key="srv.id" :value="String(srv.id)">
+          <SelectContent class="p-0">
+            <div class="sticky top-0 z-10 border-b bg-popover p-1.5">
+              <Input
+                v-model="serverSearch"
+                type="text"
+                placeholder="Поиск сервера..."
+                class="h-8 text-sm"
+                @keydown.stop
+              />
+            </div>
+            <SelectItem
+              v-for="srv in filteredServers"
+              :key="srv.id"
+              :value="String(srv.id)"
+            >
               {{ srv.name }}
             </SelectItem>
           </SelectContent>
