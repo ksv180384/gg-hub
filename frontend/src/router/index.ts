@@ -104,6 +104,18 @@ const router = createRouter({
           redirect: { name: 'profile' },
         },
         { path: 'characters', name: 'characters', component: () => import('@/pages/characters/index.vue') },
+        {
+          path: 'characters/create',
+          name: 'characters-create',
+          component: () => import('@/pages/characters/create/index.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'characters/:id/edit',
+          name: 'characters-edit',
+          component: () => import('@/pages/characters/[id]/edit.vue'),
+          meta: { requiresAuth: true },
+        },
         { path: 'guild', name: 'guild', component: () => import('@/pages/guild/index.vue') },
         {
           path: 'admin/users',
