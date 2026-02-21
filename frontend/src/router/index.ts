@@ -25,6 +25,18 @@ const router = createRouter({
         { path: '', name: 'home', component: () => import('@/pages/home/index.vue') },
         { path: 'news', name: 'news', component: () => import('@/pages/news/index.vue') },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
+        {
+          path: 'guilds/create',
+          name: 'guilds-create',
+          component: () => import('@/pages/guilds/create/index.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'guilds/:id/settings',
+          name: 'guild-settings',
+          component: () => import('@/pages/guilds/settings/index.vue'),
+          meta: { requiresAuth: true },
+        },
         { path: 'games', name: 'games', component: () => import('@/pages/games/index.vue') },
         {
           path: 'profile',

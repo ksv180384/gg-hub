@@ -4,6 +4,7 @@ namespace Domains\Guild\Models;
 
 use App\Models\User;
 use Domains\Access\Models\GuildRole;
+use Domains\Character\Models\Character;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
@@ -23,7 +24,12 @@ class Guild extends Model
         'name',
         'slug',
         'description',
+        'logo_path',
+        'show_roster_to_all',
+        'about_text',
+        'charter_text',
         'owner_id',
+        'leader_character_id',
         'is_recruiting',
     ];
 
@@ -31,6 +37,7 @@ class Guild extends Model
     {
         return [
             'is_recruiting' => 'boolean',
+            'show_roster_to_all' => 'boolean',
         ];
     }
 
@@ -52,6 +59,11 @@ class Guild extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function leader(): BelongsTo
+    {
+        return $this->belongsTo(Character::class, 'leader_character_id');
     }
 
     public function members(): HasMany

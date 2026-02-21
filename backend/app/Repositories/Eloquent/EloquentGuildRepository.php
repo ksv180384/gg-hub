@@ -36,4 +36,18 @@ class EloquentGuildRepository implements GuildRepositoryInterface
     {
         return Guild::create($data);
     }
+
+    public function findById(int $id): ?Guild
+    {
+        return Guild::query()->find($id);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function update(Guild $guild, array $data): Guild
+    {
+        $guild->update($data);
+        return $guild->fresh();
+    }
 }

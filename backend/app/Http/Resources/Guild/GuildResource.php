@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources\Guild;
 
+use App\Http\Resources\Character\CharacterResource;
 use App\Http\Resources\Game\GameResource;
 use App\Http\Resources\Game\LocalizationResource;
 use App\Http\Resources\Game\ServerResource;
+use App\Services\GuildLogoService;
 use Domains\Guild\Models\Guild;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -22,7 +24,15 @@ class GuildResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
+            'logo_path' => $this->logo_path,
+            'logo_url' => GuildLogoService::url($this->logo_path),
+            'show_roster_to_all' => $this->show_roster_to_all ?? false,
+            'about_text' => $this->about_text,
+            'charter_text' => $this->charter_text,
             'owner_id' => $this->owner_id,
+            'leader_character_id' => $this->leader_character_id,
+            'leader' => new CharacterResource($this->whenLoaded('leader')),
+            'members_count' => $this->members_count ?? 0,
             'is_recruiting' => $this->is_recruiting,
             'game_id' => $this->game_id,
             'localization_id' => $this->localization_id,

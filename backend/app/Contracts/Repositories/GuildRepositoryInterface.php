@@ -19,4 +19,11 @@ interface GuildRepositoryInterface
      * @param array<string, mixed> $data
      */
     public function create(array $data): Guild;
+
+    public function findById(int $id): ?Guild;
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function update(Guild $guild, array $data): Guild;
 }

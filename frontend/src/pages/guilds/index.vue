@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Avatar, Input } from '@/shared/ui';
 import { useSiteContextStore } from '@/stores/siteContext';
+import { useAuthStore } from '@/stores/auth';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 
 const siteContext = useSiteContextStore();
+const authStore = useAuthStore();
+const router = useRouter();
 const search = ref('');
 const guilds = ref<Guild[]>([]);
 const loading = ref(true);
@@ -52,7 +56,7 @@ onMounted(() => loadGuilds());
       <h1 class="mb-2 text-3xl font-bold tracking-tight">Гильдии</h1>
       <p class="mb-8 text-muted-foreground">
         <template v-if="siteContext.game">
-          Гильдии игры {{ siteContext.game.name }}. Найдите гильдию или создайте свою (только в админском режиме).
+          Гильдии игры {{ siteContext.game.name }}. Найдите гильдию или создайте свою.
         </template>
         <template v-else>
           Найдите гильдию под свой стиль игры или создайте свою.
@@ -65,7 +69,7 @@ onMounted(() => loadGuilds());
           placeholder="Поиск по названию или игре..."
           class="max-w-md"
         />
-        <Button v-if="siteContext.isAdmin">
+        <Button v-if="authStore.isAuthenticated" @click="router.push({ name: 'guilds-create' })">
           Создать гильдию
         </Button>
       </div>
@@ -93,15 +97,24 @@ onMounted(() => loadGuilds());
             </div>
             <Badge v-if="g.is_recruiting" variant="outline">Набор</Badge>
           </CardHeader>
-          <CardContent>
-            <Button variant="outline" size="sm" class="w-full">Подробнее</Button>
+          <CardContent class="flex gap-2">
+            <Button
+              v-if="authStore.user && g.owner_id === authStore.user.id"
+              variant="outline"
+              size="sm"
+              class="flex-1"
+              @click="router.push({ name: 'guild-settings', params: { id: String(g.id) } })"
+            >
+              Настройки
+            </Button>
+            <Button variant="outline" size="sm" class="flex-1">Подробнее</Button>
           </CardContent>
         </Card>
       </div>
 
       <div v-if="!loading && filteredGuilds.length === 0" class="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
         Гильдий пока нет.
-        <template v-if="siteContext.isAdmin"> Создайте первую в админском режиме.</template>
+        <template v-if="authStore.isAuthenticated"> Создайте первую.</template>
       </div>
     </div>
   </div>
