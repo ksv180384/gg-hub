@@ -16,6 +16,7 @@ class PermissionResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'scope' => $this->scope?->value ?? $this->scope,
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,

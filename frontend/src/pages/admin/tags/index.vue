@@ -3,8 +3,14 @@ import { ref, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { Button } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
-import { tagsApi, type Tag } from '@/shared/api/tagsApi';
+import { useAuthStore } from '@/stores/auth';
+import { tagsApi, type Tag, PERMISSION_TAG_EDIT, PERMISSION_TAG_HIDE, PERMISSION_TAG_DELETE } from '@/shared/api/tagsApi';
 import TagCard from './components/TagCard.vue';
+
+const auth = useAuthStore();
+const canEdit = () => auth.hasPermission(PERMISSION_TAG_EDIT);
+const canHide = () => auth.hasPermission(PERMISSION_TAG_HIDE);
+const canDelete = () => auth.hasPermission(PERMISSION_TAG_DELETE);
 
 const tags = ref<Tag[]>([]);
 const loading = ref(true);
@@ -87,6 +93,9 @@ onMounted(() => loadTags());
         :key="tag.id"
         :tag="tag"
         :toggling="togglingId === tag.id"
+        :can-edit="canEdit()"
+        :can-hide="canHide()"
+        :can-delete="canDelete()"
         @toggle-hidden="toggleHidden(tag)"
         @delete="openDeleteDialog(tag)"
       />

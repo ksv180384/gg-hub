@@ -2,8 +2,10 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label } from '@/shared/ui';
-import { tagsApi, type Tag } from '@/shared/api/tagsApi';
+import { useAuthStore } from '@/stores/auth';
+import { tagsApi, type Tag, PERMISSION_TAG_EDIT, PERMISSION_TAG_HIDE } from '@/shared/api/tagsApi';
 
+const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 const tag = ref<Tag | null>(null);
@@ -18,6 +20,10 @@ const tagId = computed(() => Number(route.params.id));
 const canSubmit = computed(() => name.value.trim().length > 0);
 
 onMounted(async () => {
+  if (!auth.hasPermission(PERMISSION_TAG_EDIT)) {
+    router.replace('/admin/tags');
+    return;
+  }
   try {
     const list = await tagsApi.getTags(true);
     const t = list.find((x) => x.id === tagId.value);
@@ -48,12 +54,15 @@ async function submit() {
   if (!canSubmit.value || !tag.value) return;
   submitting.value = true;
   error.value = null;
+  const payload: { name: string; slug?: string; is_hidden?: boolean } = {
+    name: name.value.trim(),
+    slug: slug.value.trim() || undefined,
+  };
+  if (auth.hasPermission(PERMISSION_TAG_HIDE)) {
+    payload.is_hidden = isHidden.value;
+  }
   try {
-    await tagsApi.updateTag(tag.value.id, {
-      name: name.value.trim(),
-      slug: slug.value.trim() || undefined,
-      is_hidden: isHidden.value,
-    });
+    await tagsApi.updateTag(tag.value.id, payload);
     await router.push('/admin/tags');
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка сохранения';
@@ -79,7 +88,7 @@ async function submit() {
           <Label for="tag-slug">Слаг</Label>
           <Input id="tag-slug" v-model="slug" placeholder="slug" />
         </div>
-        <div class="flex items-center gap-2">
+        <div v-if="auth.hasPermission(PERMISSION_TAG_HIDE)" class="flex items-center gap-2">
           <input
             id="tag-hidden"
             v-model="isHidden"

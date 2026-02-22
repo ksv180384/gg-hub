@@ -3,6 +3,7 @@
 namespace Domains\Access\Actions;
 
 use Domains\Access\Models\Permission;
+use Domains\Access\Models\PermissionGroup;
 
 class UpdatePermissionAction
 {
@@ -11,6 +12,10 @@ class UpdatePermissionAction
      */
     public function __invoke(Permission $permission, array $data): Permission
     {
+        if (isset($data['permission_group_id'])) {
+            $group = PermissionGroup::findOrFail($data['permission_group_id']);
+            $data['scope'] = $group->scope;
+        }
         $permission->update($data);
         $permission->load('group');
         return $permission;

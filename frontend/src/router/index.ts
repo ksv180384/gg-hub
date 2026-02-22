@@ -178,6 +178,42 @@ const router = createRouter({
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
+          path: 'admin/guild-permissions',
+          name: 'admin-guild-permissions',
+          component: () => import('@/pages/admin/guild-permissions/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/guild-permissions/create',
+          name: 'admin-guild-permissions-create',
+          component: () => import('@/pages/admin/guild-permissions/create.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/guild-permissions/:id/edit',
+          name: 'admin-guild-permissions-edit',
+          component: () => import('@/pages/admin/guild-permissions/edit.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/guild-permission-groups',
+          name: 'admin-guild-permission-groups',
+          component: () => import('@/pages/admin/guild-permission-groups/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/guild-permission-groups/create',
+          name: 'admin-guild-permission-groups-create',
+          component: () => import('@/pages/admin/guild-permission-groups/create.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/guild-permission-groups/:id/edit',
+          name: 'admin-guild-permission-groups-edit',
+          component: () => import('@/pages/admin/guild-permission-groups/edit.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
           path: 'admin/permissions/create',
           name: 'admin-permissions-create',
           component: () => import('@/pages/admin/permissions/create.vue'),

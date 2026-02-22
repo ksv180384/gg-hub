@@ -16,6 +16,7 @@ class PermissionGroupResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'scope' => $this->scope?->value ?? $this->scope,
             'name' => $this->name,
             'slug' => $this->slug,
             'permissions' => $this->whenLoaded('permissions', fn () => $this->permissions->map(fn ($p) => [

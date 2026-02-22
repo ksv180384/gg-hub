@@ -12,7 +12,7 @@ class ListTagsAction
      */
     public function __invoke(bool $includeHidden = true): Collection
     {
-        $query = Tag::query()->orderBy('name');
+        $query = Tag::query()->with('createdBy')->orderBy('name');
         if (!$includeHidden) {
             $query->where('is_hidden', false);
         }

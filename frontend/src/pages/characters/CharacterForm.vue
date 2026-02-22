@@ -44,6 +44,7 @@ const newTagName = ref('');
 const creatingTag = ref(false);
 const createTagError = ref<string | null>(null);
 const addingNewTag = ref(false);
+const newTagInputRef = ref<HTMLInputElement | null>(null);
 const avatarFile = ref<File | null>(null);
 const avatarPreview = ref<string | null>(null);
 const removeAvatar = ref(false);
@@ -163,6 +164,14 @@ function cancelNewTag() {
   addingNewTag.value = false;
   newTagName.value = '';
   createTagError.value = null;
+}
+
+function startAddingNewTag() {
+  addingNewTag.value = true;
+  createTagError.value = null;
+  nextTick(() => {
+    newTagInputRef.value?.focus();
+  });
 }
 
 async function createAndAddTag() {
@@ -367,11 +376,10 @@ async function submitForm() {
       <div class="space-y-1">
         <Label for="char-tag-select" class="text-muted-foreground">Добавить тег</Label>
         <SelectRoot
-          id="char-tag-select"
           v-model="tagToAddFromSelect"
           @update:model-value="(v) => onAddTagFromSelect(v)"
         >
-          <SelectTrigger class="w-full">
+          <SelectTrigger id="char-tag-select" class="w-full">
             <SelectValue placeholder="Выберите тег" />
           </SelectTrigger>
           <SelectContent>
@@ -382,58 +390,52 @@ async function submitForm() {
             >
               {{ tag.name }}
             </SelectItem>
-            <div
-              class="border-t border-border p-1"
-              @mousedown.prevent
-            >
-              <template v-if="!addingNewTag">
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
-                  @click="addingNewTag = true"
-                >
-                  <span class="text-base leading-none">+</span>
-                  Добавить новый
-                </button>
-              </template>
-              <template v-else>
-                <div class="flex flex-col gap-2 p-1">
-                  <Input
-                    v-model="newTagName"
-                    placeholder="Название тега"
-                    class="h-8 text-sm"
-                    :disabled="creatingTag"
-                    @keydown.enter.prevent="createAndAddTag"
-                  />
-                  <div class="flex gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      class="flex-1"
-                      :disabled="!newTagName.trim() || creatingTag"
-                      @click="createAndAddTag"
-                    >
-                      {{ creatingTag ? '…' : 'Создать' }}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      :disabled="creatingTag"
-                      @click="cancelNewTag"
-                    >
-                      Отмена
-                    </Button>
-                  </div>
-                  <p v-if="createTagError" class="text-xs text-destructive">
-                    {{ createTagError }}
-                  </p>
-                </div>
-              </template>
+            <div class="border-t border-border p-1">
+              <button
+                type="button"
+                class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
+                @click="startAddingNewTag"
+              >
+                <span class="text-base leading-none">+</span>
+                Добавить новый
+              </button>
             </div>
           </SelectContent>
         </SelectRoot>
+        <div v-if="addingNewTag" class="mt-2 flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-2">
+          <Input
+            ref="newTagInputRef"
+            v-model="newTagName"
+            placeholder="Название тега"
+            class="h-8 text-sm"
+            :disabled="creatingTag"
+            @keydown.enter.prevent="createAndAddTag"
+          />
+          <div class="flex gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              class="flex-1"
+              :disabled="!newTagName.trim() || creatingTag"
+              @click="createAndAddTag"
+            >
+              {{ creatingTag ? '…' : 'Создать' }}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              :disabled="creatingTag"
+              @click="cancelNewTag"
+            >
+              Отмена
+            </Button>
+          </div>
+          <p v-if="createTagError" class="text-xs text-destructive">
+            {{ createTagError }}
+          </p>
+        </div>
       </div>
     </div>
 

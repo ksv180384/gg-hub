@@ -63,10 +63,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/permission-groups/{permission_group}', [PermissionGroupController::class, 'show']);
         Route::post('/permission-groups', [PermissionGroupController::class, 'store'])->middleware('permission:obshhie-roli');
         Route::put('/permission-groups/{permission_group}', [PermissionGroupController::class, 'update'])->middleware('permission:obshhie-roli');
+        Route::delete('/permission-groups/{permission_group}', [PermissionGroupController::class, 'destroy'])->middleware('permission:obshhie-roli');
         Route::get('/permissions', [PermissionController::class, 'index']);
         Route::get('/permissions/{permission}', [PermissionController::class, 'show']);
-        Route::post('/permissions', [PermissionController::class, 'store'])->middleware('permission:obshhie-roli');
-        Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->middleware('permission:obshhie-roli');
+        Route::post('/permissions', [PermissionController::class, 'store']);
+        Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
+        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
         Route::get('/roles', [RoleController::class, 'index']);
         Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:obshhie-roli');
         Route::get('/roles/{role}', [RoleController::class, 'show']);

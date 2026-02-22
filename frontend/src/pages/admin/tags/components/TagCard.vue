@@ -6,6 +6,9 @@ import type { Tag } from '@/shared/api/tagsApi';
 defineProps<{
   tag: Tag;
   toggling: boolean;
+  canEdit?: boolean;
+  canHide?: boolean;
+  canDelete?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -20,10 +23,14 @@ const emit = defineEmits<{
       <div>
         <CardTitle class="text-base">{{ tag.name }}</CardTitle>
         <p class="mt-1 text-sm text-muted-foreground">Слаг: {{ tag.slug }}</p>
+        <p v-if="tag.created_by" class="mt-0.5 text-xs text-muted-foreground">
+          Добавил: {{ tag.created_by.name }}
+        </p>
       </div>
       <div class="flex items-center gap-2">
         <Badge v-if="tag.is_hidden" variant="secondary">Скрыт</Badge>
         <Button
+          v-if="canHide"
           variant="ghost"
           size="icon"
           class="h-8 w-8"
@@ -50,7 +57,7 @@ const emit = defineEmits<{
             </svg>
           </template>
         </Button>
-        <RouterLink :to="{ name: 'admin-tags-edit', params: { id: tag.id } }">
+        <RouterLink v-if="canEdit" :to="{ name: 'admin-tags-edit', params: { id: tag.id } }">
           <Button variant="ghost" size="icon" class="h-8 w-8" aria-label="Редактировать" title="Редактировать">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
@@ -59,6 +66,7 @@ const emit = defineEmits<{
           </Button>
         </RouterLink>
         <Button
+          v-if="canDelete"
           variant="ghost"
           size="icon"
           class="h-9 w-9 shrink-0 min-h-9 min-w-9 touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10"

@@ -5,11 +5,18 @@
 import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 
+/** Права в админке: редактирование / скрытие / удаление тега. */
+export const PERMISSION_TAG_EDIT = 'redaktirovat-teg';
+export const PERMISSION_TAG_HIDE = 'skryvat-teg';
+export const PERMISSION_TAG_DELETE = 'udaliat-teg';
+
 export interface Tag {
   id: number;
   name: string;
   slug: string;
   is_hidden: boolean;
+  created_by_user_id?: number | null;
+  created_by?: { id: number; name: string } | null;
 }
 
 export interface TagsListResponse {

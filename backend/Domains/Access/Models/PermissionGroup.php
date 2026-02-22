@@ -2,6 +2,7 @@
 
 namespace Domains\Access\Models;
 
+use Domains\Access\Enums\PermissionScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -11,8 +12,13 @@ class PermissionGroup extends Model
     protected $table = 'permission_groups';
 
     protected $fillable = [
+        'scope',
         'name',
         'slug',
+    ];
+
+    protected $casts = [
+        'scope' => PermissionScope::class,
     ];
 
     protected static function booted(): void

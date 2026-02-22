@@ -53,6 +53,7 @@ const adminItems = [
   { to: '/admin/roles', label: 'Роли пользователей' },
   { to: '/admin/permissions', label: 'Права пользователей' },
   { to: '/admin/permission-groups', label: 'Категории прав' },
+  { to: '/admin/guild-permissions', label: 'Права гильдии' },
   { to: '/admin/tags', label: 'Теги' },
 ];
 

@@ -5,11 +5,17 @@
 import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 
-/** Слаг права: создание и редактирование ролей, прав и категорий прав. */
+/** Слаг права: создание и редактирование ролей, прав и категорий прав (сайт). */
 export const PERMISSION_MANAGE_ROLES = 'obshhie-roli';
+
+/** Права гильдии: добавление / редактирование / удаление прав гильдии. */
+export const PERMISSION_GUILD_ADD = 'dobavliat-pravo-gildii';
+export const PERMISSION_GUILD_EDIT = 'redaktirovat-pravo-gildii';
+export const PERMISSION_GUILD_DELETE = 'udaliat-pravo-gildii';
 
 export interface PermissionGroupDto {
   id: number;
+  scope?: string;
   name: string;
   slug: string;
   permissions?: { id: number; name: string; slug: string; description?: string | null }[];
@@ -17,6 +23,7 @@ export interface PermissionGroupDto {
 
 export interface PermissionDto {
   id: number;
+  scope?: string;
   name: string;
   slug: string;
   description?: string | null;
@@ -96,13 +103,14 @@ function unwrapResponse<T>(data: unknown): T {
 }
 
 export const accessApi = {
-  async getPermissionGroups(): Promise<PermissionGroupDto[]> {
-    const res = await http.fetchGet<PermissionGroupsResponse>('/permission-groups');
+  async getPermissionGroups(scope?: 'site' | 'guild'): Promise<PermissionGroupDto[]> {
+    const url = scope ? `/permission-groups?scope=${scope}` : '/permission-groups';
+    const res = await http.fetchGet<PermissionGroupsResponse>(url);
     throwOnError(res, 'Ошибка запроса');
     return unwrapResponse<PermissionGroupDto[]>(res.data) ?? [];
   },
 
-  async createPermissionGroup(payload: { name: string; slug: string }): Promise<PermissionGroupDto> {
+  async createPermissionGroup(payload: { scope?: string; name: string; slug: string }): Promise<PermissionGroupDto> {
     const res = await http.fetchPost<PermissionGroupResponse>('/permission-groups', payload);
     throwOnError(res, 'Ошибка запроса');
     return unwrapResponse<PermissionGroupDto>(res.data)!;
@@ -123,8 +131,14 @@ export const accessApi = {
     return unwrapResponse<PermissionGroupDto>(res.data)!;
   },
 
-  async getPermissions(): Promise<PermissionDto[]> {
-    const res = await http.fetchGet<PermissionsResponse>('/permissions');
+  async deletePermissionGroup(id: number): Promise<void> {
+    const res = await http.fetchDelete(`/permission-groups/${id}`);
+    throwOnError(res, 'Ошибка удаления');
+  },
+
+  async getPermissions(scope?: 'site' | 'guild'): Promise<PermissionDto[]> {
+    const url = scope ? `/permissions?scope=${scope}` : '/permissions';
+    const res = await http.fetchGet<PermissionsResponse>(url);
     throwOnError(res, 'Ошибка запроса');
     return unwrapResponse<PermissionDto[]>(res.data) ?? [];
   },
@@ -153,6 +167,11 @@ export const accessApi = {
     const res = await http.fetchPut<PermissionResponse>(`/permissions/${id}`, payload);
     throwOnError(res, 'Ошибка запроса');
     return unwrapResponse<PermissionDto>(res.data)!;
+  },
+
+  async deletePermission(id: number): Promise<void> {
+    const res = await http.fetchDelete(`/permissions/${id}`);
+    throwOnError(res, 'Ошибка удаления');
   },
 
   async getRoles(): Promise<RoleDto[]> {

@@ -53,7 +53,7 @@ onMounted(async () => {
     return;
   }
   try {
-    const [groupsData, _] = await Promise.all([accessApi.getPermissionGroups(), loadRole()]);
+    const [groupsData, _] = await Promise.all([accessApi.getPermissionGroups('site'), loadRole()]);
     groups.value = groupsData;
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка загрузки';

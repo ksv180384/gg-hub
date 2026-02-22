@@ -2,21 +2,27 @@
 
 namespace Domains\Access\Models;
 
+use Domains\Access\Enums\PermissionScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 /**
- * Право в системе. Доступ по slug.
+ * Право в системе. Доступ по slug. scope: site — права пользователей, guild — права гильдии.
  */
 class Permission extends Model
 {
     protected $fillable = [
+        'scope',
         'permission_group_id',
         'name',
         'slug',
         'description',
+    ];
+
+    protected $casts = [
+        'scope' => PermissionScope::class,
     ];
 
     protected static function booted(): void

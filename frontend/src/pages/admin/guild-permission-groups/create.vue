@@ -25,11 +25,11 @@ const error = ref<string | null>(null);
 
 const suggestedSlug = computed(() => slugFromName(name.value));
 const effectiveSlug = computed(() => (slug.value.trim() || suggestedSlug.value));
-const canSubmit = computed(() => name.value.trim().length);
+const canSubmit = computed(() => name.value.trim().length > 0);
 
 onMounted(() => {
   if (!auth.hasPermission(PERMISSION_MANAGE_ROLES)) {
-    router.replace('/admin/permission-groups');
+    router.replace('/admin/guild-permission-groups');
   }
 });
 
@@ -39,11 +39,11 @@ async function submit() {
   error.value = null;
   try {
     await accessApi.createPermissionGroup({
-      scope: 'site',
+      scope: 'guild',
       name: name.value.trim(),
       slug: effectiveSlug.value,
     });
-    await router.push('/admin/permission-groups');
+    await router.push('/admin/guild-permission-groups');
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка сохранения';
   } finally {
@@ -56,24 +56,24 @@ async function submit() {
   <div class="container max-w-lg py-6">
     <Card>
       <CardHeader>
-        <CardTitle>Добавить категорию прав</CardTitle>
+        <CardTitle>Добавить группу прав гильдии</CardTitle>
       </CardHeader>
       <CardContent class="space-y-4">
         <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
         <div class="space-y-2">
-          <Label for="name">Название</Label>
-          <Input id="name" v-model="name" placeholder="Например: Администрирование" />
+          <Label for="name">Название *</Label>
+          <Input id="name" v-model="name" placeholder="Например: Управление рейдами" />
         </div>
         <div class="space-y-2">
           <Label for="slug">Слаг</Label>
-          <Input id="slug" v-model="slug" placeholder="Например: admin" />
+          <Input id="slug" v-model="slug" placeholder="Например: raids" />
           <p class="text-xs text-muted-foreground">
-            Уникальный идентификатор категории. Если пусто — подставится из названия.
+            Уникальный идентификатор группы. Если пусто — подставится из названия.
           </p>
         </div>
         <div class="flex gap-2 pt-2">
           <Button :disabled="!canSubmit || submitting" @click="submit">Создать</Button>
-          <Button variant="outline" @click="router.push('/admin/permission-groups')">Отмена</Button>
+          <Button variant="outline" @click="router.push('/admin/guild-permission-groups')">Отмена</Button>
         </div>
       </CardContent>
     </Card>

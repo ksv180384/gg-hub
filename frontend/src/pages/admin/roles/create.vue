@@ -44,7 +44,7 @@ onMounted(async () => {
     return;
   }
   try {
-    groups.value = await accessApi.getPermissionGroups();
+    groups.value = await accessApi.getPermissionGroups('site');
   } catch {
     error.value = 'Не удалось загрузить список прав';
   }

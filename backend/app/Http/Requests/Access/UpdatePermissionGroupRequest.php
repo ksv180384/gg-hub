@@ -18,6 +18,7 @@ class UpdatePermissionGroupRequest extends FormRequest
     public function rules(): array
     {
         $group = $this->route('permission_group');
+        $scope = $this->input('scope', $group?->scope?->value ?? 'site');
 
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -26,7 +27,7 @@ class UpdatePermissionGroupRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('permission_groups', 'slug')->ignore($group),
+                Rule::unique('permission_groups', 'slug')->where('scope', $scope)->ignore($group),
             ],
         ];
     }

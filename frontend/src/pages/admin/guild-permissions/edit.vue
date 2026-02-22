@@ -15,8 +15,15 @@ import {
   SelectContent,
   SelectItem,
 } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { useAuthStore } from '@/stores/auth';
-import { accessApi, type PermissionGroupDto, type PermissionDto, PERMISSION_MANAGE_ROLES } from '@/shared/api/accessApi';
+import {
+  accessApi,
+  type PermissionGroupDto,
+  type PermissionDto,
+  PERMISSION_GUILD_EDIT,
+  PERMISSION_GUILD_DELETE,
+} from '@/shared/api/accessApi';
 
 const auth = useAuthStore();
 
@@ -44,6 +51,8 @@ const description = ref('');
 const permissionGroupId = ref<number | ''>('');
 const submitting = ref(false);
 const error = ref<string | null>(null);
+const deleteDialogOpen = ref(false);
+const deleting = ref(false);
 
 const suggestedSlug = computed(() => slugFromName(name.value));
 const effectiveSlug = computed(() => (slug.value.trim() || suggestedSlug.value));
@@ -59,7 +68,7 @@ const canSubmit = computed(
 
 async function load() {
   if (!id.value || Number.isNaN(id.value)) {
-    router.replace('/admin/permissions');
+    router.replace('/admin/guild-permissions');
     return;
   }
   loading.value = true;
@@ -67,7 +76,7 @@ async function load() {
   try {
     const [perm, groupsList] = await Promise.all([
       accessApi.getPermission(id.value),
-      accessApi.getPermissionGroups('site'),
+      accessApi.getPermissionGroups('guild'),
     ]);
     permission.value = perm;
     groups.value = groupsList;
@@ -93,7 +102,7 @@ async function submit() {
       description: description.value.trim() || undefined,
       permission_group_id: Number(permissionGroupId.value),
     });
-    await router.push('/admin/permissions');
+    await router.push('/admin/guild-permissions');
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка сохранения';
   } finally {
@@ -101,9 +110,24 @@ async function submit() {
   }
 }
 
+async function confirmDelete() {
+  if (!permission.value) return;
+  deleting.value = true;
+  error.value = null;
+  try {
+    await accessApi.deletePermission(permission.value.id);
+    await router.push('/admin/guild-permissions');
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Ошибка удаления';
+    deleteDialogOpen.value = false;
+  } finally {
+    deleting.value = false;
+  }
+}
+
 onMounted(() => {
-  if (!auth.hasPermission(PERMISSION_MANAGE_ROLES)) {
-    router.replace('/admin/permissions');
+  if (!auth.hasPermission(PERMISSION_GUILD_EDIT)) {
+    router.replace('/admin/guild-permissions');
     return;
   }
   load();
@@ -118,7 +142,7 @@ watch(id, (newId) => {
   <div class="container max-w-lg py-6">
     <Card>
       <CardHeader>
-        <CardTitle>Редактировать право</CardTitle>
+        <CardTitle>Редактировать право гильдии</CardTitle>
       </CardHeader>
       <CardContent class="space-y-4">
         <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
@@ -126,11 +150,11 @@ watch(id, (newId) => {
         <template v-else-if="permission">
           <div class="space-y-2">
             <Label for="name">Название *</Label>
-            <Input id="name" v-model="name" placeholder="Например: Управление играми" />
+            <Input id="name" v-model="name" placeholder="Например: Создание рейда" />
           </div>
           <div class="space-y-2">
             <Label for="slug">Слаг</Label>
-            <Input id="slug" v-model="slug" placeholder="Например: games.manage" />
+            <Input id="slug" v-model="slug" placeholder="Например: raid.create" />
             <p class="text-xs text-muted-foreground">По слагу проверяется доступ. Если пусто — подставится из названия.</p>
           </div>
           <div class="space-y-2">
@@ -138,7 +162,7 @@ watch(id, (newId) => {
             <Input id="description" v-model="description" placeholder="Краткое описание права" />
           </div>
           <div class="space-y-2">
-            <Label>Группа прав</Label>
+            <Label>Группа прав гильдии *</Label>
             <SelectRoot v-model="permissionGroupValue" :disabled="!groups.length">
               <SelectTrigger class="w-full">
                 <SelectValue placeholder="Выберите группу" />
@@ -154,12 +178,32 @@ watch(id, (newId) => {
               </SelectContent>
             </SelectRoot>
           </div>
-          <div class="flex gap-2 pt-2">
+          <div class="flex flex-wrap gap-2 pt-2">
             <Button :disabled="!canSubmit || submitting" @click="submit">Сохранить</Button>
-            <Button variant="outline" @click="router.push('/admin/permissions')">Отмена</Button>
+            <Button variant="outline" @click="router.push('/admin/guild-permissions')">Отмена</Button>
+            <Button
+              v-if="auth.hasPermission(PERMISSION_GUILD_DELETE)"
+              variant="outline"
+              class="text-destructive hover:text-destructive"
+              :disabled="submitting"
+              @click="deleteDialogOpen = true"
+            >
+              Удалить право
+            </Button>
           </div>
         </template>
       </CardContent>
     </Card>
+
+    <ConfirmDialog
+      :open="deleteDialogOpen"
+      title="Удалить право?"
+      :description="permission ? `Право «${permission.name}» будет удалено. Это действие нельзя отменить.` : ''"
+      confirm-label="Удалить"
+      cancel-label="Отмена"
+      :loading="deleting"
+      @update:open="deleteDialogOpen = $event"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>

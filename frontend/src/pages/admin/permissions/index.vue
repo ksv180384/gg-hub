@@ -13,7 +13,7 @@ const error = ref<string | null>(null);
 
 onMounted(async () => {
   try {
-    groups.value = await accessApi.getPermissionGroups();
+    groups.value = await accessApi.getPermissionGroups('site');
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка загрузки';
   } finally {
@@ -55,7 +55,12 @@ onMounted(async () => {
                 <p v-if="p.description" class="mt-1 text-xs text-muted-foreground">{{ p.description }}</p>
               </div>
               <RouterLink v-if="canManageRoles" :to="{ name: 'admin-permissions-edit', params: { id: p.id } }">
-                <Button variant="ghost" size="sm">Редактировать</Button>
+                <Button variant="ghost" size="icon" class="h-8 w-8" aria-label="Редактировать" title="Редактировать">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                    <path d="m15 5 4 4" />
+                  </svg>
+                </Button>
               </RouterLink>
             </li>
           </ul>
