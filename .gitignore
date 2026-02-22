@@ -1,6 +1,7 @@
 .env
 /.fleet
 /.idea
+.idea
 /.vscode
 /_docker/mysql
 certbot/cloudflare.ini
