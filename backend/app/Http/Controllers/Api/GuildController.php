@@ -36,6 +36,16 @@ class GuildController extends Controller
         return response()->json(new GuildResource($guild));
     }
 
+    /**
+     * Данные гильдии для страницы настроек. Доступно только участникам гильдии.
+     * При отсутствии членства возвращается 403 — данные не отдаются.
+     */
+    public function settings(Guild $guild): JsonResponse
+    {
+        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
+        return response()->json(new GuildResource($guild));
+    }
+
     public function store(StoreGuildRequest $request): JsonResponse
     {
         $guild = ($this->createGuildAction)($request->user(), $request->validated());

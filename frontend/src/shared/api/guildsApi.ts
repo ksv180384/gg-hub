@@ -127,6 +127,16 @@ export const guildsApi = {
     return unwrapGuild(res);
   },
 
+  /**
+   * Гильдия для страницы настроек. Только для участников гильдии.
+   * При 403 (не состоите в гильдии) нужно перенаправить на /guilds.
+   */
+  async getGuildForSettings(id: number): Promise<Guild> {
+    const res = await http.fetchGet<{ data: Guild } | Guild>(`/guilds/${id}/settings`);
+    throwOnError(res, 'Ошибка загрузки гильдии');
+    return unwrapGuild(res);
+  },
+
   async createGuild(payload: CreateGuildPayload): Promise<Guild> {
     const res = await http.fetchPost<{ data: Guild } | Guild>('/guilds', {
       name: payload.name,

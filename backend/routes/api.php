@@ -51,6 +51,7 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
+    Route::get('/guilds/{guild}/settings', [GuildController::class, 'settings'])->middleware('guild.member');
     Route::post('/guilds', [GuildController::class, 'store']);
     Route::match(['put', 'patch'], '/guilds/{guild}', [GuildController::class, 'update']);
 

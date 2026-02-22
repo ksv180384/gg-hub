@@ -140,7 +140,7 @@ async function loadGuild() {
   loading.value = true;
   error.value = null;
   try {
-    guild.value = await guildsApi.getGuild(guildId.value);
+    guild.value = await guildsApi.getGuildForSettings(guildId.value);
     if ((guild.value as { owner_id?: number }).owner_id !== authStore.user?.id) {
       router.replace('/guilds');
       return;
@@ -152,7 +152,12 @@ async function loadGuild() {
     aboutText.value = guild.value.about_text ?? '';
     charterText.value = guild.value.charter_text ?? '';
     selectedTagIds.value = (guild.value.tags ?? []).map((t) => t.id);
-  } catch {
+  } catch (e: unknown) {
+    const err = e as { status?: number };
+    if (err.status === 403) {
+      router.replace('/guilds');
+      return;
+    }
     error.value = 'Не удалось загрузить гильдию';
   } finally {
     loading.value = false;
