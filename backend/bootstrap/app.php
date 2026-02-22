@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
             'permission.roles-permissions' => \App\Http\Middleware\EnsureUserCanUpdateUserRolesPermissions::class,
             'guild.member' => \App\Http\Middleware\EnsureUserIsGuildMember::class,
+            'guild.role.permission' => \App\Http\Middleware\EnsureUserHasGuildRolePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

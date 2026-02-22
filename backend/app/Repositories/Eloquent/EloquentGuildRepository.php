@@ -14,7 +14,8 @@ class EloquentGuildRepository implements GuildRepositoryInterface
     public function getPaginatedWithContext(int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
         $query = Guild::query()
-            ->with(['game', 'localization', 'server']);
+            ->with(['game', 'localization', 'server', 'leader'])
+            ->withCount('members');
 
         if (isset($filters['game_id'])) {
             $query->where('game_id', $filters['game_id']);

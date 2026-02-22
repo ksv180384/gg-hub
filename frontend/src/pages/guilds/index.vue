@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Avatar, Input } from '@/shared/ui';
+import { Button, Input } from '@/shared/ui';
+import GuildCard from './GuildCard.vue';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { useAuthStore } from '@/stores/auth';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const siteContext = useSiteContextStore();
@@ -11,8 +12,13 @@ const authStore = useAuthStore();
 const router = useRouter();
 const search = ref('');
 const guilds = ref<Guild[]>([]);
+const memberGuildIds = ref<Set<number>>(new Set());
 const loading = ref(true);
 const error = ref<string | null>(null);
+
+const isMemberOfGuild = (guildId: number) => memberGuildIds.value.has(guildId);
+const canAccessSettings = (g: Guild) =>
+  authStore.user && (g.owner_id === authStore.user!.id || isMemberOfGuild(g.id));
 
 const filteredGuilds = computed(() => {
   const q = search.value.trim().toLowerCase();
@@ -24,20 +30,27 @@ const filteredGuilds = computed(() => {
   );
 });
 
-function getTag(name: string): string {
-  return name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+async function loadMemberGuildIds() {
+  const game = siteContext.game;
+  if (!authStore.isAuthenticated || !game?.id) {
+    memberGuildIds.value = new Set();
+    return;
+  }
+  try {
+    const list = await guildsApi.getMyGuildsForGame(game.id);
+    memberGuildIds.value = new Set(list.map((g) => g.id));
+  } catch {
+    memberGuildIds.value = new Set();
+  }
 }
 
 async function loadGuilds() {
   loading.value = true;
   error.value = null;
   try {
-    const { guilds: list } = await guildsApi.getGuilds({ per_page: 50 });
+    const params: { per_page: number; game_id?: number } = { per_page: 50 };
+    if (siteContext.game?.id) params.game_id = siteContext.game.id;
+    const { guilds: list } = await guildsApi.getGuilds(params);
     guilds.value = list;
   } catch (e: unknown) {
     const err = e as Error & { message?: string };
@@ -47,12 +60,18 @@ async function loadGuilds() {
   }
 }
 
-onMounted(() => loadGuilds());
+onMounted(() => {
+  loadGuilds();
+  loadMemberGuildIds();
+});
+watch(() => siteContext.game?.id, () => {
+  loadMemberGuildIds();
+});
 </script>
 
 <template>
   <div class="container py-8 md:py-12">
-    <div class="mx-auto max-w-4xl">
+    <div class="mx-auto max-w-5xl">
       <h1 class="mb-2 text-3xl font-bold tracking-tight">Гильдии</h1>
       <p class="mb-8 text-muted-foreground">
         <template v-if="siteContext.game">
@@ -79,37 +98,16 @@ onMounted(() => loadGuilds());
       </div>
       <div v-if="loading" class="text-muted-foreground">Загрузка...</div>
 
-      <div v-else class="grid gap-6 sm:grid-cols-2">
-        <Card
+      <div v-else class="grid justify-items-center gap-6 sm:grid-cols-2 sm:justify-items-stretch lg:grid-cols-3">
+        <GuildCard
           v-for="(g, i) in filteredGuilds"
           :key="g.id"
-          class="transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-3"
+          :guild="g"
+          list-mode
+          :can-access-settings="canAccessSettings(g)"
+          class="animate-in fade-in slide-in-from-bottom-3"
           :style="{ animationDelay: `${i * 80}ms`, animationDuration: '400ms', animationFillMode: 'backwards' }"
-        >
-          <CardHeader class="flex flex-row items-center gap-4 space-y-0 pb-2">
-            <Avatar :fallback="getTag(g.name)" class="h-12 w-12 rounded-lg" />
-            <div class="flex-1 space-y-1 min-w-0">
-              <CardTitle class="text-lg">{{ g.name }}</CardTitle>
-              <p class="text-sm text-muted-foreground truncate">
-                {{ g.game?.name ?? '—' }}
-                <template v-if="g.localization"> · {{ g.localization.name }}</template>
-              </p>
-            </div>
-            <Badge v-if="g.is_recruiting" variant="outline">Набор</Badge>
-          </CardHeader>
-          <CardContent class="flex gap-2">
-            <Button
-              v-if="authStore.user && g.owner_id === authStore.user.id"
-              variant="outline"
-              size="sm"
-              class="flex-1"
-              @click="router.push({ name: 'guild-settings', params: { id: String(g.id) } })"
-            >
-              Настройки
-            </Button>
-            <Button variant="outline" size="sm" class="flex-1">Подробнее</Button>
-          </CardContent>
-        </Card>
+        />
       </div>
 
       <div v-if="!loading && filteredGuilds.length === 0" class="rounded-lg border border-dashed p-8 text-center text-muted-foreground">

@@ -77,6 +77,11 @@ class Guild extends Model
         return $this->hasMany(GuildApplication::class);
     }
 
+    public function applicationFormFields(): HasMany
+    {
+        return $this->hasMany(GuildApplicationFormField::class)->orderBy('sort_order');
+    }
+
     public function roles(): HasMany
     {
         return $this->hasMany(GuildRole::class);

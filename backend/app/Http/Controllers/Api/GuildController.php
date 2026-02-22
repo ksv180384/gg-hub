@@ -8,6 +8,7 @@ use App\Http\Requests\Guild\UpdateGuildRequest;
 use App\Http\Resources\Guild\GuildResource;
 use Domains\Guild\Actions\CreateGuildAction;
 use Domains\Guild\Actions\GetGuildAction;
+use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Actions\ListGuildsAction;
 use Domains\Guild\Actions\UpdateGuildAction;
 use Domains\Guild\Models\Guild;
@@ -21,7 +22,8 @@ class GuildController extends Controller
         private ListGuildsAction $listGuildsAction,
         private CreateGuildAction $createGuildAction,
         private GetGuildAction $getGuildAction,
-        private UpdateGuildAction $updateGuildAction
+        private UpdateGuildAction $updateGuildAction,
+        private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -39,11 +41,16 @@ class GuildController extends Controller
     /**
      * Данные гильдии для страницы настроек. Доступно только участникам гильдии.
      * При отсутствии членства возвращается 403 — данные не отдаются.
+     * В ответ добавлено my_permission_slugs — права текущего пользователя в этой гильдии.
      */
-    public function settings(Guild $guild): JsonResponse
+    public function settings(Request $request, Guild $guild): JsonResponse
     {
-        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
-        return response()->json(new GuildResource($guild));
+        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags', 'applicationFormFields']);
+        $data = (new GuildResource($guild))->toArray($request);
+        $user = $request->user();
+        $data['my_permission_slugs'] = $user ? ($this->getUserGuildPermissionSlugsAction)($user, $guild)->all() : [];
+
+        return response()->json(['data' => $data]);
     }
 
     public function store(StoreGuildRequest $request): JsonResponse

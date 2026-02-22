@@ -8,6 +8,7 @@ use App\Services\GuildLogoService;
 use Domains\Game\Models\Server;
 use Domains\Guild\Models\Guild;
 use Illuminate\Http\UploadedFile;
+use Stevebauman\Purify\Facades\Purify;
 
 class UpdateGuildAction
 {
@@ -19,6 +20,19 @@ class UpdateGuildAction
     public function __invoke(Guild $guild, UpdateGuildRequest $request): Guild
     {
         $data = $request->validated();
+
+        $user = $request->user();
+        $isOwner = $user && (int) $guild->owner_id === (int) $user->id;
+        if (!$isOwner) {
+            $data = array_intersect_key($data, array_flip(['is_recruiting']));
+        }
+
+        if (array_key_exists('about_text', $data) && $data['about_text'] !== null) {
+            $data['about_text'] = Purify::config('guild_rich_text')->clean($data['about_text']);
+        }
+        if (array_key_exists('charter_text', $data) && $data['charter_text'] !== null) {
+            $data['charter_text'] = Purify::config('guild_rich_text')->clean($data['charter_text']);
+        }
 
         if ($request->boolean('remove_logo')) {
             $this->guildLogoService->delete($guild);
@@ -43,7 +57,11 @@ class UpdateGuildAction
             $guild->tags()->sync(array_filter($tagIds));
             unset($data['tag_ids']);
         }
+        $logoWasReplaced = $request->hasFile('logo');
         $guild = $this->guildRepository->update($guild, $data);
+        if ($logoWasReplaced) {
+            $guild->touch();
+        }
         $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
         return $guild;
     }

@@ -210,6 +210,7 @@ watch(() => siteContext.game?.id, () => loadUserGuilds());
                 <RouterLink
                   v-for="item in guildSubmenuItems"
                   :key="item.pathSuffix || 'journal'"
+                  v-show="item.pathSuffix !== '/roles' || guild.can_access_roles"
                   :to="guildPath(guild.id, item.pathSuffix)"
                   :class="cn(
                     'rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',

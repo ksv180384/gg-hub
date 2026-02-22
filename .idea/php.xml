@@ -275,6 +275,8 @@
       <path value="$PROJECT_DIR$/backend/vendor/intervention/image-laravel" />
       <path value="$PROJECT_DIR$/backend/vendor/intervention/gif" />
       <path value="$PROJECT_DIR$/backend/vendor/intervention/image" />
+      <path value="$PROJECT_DIR$/backend/vendor/ezyang/htmlpurifier" />
+      <path value="$PROJECT_DIR$/backend/vendor/stevebauman/purify" />
     </include_path>
   </component>
   <component name="PhpInterpreters">

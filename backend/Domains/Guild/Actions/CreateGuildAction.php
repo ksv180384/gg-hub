@@ -38,6 +38,12 @@ class CreateGuildAction
             'slug' => 'leader',
             'priority' => 1000,
         ]);
+        GuildRole::query()->create([
+            'guild_id' => $guild->id,
+            'name' => 'Новичок',
+            'slug' => 'novice',
+            'priority' => 0,
+        ]);
         GuildMember::query()->create([
             'guild_id' => $guild->id,
             'character_id' => $leaderCharacterId,

@@ -77,7 +77,7 @@ const router = createRouter({
         {
           path: 'guilds/:id/roles',
           name: 'guild-roles',
-          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          component: () => import('@/pages/guilds/[id]/roles/index.vue'),
           meta: { requiresAuth: true, title: 'Роли членов гильдии' },
         },
         {

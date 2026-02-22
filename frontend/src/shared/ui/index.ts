@@ -13,4 +13,5 @@ export { default as Spinner } from './spinner/Spinner.vue';
 export { default as Separator } from './separator/Separator.vue';
 export { default as RelativeTime } from './relative-time/RelativeTime.vue';
 export { default as TimezoneSelect } from './timezone-select/TimezoneSelect.vue';
+export * from './rich-text-editor';
 export * from './tooltip';

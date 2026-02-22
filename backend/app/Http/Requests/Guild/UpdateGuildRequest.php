@@ -3,17 +3,33 @@
 namespace App\Http\Requests\Guild;
 
 use Domains\Character\Models\Character;
+use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\App;
 use Illuminate\Validation\Validator;
 
 class UpdateGuildRequest extends FormRequest
 {
+    /**
+     * Разрешить: владелец гильдии или пользователь с правом redaktirovat-formu-zaiavki-v-giliudiiu
+     * (редактирование формы заявки и открытие/закрытие набора в гильдию).
+     */
     public function authorize(): bool
     {
         $guild = $this->route('guild');
-        return $guild && $this->user() && (int) $guild->owner_id === (int) $this->user()->id;
+        $user = $this->user();
+        if (!$guild || !$user) {
+            return false;
+        }
+        if ((int) $guild->owner_id === (int) $user->id) {
+            return true;
+        }
+        $getSlugs = App::make(GetUserGuildPermissionSlugsAction::class);
+        $slugs = $getSlugs($user, $guild);
+
+        return $slugs->contains('redaktirovat-formu-zaiavki-v-giliudiiu');
     }
 
     /**
@@ -26,6 +42,7 @@ class UpdateGuildRequest extends FormRequest
             'localization_id' => ['sometimes', 'required', 'integer', 'exists:localizations,id'],
             'server_id' => ['sometimes', 'required', 'integer', 'exists:servers,id'],
             'show_roster_to_all' => ['sometimes', 'boolean'],
+            'is_recruiting' => ['sometimes', 'boolean'],
             'about_text' => ['nullable', 'string'],
             'charter_text' => ['nullable', 'string'],
             'logo' => ['nullable', 'image', 'max:5120'],
@@ -49,7 +66,7 @@ class UpdateGuildRequest extends FormRequest
             'server_id.required' => 'Выберите сервер.',
             'server_id.exists' => 'Выбранный сервер не найден.',
             'logo.image' => 'Логотип должен быть изображением (jpeg, png, gif и т.д.).',
-            'logo.max' => 'Размер файла логотипа не должен превышать 2 МБ.',
+            'logo.max' => 'Размер файла логотипа не должен превышать 5 МБ.',
             'leader_character_id.required' => 'Укажите лидера гильдии (персонажа на этом сервере).',
             'leader_character_id.exists' => 'Выбранный персонаж не найден.',
         ];

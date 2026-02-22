@@ -4,7 +4,9 @@ use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\ContextController;
 use App\Http\Controllers\Api\GameClassController;
 use App\Http\Controllers\Api\GameController;
+use App\Http\Controllers\Api\GuildApplicationFormFieldController;
 use App\Http\Controllers\Api\GuildController;
+use App\Http\Controllers\Api\GuildRoleController;
 use App\Http\Controllers\Api\LocalizationController;
 use App\Http\Controllers\Api\ServerController;
 use App\Http\Controllers\Api\PermissionController;
@@ -52,6 +54,14 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
     Route::get('/guilds/{guild}/settings', [GuildController::class, 'settings'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/roles', [GuildRoleController::class, 'index'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol,meniat-izieniat-polzovateliu-rol,izmeniat-prava-roli,udaliat-rol');
+    Route::get('/guilds/{guild}/permission-groups', [GuildRoleController::class, 'permissionGroups'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol,meniat-izieniat-polzovateliu-rol,izmeniat-prava-roli,udaliat-rol');
+    Route::post('/guilds/{guild}/roles', [GuildRoleController::class, 'store'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol');
+    Route::put('/guilds/{guild}/roles/{guild_role}/permissions', [GuildRoleController::class, 'updatePermissions'])->middleware('guild.member', 'guild.role.permission:izmeniat-prava-roli');
+    Route::delete('/guilds/{guild}/roles/{guild_role}', [GuildRoleController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-rol');
+    Route::post('/guilds/{guild}/application-form-fields', [GuildApplicationFormFieldController::class, 'store'])->middleware('guild.member', 'guild.role.permission:redaktirovat-formu-zaiavki-v-giliudiiu');
+    Route::put('/guilds/{guild}/application-form-fields/{form_field}', [GuildApplicationFormFieldController::class, 'update'])->middleware('guild.member', 'guild.role.permission:redaktirovat-formu-zaiavki-v-giliudiiu');
+    Route::delete('/guilds/{guild}/application-form-fields/{form_field}', [GuildApplicationFormFieldController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:redaktirovat-formu-zaiavki-v-giliudiiu');
     Route::post('/guilds', [GuildController::class, 'store']);
     Route::match(['put', 'patch'], '/guilds/{guild}', [GuildController::class, 'update']);
 
