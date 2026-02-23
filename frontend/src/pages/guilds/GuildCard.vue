@@ -12,8 +12,10 @@ const props = withDefaults(
     listMode?: boolean;
     /** В режиме списка — показывать кнопку «Настройки». */
     canAccessSettings?: boolean;
+    /** Показывать название игры на карточке (например, когда список гильдий без субдомена). */
+    showGameName?: boolean;
   }>(),
-  { listMode: false, canAccessSettings: false }
+  { listMode: false, canAccessSettings: false, showGameName: false }
 );
 
 const router = useRouter();
@@ -26,6 +28,7 @@ const logoUrl = computed(() => {
 const leaderName = computed(() => props.guild.leader?.name ?? '—');
 const serverName = computed(() => props.guild.server?.name ?? '—');
 const localizationName = computed(() => props.guild.localization?.name ?? '—');
+const gameName = computed(() => props.guild.game?.name ?? '—');
 
 function goToApplication() {
   router.push({ name: 'guild-applications', params: { id: String(props.guild.id) } });
@@ -73,6 +76,12 @@ function goToSettings() {
       <h2 class="guild-card__section-title mb-1.5 mt-0 text-lg font-semibold text-foreground">
         {{ guild.name }}
       </h2>
+      <p
+        v-if="showGameName && guild.game"
+        class="mb-1 text-xs font-medium text-muted-foreground"
+      >
+        {{ gameName }}
+      </p>
       <div class="guild-card__info space-y-0.5 text-sm text-muted-foreground">
         <p class="m-0 leading-tight">
           <span class="font-medium text-foreground/90">Лидер гильдии:</span>

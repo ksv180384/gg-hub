@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Filters\GuildFilter;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Guild\GuildFilterRequest;
 use App\Http\Requests\Guild\StoreGuildRequest;
 use App\Http\Requests\Guild\UpdateGuildRequest;
 use App\Http\Resources\Guild\GuildResource;
 use Domains\Guild\Actions\CreateGuildAction;
 use Domains\Guild\Actions\GetGuildAction;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
-use Domains\Guild\Actions\ListGuildsAction;
 use Domains\Guild\Actions\UpdateGuildAction;
 use Domains\Guild\Models\Guild;
 use Illuminate\Http\JsonResponse;
@@ -19,16 +20,23 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 class GuildController extends Controller
 {
     public function __construct(
-        private ListGuildsAction $listGuildsAction,
         private CreateGuildAction $createGuildAction,
         private GetGuildAction $getGuildAction,
         private UpdateGuildAction $updateGuildAction,
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction
     ) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(GuildFilterRequest $request): AnonymousResourceCollection
     {
-        $guilds = ($this->listGuildsAction)($request);
+        $perPage = (int) $request->input('per_page', 15);
+        $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 15;
+        $filter = new GuildFilter($request);
+        $guilds = Guild::query()
+            ->with(['game', 'localization', 'server', 'leader'])
+            ->withCount('members')
+            ->filter($filter)
+            ->paginate($perPage);
+
         return GuildResource::collection($guilds);
     }
 

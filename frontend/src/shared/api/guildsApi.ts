@@ -151,11 +151,23 @@ export const guildsApi = {
     return raw?.data ?? [];
   },
 
-  async getGuilds(params?: { per_page?: number; page?: number; game_id?: number; localization_id?: number; server_id?: number }): Promise<{
-    guilds: Guild[];
-    meta: GuildsListResponse['meta'];
-  }> {
-    const res = await http.fetchGet<GuildsListResponse>('/guilds', { params });
+  async getGuilds(params?: {
+    per_page?: number;
+    page?: number;
+    game_id?: number;
+    name?: string;
+    localization_ids?: number[];
+    server_ids?: number[];
+  }): Promise<{ guilds: Guild[]; meta: GuildsListResponse['meta'] }> {
+    const query: Record<string, string | number | number[] | undefined> = {};
+    if (params?.per_page != null) query.per_page = params.per_page;
+    if (params?.page != null) query.page = params.page;
+    if (params?.game_id != null) query.game_id = params.game_id;
+    if (params?.name != null && params.name.trim() !== '') query.name = params.name.trim();
+    if (params?.localization_ids?.length) query.localization_ids = params.localization_ids;
+    if (params?.server_ids?.length) query.server_ids = params.server_ids;
+
+    const res = await http.fetchGet<GuildsListResponse>('/guilds', { params: query });
     throwOnError(res, 'Ошибка загрузки гильдий');
     const data = res.data as GuildsListResponse | null;
     const list = Array.isArray(data?.data) ? data.data : [];

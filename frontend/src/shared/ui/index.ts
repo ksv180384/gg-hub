@@ -4,6 +4,7 @@ export * from './confirm-dialog';
 export * from './dropdown-menu';
 export { default as Input } from './input/Input.vue';
 export { default as Label } from './label/Label.vue';
+export * from './multi-select';
 export * from './select';
 export { default as Sheet } from './sheet/Sheet.vue';
 export { default as Avatar } from './avatar/Avatar.vue';

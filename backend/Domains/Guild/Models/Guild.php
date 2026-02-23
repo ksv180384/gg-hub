@@ -8,6 +8,7 @@ use Domains\Character\Models\Character;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
+use App\Core\Traits\HasFilter;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Guild extends Model
 {
+    use HasFilter;
     use HasFactory;
 
     protected $fillable = [
