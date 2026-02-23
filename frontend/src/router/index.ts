@@ -264,9 +264,13 @@ const router = createRouter({
   ],
 });
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
   const routeLoading = useRouteLoadingStore();
-  routeLoading.setLoading(true);
+  // Не показывать полноэкранный прелоадер при смене только query (например, фильтр на странице гильдий)
+  const queryOnlyChange = from.name === to.name && from.path === to.path;
+  if (!queryOnlyChange) {
+    routeLoading.setLoading(true);
+  }
   const auth = useAuthStore();
   const siteContext = useSiteContextStore();
   await siteContext.fetchContext();

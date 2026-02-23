@@ -6,7 +6,7 @@ defineProps<{
 
 <template>
   <svg
-    class="h-10 w-10 animate-spin text-primary"
+    class="h-5 w-5 animate-spin text-primary"
     :class="$props.class"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button, Badge } from '@/shared/ui';
+import { Button, Badge, Tooltip } from '@/shared/ui';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import type { Guild } from '@/shared/api/guildsApi';
 import { computed } from 'vue';
@@ -8,14 +8,12 @@ import { useRouter } from 'vue-router';
 const props = withDefaults(
   defineProps<{
     guild: Guild;
-    /** Режим списка: кнопки «Подробнее» и «Настройки» вместо «Вступить»/«Набор закрыт». */
+    /** Режим списка: иконка «Подробнее» и при наборе — «Подать заявку». */
     listMode?: boolean;
-    /** В режиме списка — показывать кнопку «Настройки». */
-    canAccessSettings?: boolean;
     /** Показывать название игры на карточке (например, когда список гильдий без субдомена). */
     showGameName?: boolean;
   }>(),
-  { listMode: false, canAccessSettings: false, showGameName: false }
+  { listMode: false, showGameName: false }
 );
 
 const router = useRouter();
@@ -38,9 +36,6 @@ function goToDetails() {
   router.push({ name: 'guild-show', params: { id: String(props.guild.id) } });
 }
 
-function goToSettings() {
-  router.push({ name: 'guild-settings', params: { id: String(props.guild.id) } });
-}
 </script>
 
 <template>
@@ -113,22 +108,27 @@ function goToSettings() {
         <div class="flex gap-2">
           <template v-if="listMode">
             <Button
-              v-if="canAccessSettings"
+              v-if="guild.is_recruiting"
               size="sm"
-              variant="outline"
-              class="shrink-0 rounded-xl px-4"
-              @click="goToSettings"
+              class="shrink-0 rounded-xl rounded-br-2xl rounded-tr-2xl px-4"
+              @click="goToApplication"
             >
-              Настройки
+              Подать заявку
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              class="shrink-0 rounded-xl px-4"
-              @click="goToDetails"
-            >
-              Подробнее
-            </Button>
+            <Tooltip content="Подробнее" side="top">
+              <Button
+                size="icon"
+                variant="outline"
+                class="h-8 w-8 shrink-0 rounded-xl"
+                aria-label="Подробнее"
+                @click="goToDetails"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </Button>
+            </Tooltip>
           </template>
           <template v-else>
             <Button

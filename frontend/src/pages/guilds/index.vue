@@ -14,10 +14,11 @@ import { useAuthStore } from '@/stores/auth';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const siteContext = useSiteContextStore();
 const authStore = useAuthStore();
+const route = useRoute();
 const router = useRouter();
 
 const ALL_GAMES_VALUE = '__all__';
@@ -31,6 +32,7 @@ const filterServerIds = ref<number[]>([]);
 const guilds = ref<Guild[]>([]);
 const memberGuildIds = ref<Set<number>>(new Set());
 const loading = ref(true);
+const refreshing = ref(false);
 const error = ref<string | null>(null);
 
 // Данные для фильтра: при субдомене игры — одна игра; без субдомена — список игр и выбранная игра с локалями/серверами
@@ -85,15 +87,64 @@ function onServersChange(value: (string | number)[]) {
   filterServerIds.value = value.map(Number);
 }
 
-const isMemberOfGuild = (guildId: number) => memberGuildIds.value.has(guildId);
-const canAccessSettings = (g: Guild) =>
-  authStore.user && (g.owner_id === authStore.user!.id || isMemberOfGuild(g.id));
+/** Сбросить все поля фильтра. */
+function resetFilter() {
+  filterName.value = '';
+  filterGameId.value = ALL_GAMES_VALUE;
+  filterLocalizationIds.value = [];
+  filterServerIds.value = [];
+}
 
 /** Выбор локализации по умолчанию: ru → eu → первая. */
 function defaultLocalizationId(localizations: Localization[]): number | null {
   if (!localizations.length) return null;
   const byCode = (code: string) => localizations.find((l) => l.code?.toLowerCase() === code);
   return byCode('ru')?.id ?? byCode('eu')?.id ?? localizations[0]?.id ?? null;
+}
+
+/** Восстановить фильтр из query. */
+function applyFilterFromQuery() {
+  const q = route.query;
+  if (typeof q.name === 'string') filterName.value = q.name;
+  if (!isGameSubdomain.value) {
+    if (typeof q.game_id === 'string' && q.game_id.trim() !== '') {
+      filterGameId.value = q.game_id.trim();
+    }
+  }
+  if (Array.isArray(q.localization_ids)) {
+    filterLocalizationIds.value = q.localization_ids.map((id) => Number(id)).filter((id) => !Number.isNaN(id));
+  } else if (typeof q.localization_ids === 'string' && q.localization_ids.trim() !== '') {
+    filterLocalizationIds.value = q.localization_ids
+      .split(',')
+      .map((id) => Number(id.trim()))
+      .filter((id) => !Number.isNaN(id));
+  }
+  if (Array.isArray(q.server_ids)) {
+    filterServerIds.value = q.server_ids.map((id) => Number(id)).filter((id) => !Number.isNaN(id));
+  } else if (typeof q.server_ids === 'string' && q.server_ids.trim() !== '') {
+    filterServerIds.value = q.server_ids
+      .split(',')
+      .map((id) => Number(id.trim()))
+      .filter((id) => !Number.isNaN(id));
+  }
+}
+
+/** Записать текущий фильтр в URL (replace). */
+function syncFilterToQuery() {
+  const query: Record<string, string> = {};
+  if (filterName.value.trim()) query.name = filterName.value.trim();
+  if (!isGameSubdomain.value) {
+    if (filterGameId.value && filterGameId.value !== ALL_GAMES_VALUE) {
+      query.game_id = filterGameId.value;
+    }
+  }
+  if (filterLocalizationIds.value.length) {
+    query.localization_ids = filterLocalizationIds.value.join(',');
+  }
+  if (filterServerIds.value.length) {
+    query.server_ids = filterServerIds.value.join(',');
+  }
+  router.replace({ query: Object.keys(query).length ? query : {} });
 }
 
 /** Загрузить данные для фильтра (игра с локалями и серверами). */
@@ -106,6 +157,13 @@ async function loadFilterOptions() {
       if (defId != null && filterLocalizationIds.value.length === 0) {
         filterLocalizationIds.value = [defId];
       }
+      // Оставить только локализации/серверы, существующие в этой игре
+      const locIds = new Set(filterLocalizations.value.map((l) => l.id));
+      filterLocalizationIds.value = filterLocalizationIds.value.filter((id) => locIds.has(id));
+      const serverIds = new Set(
+        filterLocalizations.value.flatMap((l) => (l.servers ?? []).map((s) => s.id))
+      );
+      filterServerIds.value = filterServerIds.value.filter((id) => serverIds.has(id));
     } else {
       games.value = await gamesApi.getGames();
       const gameId =
@@ -118,6 +176,13 @@ async function loadFilterOptions() {
         if (defId != null && filterLocalizationIds.value.length === 0) {
           filterLocalizationIds.value = [defId];
         }
+        // Оставить только локализации/серверы, существующие в выбранной игре
+        const locIds = new Set(filterLocalizations.value.map((l) => l.id));
+        filterLocalizationIds.value = filterLocalizationIds.value.filter((id) => locIds.has(id));
+        const serverIds = new Set(
+          filterLocalizations.value.flatMap((l) => (l.servers ?? []).map((s) => s.id))
+        );
+        filterServerIds.value = filterServerIds.value.filter((id) => serverIds.has(id));
       } else {
         gameDetail.value = null;
       }
@@ -143,8 +208,12 @@ async function loadMemberGuildIds() {
   }
 }
 
-async function loadGuilds() {
-  loading.value = true;
+async function loadGuilds(showFullLoading = false) {
+  if (showFullLoading) {
+    loading.value = true;
+  } else {
+    refreshing.value = true;
+  }
   error.value = null;
   try {
     const params: {
@@ -174,14 +243,16 @@ async function loadGuilds() {
     error.value = err.message ?? 'Не удалось загрузить гильдии';
   } finally {
     loading.value = false;
+    refreshing.value = false;
   }
 }
 
 const filterReady = ref(false);
 
 onMounted(async () => {
+  applyFilterFromQuery();
   await loadFilterOptions();
-  await loadGuilds();
+  await loadGuilds(true);
   loadMemberGuildIds();
   filterReady.value = true;
 });
@@ -192,7 +263,10 @@ watch(
   () => {
     if (!filterReady.value) return;
     if (loadGuildsTimeout) clearTimeout(loadGuildsTimeout);
-    loadGuildsTimeout = setTimeout(() => loadGuilds(), 350);
+    loadGuildsTimeout = setTimeout(() => {
+      syncFilterToQuery();
+      loadGuilds();
+    }, 350);
   },
   { deep: true }
 );
@@ -225,7 +299,12 @@ watch(filterGameId, async () => {
 <template>
   <div class="container py-8 md:py-12">
     <div class="mx-auto max-w-5xl">
-      <h1 class="mb-2 text-3xl font-bold tracking-tight">Гильдии</h1>
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-4">
+        <h1 class="text-3xl font-bold tracking-tight">Гильдии</h1>
+        <Button v-if="authStore.isAuthenticated" @click="router.push({ name: 'guilds-create' })">
+          Создать гильдию
+        </Button>
+      </div>
       <p class="mb-6 text-muted-foreground">
         <template v-if="siteContext.game">
           Гильдии игры {{ siteContext.game.name }}. Найдите гильдию или создайте свою.
@@ -285,40 +364,67 @@ watch(filterGameId, async () => {
             @update:model-value="onServersChange"
           />
         </div>
-        <Button v-if="authStore.isAuthenticated" @click="router.push({ name: 'guilds-create' })">
-          Создать гильдию
+        <Button
+          variant="outline"
+          size="icon"
+          class="h-8 w-8 shrink-0"
+          title="Сбросить фильтр"
+          aria-label="Сбросить фильтр"
+          @click="resetFilter"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </Button>
       </div>
 
       <div v-if="error" class="mb-6 rounded-md bg-destructive/10 p-4 text-destructive">
         {{ error }}
       </div>
-      <div
-        v-if="loading"
-        class="flex flex-col items-center justify-center gap-4 py-16 text-muted-foreground"
-        aria-busy="true"
-        aria-live="polite"
-      >
-        <Spinner />
-        <p class="text-sm">Загрузка…</p>
-      </div>
 
-      <div v-else class="grid justify-items-center gap-6 sm:grid-cols-2 sm:justify-items-stretch lg:grid-cols-3">
+      <!-- Область вывода карточек: прелоадер в верхнем правом углу -->
+      <div class="relative min-h-[280px]">
+        <!-- Мини-прелоадер в верхнем правом углу -->
+        <div
+          v-if="loading || refreshing"
+          class="absolute left-1/2 top-2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-muted/70 px-2 py-0.5"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <Spinner class="h-1.5 w-1.5 shrink-0 text-muted-foreground" />
+          <span class="text-xs text-muted-foreground">Загрузка…</span>
+        </div>
+
+        <div
+          v-if="loading && guilds.length === 0"
+          class="pt-10"
+        >
+          <!-- Пустое место при первой загрузке, карточки появятся после -->
+        </div>
+
+        <div
+          v-else-if="guilds.length === 0"
+          class="rounded-lg border border-dashed p-8 text-center text-muted-foreground"
+        >
+          По выбранным критериям гильдий не найдено.
+          <template v-if="authStore.isAuthenticated"> Создайте свою.</template>
+        </div>
+
+        <div
+          v-else
+          class="grid justify-items-center gap-6 pt-8 sm:grid-cols-2 sm:justify-items-stretch lg:grid-cols-3"
+        >
         <GuildCard
           v-for="(g, i) in guilds"
           :key="g.id"
           :guild="g"
           list-mode
           :show-game-name="!isGameSubdomain"
-          :can-access-settings="canAccessSettings(g)"
           class="animate-in fade-in slide-in-from-bottom-3"
-          :style="{ animationDelay: `${i * 80}ms`, animationDuration: '400ms', animationFillMode: 'backwards' }"
-        />
-      </div>
-
-      <div v-if="!loading && guilds.length === 0" class="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-        По выбранным критериям гильдий не найдено.
-        <template v-if="authStore.isAuthenticated"> Создайте свою.</template>
+            :style="{ animationDelay: `${i * 80}ms`, animationDuration: '400ms', animationFillMode: 'backwards' }"
+          />
+        </div>
       </div>
     </div>
   </div>
