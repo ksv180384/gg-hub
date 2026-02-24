@@ -27,6 +27,12 @@ const router = createRouter({
         { path: 'news', name: 'news', component: () => import('@/pages/news/index.vue') },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
         {
+          path: 'applications',
+          name: 'user-applications',
+          component: () => import('@/pages/applications/index.vue'),
+          meta: { requiresAuth: true, title: 'Мои заявки и приглашения' },
+        },
+        {
           path: 'guilds/:id',
           name: 'guild-show',
           component: () => import('@/pages/guilds/[id]/index.vue'),
@@ -45,10 +51,28 @@ const router = createRouter({
           meta: { requiresAuth: true, title: 'Рейды | Группы | КП' },
         },
         {
+          path: 'guilds/:id/application-form',
+          name: 'guild-application-form',
+          component: () => import('@/pages/guilds/[id]/application-form/index.vue'),
+          meta: { requiresAuth: false, title: 'Подать заявку в гильдию' },
+        },
+        {
           path: 'guilds/:id/applications',
           name: 'guild-applications',
-          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          component: () => import('@/pages/guilds/[id]/applications/index.vue'),
           meta: { requiresAuth: true, title: 'Заявки и приглашения' },
+        },
+        {
+          path: 'guilds/:id/applications/my/:applicationId',
+          name: 'guild-application-my',
+          component: () => import('@/pages/guilds/[id]/applications/my/[applicationId].vue'),
+          meta: { requiresAuth: true, title: 'Моя заявка в гильдию' },
+        },
+        {
+          path: 'guilds/:id/applications/list/:applicationId',
+          name: 'guild-application-show',
+          component: () => import('@/pages/guilds/[id]/applications/[applicationId].vue'),
+          meta: { requiresAuth: true, title: 'Заявка в гильдию' },
         },
         {
           path: 'guilds/:id/calendar',

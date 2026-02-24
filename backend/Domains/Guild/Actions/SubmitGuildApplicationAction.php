@@ -2,8 +2,8 @@
 
 namespace Domains\Guild\Actions;
 
-use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\Guild;
+use Domains\Guild\Models\GuildApplication;
 
 class SubmitGuildApplicationAction
 {

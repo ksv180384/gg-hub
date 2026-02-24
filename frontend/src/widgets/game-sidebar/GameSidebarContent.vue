@@ -158,6 +158,18 @@ watch(() => siteContext.game?.id, () => loadUserGuilds());
           Персонажи
         </RouterLink>
 
+        <RouterLink
+          to="/applications"
+          :class="cn(
+            'rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
+            route.path === '/applications' || route.path.startsWith('/applications/')
+              ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
+              : ''
+          )"
+        >
+          Заявки и приглашения
+        </RouterLink>
+
         <template v-if="guildsLoading">
           <div class="px-3 py-2 text-sm text-muted-foreground">Загрузка гильдий…</div>
         </template>

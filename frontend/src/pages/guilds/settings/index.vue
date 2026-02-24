@@ -1,28 +1,7 @@
 <script setup lang="ts">
-import {
-  DialogRoot,
-  DialogPortal,
-  DialogOverlay,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from 'radix-vue';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Button,
-  Input,
-  Label,
-  Avatar,
-  SelectRoot,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-  RichTextEditor,
-} from '@/shared/ui';
+import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'radix-vue';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Avatar, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem, RichTextEditor } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import {
   guildsApi,
@@ -126,6 +105,10 @@ const applicationFieldEditIndex = ref<number | null>(null);
 const applicationFieldName = ref('');
 const applicationFieldType = ref<ApplicationFormFieldType>('text');
 const applicationFieldRequired = ref(false);
+
+const leaveDialogOpen = ref(false);
+const leaving = ref(false);
+const leaveError = ref<string | null>(null);
 
 const games = ref<Game[]>([]);
 const servers = ref<Server[]>([]);
@@ -240,6 +223,22 @@ async function loadGuild() {
     error.value = 'Не удалось загрузить гильдию';
   } finally {
     loading.value = false;
+  }
+}
+
+async function confirmLeaveGuild() {
+  if (!guild.value || leaving.value) return;
+  leaving.value = true;
+  leaveError.value = null;
+  try {
+    await guildsApi.leaveGuild(guild.value.id);
+    // После успешного выхода — на список гильдий
+    router.push({ name: 'guilds' });
+  } catch (e: unknown) {
+    const err = e as Error & { message?: string };
+    leaveError.value = err.message ?? 'Не удалось покинуть гильдию.';
+  } finally {
+    leaving.value = false;
   }
 }
 
@@ -607,6 +606,20 @@ onMounted(async () => {
               </div>
               <div class="text-muted-foreground">
                 Участников: {{ guild.members_count ?? 0 }}
+              </div>
+              <div
+                v-if="!isOwner"
+                class="mt-2"
+              >
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  :disabled="leaving"
+                  @click="leaveDialogOpen = true"
+                >
+                  Покинуть гильдию
+                </Button>
+                <p v-if="leaveError" class="mt-1 text-xs text-destructive">{{ leaveError }}</p>
               </div>
             </div>
           </div>
@@ -1140,5 +1153,16 @@ onMounted(async () => {
         </div>
       </template>
     </div>
+    <ConfirmDialog
+      :open="leaveDialogOpen"
+      title="Покинуть гильдию?"
+      :description="'Вы перестанете быть участником этой гильдии. Доступ к настройкам и разделам гильдии будет закрыт.'"
+      confirm-label="Покинуть"
+      cancel-label="Отмена"
+      :loading="leaving"
+      confirm-variant="destructive"
+      @update:open="(v) => { leaveDialogOpen = v; }"
+      @confirm="confirmLeaveGuild"
+    />
   </div>
 </template>

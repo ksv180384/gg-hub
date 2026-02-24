@@ -79,6 +79,43 @@ export interface GuildApplicationFormFieldDto {
   sort_order: number;
 }
 
+/** Данные для страницы подачи заявки в гильдию (публичный эндпоинт). */
+export interface GuildApplicationFormData {
+  id: number;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  logo_card_url: string | null;
+  is_recruiting: boolean;
+  game?: { id: number; name: string };
+  server?: { id: number; name: string };
+  application_form_fields: GuildApplicationFormFieldDto[];
+}
+
+/** Полезная нагрузка при подаче заявки в гильдию. */
+export interface SubmitGuildApplicationPayload {
+  character_id: number;
+  form_data: Record<number, string>;
+}
+
+/** Одна заявка в гильдию (ответ show/approve/reject). */
+export interface GuildApplicationItem {
+  id: number;
+  guild_id: number;
+  character_id: number;
+  character?: {
+    id: number;
+    name: string;
+    game_classes?: { id: number; name: string }[];
+  };
+  form_data: Record<number, string>;
+  /** Соответствие id поля формы → название (для отображения вместо «Поле 1», «Поле 2»). */
+  form_field_labels?: Record<number | string, string>;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_at?: string | null;
+  created_at?: string | null;
+}
+
 export interface CreateGuildApplicationFormFieldPayload {
   name: string;
   type: 'text' | 'textarea' | 'screenshot';
@@ -181,6 +218,121 @@ export const guildsApi = {
     return unwrapGuild(res);
   },
 
+  /** Данные формы заявки в гильдию (GET /guilds/:id/application-form, без авторизации). */
+  async getGuildApplicationForm(guildId: number): Promise<GuildApplicationFormData> {
+    const res = await http.fetchGet<GuildApplicationFormData | { data: GuildApplicationFormData }>(
+      `/guilds/${guildId}/application-form`
+    );
+    throwOnError(res, 'Ошибка загрузки формы заявки');
+    const raw = res.data as GuildApplicationFormData | { data?: GuildApplicationFormData } | null;
+    if (raw && typeof raw === 'object' && 'data' in raw) return (raw as { data: GuildApplicationFormData }).data!;
+    return raw as GuildApplicationFormData;
+  },
+
+  /** Подать заявку в гильдию (POST /guilds/:id/applications). */
+  async submitGuildApplication(guildId: number, payload: SubmitGuildApplicationPayload): Promise<unknown> {
+    const res = await http.fetchPost<{ data: unknown }>(`/guilds/${guildId}/applications`, {
+      character_id: payload.character_id,
+      form_data: payload.form_data,
+    });
+    throwOnError(res, 'Ошибка отправки заявки');
+    return (res.data as { data?: unknown })?.data ?? res.data;
+  },
+
+  /** Список заявок в гильдию (GET /guilds/:id/applications). Только для участников с правом просмотра заявок. */
+  async getGuildApplications(
+    guildId: number,
+    params?: { page?: number; per_page?: number }
+  ): Promise<{ applications: GuildApplicationItem[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }> {
+    const page = params?.page ?? 1;
+    const perPage = params?.per_page ?? 20;
+    const res = await http.fetchGet<{ data: GuildApplicationItem[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }>(
+      `/guilds/${guildId}/applications`,
+      { params: { page, per_page: perPage } }
+    );
+    throwOnError(res, 'Ошибка загрузки заявок');
+    const data = res.data as { data?: GuildApplicationItem[]; meta?: { current_page: number; last_page: number; per_page: number; total: number } } | null;
+    const list = data && typeof data === 'object' && Array.isArray((data as { data?: GuildApplicationItem[] }).data)
+      ? (data as { data: GuildApplicationItem[] }).data
+      : [];
+    const meta = data && typeof data === 'object' && data.meta
+      ? data.meta
+      : { current_page: 1, last_page: 1, per_page: perPage, total: 0 };
+    return { applications: list, meta };
+  },
+
+  /** Одна заявка (GET /guilds/:id/applications/:applicationId). Только для участников с правом просмотра заявок. */
+  async getGuildApplication(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchGet<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}`
+    );
+    throwOnError(res, 'Ошибка загрузки заявки');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Принять заявку (POST /guilds/:id/applications/:id/approve). */
+  async approveGuildApplication(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/approve`,
+      {}
+    );
+    throwOnError(res, 'Ошибка принятия заявки');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Отклонить заявку (POST /guilds/:id/applications/:id/reject). */
+  async rejectGuildApplication(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/reject`,
+      {}
+    );
+    throwOnError(res, 'Ошибка отклонения заявки');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Моя заявка: GET /guilds/:id/applications/:applicationId/owner (для пользователя, подавшего заявку). */
+  async getMyGuildApplication(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchGet<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/owner`
+    );
+    throwOnError(res, 'Ошибка загрузки заявки');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Заявки текущего пользователя во все гильдии (GET /user/applications). */
+  async getMyGuildApplicationsList(
+    params?: { page?: number; per_page?: number }
+  ): Promise<{ applications: GuildApplicationItem[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }> {
+    const page = params?.page ?? 1;
+    const perPage = params?.per_page ?? 20;
+    const res = await http.fetchGet<{
+      data: GuildApplicationItem[];
+      meta: { current_page: number; last_page: number; per_page: number; total: number };
+    }>('/user/applications', {
+      params: { page, per_page: perPage },
+    });
+    throwOnError(res, 'Ошибка загрузки заявок');
+    const body = res.data as {
+      data?: GuildApplicationItem[];
+      meta?: { current_page: number; last_page: number; per_page: number; total: number };
+    } | null;
+    const list = body?.data ?? [];
+    const meta = body?.meta ?? { current_page: 1, last_page: 1, per_page: perPage, total: 0 };
+    return { applications: list, meta };
+  },
+
   /**
    * Гильдия для страницы настроек. Только для участников гильдии.
    * При 403 (не состоите в гильдии) нужно перенаправить на /guilds.
@@ -189,6 +341,12 @@ export const guildsApi = {
     const res = await http.fetchGet<{ data: Guild } | Guild>(`/guilds/${id}/settings`);
     throwOnError(res, 'Ошибка загрузки гильдии');
     return unwrapGuild(res);
+  },
+
+  /** Покинуть гильдию (участник, кроме лидера). */
+  async leaveGuild(id: number): Promise<void> {
+    const res = await http.fetchPost<{ message?: string }>(`/guilds/${id}/leave`, {});
+    throwOnError(res, 'Не удалось покинуть гильдию');
   },
 
   async createGuild(payload: CreateGuildPayload): Promise<Guild> {

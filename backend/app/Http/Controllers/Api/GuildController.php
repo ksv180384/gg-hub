@@ -7,10 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\GuildFilterRequest;
 use App\Http\Requests\Guild\StoreGuildRequest;
 use App\Http\Requests\Guild\UpdateGuildRequest;
+use App\Http\Resources\Guild\GuildApplicationFormResource;
 use App\Http\Resources\Guild\GuildResource;
 use Domains\Guild\Actions\CreateGuildAction;
 use Domains\Guild\Actions\GetGuildAction;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
+use Domains\Guild\Actions\LeaveGuildAction;
 use Domains\Guild\Actions\UpdateGuildAction;
 use Domains\Guild\Models\Guild;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +25,8 @@ class GuildController extends Controller
         private CreateGuildAction $createGuildAction,
         private GetGuildAction $getGuildAction,
         private UpdateGuildAction $updateGuildAction,
-        private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction
+        private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
+        private LeaveGuildAction $leaveGuildAction
     ) {}
 
     public function index(GuildFilterRequest $request): AnonymousResourceCollection
@@ -44,6 +47,16 @@ class GuildController extends Controller
     {
         $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
         return response()->json(new GuildResource($guild));
+    }
+
+    /**
+     * Публичные данные для страницы подачи заявки в гильдию (форма с полями).
+     * Без авторизации. Возвращает название, лого, флаг набора и поля формы.
+     */
+    public function applicationForm(Guild $guild): JsonResponse
+    {
+        $guild->load(['game', 'server', 'applicationFormFields']);
+        return response()->json(new GuildApplicationFormResource($guild));
     }
 
     /**
@@ -71,5 +84,15 @@ class GuildController extends Controller
     {
         $guild = ($this->updateGuildAction)($guild, $request);
         return response()->json(new GuildResource($guild));
+    }
+
+    /**
+     * Покинуть гильдию (для любого участника, кроме лидера).
+     */
+    public function leave(Request $request, Guild $guild): JsonResponse
+    {
+        ($this->leaveGuildAction)($request->user(), $guild);
+
+        return response()->json(['message' => 'Вы покинули гильдию.']);
     }
 }

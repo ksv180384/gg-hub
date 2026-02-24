@@ -267,6 +267,14 @@ const navItems = [
                       <span v-if="n.created_at" class="mt-1.5 block text-xs text-muted-foreground">
                       <RelativeTime :date="n.created_at" :timezone="auth.user?.timezone" tag="time" class="text-xs text-muted-foreground" />
                     </span>
+                      <RouterLink
+                        v-if="n.link"
+                        :to="n.link"
+                        class="mt-1.5 inline-block text-xs font-medium text-primary underline hover:no-underline"
+                        @click="notificationsDrawerOpen = false"
+                      >
+                        Перейти к заявке
+                      </RouterLink>
                     </div>
                     <button
                       type="button"

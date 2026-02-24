@@ -7,6 +7,8 @@ import { http } from '@/shared/api/http';
 export interface NotificationItem {
   id: number;
   message: string;
+  /** Ссылка (например, на заявку в гильдию). */
+  link?: string | null;
   read_at: string | null;
   created_at: string;
 }

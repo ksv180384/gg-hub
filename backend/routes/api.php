@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\ContextController;
 use App\Http\Controllers\Api\GameClassController;
 use App\Http\Controllers\Api\GameController;
+use App\Http\Controllers\Api\GuildApplicationController;
 use App\Http\Controllers\Api\GuildApplicationFormFieldController;
 use App\Http\Controllers\Api\GuildController;
 use App\Http\Controllers\Api\GuildRoleController;
@@ -35,6 +36,7 @@ Route::get('/games/{game}', [GameController::class, 'show']);
 Route::get('/games/{game}/localizations/{localization}/servers', [ServerController::class, 'index']);
 Route::get('/guilds', [GuildController::class, 'index']);
 Route::get('/guilds/{guild}', [GuildController::class, 'show']);
+Route::get('/guilds/{guild}/application-form', [GuildController::class, 'applicationForm']);
 
 Route::get('/user', [UserController::class, 'show']);
 
@@ -43,6 +45,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/user', [UserController::class, 'update']);
 
     Route::get('/user/guilds', [UserController::class, 'guilds']);
+    Route::get('/user/applications', [UserController::class, 'applications']);
     Route::get('/characters', [CharacterController::class, 'index']);
     Route::get('/characters/{character}', [CharacterController::class, 'show']);
     Route::post('/characters', [CharacterController::class, 'store']);
@@ -54,6 +57,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
     Route::get('/guilds/{guild}/settings', [GuildController::class, 'settings'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/leave', [GuildController::class, 'leave'])->middleware('guild.member');
     Route::get('/guilds/{guild}/roles', [GuildRoleController::class, 'index'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol,meniat-izieniat-polzovateliu-rol,izmeniat-prava-roli,udaliat-rol');
     Route::get('/guilds/{guild}/permission-groups', [GuildRoleController::class, 'permissionGroups'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol,meniat-izieniat-polzovateliu-rol,izmeniat-prava-roli,udaliat-rol');
     Route::post('/guilds/{guild}/roles', [GuildRoleController::class, 'store'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol');
@@ -62,6 +66,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds/{guild}/application-form-fields', [GuildApplicationFormFieldController::class, 'store'])->middleware('guild.member', 'guild.role.permission:redaktirovat-formu-zaiavki-v-giliudiiu');
     Route::put('/guilds/{guild}/application-form-fields/{form_field}', [GuildApplicationFormFieldController::class, 'update'])->middleware('guild.member', 'guild.role.permission:redaktirovat-formu-zaiavki-v-giliudiiu');
     Route::delete('/guilds/{guild}/application-form-fields/{form_field}', [GuildApplicationFormFieldController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:redaktirovat-formu-zaiavki-v-giliudiiu');
+    Route::get('/guilds/{guild}/applications', [GuildApplicationController::class, 'index'])->middleware('guild.member', 'guild.role.permission:prosmotr-zaiavok-v-gildiiu');
+    Route::get('/guilds/{guild}/applications/{application}', [GuildApplicationController::class, 'show'])->middleware('guild.member', 'guild.role.permission:prosmotr-zaiavok-v-gildiiu');
+    // Просмотр заявки пользователем, который её подал
+    Route::get('/guilds/{guild}/applications/{application}/owner', [GuildApplicationController::class, 'showForOwner']);
+    Route::post('/guilds/{guild}/applications', [GuildApplicationController::class, 'store']);
+    Route::post('/guilds/{guild}/applications/{application}/approve', [GuildApplicationController::class, 'approve'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
+    Route::post('/guilds/{guild}/applications/{application}/reject', [GuildApplicationController::class, 'reject'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
     Route::post('/guilds', [GuildController::class, 'store']);
     Route::match(['put', 'patch'], '/guilds/{guild}', [GuildController::class, 'update']);
 

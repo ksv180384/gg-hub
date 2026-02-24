@@ -29,7 +29,7 @@ const localizationName = computed(() => props.guild.localization?.name ?? '—')
 const gameName = computed(() => props.guild.game?.name ?? '—');
 
 function goToApplication() {
-  router.push({ name: 'guild-applications', params: { id: String(props.guild.id) } });
+  router.push({ name: 'guild-application-form', params: { id: String(props.guild.id) } });
 }
 
 function goToDetails() {

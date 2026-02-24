@@ -7,7 +7,9 @@ use App\Actions\User\UpdateUserProfileAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
+use App\Http\Resources\Guild\GuildApplicationResource;
 use Domains\Guild\Actions\GetUserGuildsForGameAction;
+use Domains\Guild\Actions\ListUserGuildApplicationsAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,7 +18,8 @@ class UserController extends Controller
     public function __construct(
         private GetCurrentUserAction $getCurrentUserAction,
         private UpdateUserProfileAction $updateUserProfileAction,
-        private GetUserGuildsForGameAction $getUserGuildsForGameAction
+        private GetUserGuildsForGameAction $getUserGuildsForGameAction,
+        private ListUserGuildApplicationsAction $listUserGuildApplicationsAction
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -49,5 +52,27 @@ class UserController extends Controller
         }
         $guilds = ($this->getUserGuildsForGameAction)($request->user(), $gameId);
         return response()->json(['data' => $guilds->values()->all()]);
+    }
+
+    /**
+     * Заявки пользователя во все гильдии.
+     */
+    public function applications(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $perPage = (int) $request->input('per_page', 20);
+        $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
+
+        $paginator = ($this->listUserGuildApplicationsAction)($user, $perPage);
+
+        return response()->json([
+            'data' => GuildApplicationResource::collection($paginator->items()),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 }
