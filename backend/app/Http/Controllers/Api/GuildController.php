@@ -9,8 +9,12 @@ use App\Http\Requests\Guild\StoreGuildRequest;
 use App\Http\Requests\Guild\UpdateGuildRequest;
 use App\Http\Resources\Guild\GuildApplicationFormResource;
 use App\Http\Resources\Guild\GuildResource;
+use App\Http\Resources\Guild\GuildRosterMemberResource;
 use Domains\Guild\Actions\CreateGuildAction;
+use Domains\Guild\Actions\ExcludeGuildMemberAction;
 use Domains\Guild\Actions\GetGuildAction;
+use Domains\Guild\Actions\GetGuildRosterAction;
+use Domains\Guild\Actions\GetGuildRosterMemberAction;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Actions\LeaveGuildAction;
 use Domains\Guild\Actions\UpdateGuildAction;
@@ -23,7 +27,10 @@ class GuildController extends Controller
 {
     public function __construct(
         private CreateGuildAction $createGuildAction,
+        private ExcludeGuildMemberAction $excludeGuildMemberAction,
         private GetGuildAction $getGuildAction,
+        private GetGuildRosterAction $getGuildRosterAction,
+        private GetGuildRosterMemberAction $getGuildRosterMemberAction,
         private UpdateGuildAction $updateGuildAction,
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
         private LeaveGuildAction $leaveGuildAction
@@ -47,6 +54,64 @@ class GuildController extends Controller
     {
         $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
         return response()->json(new GuildResource($guild));
+    }
+
+    /**
+     * Состав гильдии. Доступ: при show_roster_to_all — всем авторизованным; иначе только участникам.
+     */
+    public function roster(Request $request, Guild $guild): AnonymousResourceCollection|JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Необходима авторизация.'], 401);
+        }
+
+        $result = ($this->getGuildRosterAction)($user, $guild);
+
+        return $result instanceof JsonResponse ? $result : $result;
+    }
+
+    /**
+     * Один участник состава гильдии (для страницы просмотра). Доступ: как у состава.
+     * В ответе can_exclude: можно ли исключить (есть право и это не лидер).
+     */
+    public function showRosterMember(Request $request, Guild $guild, int $character): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Необходима авторизация.'], 401);
+        }
+
+        $result = ($this->getGuildRosterMemberAction)($user, $guild, $character);
+
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        $permissionSlugs = ($this->getUserGuildPermissionSlugsAction)($user, $guild);
+        $isLeader = $guild->leader_character_id && (int) $guild->leader_character_id === (int) $character;
+        $canExclude = $permissionSlugs->contains('iskliucenie-polzovatelia-iz-gildii') && ! $isLeader;
+
+        return response()->json([
+            'data' => $result->toArray($request),
+            'can_exclude' => $canExclude,
+        ]);
+    }
+
+    /**
+     * Исключить участника из гильдии. Требуется право iskliucenie-polzovatelia-iz-gildii.
+     * Всем участникам и исключённому пользователю отправляются оповещения.
+     */
+    public function excludeMember(Request $request, Guild $guild, int $character): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Необходима авторизация.'], 401);
+        }
+
+        ($this->excludeGuildMemberAction)($user, $guild, $character);
+
+        return response()->json(['message' => 'Участник исключён из гильдии.']);
     }
 
     /**

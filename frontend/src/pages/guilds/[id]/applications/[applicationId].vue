@@ -44,10 +44,13 @@ const characterGameClasses = computed(() => {
 const statusLabel = computed(() => {
   const s = application.value?.status;
   if (s === 'pending') return 'На рассмотрении';
+  if (s === 'invitation') return 'Приглашение (ожидает ответа)';
   if (s === 'approved') return 'Принята';
   if (s === 'rejected') return 'Отклонена';
   return s ?? '—';
 });
+const isInvitation = computed(() => application.value?.status === 'invitation');
+const inviterName = computed(() => application.value?.invited_by_character?.name ?? null);
 
 function getFieldLabel(fieldId: number | string): string {
   const labels = application.value?.form_field_labels;
@@ -125,7 +128,12 @@ async function reject() {
       <Card class="max-w-2xl mx-auto">
         <CardHeader class="flex flex-row items-end justify-between gap-4 flex-wrap">
           <div>
-            <CardTitle class="text-xl">Заявка: {{ characterName }}</CardTitle>
+            <CardTitle class="text-xl">
+              {{ isInvitation ? 'Приглашение: ' : 'Заявка: ' }}{{ characterName }}
+            </CardTitle>
+            <p v-if="isInvitation && inviterName" class="mt-0.5 text-sm text-muted-foreground">
+              Приглашение отправил(а): {{ inviterName }}
+            </p>
             <p class="mt-1 text-sm text-muted-foreground">
               {{ statusLabel }}
               <template v-if="application.created_at">

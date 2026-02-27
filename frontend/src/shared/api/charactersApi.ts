@@ -75,6 +75,28 @@ export const charactersApi = {
   },
 
   /**
+   * Один персонаж игры (страница персонажа).
+   */
+  async getGameCharacter(gameId: number, characterId: number): Promise<Character> {
+    const res = await http.fetchGet<CharacterResponse | Character>(`/games/${gameId}/characters/${characterId}`);
+    throwOnError(res, 'Ошибка загрузки персонажа');
+    return unwrapData(res, {} as Character) as Character;
+  },
+
+  /**
+   * Все персонажи игры (для страницы «Персонажи» на игровом поддомене).
+   */
+  async getGameCharacters(gameId: number): Promise<Character[]> {
+    const res = await http.fetchGet<CharactersListResponse | Character[]>(`/games/${gameId}/characters`);
+    throwOnError(res, 'Ошибка загрузки списка персонажей');
+    const data = res.data;
+    if (Array.isArray((data as CharactersListResponse)?.data)) {
+      return (data as CharactersListResponse).data;
+    }
+    return Array.isArray(data) ? data : [];
+  },
+
+  /**
    * Персонажи, доступные для выбора лидером гильдии: на указанном сервере,
    * не состоят ни в какой гильдии и не являются лидером другой гильдии.
    */

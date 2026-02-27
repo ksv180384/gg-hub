@@ -22,10 +22,50 @@ const characterGameClasses = computed(() => {
 const statusLabel = computed(() => {
   const s = application.value?.status;
   if (s === 'pending') return 'На рассмотрении';
+  if (s === 'invitation') return 'Приглашение';
   if (s === 'approved') return 'Принята';
   if (s === 'rejected') return 'Отклонена';
   return s ?? '—';
 });
+
+const isInvitation = computed(() => application.value?.status === 'invitation');
+const inviterName = computed(() => application.value?.invited_by_character?.name ?? 'Участник гильдии');
+
+const accepting = ref(false);
+const declining = ref(false);
+const actionError = ref<string | null>(null);
+
+async function acceptInvitation() {
+  if (!guildId.value || !applicationId.value) return;
+  accepting.value = true;
+  actionError.value = null;
+  try {
+    await guildsApi.acceptGuildInvitation(guildId.value, applicationId.value);
+    application.value = application.value
+      ? { ...application.value, status: 'approved' as const }
+      : null;
+  } catch (e) {
+    actionError.value = e instanceof Error ? e.message : 'Не удалось принять приглашение';
+  } finally {
+    accepting.value = false;
+  }
+}
+
+async function declineInvitation() {
+  if (!guildId.value || !applicationId.value) return;
+  declining.value = true;
+  actionError.value = null;
+  try {
+    await guildsApi.declineGuildInvitation(guildId.value, applicationId.value);
+    application.value = application.value
+      ? { ...application.value, status: 'rejected' as const }
+      : null;
+  } catch (e) {
+    actionError.value = e instanceof Error ? e.message : 'Не удалось отклонить приглашение';
+  } finally {
+    declining.value = false;
+  }
+}
 
 function getFieldLabel(fieldId: number | string): string {
   const labels = application.value?.form_field_labels;
@@ -76,12 +116,17 @@ onMounted(async () => {
       <Card class="max-w-2xl mx-auto">
         <CardHeader class="flex flex-row items-end justify-between gap-4 flex-wrap">
           <div>
-            <CardTitle class="text-xl">Ваша заявка в гильдию</CardTitle>
+            <CardTitle class="text-xl">
+              {{ isInvitation ? 'Приглашение в гильдию' : 'Ваша заявка в гильдию' }}
+            </CardTitle>
             <p class="mt-1 text-sm text-muted-foreground">
               Персонаж: {{ characterName }}
               <template v-if="characterGameClasses">
                 · {{ characterGameClasses }}
               </template>
+            </p>
+            <p v-if="isInvitation" class="mt-0.5 text-sm text-muted-foreground">
+              Вас пригласил(а): {{ inviterName }}
             </p>
             <p class="mt-0.5 text-sm text-muted-foreground">
               Статус: {{ statusLabel }}
@@ -92,6 +137,15 @@ onMounted(async () => {
           </div>
         </CardHeader>
         <CardContent class="space-y-6">
+          <div v-if="isInvitation && (application.status === 'invitation')" class="flex flex-wrap gap-2">
+            <Button :disabled="accepting || declining" @click="acceptInvitation">
+              {{ accepting ? '…' : 'Принять приглашение' }}
+            </Button>
+            <Button variant="outline" :disabled="accepting || declining" @click="declineInvitation">
+              {{ declining ? '…' : 'Отклонить' }}
+            </Button>
+          </div>
+          <p v-if="actionError" class="text-sm text-destructive">{{ actionError }}</p>
           <div v-if="application.form_data && Object.keys(application.form_data).length > 0" class="space-y-3">
             <h3 class="text-sm font-medium text-muted-foreground">Ответы на вопросы формы</h3>
             <dl class="space-y-2">

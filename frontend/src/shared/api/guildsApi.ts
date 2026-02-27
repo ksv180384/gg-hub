@@ -37,6 +37,8 @@ export interface UserGuildItem {
   is_leader: boolean;
   /** Доступ к странице «Роли членов гильдии» (хотя бы одно из прав). */
   can_access_roles?: boolean;
+  /** Право приглашать в гильдию (подтверждение/отклонение заявок). */
+  can_invite?: boolean;
 }
 
 export interface Guild {
@@ -111,7 +113,10 @@ export interface GuildApplicationItem {
   form_data: Record<number, string>;
   /** Соответствие id поля формы → название (для отображения вместо «Поле 1», «Поле 2»). */
   form_field_labels?: Record<number | string, string>;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'invitation' | 'approved' | 'rejected';
+  /** ID персонажа-участника гильдии, от имени которого отправлено приглашение (для status === 'invitation'). */
+  invited_by_character_id?: number | null;
+  invited_by_character?: { id: number; name: string } | null;
   reviewed_at?: string | null;
   created_at?: string | null;
 }
@@ -175,6 +180,16 @@ export interface GuildRole {
   slug: string;
   priority: number;
   permissions?: { id: number; name: string; slug: string }[];
+}
+
+/** Участник состава гильдии (персонаж с ролью, классами, тегами). */
+export interface GuildRosterMember {
+  character_id: number;
+  name: string;
+  avatar_url: string | null;
+  game_classes: { id: number; name: string; name_ru?: string; slug: string; image_thumb?: string }[];
+  guild_role: { id: number; name: string; slug: string } | null;
+  tags: { id: number; name: string; slug: string }[];
 }
 
 export const guildsApi = {
@@ -299,6 +314,45 @@ export const guildsApi = {
     return raw as GuildApplicationItem;
   },
 
+  /** Отправить приглашение в гильдию персонажу. */
+  async sendGuildInvitation(guildId: number, characterId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/invitations`,
+      { character_id: characterId }
+    );
+    throwOnError(res, 'Ошибка отправки приглашения');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Принять приглашение в гильдию (владелец персонажа). */
+  async acceptGuildInvitation(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/accept-invitation`,
+      {}
+    );
+    throwOnError(res, 'Ошибка принятия приглашения');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Отклонить приглашение в гильдию (владелец персонажа). */
+  async declineGuildInvitation(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/decline-invitation`,
+      {}
+    );
+    throwOnError(res, 'Ошибка отклонения приглашения');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
   /** Моя заявка: GET /guilds/:id/applications/:applicationId/owner (для пользователя, подавшего заявку). */
   async getMyGuildApplication(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
     const res = await http.fetchGet<{ data: GuildApplicationItem } | GuildApplicationItem>(
@@ -331,6 +385,44 @@ export const guildsApi = {
     const list = body?.data ?? [];
     const meta = body?.meta ?? { current_page: 1, last_page: 1, per_page: perPage, total: 0 };
     return { applications: list, meta };
+  },
+
+  /**
+   * Состав гильдии. Доступ: при show_roster_to_all — всем; иначе только участникам (403).
+   */
+  async getGuildRoster(guildId: number): Promise<GuildRosterMember[]> {
+    const res = await http.fetchGet<{ data: GuildRosterMember[] }>(`/guilds/${guildId}/roster`);
+    throwOnError(res, 'Ошибка загрузки состава');
+    const raw = res.data as { data?: GuildRosterMember[] } | null;
+    return raw?.data ?? [];
+  },
+
+  /**
+   * Один участник состава (для страницы просмотра). Ответ: { data, can_exclude }.
+   */
+  async getGuildRosterMember(
+    guildId: number,
+    characterId: number
+  ): Promise<{ data: GuildRosterMember; can_exclude: boolean }> {
+    const res = await http.fetchGet<{ data: GuildRosterMember; can_exclude: boolean }>(
+      `/guilds/${guildId}/roster/${characterId}`
+    );
+    throwOnError(res, 'Ошибка загрузки данных участника');
+    const raw = res.data as { data?: GuildRosterMember; can_exclude?: boolean } | null;
+    return {
+      data: raw?.data ?? ({} as GuildRosterMember),
+      can_exclude: raw?.can_exclude ?? false,
+    };
+  },
+
+  /**
+   * Исключить участника из гильдии. Требуется право «Исключение пользователя из гильдии».
+   */
+  async excludeGuildMember(guildId: number, characterId: number): Promise<void> {
+    const res = await http.fetchDelete<{ message?: string }>(
+      `/guilds/${guildId}/members/${characterId}`
+    );
+    throwOnError(res, 'Не удалось исключить участника');
   },
 
   /**

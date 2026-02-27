@@ -30,6 +30,7 @@ onMounted(async () => {
 
 function statusLabel(status: string) {
   if (status === 'pending') return 'На рассмотрении';
+  if (status === 'invitation') return 'Приглашение';
   if (status === 'approved') return 'Принята';
   if (status === 'rejected') return 'Отклонена';
   return status;

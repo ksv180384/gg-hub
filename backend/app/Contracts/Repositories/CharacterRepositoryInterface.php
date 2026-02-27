@@ -8,6 +8,18 @@ use Illuminate\Support\Collection;
 interface CharacterRepositoryInterface
 {
     /**
+     * Все персонажи игры с локализацией, сервером и классами (для публичного списка).
+     *
+     * @return Collection<int, Character>
+     */
+    public function getByGameWithContext(int $gameId): Collection;
+
+    /**
+     * Один персонаж по id в рамках игры (для страницы персонажа).
+     */
+    public function findByIdAndGame(int $id, int $gameId): ?Character;
+
+    /**
      * Персонажи пользователя с игрой, локализацией и сервером.
      *
      * @return Collection<int, Character>

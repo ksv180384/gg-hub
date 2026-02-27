@@ -348,6 +348,11 @@ const navItems = [
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem as-child>
+                <RouterLink to="/my-characters" class="cursor-pointer">
+                  Мои персонажи
+                </RouterLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem as-child>
                 <RouterLink to="/profile" class="cursor-pointer">
                   Профиль
                 </RouterLink>

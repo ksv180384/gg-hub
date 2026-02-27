@@ -16,7 +16,14 @@ class ApproveGuildApplicationAction
             throw ValidationException::withMessages(['application' => ['Заявка не принадлежит этой гильдии.']]);
         }
 
-        if ($application->status !== 'pending') {
+        $application->loadMissing('character');
+        if ($application->status === 'invitation') {
+            if ((int) $application->character?->user_id !== (int) $reviewer->id) {
+                throw ValidationException::withMessages(['application' => ['Принять приглашение может только владелец персонажа.']]);
+            }
+        } elseif ($application->status === 'pending') {
+            // Участник гильдии с правом одобряет заявку — проверка в middleware
+        } else {
             throw ValidationException::withMessages(['application' => ['Заявку уже рассмотрели.']]);
         }
 

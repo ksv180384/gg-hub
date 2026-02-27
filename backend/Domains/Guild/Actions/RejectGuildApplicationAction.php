@@ -15,8 +15,12 @@ class RejectGuildApplicationAction
             throw ValidationException::withMessages(['application' => ['Заявка не принадлежит этой гильдии.']]);
         }
 
-        if ($application->status !== 'pending') {
-            throw ValidationException::withMessages(['application' => ['Заявку уже рассмотрели.']]);
+        $application->loadMissing('character');
+        $isInvitation = $application->status === 'invitation';
+        $isPending = $application->status === 'pending';
+        $canRejectInvitation = $isInvitation && (int) $application->character?->user_id === (int) $reviewer->id;
+        if (!$isPending && !$canRejectInvitation) {
+            throw ValidationException::withMessages(['application' => ['Заявку уже рассмотрели или у вас нет прав.']]);
         }
 
         $application->update([

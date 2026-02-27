@@ -10,7 +10,7 @@ class ListGuildApplicationsAction
     public function __invoke(Guild $guild, int $perPage = 20): LengthAwarePaginator
     {
         return $guild->applications()
-            ->with(['character'])
+            ->with(['character', 'invitedByCharacter'])
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }

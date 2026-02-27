@@ -46,6 +46,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/user/guilds', [UserController::class, 'guilds']);
     Route::get('/user/applications', [UserController::class, 'applications']);
+    Route::get('/games/{game}/characters', [CharacterController::class, 'indexForGame']);
+    Route::get('/games/{game}/characters/{character}', [CharacterController::class, 'showForGame']);
     Route::get('/characters', [CharacterController::class, 'index']);
     Route::get('/characters/{character}', [CharacterController::class, 'show']);
     Route::post('/characters', [CharacterController::class, 'store']);
@@ -56,6 +58,9 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
+    Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster']);
+    Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember']);
+    Route::delete('/guilds/{guild}/members/{character}', [GuildController::class, 'excludeMember'])->middleware('guild.member', 'guild.role.permission:iskliucenie-polzovatelia-iz-gildii');
     Route::get('/guilds/{guild}/settings', [GuildController::class, 'settings'])->middleware('guild.member');
     Route::post('/guilds/{guild}/leave', [GuildController::class, 'leave'])->middleware('guild.member');
     Route::get('/guilds/{guild}/roles', [GuildRoleController::class, 'index'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol,meniat-izieniat-polzovateliu-rol,izmeniat-prava-roli,udaliat-rol');
@@ -70,7 +75,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/guilds/{guild}/applications/{application}', [GuildApplicationController::class, 'show'])->middleware('guild.member', 'guild.role.permission:prosmotr-zaiavok-v-gildiiu');
     // Просмотр заявки пользователем, который её подал
     Route::get('/guilds/{guild}/applications/{application}/owner', [GuildApplicationController::class, 'showForOwner']);
+    Route::post('/guilds/{guild}/applications/{application}/accept-invitation', [GuildApplicationController::class, 'acceptInvitation']);
+    Route::post('/guilds/{guild}/applications/{application}/decline-invitation', [GuildApplicationController::class, 'declineInvitation']);
     Route::post('/guilds/{guild}/applications', [GuildApplicationController::class, 'store']);
+    Route::post('/guilds/{guild}/invitations', [GuildApplicationController::class, 'invite'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
     Route::post('/guilds/{guild}/applications/{application}/approve', [GuildApplicationController::class, 'approve'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
     Route::post('/guilds/{guild}/applications/{application}/reject', [GuildApplicationController::class, 'reject'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
     Route::post('/guilds', [GuildController::class, 'store']);

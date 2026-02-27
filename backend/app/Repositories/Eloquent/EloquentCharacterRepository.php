@@ -9,6 +9,24 @@ use Illuminate\Support\Collection;
 
 class EloquentCharacterRepository implements CharacterRepositoryInterface
 {
+    public function getByGameWithContext(int $gameId): Collection
+    {
+        return Character::query()
+            ->where('game_id', $gameId)
+            ->with(['localization', 'server', 'gameClasses'])
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function findByIdAndGame(int $id, int $gameId): ?Character
+    {
+        return Character::query()
+            ->where('id', $id)
+            ->where('game_id', $gameId)
+            ->with(['game', 'localization', 'server', 'gameClasses', 'tags', 'guildMember.guild'])
+            ->first();
+    }
+
     public function getByUserWithContext(int $userId, ?int $gameId = null): Collection
     {
         $query = Character::query()

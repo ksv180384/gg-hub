@@ -18,7 +18,7 @@ const error = ref<string | null>(null);
 async function loadCharacter() {
   const id = characterId.value;
   if (!id || Number.isNaN(id)) {
-    router.replace({ name: 'characters' });
+    router.replace({ name: 'my-characters' });
     return;
   }
   loading.value = true;
@@ -29,7 +29,7 @@ async function loadCharacter() {
   } catch (e: unknown) {
     const err = e as Error & { status?: number };
     if (err.status === 404) {
-      router.replace({ name: 'characters' });
+      router.replace({ name: 'my-characters' });
     } else {
       error.value = err.message ?? 'Не удалось загрузить персонажа';
     }
@@ -39,11 +39,11 @@ async function loadCharacter() {
 }
 
 function onSaved() {
-  router.push({ name: 'characters' });
+  router.push({ name: 'my-characters' });
 }
 
 function onCancel() {
-  router.push({ name: 'characters' });
+  router.push({ name: 'my-characters' });
 }
 
 onMounted(() => loadCharacter());
@@ -56,7 +56,7 @@ watch(characterId, (id) => {
   <div class="container py-6">
     <div class="mx-auto max-w-xl">
       <div class="mb-6">
-        <Button variant="ghost" size="sm" class="shrink-0 -ml-2" @click="router.push({ name: 'characters' })">
+        <Button variant="ghost" size="sm" class="shrink-0 -ml-2" @click="router.push({ name: 'my-characters' })">
           ← К списку
         </Button>
       </div>
@@ -64,7 +64,7 @@ watch(characterId, (id) => {
       <Card v-if="error" class="border-destructive/50">
       <CardContent class="pt-6">
         <p class="text-sm text-destructive">{{ error }}</p>
-        <Button class="mt-4" variant="outline" @click="router.push({ name: 'characters' })">
+        <Button class="mt-4" variant="outline" @click="router.push({ name: 'my-characters' })">
           К списку персонажей
         </Button>
       </CardContent>

@@ -16,6 +16,8 @@ class GetUserGuildsForGameAction
         'udaliat-rol',
     ];
 
+    private const INVITE_PERMISSION_SLUG = 'podtverzdenie-ili-otklonenie-zaiavok';
+
     public function __construct(
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction
     ) {}
@@ -49,6 +51,7 @@ class GetUserGuildsForGameAction
         return $guilds->map(function (Guild $guild) use ($user) {
             $permissionSlugs = ($this->getUserGuildPermissionSlugsAction)($user, $guild);
             $canAccessRoles = $permissionSlugs->contains(fn (string $slug): bool => in_array($slug, self::ROLES_PAGE_PERMISSION_SLUGS, true));
+            $canInvite = $permissionSlugs->contains(self::INVITE_PERMISSION_SLUG);
 
             return [
                 'id' => $guild->id,
@@ -56,6 +59,7 @@ class GetUserGuildsForGameAction
                 'is_leader' => $guild->leader_character_id && $guild->leader &&
                     (int) $guild->leader->user_id === (int) $user->id,
                 'can_access_roles' => $canAccessRoles,
+                'can_invite' => $canInvite,
             ];
         });
     }

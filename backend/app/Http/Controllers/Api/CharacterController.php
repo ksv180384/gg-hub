@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Contracts\Repositories\CharacterRepositoryInterface;
 use App\Http\Controllers\Controller;
+use App\Models\Game;
 use App\Http\Requests\Character\StoreCharacterRequest;
 use App\Http\Requests\Character\UpdateCharacterRequest;
 use App\Http\Resources\Character\CharacterResource;
@@ -24,6 +25,27 @@ class CharacterController extends Controller
         private UpdateCharacterAction $updateCharacterAction,
         private DeleteCharacterAction $deleteCharacterAction
     ) {}
+
+    /**
+     * Все персонажи игры (аватар, имя, классы, локализация, сервер).
+     */
+    public function indexForGame(Game $game): AnonymousResourceCollection
+    {
+        $characters = $this->characterRepository->getByGameWithContext($game->id);
+        return CharacterResource::collection($characters);
+    }
+
+    /**
+     * Один персонаж игры (страница персонажа).
+     */
+    public function showForGame(Game $game, int $character): JsonResponse|CharacterResource
+    {
+        $model = $this->characterRepository->findByIdAndGame($character, $game->id);
+        if ($model === null) {
+            throw new NotFoundHttpException('Персонаж не найден.');
+        }
+        return response()->json(new CharacterResource($model));
+    }
 
     public function index(Request $request): AnonymousResourceCollection
     {

@@ -24,11 +24,11 @@ async function loadGame() {
 }
 
 function onSaved() {
-  router.push({ name: 'characters' });
+  router.push({ name: 'my-characters' });
 }
 
 function onCancel() {
-  router.push({ name: 'characters' });
+  router.push({ name: 'my-characters' });
 }
 
 onMounted(() => {
@@ -46,7 +46,7 @@ onMounted(() => {
         <p class="text-sm text-muted-foreground">
           Перейдите на страницу игры (поддомен игры), чтобы создавать персонажей.
         </p>
-        <Button class="mt-4" variant="outline" @click="router.push({ name: 'characters' })">
+        <Button class="mt-4" variant="outline" @click="router.push({ name: 'my-characters' })">
           К списку персонажей
         </Button>
       </CardContent>
@@ -55,7 +55,7 @@ onMounted(() => {
     <template v-else>
       <div class="mx-auto max-w-xl">
         <div class="mb-6">
-          <Button variant="ghost" size="sm" class="shrink-0 -ml-2" @click="router.push({ name: 'characters' })">
+          <Button variant="ghost" size="sm" class="shrink-0 -ml-2" @click="router.push({ name: 'my-characters' })">
             ← К списку
           </Button>
         </div>

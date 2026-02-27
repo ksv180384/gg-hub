@@ -11,6 +11,7 @@ class GuildApplication extends Model
     protected $fillable = [
         'guild_id',
         'character_id',
+        'invited_by_character_id',
         'form_data',
         'status',
         'reviewed_at',
@@ -33,5 +34,11 @@ class GuildApplication extends Model
     public function character(): BelongsTo
     {
         return $this->belongsTo(Character::class);
+    }
+
+    /** Персонаж-участник гильдии, от имени которого отправлено приглашение (с правом приглашения). */
+    public function invitedByCharacter(): BelongsTo
+    {
+        return $this->belongsTo(Character::class, 'invited_by_character_id');
     }
 }

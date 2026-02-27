@@ -29,7 +29,7 @@ async function loadCharacters() {
 }
 
 function openEdit(character: Character) {
-  router.push({ name: 'characters-edit', params: { id: character.id } });
+  router.push({ name: 'my-characters-edit', params: { id: character.id } });
 }
 
 function openDeleteDialog(character: Character) {
@@ -84,7 +84,7 @@ onMounted(() => {
     <template v-else>
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 class="text-xl font-semibold sm:text-2xl">Персонажи</h1>
-        <RouterLink :to="{ name: 'characters-create' }">
+        <RouterLink :to="{ name: 'my-characters-create' }">
           <Button class="min-h-11 min-w-[44px] shrink-0 touch-manipulation">
             Добавить персонажа
           </Button>

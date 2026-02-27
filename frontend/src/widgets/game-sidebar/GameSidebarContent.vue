@@ -157,7 +157,6 @@ watch(() => siteContext.game?.id, () => loadUserGuilds());
         >
           Персонажи
         </RouterLink>
-
         <RouterLink
           to="/applications"
           :class="cn(

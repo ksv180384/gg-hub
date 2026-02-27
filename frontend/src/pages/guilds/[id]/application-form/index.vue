@@ -228,7 +228,7 @@ function onTextareaInput(fieldId: number, e: Event) {
               <p v-if="characterOptions.length === 0" class="text-xs text-muted-foreground">
                 Нет подходящих персонажей (нужен персонаж той же игры и сервера, не состоящий в гильдии).
                 <router-link
-                  :to="{ name: 'characters-create' }"
+                  :to="{ name: 'my-characters-create' }"
                   class="text-primary underline"
                 >
                   Создать персонажа
