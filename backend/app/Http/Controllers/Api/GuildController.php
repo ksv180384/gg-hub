@@ -42,7 +42,7 @@ class GuildController extends Controller
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 15;
         $filter = new GuildFilter($request);
         $guilds = Guild::query()
-            ->with(['game', 'localization', 'server', 'leader'])
+            ->with(['game', 'localization', 'server', 'leader', 'tags'])
             ->withCount('members')
             ->filter($filter)
             ->paginate($perPage);

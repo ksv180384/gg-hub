@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
+import { Badge, Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -31,6 +31,16 @@ onMounted(async () => {
       <CardContent>
         <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
         <template v-else-if="guild">
+          <div v-if="guild.tags?.length" class="mb-4 flex flex-wrap items-center gap-1">
+            <Badge
+              v-for="tag in guild.tags"
+              :key="tag.id"
+              variant="outline"
+              class="text-xs font-normal"
+            >
+              {{ tag.name }}
+            </Badge>
+          </div>
           <p class="mb-4 text-sm text-muted-foreground">
             Журнал гильдии. Раздел в разработке.
           </p>

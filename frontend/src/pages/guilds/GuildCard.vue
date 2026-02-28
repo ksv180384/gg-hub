@@ -91,6 +91,16 @@ function goToDetails() {
           {{ localizationName }}
         </p>
       </div>
+      <div v-if="guild.tags?.length" class="mt-2 flex flex-wrap items-center gap-1">
+        <Badge
+          v-for="tag in guild.tags"
+          :key="tag.id"
+          variant="outline"
+          class="text-xs font-normal"
+        >
+          {{ tag.name }}
+        </Badge>
+      </div>
       <div class="mt-2 flex flex-1 flex-wrap items-end justify-between gap-2">
         <span
           v-if="guild.members_count != null"
