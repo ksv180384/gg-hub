@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
-import { Avatar, Button, Tooltip } from '@/shared/ui';
+import { Avatar, Badge, Button, Tooltip } from '@/shared/ui';
 import type { Character } from '@/shared/api/charactersApi';
 import CharacterClassBadge from './CharacterClassBadge.vue';
 
@@ -53,6 +53,16 @@ const emit = defineEmits<{ (e: 'edit'): void; (e: 'delete'): void }>();
           :key="gc.id"
           :game-class="gc"
         />
+      </div>
+      <div v-if="character.tags?.length" class="mt-1 flex flex-wrap items-center gap-1">
+        <Badge
+          v-for="tag in character.tags"
+          :key="tag.id"
+          variant="outline"
+          class="text-xs font-normal"
+        >
+          {{ tag.name }}
+        </Badge>
       </div>
     </div>
     <Tooltip content="Редактировать">

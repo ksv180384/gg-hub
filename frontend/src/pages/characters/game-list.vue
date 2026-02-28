@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
+  Badge,
   Button,
   Card,
   CardContent,
@@ -347,15 +348,25 @@ watch(
                     <span v-if="c.server?.name">{{ c.server.name }}</span>
                     <template v-if="!c.localization?.name && !c.server?.name">—</template>
                   </p>
-                  <div v-if="c.game_classes?.length" class="mt-1 flex flex-wrap items-center gap-1.5">
-                    <CharacterClassBadge
-                      v-for="gc in c.game_classes"
-                      :key="gc.id"
-                      :game-class="gc"
-                    />
-                  </div>
+                <div v-if="c.game_classes?.length" class="mt-1 flex flex-wrap items-center gap-1.5">
+                  <CharacterClassBadge
+                    v-for="gc in c.game_classes"
+                    :key="gc.id"
+                    :game-class="gc"
+                  />
                 </div>
-              </li>
+                <div v-if="c.tags?.length" class="mt-1 flex flex-wrap items-center gap-1">
+                  <Badge
+                    v-for="tag in c.tags"
+                    :key="tag.id"
+                    variant="outline"
+                    class="text-xs font-normal"
+                  >
+                    {{ tag.name }}
+                  </Badge>
+                </div>
+              </div>
+            </li>
             </ul>
           </CardContent>
         </Card>

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { RouterLink } from 'vue-router';
 import {
+  Badge,
   Button,
   Card,
   CardContent,
@@ -179,6 +180,16 @@ watch([() => game.value?.id, characterId], () => {
                   :game-class="gc"
                 />
               </div>
+              <div v-if="character.tags?.length" class="mt-2 flex flex-wrap items-center gap-1">
+                <Badge
+                  v-for="tag in character.tags"
+                  :key="tag.id"
+                  variant="outline"
+                  class="text-xs font-normal"
+                >
+                  {{ tag.name }}
+                </Badge>
+              </div>
             </div>
           </div>
           <Button
@@ -190,7 +201,7 @@ watch([() => game.value?.id, characterId], () => {
           </Button>
         </CardHeader>
         <CardContent>
-          <p v-if="!character.guild && !character.game_classes?.length && (!character.localization?.name && !character.server?.name)" class="text-sm text-muted-foreground">
+          <p v-if="!character.guild && !character.game_classes?.length && !character.tags?.length && (!character.localization?.name && !character.server?.name)" class="text-sm text-muted-foreground">
             Дополнительная информация о персонаже отсутствует.
           </p>
         </CardContent>
