@@ -13,12 +13,14 @@ class GuildApplicationFormField extends Model
         'type',
         'required',
         'sort_order',
+        'options',
     ];
 
     protected function casts(): array
     {
         return [
             'required' => 'boolean',
+            'options' => 'array',
         ];
     }
 

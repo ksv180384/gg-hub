@@ -73,6 +73,23 @@ function getFieldLabel(fieldId: number | string): string {
   return labels[fieldId] ?? labels[String(fieldId)] ?? `Поле ${fieldId}`;
 }
 
+/** Для multiselect значение приходит как JSON-массив; выводим через запятую. */
+function formatFormFieldValue(value: string): string {
+  if (value == null || value === '') return '—';
+  const trimmed = String(value).trim();
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.map((x) => String(x)).join(', ') || '—';
+      }
+    } catch {
+      /* fallback to raw */
+    }
+  }
+  return trimmed || '—';
+}
+
 function isImageUrl(val: unknown): boolean {
   if (val == null) return false;
   const s = String(val).trim();
@@ -163,7 +180,7 @@ onMounted(async () => {
                       class="max-w-[320px] w-full rounded border object-cover"
                     >
                   </template>
-                  <template v-else>{{ value || '—' }}</template>
+                  <template v-else>{{ formatFormFieldValue(value) }}</template>
                 </dd>
               </div>
             </dl>

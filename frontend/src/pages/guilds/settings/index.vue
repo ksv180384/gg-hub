@@ -95,7 +95,7 @@ const createTagError = ref<string | null>(null);
 const addingNewTag = ref(false);
 
 /** Тип дополнительного поля формы заявки. */
-type ApplicationFormFieldType = 'text' | 'textarea' | 'screenshot';
+type ApplicationFormFieldType = 'text' | 'textarea' | 'screenshot' | 'select' | 'multiselect';
 
 const applicationFormFields = ref<GuildApplicationFormFieldDto[]>([]);
 
@@ -105,6 +105,8 @@ const applicationFieldEditIndex = ref<number | null>(null);
 const applicationFieldName = ref('');
 const applicationFieldType = ref<ApplicationFormFieldType>('text');
 const applicationFieldRequired = ref(false);
+/** Варианты выбора для полей select и multiselect. */
+const applicationFieldOptions = ref<string[]>([]);
 
 const leaveDialogOpen = ref(false);
 const leaving = ref(false);
@@ -412,13 +414,39 @@ const APPLICATION_FIELD_TYPE_OPTIONS: { value: ApplicationFormFieldType; label: 
   { value: 'text', label: 'Текст' },
   { value: 'textarea', label: 'Большой текст' },
   { value: 'screenshot', label: 'Скриншот (ссылка на скриншот)' },
+  { value: 'select', label: 'Выбор одного варианта (select)' },
+  { value: 'multiselect', label: 'Выбор нескольких вариантов (multiselect)' },
 ];
+
+const isSelectOrMultiselect = (t: ApplicationFormFieldType) => t === 'select' || t === 'multiselect';
+
+function addApplicationFieldOption() {
+  applicationFieldOptions.value = [...applicationFieldOptions.value, ''];
+}
+
+function removeApplicationFieldOption(index: number) {
+  applicationFieldOptions.value = applicationFieldOptions.value.filter((_, i) => i !== index);
+}
+
+function setApplicationFieldOptionValue(index: number, value: string) {
+  const next = [...applicationFieldOptions.value];
+  next[index] = value;
+  applicationFieldOptions.value = next;
+}
+
+// При переключении на select/multiselect показывать хотя бы одно поле варианта
+watch(applicationFieldType, (t) => {
+  if (isSelectOrMultiselect(t) && applicationFieldOptions.value.length === 0) {
+    applicationFieldOptions.value = [''];
+  }
+});
 
 function openAddApplicationFieldModal() {
   applicationFieldEditIndex.value = null;
   applicationFieldName.value = '';
   applicationFieldType.value = 'text';
   applicationFieldRequired.value = false;
+  applicationFieldOptions.value = [];
   applicationFieldModalOpen.value = true;
 }
 
@@ -429,6 +457,7 @@ function openEditApplicationFieldModal(index: number) {
   applicationFieldName.value = field.name;
   applicationFieldType.value = field.type as ApplicationFormFieldType;
   applicationFieldRequired.value = field.required;
+  applicationFieldOptions.value = field.options?.length ? [...field.options] : [];
   applicationFieldModalOpen.value = true;
 }
 
@@ -440,24 +469,37 @@ function closeApplicationFieldModal() {
 async function saveApplicationFieldModal() {
   const name = applicationFieldName.value.trim();
   if (!guild.value || !name) return;
+  const type = applicationFieldType.value;
+  if (isSelectOrMultiselect(type)) {
+    const opts = applicationFieldOptions.value.map((o) => o.trim()).filter(Boolean);
+    if (opts.length === 0) {
+      error.value = 'Добавьте хотя бы один вариант выбора для полей «Выбор» и «Мультивыбор».';
+      return;
+    }
+  }
   applicationFieldSaving.value = true;
   error.value = null;
   try {
+    const options = isSelectOrMultiselect(type)
+      ? applicationFieldOptions.value.map((o) => o.trim()).filter(Boolean)
+      : undefined;
     const idx = applicationFieldEditIndex.value;
     if (idx !== null) {
       const field = applicationFormFields.value[idx];
       if (!field) return;
       const updated = await guildsApi.updateApplicationFormField(guild.value.id, field.id, {
         name,
-        type: applicationFieldType.value,
+        type,
         required: applicationFieldRequired.value,
+        options,
       });
       applicationFormFields.value = applicationFormFields.value.map((f, i) => (i === idx ? updated : f));
     } else {
       const payload: CreateGuildApplicationFormFieldPayload = {
         name,
-        type: applicationFieldType.value,
+        type,
         required: applicationFieldRequired.value,
+        options,
       };
       const created = await guildsApi.createApplicationFormField(guild.value.id, payload);
       applicationFormFields.value = [...applicationFormFields.value, created];
@@ -1031,7 +1073,12 @@ onMounted(async () => {
                 :key="field.id"
                 class="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm"
               >
-                <span class="font-medium text-foreground">{{ field.name }}</span>
+                <div class="min-w-0 flex-1">
+                  <span class="font-medium text-foreground">{{ field.name }}</span>
+                  <span v-if="isSelectOrMultiselect(field.type as ApplicationFormFieldType) && field.options?.length" class="ml-2 text-xs text-muted-foreground">
+                    {{ field.type === 'select' ? 'Выбор' : 'Мультивыбор' }} ({{ field.options.length }})
+                  </span>
+                </div>
                 <div class="flex shrink-0 gap-1">
                   <button
                     type="button"
@@ -1133,6 +1180,51 @@ onMounted(async () => {
                     Обязательное для заполнения
                   </Label>
                 </div>
+                <template v-if="isSelectOrMultiselect(applicationFieldType)">
+                  <div class="space-y-2">
+                    <Label>Варианты выбора *</Label>
+                    <p class="text-xs text-muted-foreground">
+                      Добавьте позиции, которые можно будет выбрать при подаче заявки.
+                    </p>
+                    <div class="space-y-2">
+                      <div
+                        v-for="(opt, optIndex) in applicationFieldOptions"
+                        :key="optIndex"
+                        class="flex items-center gap-2"
+                      >
+                        <Input
+                          :model-value="opt"
+                          placeholder="Текст варианта"
+                          class="flex-1"
+                          :disabled="applicationFieldSaving"
+                          @update:model-value="setApplicationFieldOptionValue(optIndex, $event)"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          class="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                          aria-label="Удалить вариант"
+                          :disabled="applicationFieldSaving"
+                          @click="removeApplicationFieldOption(optIndex)"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                          </svg>
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      :disabled="applicationFieldSaving"
+                      @click="addApplicationFieldOption"
+                    >
+                      + Добавить вариант
+                    </Button>
+                  </div>
+                </template>
               </div>
               <div class="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" :disabled="applicationFieldSaving" @click="closeApplicationFieldModal">
@@ -1140,7 +1232,7 @@ onMounted(async () => {
                 </Button>
                 <Button
                   type="button"
-                  :disabled="!applicationFieldName.trim() || applicationFieldSaving"
+                  :disabled="!applicationFieldName.trim() || applicationFieldSaving || (isSelectOrMultiselect(applicationFieldType) && !applicationFieldOptions.some((o) => o.trim()))"
                   @click="saveApplicationFieldModal"
                 >
                   {{ applicationFieldSaving ? 'Сохранение…' : applicationFieldEditIndex !== null ? 'Сохранить' : 'Добавить' }}

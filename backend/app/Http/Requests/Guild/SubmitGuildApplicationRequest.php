@@ -7,6 +7,7 @@ use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class SubmitGuildApplicationRequest extends FormRequest
@@ -33,11 +34,11 @@ class SubmitGuildApplicationRequest extends FormRequest
         if ($guild instanceof Guild && $guild->relationLoaded('applicationFormFields')) {
             foreach ($guild->applicationFormFields as $field) {
                 $key = 'form_data.' . $field->id;
-                if ($field->required) {
-                    $rules[$key] = ['required', 'string', 'max:65535'];
-                } else {
-                    $rules[$key] = ['nullable', 'string', 'max:65535'];
+                $base = $field->required ? ['required', 'string', 'max:65535'] : ['nullable', 'string', 'max:65535'];
+                if ($field->type === 'select' && !empty($field->options)) {
+                    $base[] = Rule::in($field->options);
                 }
+                $rules[$key] = $base;
             }
         }
 
@@ -92,6 +93,34 @@ class SubmitGuildApplicationRequest extends FormRequest
             if (GuildApplication::query()->where('guild_id', $guild->id)->where('character_id', $characterId)->whereIn('status', ['pending'])->exists()) {
                 $validator->errors()->add('character_id', 'Вы уже подали заявку в эту гильдию с этим персонажем.');
                 return;
+            }
+            // Валидация multiselect: значение — JSON-массив, каждый элемент из options
+            if (!$guild->relationLoaded('applicationFormFields')) {
+                $guild->load('applicationFormFields');
+            }
+            foreach ($guild->applicationFormFields as $field) {
+                if ($field->type !== 'multiselect' || empty($field->options)) {
+                    continue;
+                }
+                $value = $this->input('form_data.' . $field->id);
+                if ($value === null || $value === '') {
+                    if ($field->required) {
+                        $validator->errors()->add('form_data.' . $field->id, 'Выберите хотя бы один вариант для поля «' . $field->name . '».');
+                    }
+                    continue;
+                }
+                $decoded = json_decode($value, true);
+                if (!is_array($decoded)) {
+                    $validator->errors()->add('form_data.' . $field->id, 'Некорректное значение для поля «' . $field->name . '».');
+                    continue;
+                }
+                $optionsSet = array_flip($field->options);
+                foreach ($decoded as $item) {
+                    if (!is_string($item) || !isset($optionsSet[$item])) {
+                        $validator->errors()->add('form_data.' . $field->id, 'Выбран недопустимый вариант для поля «' . $field->name . '».');
+                        break;
+                    }
+                }
             }
         });
     }

@@ -9,6 +9,7 @@ import {
   Button,
   Input,
   Label,
+  MultiSelect,
   Select,
   Spinner,
 } from '@/shared/ui';
@@ -52,6 +53,15 @@ const canSubmit = computed(() => {
     const raw = (fieldValues.value[field.id] ?? '').trim();
 
     if (field.required && !raw) return false;
+
+    if (field.type === 'multiselect' && field.required) {
+      try {
+        const arr = raw ? (JSON.parse(raw) as unknown) : [];
+        if (!Array.isArray(arr) || arr.length === 0) return false;
+      } catch {
+        return false;
+      }
+    }
 
     if (field.type === 'screenshot' && raw && !isImageUrl(raw)) return false;
   }
@@ -151,6 +161,22 @@ function setFieldValue(fieldId: number, value: string) {
   fieldValues.value = { ...fieldValues.value, [fieldId]: value };
 }
 
+function multiselectFieldValue(fieldId: number): string[] {
+  const raw = fieldValues.value[fieldId] ?? '';
+  if (!raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function setMultiselectFieldValue(fieldId: number, value: (string | number)[]) {
+  const arr = value.map((v) => String(v));
+  setFieldValue(fieldId, JSON.stringify(arr));
+}
+
 function onTextareaInput(fieldId: number, e: Event) {
   setFieldValue(fieldId, (e.target as HTMLTextAreaElement).value);
 }
@@ -244,8 +270,31 @@ function onTextareaInput(fieldId: number, e: Event) {
               <Label :for="`field-${field.id}`">
                 {{ field.name }}{{ field.required ? ' *' : '' }}
               </Label>
+              <template v-if="field.type === 'select' && field.options?.length">
+                <Select
+                  :id="`field-${field.id}`"
+                  :model-value="fieldValues[field.id] ?? ''"
+                  :options="field.options.map((o) => ({ value: o, label: o }))"
+                  :placeholder="field.required ? 'Выберите вариант' : 'Не выбрано'"
+                  :required="field.required"
+                  trigger-class="w-full"
+                  @update:model-value="setFieldValue(field.id, $event)"
+                />
+              </template>
+              <template v-else-if="field.type === 'multiselect' && field.options?.length">
+                <MultiSelect
+                  :id="`field-${field.id}`"
+                  :model-value="multiselectFieldValue(field.id)"
+                  :options="field.options.map((o) => ({ value: o, label: o }))"
+                  placeholder="Выберите варианты"
+                  search-placeholder="Поиск..."
+                  empty-text="Нет вариантов"
+                  trigger-class="w-full"
+                  @update:model-value="setMultiselectFieldValue(field.id, $event)"
+                />
+              </template>
               <textarea
-                v-if="field.type === 'textarea'"
+                v-else-if="field.type === 'textarea'"
                 :id="`field-${field.id}`"
                 :value="fieldValues[field.id] ?? ''"
                 class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"

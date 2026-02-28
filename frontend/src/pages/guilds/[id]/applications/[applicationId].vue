@@ -58,6 +58,23 @@ function getFieldLabel(fieldId: number | string): string {
   return labels[fieldId] ?? labels[String(fieldId)] ?? `Поле ${fieldId}`;
 }
 
+/** Для multiselect значение приходит как JSON-массив; выводим через запятую. */
+function formatFormFieldValue(value: string): string {
+  if (value == null || value === '') return '—';
+  const trimmed = String(value).trim();
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.map((x) => String(x)).join(', ') || '—';
+      }
+    } catch {
+      /* fallback to raw */
+    }
+  }
+  return trimmed || '—';
+}
+
 onMounted(async () => {
   if (!guildId.value || !applicationId.value) {
     error.value = 'Неверная ссылка.';
@@ -170,7 +187,7 @@ async function reject() {
                       @click="openFullSize(value)"
                     >
                   </template>
-                  <template v-else>{{ value || '—' }}</template>
+                  <template v-else>{{ formatFormFieldValue(value) }}</template>
                 </dd>
               </div>
             </dl>

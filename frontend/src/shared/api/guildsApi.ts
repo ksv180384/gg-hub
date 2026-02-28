@@ -76,9 +76,11 @@ export interface GuildApplicationFormFieldDto {
   id: number;
   guild_id: number;
   name: string;
-  type: 'text' | 'textarea' | 'screenshot';
+  type: 'text' | 'textarea' | 'screenshot' | 'select' | 'multiselect';
   required: boolean;
   sort_order: number;
+  /** Варианты выбора для type === 'select' | 'multiselect'. */
+  options?: string[];
 }
 
 /** Данные для страницы подачи заявки в гильдию (публичный эндпоинт). */
@@ -97,6 +99,7 @@ export interface GuildApplicationFormData {
 /** Полезная нагрузка при подаче заявки в гильдию. */
 export interface SubmitGuildApplicationPayload {
   character_id: number;
+  /** Для multiselect значения передаются как JSON-строка массива выбранных вариантов. */
   form_data: Record<number, string>;
 }
 
@@ -123,14 +126,17 @@ export interface GuildApplicationItem {
 
 export interface CreateGuildApplicationFormFieldPayload {
   name: string;
-  type: 'text' | 'textarea' | 'screenshot';
+  type: 'text' | 'textarea' | 'screenshot' | 'select' | 'multiselect';
   required?: boolean;
+  /** Варианты выбора для type === 'select' | 'multiselect'. */
+  options?: string[];
 }
 
 export interface UpdateGuildApplicationFormFieldPayload {
   name?: string;
-  type?: 'text' | 'textarea' | 'screenshot';
+  type?: 'text' | 'textarea' | 'screenshot' | 'select' | 'multiselect';
   required?: boolean;
+  options?: string[];
 }
 
 export interface CreateGuildPayload {
@@ -526,9 +532,15 @@ export const guildsApi = {
     guildId: number,
     payload: CreateGuildApplicationFormFieldPayload
   ): Promise<GuildApplicationFormFieldDto> {
+    const body: Record<string, unknown> = {
+      name: payload.name,
+      type: payload.type,
+      required: payload.required ?? false,
+    };
+    if (payload.options?.length) body.options = payload.options;
     const res = await http.fetchPost<{ data: GuildApplicationFormFieldDto } | GuildApplicationFormFieldDto>(
       `/guilds/${guildId}/application-form-fields`,
-      { name: payload.name, type: payload.type, required: payload.required ?? false }
+      body
     );
     throwOnError(res, 'Ошибка добавления поля');
     const raw = res.data as { data?: GuildApplicationFormFieldDto } | GuildApplicationFormFieldDto | null;

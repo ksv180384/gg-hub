@@ -21,6 +21,7 @@ class GuildApplicationFormFieldResource extends JsonResource
             'type' => $this->type,
             'required' => $this->required,
             'sort_order' => $this->sort_order,
+            'options' => $this->when(in_array($this->type, ['select', 'multiselect'], true), $this->options ?? []),
         ];
     }
 }
