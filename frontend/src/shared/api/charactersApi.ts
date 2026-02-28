@@ -84,10 +84,27 @@ export const charactersApi = {
   },
 
   /**
-   * Все персонажи игры (для страницы «Персонажи» на игровом поддомене).
+   * Параметры фильтра списка персонажей игры.
    */
-  async getGameCharacters(gameId: number): Promise<Character[]> {
-    const res = await http.fetchGet<CharactersListResponse | Character[]>(`/games/${gameId}/characters`);
+  async getGameCharacters(
+    gameId: number,
+    params?: {
+      name?: string;
+      localization_ids?: number[];
+      server_ids?: number[];
+      game_class_ids?: number[];
+    }
+  ): Promise<Character[]> {
+    const query: Record<string, string | number | number[]> = {};
+    if (params?.name?.trim()) query.name = params.name.trim();
+    if (params?.localization_ids?.length) query.localization_ids = params.localization_ids;
+    if (params?.server_ids?.length) query.server_ids = params.server_ids;
+    if (params?.game_class_ids?.length) query.game_class_ids = params.game_class_ids;
+
+    const res = await http.fetchGet<CharactersListResponse | Character[]>(
+      `/games/${gameId}/characters`,
+      Object.keys(query).length ? { params: query } : undefined
+    );
     throwOnError(res, 'Ошибка загрузки списка персонажей');
     const data = res.data;
     if (Array.isArray((data as CharactersListResponse)?.data)) {

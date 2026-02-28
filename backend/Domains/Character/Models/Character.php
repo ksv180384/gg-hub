@@ -6,6 +6,7 @@ use App\Models\User;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
+use App\Core\Traits\HasFilter;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Character extends Model
 {
+    use HasFilter;
     use HasFactory;
 
     protected $fillable = [

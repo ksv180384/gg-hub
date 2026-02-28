@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Contracts\Repositories\CharacterRepositoryInterface;
+use App\Filters\CharacterFilter;
 use App\Http\Controllers\Controller;
-use App\Models\Game;
+use App\Http\Requests\Character\CharacterFilterRequest;
 use App\Http\Requests\Character\StoreCharacterRequest;
 use App\Http\Requests\Character\UpdateCharacterRequest;
 use App\Http\Resources\Character\CharacterResource;
+use App\Models\Game;
+use Domains\Character\Models\Character;
 use Domains\Character\Actions\CreateCharacterAction;
 use Domains\Character\Actions\DeleteCharacterAction;
 use Domains\Character\Actions\UpdateCharacterAction;
@@ -27,11 +30,18 @@ class CharacterController extends Controller
     ) {}
 
     /**
-     * Все персонажи игры (аватар, имя, классы, локализация, сервер).
+     * Все персонажи игры (аватар, имя, классы, локализация, сервер) с поддержкой фильтра.
      */
-    public function indexForGame(Game $game): AnonymousResourceCollection
+    public function indexForGame(Game $game, CharacterFilterRequest $request): AnonymousResourceCollection
     {
-        $characters = $this->characterRepository->getByGameWithContext($game->id);
+        $filter = new CharacterFilter($request);
+        $characters = Character::query()
+            ->where('game_id', $game->id)
+            ->with(['localization', 'server', 'gameClasses'])
+            ->filter($filter)
+            ->orderBy('name')
+            ->get();
+
         return CharacterResource::collection($characters);
     }
 
