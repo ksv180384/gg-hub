@@ -6,6 +6,7 @@ use App\Filters\GuildFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\GuildFilterRequest;
 use App\Http\Requests\Guild\StoreGuildRequest;
+use App\Http\Requests\Guild\UpdateGuildMemberRoleRequest;
 use App\Http\Requests\Guild\UpdateGuildRequest;
 use App\Http\Resources\Guild\GuildApplicationFormResource;
 use App\Http\Resources\Guild\GuildResource;
@@ -18,6 +19,7 @@ use Domains\Guild\Actions\GetGuildRosterMemberAction;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Actions\LeaveGuildAction;
 use Domains\Guild\Actions\UpdateGuildAction;
+use Domains\Guild\Actions\UpdateGuildMemberRoleAction;
 use Domains\Guild\Models\Guild;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +35,8 @@ class GuildController extends Controller
         private GetGuildRosterMemberAction $getGuildRosterMemberAction,
         private UpdateGuildAction $updateGuildAction,
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
-        private LeaveGuildAction $leaveGuildAction
+        private LeaveGuildAction $leaveGuildAction,
+        private UpdateGuildMemberRoleAction $updateGuildMemberRoleAction
     ) {}
 
     public function index(GuildFilterRequest $request): AnonymousResourceCollection
@@ -91,11 +94,23 @@ class GuildController extends Controller
         $permissionSlugs = ($this->getUserGuildPermissionSlugsAction)($user, $guild);
         $isLeader = $guild->leader_character_id && (int) $guild->leader_character_id === (int) $character;
         $canExclude = $permissionSlugs->contains('iskliucenie-polzovatelia-iz-gildii') && ! $isLeader;
+        $canChangeRole = $permissionSlugs->contains('meniat-izieniat-polzovateliu-rol');
 
         return response()->json([
             'data' => $result->toArray($request),
             'can_exclude' => $canExclude,
+            'can_change_role' => $canChangeRole,
         ]);
+    }
+
+    /**
+     * Изменить роль участника гильдии. Требуется право meniat-izieniat-polzovateliu-rol.
+     */
+    public function updateMemberRole(UpdateGuildMemberRoleRequest $request, Guild $guild, int $character): JsonResponse
+    {
+        ($this->updateGuildMemberRoleAction)($guild, $character, (int) $request->validated()['guild_role_id']);
+
+        return response()->json(['message' => 'Роль участника обновлена.']);
     }
 
     /**

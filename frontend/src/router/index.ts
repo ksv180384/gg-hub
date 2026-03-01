@@ -83,7 +83,7 @@ const router = createRouter({
         {
           path: 'guilds/:id/calendar',
           name: 'guild-calendar',
-          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          component: () => import('@/pages/guilds/[id]/calendar.vue'),
           meta: { requiresAuth: true, title: 'Календарь событий' },
         },
         {

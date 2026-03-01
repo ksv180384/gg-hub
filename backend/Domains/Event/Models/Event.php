@@ -2,7 +2,7 @@
 
 namespace Domains\Event\Models;
 
-use App\Models\User;
+use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +12,7 @@ class Event extends Model
 {
     protected $fillable = [
         'guild_id',
-        'created_by',
+        'created_by_character_id',
         'title',
         'description',
         'starts_at',
@@ -37,7 +37,7 @@ class Event extends Model
 
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(Character::class, 'created_by_character_id');
     }
 
     public function participants(): HasMany

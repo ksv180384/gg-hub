@@ -435,21 +435,43 @@ export const guildsApi = {
   },
 
   /**
-   * Один участник состава (для страницы просмотра). Ответ: { data, can_exclude }.
+   * Один участник состава (для страницы просмотра). Ответ: { data, can_exclude, can_change_role }.
    */
   async getGuildRosterMember(
     guildId: number,
     characterId: number
-  ): Promise<{ data: GuildRosterMember; can_exclude: boolean }> {
-    const res = await http.fetchGet<{ data: GuildRosterMember; can_exclude: boolean }>(
-      `/guilds/${guildId}/roster/${characterId}`
-    );
+  ): Promise<{ data: GuildRosterMember; can_exclude: boolean; can_change_role: boolean }> {
+    const res = await http.fetchGet<{
+      data: GuildRosterMember;
+      can_exclude: boolean;
+      can_change_role: boolean;
+    }>(`/guilds/${guildId}/roster/${characterId}`);
     throwOnError(res, 'Ошибка загрузки данных участника');
-    const raw = res.data as { data?: GuildRosterMember; can_exclude?: boolean } | null;
+    const raw = res.data as {
+      data?: GuildRosterMember;
+      can_exclude?: boolean;
+      can_change_role?: boolean;
+    } | null;
     return {
       data: raw?.data ?? ({} as GuildRosterMember),
       can_exclude: raw?.can_exclude ?? false,
+      can_change_role: raw?.can_change_role ?? false,
     };
+  },
+
+  /**
+   * Изменить роль участника гильдии. Требуется право «Менять/назначать пользователю роль».
+   */
+  async updateGuildMemberRole(
+    guildId: number,
+    characterId: number,
+    guildRoleId: number
+  ): Promise<void> {
+    const res = await http.fetchPut<{ message?: string }>(
+      `/guilds/${guildId}/members/${characterId}/role`,
+      { guild_role_id: guildRoleId }
+    );
+    throwOnError(res, 'Не удалось изменить роль');
   },
 
   /**

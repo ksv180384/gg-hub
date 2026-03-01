@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
+use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\TagController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -58,8 +59,15 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
+    Route::get('/guilds/{guild}/events', [EventController::class, 'index'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/events/{event}', [EventController::class, 'show'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/events', [EventController::class, 'store'])->middleware('guild.member', 'guild.role.permission:dobavliat-sobytie-kalendar');
+    Route::match(['put', 'patch'], '/guilds/{guild}/events/{event}', [EventController::class, 'update'])->middleware('guild.member', 'guild.role.permission:redaktirovat-sobytie-kalendar');
+    Route::delete('/guilds/{guild}/events/{event}', [EventController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-sobytie-kalendar');
+
     Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster']);
     Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember']);
+    Route::put('/guilds/{guild}/members/{character}/role', [GuildController::class, 'updateMemberRole'])->middleware('guild.member', 'guild.role.permission:meniat-izieniat-polzovateliu-rol');
     Route::delete('/guilds/{guild}/members/{character}', [GuildController::class, 'excludeMember'])->middleware('guild.member', 'guild.role.permission:iskliucenie-polzovatelia-iz-gildii');
     Route::get('/guilds/{guild}/settings', [GuildController::class, 'settings'])->middleware('guild.member');
     Route::post('/guilds/{guild}/leave', [GuildController::class, 'leave'])->middleware('guild.member');
