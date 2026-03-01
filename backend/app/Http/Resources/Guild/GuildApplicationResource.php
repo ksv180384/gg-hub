@@ -37,6 +37,11 @@ class GuildApplicationResource extends JsonResource
                 'id' => $this->invitedByCharacter->id,
                 'name' => $this->invitedByCharacter->name,
             ]),
+            'revoked_by_character_id' => $this->revoked_by_character_id,
+            'revoked_by_character' => $this->whenLoaded('revokedByCharacter', fn () => [
+                'id' => $this->revokedByCharacter->id,
+                'name' => $this->revokedByCharacter->name,
+            ]),
             'reviewed_at' => $this->reviewed_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

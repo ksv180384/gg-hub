@@ -75,8 +75,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/guilds/{guild}/applications/{application}', [GuildApplicationController::class, 'show'])->middleware('guild.member', 'guild.role.permission:prosmotr-zaiavok-v-gildiiu');
     // Просмотр заявки пользователем, который её подал
     Route::get('/guilds/{guild}/applications/{application}/owner', [GuildApplicationController::class, 'showForOwner']);
+    Route::post('/guilds/{guild}/applications/{application}/withdraw', [GuildApplicationController::class, 'withdraw']);
     Route::post('/guilds/{guild}/applications/{application}/accept-invitation', [GuildApplicationController::class, 'acceptInvitation']);
     Route::post('/guilds/{guild}/applications/{application}/decline-invitation', [GuildApplicationController::class, 'declineInvitation']);
+    Route::post('/guilds/{guild}/applications/{application}/revoke-invitation', [GuildApplicationController::class, 'revokeInvitation'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
     Route::post('/guilds/{guild}/applications', [GuildApplicationController::class, 'store']);
     Route::post('/guilds/{guild}/invitations', [GuildApplicationController::class, 'invite'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
     Route::post('/guilds/{guild}/applications/{application}/approve', [GuildApplicationController::class, 'approve'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');

@@ -108,6 +108,8 @@ export interface GuildApplicationItem {
   id: number;
   guild_id: number;
   character_id: number;
+  /** Гильдия (приходит при загрузке заявки для владельца/участников). */
+  guild?: { id: number; name: string };
   character?: {
     id: number;
     name: string;
@@ -116,10 +118,13 @@ export interface GuildApplicationItem {
   form_data: Record<number, string>;
   /** Соответствие id поля формы → название (для отображения вместо «Поле 1», «Поле 2»). */
   form_field_labels?: Record<number | string, string>;
-  status: 'pending' | 'invitation' | 'approved' | 'rejected';
+  status: 'pending' | 'invitation' | 'approved' | 'rejected' | 'revoked' | 'withdrawn';
   /** ID персонажа-участника гильдии, от имени которого отправлено приглашение (для status === 'invitation'). */
   invited_by_character_id?: number | null;
   invited_by_character?: { id: number; name: string } | null;
+  /** ID персонажа, отозвавшего приглашение (для status === 'revoked'). */
+  revoked_by_character_id?: number | null;
+  revoked_by_character?: { id: number; name: string } | null;
   reviewed_at?: string | null;
   created_at?: string | null;
 }
@@ -359,12 +364,38 @@ export const guildsApi = {
     return raw as GuildApplicationItem;
   },
 
+  /** Отозвать приглашение в гильдию (участник с правом «Подтверждение или отклонение заявок»). */
+  async revokeGuildInvitation(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/revoke-invitation`,
+      {}
+    );
+    throwOnError(res, 'Ошибка отзыва приглашения');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
   /** Моя заявка: GET /guilds/:id/applications/:applicationId/owner (для пользователя, подавшего заявку). */
   async getMyGuildApplication(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
     const res = await http.fetchGet<{ data: GuildApplicationItem } | GuildApplicationItem>(
       `/guilds/${guildId}/applications/${applicationId}/owner`
     );
     throwOnError(res, 'Ошибка загрузки заявки');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Отозвать заявку (только в статусе «на рассмотрении»). */
+  async withdrawGuildApplication(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/withdraw`,
+      {}
+    );
+    throwOnError(res, 'Ошибка отзыва заявки');
     const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
     if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
       return (raw as { data: GuildApplicationItem }).data!;

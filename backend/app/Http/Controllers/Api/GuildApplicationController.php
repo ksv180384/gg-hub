@@ -6,6 +6,7 @@ use App\Actions\Notification\CreateGuildApplicationNotificationAction;
 use App\Actions\Notification\CreateGuildApplicationRejectedNotificationAction;
 use App\Actions\Notification\CreateGuildApplicationApprovedNotificationAction;
 use App\Actions\Notification\CreateGuildInvitationNotificationAction;
+use App\Actions\Notification\CreateGuildInvitationRevokedNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\SendGuildInvitationRequest;
 use App\Http\Requests\Guild\SubmitGuildApplicationRequest;
@@ -14,7 +15,9 @@ use Domains\Guild\Actions\ApproveGuildApplicationAction;
 use Domains\Guild\Actions\CreateGuildInvitationAction;
 use Domains\Guild\Actions\ListGuildApplicationsAction;
 use Domains\Guild\Actions\RejectGuildApplicationAction;
+use Domains\Guild\Actions\RevokeGuildInvitationAction;
 use Domains\Guild\Actions\SubmitGuildApplicationAction;
+use Domains\Guild\Actions\WithdrawGuildApplicationAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Illuminate\Http\JsonResponse;
@@ -29,9 +32,12 @@ class GuildApplicationController extends Controller
         private CreateGuildInvitationNotificationAction $createInvitationNotificationAction,
         private CreateGuildApplicationRejectedNotificationAction $createRejectedNotificationAction,
         private CreateGuildApplicationApprovedNotificationAction $createApprovedNotificationAction,
+        private CreateGuildInvitationRevokedNotificationAction $createInvitationRevokedNotificationAction,
         private ListGuildApplicationsAction $listAction,
         private ApproveGuildApplicationAction $approveAction,
-        private RejectGuildApplicationAction $rejectAction
+        private RejectGuildApplicationAction $rejectAction,
+        private RevokeGuildInvitationAction $revokeInvitationAction,
+        private WithdrawGuildApplicationAction $withdrawAction
     ) {}
 
     /**
@@ -62,7 +68,7 @@ class GuildApplicationController extends Controller
         if ($application->guild_id !== $guild->id) {
             return response()->json(['message' => 'Заявка не найдена.'], 404);
         }
-        $application->load(['character.gameClasses', 'character.game', 'guild.applicationFormFields', 'invitedByCharacter']);
+        $application->load(['character.gameClasses', 'character.game', 'guild.applicationFormFields', 'invitedByCharacter', 'revokedByCharacter']);
 
         return response()->json(new GuildApplicationResource($application));
     }
@@ -145,7 +151,7 @@ class GuildApplicationController extends Controller
         }
 
         $user = $request->user();
-        $application->loadMissing(['character', 'invitedByCharacter']);
+        $application->loadMissing(['character', 'invitedByCharacter', 'revokedByCharacter']);
         $character = $application->character;
 
         if (!$user || !$character || (int) $character->user_id !== (int) $user->id) {
@@ -155,6 +161,27 @@ class GuildApplicationController extends Controller
         $application->load(['character.gameClasses', 'character.game', 'guild.applicationFormFields']);
 
         return response()->json(new GuildApplicationResource($application));
+    }
+
+    /**
+     * Отозвать заявку (пользователь, подавший заявку; только в статусе «на рассмотрении»).
+     */
+    public function withdraw(Request $request, Guild $guild, GuildApplication $application): JsonResponse
+    {
+        if ($application->guild_id !== $guild->id) {
+            return response()->json(['message' => 'Заявка не найдена.'], 404);
+        }
+
+        try {
+            $application = ($this->withdrawAction)($request->user(), $guild, $application);
+            $application->load(['character', 'guild']);
+            return response()->json(new GuildApplicationResource($application));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
     }
 
     /**
@@ -173,6 +200,29 @@ class GuildApplicationController extends Controller
         $application->load('character');
         ($this->createApprovedNotificationAction)($application);
         return response()->json(new GuildApplicationResource($application));
+    }
+
+    /**
+     * Отозвать приглашение в гильдию. Право «Подтверждение или отклонение заявок».
+     * В приглашении сохраняется персонаж отзвавшего; всем с этим правом отправляется оповещение.
+     */
+    public function revokeInvitation(Request $request, Guild $guild, GuildApplication $application): JsonResponse
+    {
+        if ($application->guild_id !== $guild->id) {
+            return response()->json(['message' => 'Приглашение не найдено.'], 404);
+        }
+
+        try {
+            $application = ($this->revokeInvitationAction)($request->user(), $guild, $application);
+            $application->load(['character', 'revokedByCharacter']);
+            ($this->createInvitationRevokedNotificationAction)($application);
+            return response()->json(new GuildApplicationResource($application));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
     }
 
     /**

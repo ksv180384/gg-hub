@@ -12,6 +12,7 @@ class GuildApplication extends Model
         'guild_id',
         'character_id',
         'invited_by_character_id',
+        'revoked_by_character_id',
         'form_data',
         'status',
         'reviewed_at',
@@ -40,5 +41,11 @@ class GuildApplication extends Model
     public function invitedByCharacter(): BelongsTo
     {
         return $this->belongsTo(Character::class, 'invited_by_character_id');
+    }
+
+    /** Персонаж-участник гильдии, от имени которого отозвано приглашение. */
+    public function revokedByCharacter(): BelongsTo
+    {
+        return $this->belongsTo(Character::class, 'revoked_by_character_id');
     }
 }

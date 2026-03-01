@@ -12,7 +12,7 @@ class ListUserGuildApplicationsAction
     {
         return GuildApplication::query()
             ->whereHas('character', fn ($q) => $q->where('user_id', $user->id))
-            ->with(['guild', 'character.gameClasses', 'character.game', 'invitedByCharacter'])
+            ->with(['guild', 'character.gameClasses', 'character.game', 'invitedByCharacter', 'revokedByCharacter'])
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }

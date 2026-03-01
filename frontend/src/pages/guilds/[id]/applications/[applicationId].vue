@@ -12,7 +12,7 @@ const applicationId = computed(() => Number(route.params.applicationId));
 const application = ref<GuildApplicationItem | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
-const actionLoading = ref<'approve' | 'reject' | null>(null);
+const actionLoading = ref<'approve' | 'reject' | 'revoke' | null>(null);
 const canReview = ref(false);
 const fullSizeImageUrl = ref<string | null>(null);
 
@@ -47,10 +47,13 @@ const statusLabel = computed(() => {
   if (s === 'invitation') return 'Приглашение (ожидает ответа)';
   if (s === 'approved') return 'Принята';
   if (s === 'rejected') return 'Отклонена';
+  if (s === 'revoked') return 'Приглашение отозвано';
+  if (s === 'withdrawn') return 'Отозвана';
   return s ?? '—';
 });
 const isInvitation = computed(() => application.value?.status === 'invitation');
 const inviterName = computed(() => application.value?.invited_by_character?.name ?? null);
+const revokerName = computed(() => application.value?.revoked_by_character?.name ?? null);
 
 function getFieldLabel(fieldId: number | string): string {
   const labels = application.value?.form_field_labels;
@@ -129,6 +132,19 @@ async function reject() {
     actionLoading.value = null;
   }
 }
+
+async function revokeInvitation() {
+  if (!application.value || actionLoading.value) return;
+  actionLoading.value = 'revoke';
+  try {
+    application.value = await guildsApi.revokeGuildInvitation(guildId.value, applicationId.value);
+    error.value = null;
+  } catch (e: unknown) {
+    error.value = (e as Error).message ?? 'Ошибка отзыва приглашения.';
+  } finally {
+    actionLoading.value = null;
+  }
+}
 </script>
 
 <template>
@@ -150,6 +166,9 @@ async function reject() {
             </CardTitle>
             <p v-if="isInvitation && inviterName" class="mt-0.5 text-sm text-muted-foreground">
               Приглашение отправил(а): {{ inviterName }}
+            </p>
+            <p v-if="application.status === 'revoked' && revokerName" class="mt-0.5 text-sm text-muted-foreground">
+              Отозвал(а): {{ revokerName }}
             </p>
             <p class="mt-1 text-sm text-muted-foreground">
               {{ statusLabel }}
@@ -211,6 +230,20 @@ async function reject() {
             >
               <Spinner v-if="actionLoading === 'reject'" class="mr-2 h-4 w-4" />
               Отклонить
+            </Button>
+          </div>
+
+          <div
+            v-if="canReview && application.status === 'invitation'"
+            class="flex flex-wrap gap-3 pt-2"
+          >
+            <Button
+              variant="outline"
+              :disabled="!!actionLoading"
+              @click="revokeInvitation"
+            >
+              <Spinner v-if="actionLoading === 'revoke'" class="mr-2 h-4 w-4" />
+              Отозвать приглашение
             </Button>
           </div>
         </CardContent>

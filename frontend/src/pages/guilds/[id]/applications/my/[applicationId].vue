@@ -19,12 +19,16 @@ const characterGameClasses = computed(() => {
   if (!classes?.length) return null;
   return classes.map((c) => c.name).join(', ');
 });
+const guildName = computed(() => application.value?.guild?.name ?? '—');
+
 const statusLabel = computed(() => {
   const s = application.value?.status;
   if (s === 'pending') return 'На рассмотрении';
   if (s === 'invitation') return 'Приглашение';
   if (s === 'approved') return 'Принята';
   if (s === 'rejected') return 'Отклонена';
+  if (s === 'revoked') return 'Приглашение отозвано';
+  if (s === 'withdrawn') return 'Отозвана';
   return s ?? '—';
 });
 
@@ -33,6 +37,7 @@ const inviterName = computed(() => application.value?.invited_by_character?.name
 
 const accepting = ref(false);
 const declining = ref(false);
+const withdrawing = ref(false);
 const actionError = ref<string | null>(null);
 
 async function acceptInvitation() {
@@ -64,6 +69,20 @@ async function declineInvitation() {
     actionError.value = e instanceof Error ? e.message : 'Не удалось отклонить приглашение';
   } finally {
     declining.value = false;
+  }
+}
+
+async function withdrawApplication() {
+  if (!guildId.value || !applicationId.value || application.value?.status !== 'pending') return;
+  withdrawing.value = true;
+  actionError.value = null;
+  try {
+    const updated = await guildsApi.withdrawGuildApplication(guildId.value, applicationId.value);
+    application.value = updated;
+  } catch (e) {
+    actionError.value = e instanceof Error ? e.message : 'Не удалось отозвать заявку';
+  } finally {
+    withdrawing.value = false;
   }
 }
 
@@ -136,7 +155,10 @@ onMounted(async () => {
             <CardTitle class="text-xl">
               {{ isInvitation ? 'Приглашение в гильдию' : 'Ваша заявка в гильдию' }}
             </CardTitle>
-            <p class="mt-1 text-sm text-muted-foreground">
+            <p class="mt-1 text-sm font-medium text-foreground">
+              Гильдия: {{ guildName }}
+            </p>
+            <p class="mt-0.5 text-sm text-muted-foreground">
               Персонаж: {{ characterName }}
               <template v-if="characterGameClasses">
                 · {{ characterGameClasses }}
@@ -144,6 +166,9 @@ onMounted(async () => {
             </p>
             <p v-if="isInvitation" class="mt-0.5 text-sm text-muted-foreground">
               Вас пригласил(а): {{ inviterName }}
+            </p>
+            <p v-if="application.status === 'revoked' && application.revoked_by_character?.name" class="mt-0.5 text-sm text-muted-foreground">
+              Отозвал(а): {{ application.revoked_by_character.name }}
             </p>
             <p class="mt-0.5 text-sm text-muted-foreground">
               Статус: {{ statusLabel }}
@@ -160,6 +185,15 @@ onMounted(async () => {
             </Button>
             <Button variant="outline" :disabled="accepting || declining" @click="declineInvitation">
               {{ declining ? '…' : 'Отклонить' }}
+            </Button>
+          </div>
+          <div v-else-if="application.status === 'pending'" class="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              :disabled="withdrawing"
+              @click="withdrawApplication"
+            >
+              {{ withdrawing ? '…' : 'Отозвать заявку' }}
             </Button>
           </div>
           <p v-if="actionError" class="text-sm text-destructive">{{ actionError }}</p>

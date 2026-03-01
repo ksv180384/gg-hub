@@ -8,4 +8,6 @@ enum GuildApplicationStatus: string
     case Invitation = 'invitation';
     case Approved = 'approved';
     case Rejected = 'rejected';
+    case Revoked = 'revoked';
+    case Withdrawn = 'withdrawn';
 }

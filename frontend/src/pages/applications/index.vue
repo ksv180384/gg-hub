@@ -33,6 +33,8 @@ function statusLabel(status: string) {
   if (status === 'invitation') return 'Приглашение';
   if (status === 'approved') return 'Принята';
   if (status === 'rejected') return 'Отклонена';
+  if (status === 'revoked') return 'Приглашение отозвано';
+  if (status === 'withdrawn') return 'Отозвана';
   return status;
 }
 
