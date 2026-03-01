@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Select } from '@/shared/ui';
+import type { SelectOption } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import Badge from '@/shared/ui/badge/Badge.vue';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
-import { guildsApi, type Guild, type GuildRosterMember } from '@/shared/api/guildsApi';
+import { guildsApi, type Guild, type GuildRosterMember, type GuildRole } from '@/shared/api/guildsApi';
 
 const route = useRoute();
 const router = useRouter();
@@ -15,11 +16,20 @@ const characterId = computed(() => Number(route.params.characterId));
 const guild = ref<Guild | null>(null);
 const member = ref<GuildRosterMember | null>(null);
 const canExclude = ref(false);
+const canChangeRole = ref(false);
+const guildRoles = ref<GuildRole[]>([]);
+const selectedRoleId = ref<string>('');
+const changingRole = ref(false);
+const roleError = ref<string | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const excludeDialogOpen = ref(false);
 const excluding = ref(false);
 const excludeError = ref<string | null>(null);
+
+const roleOptions = computed<SelectOption[]>(() =>
+  guildRoles.value.map((r) => ({ value: String(r.id), label: r.name }))
+);
 
 function avatarFallback(name: string): string {
   if (!name?.trim()) return '?';
@@ -47,6 +57,16 @@ async function loadData() {
     guild.value = guildData;
     member.value = rosterMemberRes.data;
     canExclude.value = rosterMemberRes.can_exclude;
+    canChangeRole.value = rosterMemberRes.can_change_role;
+    selectedRoleId.value = rosterMemberRes.data.guild_role
+      ? String(rosterMemberRes.data.guild_role.id)
+      : '';
+    if (rosterMemberRes.can_change_role) {
+      const rolesResult = await guildsApi.getGuildRoles(guildId.value);
+      guildRoles.value = rolesResult.roles;
+    } else {
+      guildRoles.value = [];
+    }
   } catch (e: unknown) {
     const err = e as Error & { status?: number };
     if (err.status === 404) {
@@ -87,6 +107,29 @@ async function confirmExclude() {
   }
 }
 
+async function onRoleChange(newRoleId: string) {
+  if (!guildId.value || !characterId.value || changingRole.value) return;
+  const id = Number(newRoleId);
+  if (Number.isNaN(id) || id === member.value?.guild_role?.id) return;
+  changingRole.value = true;
+  roleError.value = null;
+  try {
+    await guildsApi.updateGuildMemberRole(guildId.value, characterId.value, id);
+    const role = guildRoles.value.find((r) => r.id === id);
+    if (member.value && role) {
+      member.value = {
+        ...member.value,
+        guild_role: { id: role.id, name: role.name, slug: role.slug },
+      };
+    }
+  } catch (e) {
+    roleError.value = e instanceof Error ? e.message : 'Не удалось изменить роль';
+    selectedRoleId.value = member.value?.guild_role ? String(member.value.guild_role.id) : '';
+  } finally {
+    changingRole.value = false;
+  }
+}
+
 onMounted(() => loadData());
 watch([guildId, characterId], () => loadData());
 </script>
@@ -121,9 +164,21 @@ watch([guildId, characterId], () => loadData());
             :fallback="avatarFallback(member.name)"
             class="h-16 w-16 shrink-0 md:h-20 md:w-20"
           />
-          <div>
+          <div class="min-w-0 flex-1">
             <CardTitle class="text-xl">{{ member.name }}</CardTitle>
-            <Badge v-if="member.guild_role" variant="secondary" class="mt-1">
+            <div v-if="canChangeRole && roleOptions.length" class="mt-2 flex flex-wrap items-center gap-2">
+              <Select
+                v-model="selectedRoleId"
+                :options="roleOptions"
+                placeholder="Роль"
+                :disabled="changingRole"
+                trigger-class="w-[180px]"
+                @update:model-value="onRoleChange"
+              />
+              <span v-if="changingRole" class="text-xs text-muted-foreground">Сохранение…</span>
+              <p v-if="roleError" class="text-xs text-destructive">{{ roleError }}</p>
+            </div>
+            <Badge v-else-if="member.guild_role" variant="secondary" class="mt-1">
               {{ member.guild_role.name }}
             </Badge>
           </div>

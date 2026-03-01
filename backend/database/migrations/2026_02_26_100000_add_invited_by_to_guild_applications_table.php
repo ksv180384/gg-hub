@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('guild_applications', function (Blueprint $table) {
-            $table->unsignedBigInteger('invited_by_character_id')->index()->nullable()->after('character_id');
+            $table->unsignedBigInteger('invited_by_character_id')->index()->nullable()->default(null)->after('character_id');
         });
         Schema::table('guild_applications', function (Blueprint $table) {
             $table->foreign('invited_by_character_id')->references('id')->on('characters')->onDelete('set null');
