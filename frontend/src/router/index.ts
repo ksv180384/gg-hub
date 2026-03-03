@@ -89,8 +89,26 @@ const router = createRouter({
         {
           path: 'guilds/:id/events',
           name: 'guild-events',
-          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          component: () => import('@/pages/guilds/[id]/events.vue'),
           meta: { requiresAuth: true, title: 'События' },
+        },
+        {
+          path: 'guilds/:id/events/:eventHistoryId',
+          name: 'guild-events-show',
+          component: () => import('@/pages/guilds/[id]/events-show.vue'),
+          meta: { requiresAuth: true, title: 'Событие' },
+        },
+        {
+          path: 'guilds/:id/events/create',
+          name: 'guild-events-create',
+          component: () => import('@/pages/guilds/[id]/events-form.vue'),
+          meta: { requiresAuth: true, title: 'Новое событие' },
+        },
+        {
+          path: 'guilds/:id/events/:eventHistoryId/edit',
+          name: 'guild-events-edit',
+          component: () => import('@/pages/guilds/[id]/events-form.vue'),
+          meta: { requiresAuth: true, title: 'Редактирование события' },
         },
         {
           path: 'guilds/:id/polls',

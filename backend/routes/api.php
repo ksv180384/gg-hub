@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\EventHistoryController;
 use App\Http\Controllers\Api\TagController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +65,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds/{guild}/events', [EventController::class, 'store'])->middleware('guild.member', 'guild.role.permission:dobavliat-sobytie-kalendar');
     Route::match(['put', 'patch'], '/guilds/{guild}/events/{event}', [EventController::class, 'update'])->middleware('guild.member', 'guild.role.permission:redaktirovat-sobytie-kalendar');
     Route::delete('/guilds/{guild}/events/{event}', [EventController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-sobytie-kalendar');
+
+    Route::get('/guilds/{guild}/event-history', [EventHistoryController::class, 'index'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/event-history/{eventHistory}', [EventHistoryController::class, 'show'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/event-history', [EventHistoryController::class, 'store'])->middleware('guild.member', 'guild.role.permission:dobavliat-sobytie');
+    Route::match(['put', 'patch'], '/guilds/{guild}/event-history/{eventHistory}', [EventHistoryController::class, 'update'])->middleware('guild.member', 'guild.role.permission:redaktirovat-sobytie');
+    Route::delete('/guilds/{guild}/event-history/{eventHistory}', [EventHistoryController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-sobytie');
 
     Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster']);
     Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember']);
