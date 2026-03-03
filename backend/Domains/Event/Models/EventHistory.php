@@ -11,7 +11,7 @@ class EventHistory extends Model
 {
     protected $fillable = [
         'guild_id',
-        'title',
+        'event_history_title_id',
         'description',
         'occurred_at',
     ];
@@ -26,6 +26,11 @@ class EventHistory extends Model
     public function guild(): BelongsTo
     {
         return $this->belongsTo(Guild::class);
+    }
+
+    public function titleReference(): BelongsTo
+    {
+        return $this->belongsTo(EventHistoryTitle::class, 'event_history_title_id');
     }
 
     public function participants(): HasMany

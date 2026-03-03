@@ -17,7 +17,7 @@ class EventHistoryResource extends JsonResource
         return [
             'id' => $this->id,
             'guild_id' => $this->guild_id,
-            'title' => $this->title,
+            'title' => $this->titleReference?->name ?? '',
             'description' => $this->description,
             'occurred_at' => $this->occurred_at?->toIso8601String(),
             'participants' => $this->whenLoaded('participants', function () {

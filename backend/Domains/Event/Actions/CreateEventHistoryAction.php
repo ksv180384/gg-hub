@@ -5,6 +5,7 @@ namespace Domains\Event\Actions;
 use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryParticipant;
 use Domains\Event\Models\EventHistoryScreenshot;
+use Domains\Event\Models\EventHistoryTitle;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -23,8 +24,14 @@ class CreateEventHistoryAction
     public function __invoke(array $data): EventHistory
     {
         return DB::transaction(function () use ($data): EventHistory {
+            /** @var EventHistoryTitle $title */
+            $title = EventHistoryTitle::query()->firstOrCreate([
+                'name' => $data['title'],
+            ]);
+
             $payload = [
                 'guild_id' => $data['guild_id'],
+                'event_history_title_id' => $title->id,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
                 'occurred_at' => isset($data['occurred_at']) && $data['occurred_at'] !== null

@@ -5,6 +5,7 @@ namespace Domains\Event\Actions;
 use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryParticipant;
 use Domains\Event\Models\EventHistoryScreenshot;
+use Domains\Event\Models\EventHistoryTitle;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -26,6 +27,12 @@ class UpdateEventHistoryAction
 
             if (array_key_exists('title', $data)) {
                 $update['title'] = $data['title'];
+
+                /** @var EventHistoryTitle $title */
+                $title = EventHistoryTitle::query()->firstOrCreate([
+                    'name' => $data['title'],
+                ]);
+                $update['event_history_title_id'] = $title->id;
             }
             if (array_key_exists('description', $data)) {
                 $update['description'] = $data['description'];

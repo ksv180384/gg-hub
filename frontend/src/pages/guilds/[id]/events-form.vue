@@ -9,6 +9,11 @@ import {
   type CreateEventHistoryPayload,
   type UpdateEventHistoryPayload,
 } from '@/shared/api/eventHistoryApi';
+import {
+  eventHistoryTitlesApi,
+  type EventHistoryTitleDto,
+} from '@/shared/api/eventHistoryTitlesApi';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
 const route = useRoute();
 const router = useRouter();
@@ -36,6 +41,18 @@ const form = ref({
   screenshots: [] as { url: string; title: string }[],
 });
 
+const titleSuggestions = ref<EventHistoryTitleDto[]>([]);
+const showTitleSuggestions = ref(false);
+const titleSuggestionsError = ref('');
+const editingTitleId = ref<number | null>(null);
+const editingTitleName = ref('');
+const editTitleDialogOpen = ref(false);
+const editTitleDialogLoading = ref(false);
+const deleteTitleDialogOpen = ref(false);
+const deleteTitleDialogLoading = ref(false);
+const deleteTitleTarget = ref<EventHistoryTitleDto | null>(null);
+let titleSearchTimeout: number | undefined;
+
 const guildParticipants = computed(() =>
   form.value.participants.filter((p) => p.character_id)
 );
@@ -45,6 +62,14 @@ const externalParticipants = computed(() =>
 const hasParticipants = computed(
   () => guildParticipants.value.length > 0 || externalParticipants.value.length > 0
 );
+
+const totalParticipantsCount = computed(
+  () => guildParticipants.value.length + externalParticipants.value.length
+);
+
+function isMemberSelected(member: GuildRosterMember): boolean {
+  return form.value.participants.some((p) => p.character_id === member.character_id);
+}
 
 function toDatetimeLocal(iso: string): string {
   const d = new Date(iso);
@@ -73,8 +98,12 @@ async function loadRoster() {
   }
 }
 
-function addGuildParticipant(characterId: number) {
-  if (form.value.participants.some((p) => p.character_id === characterId)) return;
+function toggleGuildParticipant(characterId: number) {
+  const idx = form.value.participants.findIndex((p) => p.character_id === characterId);
+  if (idx !== -1) {
+    form.value.participants.splice(idx, 1);
+    return;
+  }
   form.value.participants.push({ character_id: characterId });
 }
 
@@ -118,6 +147,98 @@ async function loadEventIfEdit() {
     }));
   } finally {
     loading.value = false;
+  }
+}
+
+async function searchTitleSuggestions(query: string) {
+  if (titleSearchTimeout) {
+    clearTimeout(titleSearchTimeout);
+  }
+  titleSearchTimeout = window.setTimeout(async () => {
+    try {
+      titleSuggestionsError.value = '';
+      titleSuggestions.value = await eventHistoryTitlesApi.search(query, 10);
+      showTitleSuggestions.value = titleSuggestions.value.length > 0;
+    } catch (e: unknown) {
+      titleSuggestionsError.value =
+        e instanceof Error ? e.message : 'Не удалось загрузить варианты названий.';
+      titleSuggestions.value = [];
+      showTitleSuggestions.value = false;
+    }
+  }, 200);
+}
+
+function applyTitleSuggestion(suggestion: EventHistoryTitleDto) {
+  form.value.title = suggestion.name;
+  showTitleSuggestions.value = false;
+}
+
+function startEditTitleSuggestion(suggestion: EventHistoryTitleDto) {
+  editingTitleId.value = suggestion.id;
+  editingTitleName.value = suggestion.name;
+  editTitleDialogOpen.value = true;
+}
+
+async function saveEditTitleSuggestion() {
+  if (!editingTitleId.value) return;
+  const newName = editingTitleName.value.trim();
+  if (!newName) {
+    return;
+  }
+  try {
+    editTitleDialogLoading.value = true;
+    titleSuggestionsError.value = '';
+    const updated = await eventHistoryTitlesApi.update(editingTitleId.value, newName);
+    const idx = titleSuggestions.value.findIndex((s) => s.id === editingTitleId.value);
+    if (idx !== -1) {
+      titleSuggestions.value[idx] = updated;
+    }
+    // если текущее значение совпадает с редактируемым, обновим и поле
+    const current = titleSuggestions.value.find((s) => s.id === editingTitleId.value);
+    if (current && form.value.title === current.name) {
+      form.value.title = updated.name;
+    }
+    editTitleDialogOpen.value = false;
+  } catch {
+    titleSuggestionsError.value =
+      'Не удалось сохранить название. Возможно, такое название уже существует.';
+  } finally {
+    editTitleDialogLoading.value = false;
+  }
+}
+
+async function deleteTitleSuggestion(suggestion: EventHistoryTitleDto) {
+  titleSuggestionsError.value = '';
+  try {
+    await eventHistoryTitlesApi.delete(suggestion.id);
+    titleSuggestions.value = titleSuggestions.value.filter((s) => s.id !== suggestion.id);
+    if (!titleSuggestions.value.length) {
+      showTitleSuggestions.value = false;
+    }
+  } catch (e: unknown) {
+    titleSuggestionsError.value =
+      e instanceof Error ? e.message : 'Не удалось удалить название.';
+    throw e;
+  }
+}
+
+function startDeleteTitleSuggestion(suggestion: EventHistoryTitleDto) {
+  deleteTitleTarget.value = suggestion;
+  titleSuggestionsError.value = '';
+  deleteTitleDialogOpen.value = true;
+}
+
+async function confirmDeleteTitleSuggestion() {
+  if (!deleteTitleTarget.value) return;
+  deleteTitleDialogLoading.value = true;
+  try {
+    await deleteTitleSuggestion(deleteTitleTarget.value);
+    deleteTitleDialogOpen.value = false;
+    deleteTitleTarget.value = null;
+  } catch {
+    // Модалка остаётся открытой, ошибка уже показана через titleSuggestionsError
+  } finally {
+    deleteTitleDialogLoading.value = false;
   }
 }
 
@@ -194,7 +315,7 @@ onMounted(async () => {
             <CardTitle class="text-base">Основная информация</CardTitle>
           </CardHeader>
           <CardContent class="space-y-4">
-            <div class="space-y-2">
+            <div class="space-y-2 relative">
               <Label for="history-title">Название *</Label>
               <Input
                 id="history-title"
@@ -202,7 +323,48 @@ onMounted(async () => {
                 type="text"
                 maxlength="255"
                 placeholder="Название события"
+                autocomplete="off"
+                @input="searchTitleSuggestions(form.title)"
+                @focus="searchTitleSuggestions(form.title)"
+                @blur="showTitleSuggestions = false"
               />
+              <div
+                v-if="showTitleSuggestions && titleSuggestions.length"
+                class="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
+              >
+                <ul class="max-h-56 overflow-y-auto py-1 text-sm">
+                  <li
+                    v-for="s in titleSuggestions"
+                    :key="s.id"
+                    class="flex items-center gap-2 px-3 py-1 hover:bg-accent"
+                  >
+                    <span
+                      class="flex-1 cursor-pointer truncate"
+                      @mousedown.prevent="applyTitleSuggestion(s)"
+                    >
+                      {{ s.name }}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      class="h-6 w-6 text-muted-foreground hover:bg-accent/60"
+                      @mousedown.prevent="startEditTitleSuggestion(s)"
+                    >
+                      ✎
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      class="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      @mousedown.prevent="startDeleteTitleSuggestion(s)"
+                    >
+                      ✕
+                    </Button>
+                  </li>
+                </ul>
+              </div>
             </div>
             <div class="space-y-2">
               <Label for="history-occurred-at">Время проведения *</Label>
@@ -305,7 +467,14 @@ onMounted(async () => {
 
               <div class="space-y-2">
                 <p class="text-xs font-medium text-muted-foreground">
-                  Приняли участие:
+                  Приняли участие
+                  <span
+                    v-if="totalParticipantsCount"
+                    class="font-semibold text-foreground"
+                  >
+                    ({{ totalParticipantsCount }})
+                  </span>
+                  :
                 </p>
                 <div v-if="!hasParticipants" class="text-xs text-muted-foreground">
                   Пока никто не добавлен.
@@ -368,8 +537,11 @@ onMounted(async () => {
                 <li
                   v-for="member in roster"
                   :key="member.character_id"
-                  class="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 hover:bg-accent"
-                  @click="addGuildParticipant(member.character_id)"
+                  :class="[
+                    'flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 transition-colors',
+                    isMemberSelected(member) ? 'bg-emerald-500/10' : 'hover:bg-accent'
+                  ]"
+                  @click="toggleGuildParticipant(member.character_id)"
                 >
                   <span class="truncate">{{ member.name }}</span>
                 </li>
@@ -380,5 +552,55 @@ onMounted(async () => {
       </div>
     </div>
   </div>
+  <ConfirmDialog
+    v-model:open="editTitleDialogOpen"
+    :loading="editTitleDialogLoading"
+    title="Редактирование названия события"
+    confirm-label="Сохранить"
+    cancel-label="Отмена"
+    confirm-variant="default"
+    @confirm="saveEditTitleSuggestion"
+  >
+    <template #description>
+      <div class="space-y-2">
+        <p class="text-sm text-muted-foreground">
+          Введите новое название для шаблона. Оно будет использоваться в будущих событиях.
+        </p>
+        <Input
+          v-model="editingTitleName"
+          type="text"
+          maxlength="255"
+          placeholder="Новое название события"
+          class="mt-1"
+        />
+        <p v-if="titleSuggestionsError" class="text-xs text-destructive">
+          {{ titleSuggestionsError }}
+        </p>
+      </div>
+    </template>
+  </ConfirmDialog>
+  <ConfirmDialog
+    v-model:open="deleteTitleDialogOpen"
+    :loading="deleteTitleDialogLoading"
+    title="Удалить название события?"
+    confirm-label="Удалить"
+    cancel-label="Отмена"
+    confirm-variant="destructive"
+    @confirm="confirmDeleteTitleSuggestion"
+  >
+    <template #description>
+      <div class="space-y-2">
+        <p class="text-sm text-muted-foreground">
+          Вы уверены, что хотите удалить это название? Его нельзя будет выбрать для новых событий.
+        </p>
+        <p v-if="deleteTitleTarget" class="text-sm font-medium">
+          «{{ deleteTitleTarget.name }}»
+        </p>
+        <p v-if="titleSuggestionsError" class="text-xs text-destructive">
+          {{ titleSuggestionsError }}
+        </p>
+      </div>
+    </template>
+  </ConfirmDialog>
 </template>
 
