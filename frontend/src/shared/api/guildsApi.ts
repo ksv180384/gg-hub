@@ -622,4 +622,89 @@ export const guildsApi = {
     const res = await http.fetchDelete(`/guilds/${guildId}/application-form-fields/${fieldId}`);
     throwOnError(res, 'Ошибка удаления поля');
   },
+
+  // ——— Рейды ———
+
+  /** Дерево рейдов гильдии (GET /guilds/:id/raids). Только для участников. */
+  async getGuildRaids(guildId: number): Promise<RaidItem[]> {
+    const res = await http.fetchGet<{ data: RaidItem[] } | RaidItem[]>(`/guilds/${guildId}/raids`);
+    throwOnError(res, 'Ошибка загрузки рейдов');
+    const raw = res.data as { data?: RaidItem[] } | RaidItem[] | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: RaidItem[] }).data ?? [];
+    return Array.isArray(raw) ? raw : [];
+  },
+
+  /** Один рейд (GET /guilds/:id/raids/:raidId). */
+  async getGuildRaid(guildId: number, raidId: number): Promise<RaidItem> {
+    const res = await http.fetchGet<{ data: RaidItem } | RaidItem>(`/guilds/${guildId}/raids/${raidId}`);
+    throwOnError(res, 'Ошибка загрузки рейда');
+    const raw = res.data as { data?: RaidItem } | RaidItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: RaidItem }).data!;
+    return raw as RaidItem;
+  },
+
+  /** Создать рейд. Требуется право formirovat-reidy. */
+  async createGuildRaid(guildId: number, payload: CreateRaidPayload): Promise<RaidItem> {
+    const res = await http.fetchPost<{ data: RaidItem } | RaidItem>(`/guilds/${guildId}/raids`, payload);
+    throwOnError(res, 'Ошибка создания рейда');
+    const raw = res.data as { data?: RaidItem } | RaidItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: RaidItem }).data!;
+    return raw as RaidItem;
+  },
+
+  /** Обновить рейд. Требуется право formirovat-reidy. */
+  async updateGuildRaid(guildId: number, raidId: number, payload: UpdateRaidPayload): Promise<RaidItem> {
+    const res = await http.fetchPut<{ data: RaidItem } | RaidItem>(
+      `/guilds/${guildId}/raids/${raidId}`,
+      payload
+    );
+    throwOnError(res, 'Ошибка сохранения рейда');
+    const raw = res.data as { data?: RaidItem } | RaidItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: RaidItem }).data!;
+    return raw as RaidItem;
+  },
+
+  /** Удалить рейд. Требуется право udaliat-reidy. */
+  async deleteGuildRaid(guildId: number, raidId: number): Promise<void> {
+    const res = await http.fetchDelete(`/guilds/${guildId}/raids/${raidId}`);
+    throwOnError(res, 'Ошибка удаления рейда');
+  },
 };
+
+/** Рейд (дерево: children). */
+export interface RaidItem {
+  id: number;
+  guild_id: number;
+  parent_id: number | null;
+  leader_character_id: number | null;
+  created_by: number | null;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  leader?: { id: number; name: string } | null;
+  parent?: { id: number; name: string } | null;
+  creator?: { id: number; name: string } | null;
+  children?: RaidItem[];
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface CreateRaidPayload {
+  name: string;
+  description?: string | null;
+  parent_id?: number | null;
+  leader_character_id?: number | null;
+  sort_order?: number | null;
+}
+
+export interface UpdateRaidPayload {
+  name?: string;
+  description?: string | null;
+  parent_id?: number | null;
+  leader_character_id?: number | null;
+  sort_order?: number | null;
+}

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventHistoryController;
+use App\Http\Controllers\Api\RaidController;
 use App\Http\Controllers\Api\EventHistoryTitleController;
 use App\Http\Controllers\Api\TagController;
 use Illuminate\Http\Request;
@@ -76,6 +77,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/event-history-titles', [EventHistoryTitleController::class, 'index']);
     Route::match(['put', 'patch'], '/event-history-titles/{eventHistoryTitle}', [EventHistoryTitleController::class, 'update']);
     Route::delete('/event-history-titles/{eventHistoryTitle}', [EventHistoryTitleController::class, 'destroy']);
+
+    Route::get('/guilds/{guild}/raids', [RaidController::class, 'index'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/raids/{raid}', [RaidController::class, 'show'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/raids', [RaidController::class, 'store'])->middleware('guild.member', 'guild.role.permission:formirovat-reidy');
+    Route::match(['put', 'patch'], '/guilds/{guild}/raids/{raid}', [RaidController::class, 'update'])->middleware('guild.member', 'guild.role.permission:formirovat-reidy');
+    Route::delete('/guilds/{guild}/raids/{raid}', [RaidController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-reidy');
 
     Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster']);
     Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember']);

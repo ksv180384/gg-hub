@@ -53,7 +53,7 @@ const router = createRouter({
         {
           path: 'guilds/:id/raids',
           name: 'guild-raids',
-          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          component: () => import('@/pages/guilds/[id]/raids/index.vue'),
           meta: { requiresAuth: true, title: 'Рейды | Группы | КП' },
         },
         {
