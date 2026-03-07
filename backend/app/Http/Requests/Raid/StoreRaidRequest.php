@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Raid;
 
+use Domains\Raid\Models\Raid;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,6 +27,8 @@ class StoreRaidRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('raids', 'id')->where('guild_id', $guild->id),
+                $this->parentMustHaveNoMembers(),
+                $this->parentMustNotBeAtMaxDepth(),
             ],
             'leader_character_id' => [
                 'nullable',
@@ -61,5 +64,55 @@ class StoreRaidRequest extends FormRequest
             'leader_character_id' => 'лидер',
             'sort_order' => 'порядок',
         ];
+    }
+
+    private const MAX_RAID_DEPTH = 5;
+
+    private function parentMustHaveNoMembers(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null) {
+                return;
+            }
+            $parent = Raid::query()
+                ->where('id', $value)
+                ->where('guild_id', $this->route('guild')->id)
+                ->withCount('members')
+                ->first();
+            if ($parent && $parent->members_count > 0) {
+                $fail('Рейд с прикреплёнными участниками не может иметь дочерних рейдов. Выберите другой родительский рейд.');
+            }
+        };
+    }
+
+    private function parentMustNotBeAtMaxDepth(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null) {
+                return;
+            }
+            $depth = $this->getRaidDepth((int) $value);
+            if ($depth >= self::MAX_RAID_DEPTH - 1) {
+                $fail('Максимальная вложенность рейдов — '.self::MAX_RAID_DEPTH.' уровней. Выберите родителя выше по дереву.');
+            }
+        };
+    }
+
+    private function getRaidDepth(int $raidId): int
+    {
+        $depth = 0;
+        $current = Raid::query()
+            ->where('id', $raidId)
+            ->where('guild_id', $this->route('guild')->id)
+            ->first();
+        while ($current && $current->parent_id !== null) {
+            $depth++;
+            $current = Raid::query()
+                ->where('id', $current->parent_id)
+                ->where('guild_id', $this->route('guild')->id)
+                ->first();
+        }
+
+        return $depth;
     }
 }

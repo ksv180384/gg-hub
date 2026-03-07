@@ -28,11 +28,14 @@ import {
   guildsApi,
   type Guild,
   type RaidItem,
+  type RaidMemberItem,
   type GuildRosterMember,
   type CreateRaidPayload,
   type UpdateRaidPayload,
+  type RaidCompositionMemberPayload,
 } from '@/shared/api/guildsApi';
 import RaidTreeItem from './RaidTreeItem.vue';
+import FormRaidModal from './FormRaidModal.vue';
 
 const route = useRoute();
 const guildId = computed(() => Number(route.params.id));
@@ -44,12 +47,44 @@ const loading = ref(true);
 const accessDenied = ref(false);
 const error = ref<string | null>(null);
 
+/** Выбранный рейд (при клике по рейду загружаются детали с участниками). */
+const selectedRaidId = ref<number | null>(null);
+const selectedRaid = ref<RaidItem | null>(null);
+const selectedRaidLoading = ref(false);
+
 const canFormRaid = computed(
   () => guild.value?.my_permission_slugs?.includes('formirovat-reidy') ?? false
 );
 const canDeleteRaid = computed(
   () => guild.value?.my_permission_slugs?.includes('udaliat-reidy') ?? false
 );
+
+/** Размер пати из параметров игры (число ячеек в ряду). */
+const partySize = computed(() => guild.value?.game?.party_size ?? 5);
+
+/** Модалка формирования рейда (полный экран). */
+const formRaidModalOpen = ref(false);
+const formRaidSaving = ref(false);
+
+function openFormRaidModal() {
+  if (selectedRaid.value == null) return;
+  formRaidModalOpen.value = true;
+}
+
+function closeFormRaidModal() {
+  formRaidModalOpen.value = false;
+}
+
+async function saveFormRaid(members: RaidCompositionMemberPayload[]) {
+  if (selectedRaidId.value == null) return;
+  formRaidSaving.value = true;
+  try {
+    const updated = await guildsApi.setRaidComposition(guildId.value, selectedRaidId.value, members);
+    selectedRaid.value = updated;
+  } finally {
+    formRaidSaving.value = false;
+  }
+}
 
 // Форма создания/редактирования (модальное окно)
 const modalOpen = ref(false);
@@ -72,12 +107,12 @@ const leaderOptionsFiltered = computed(() => {
 });
 
 // Список рейдов для выбора родителя (плоский, без циклов)
-function flattenRaids(items: RaidItem[], excludeId?: number): { id: number; name: string; depth: number }[] {
-  const out: { id: number; name: string; depth: number }[] = [];
+function flattenRaids(items: RaidItem[], excludeId?: number): { id: number; name: string; depth: number; members_count: number }[] {
+  const out: { id: number; name: string; depth: number; members_count: number }[] = [];
   function walk(list: RaidItem[], depth: number) {
     for (const r of list) {
       if (r.id === excludeId) continue;
-      out.push({ id: r.id, name: r.name, depth });
+      out.push({ id: r.id, name: r.name, depth, members_count: r.members_count ?? 0 });
       if (r.children?.length) walk(r.children, depth + 1);
     }
   }
@@ -90,7 +125,10 @@ const SELECT_NONE = '__none__';
 
 const parentOptions = computed(() => {
   const flat = flattenRaids(raids.value, formRaidId.value ?? undefined);
-  return [{ id: SELECT_NONE, name: '— Без родителя (корневой рейд) —', depth: 0 }, ...flat.map((r) => ({ id: String(r.id), name: r.name, depth: r.depth }))];
+  return [
+    { id: SELECT_NONE, name: '— Без родителя (корневой рейд) —', depth: 0, members_count: 0 },
+    ...flat.map((r) => ({ id: String(r.id), name: r.name, depth: r.depth, members_count: r.members_count })),
+  ];
 });
 
 function openCreate(parentId: number | null = null) {
@@ -190,6 +228,45 @@ async function loadRaids() {
   }
 }
 
+/** Участники выбранного рейда. */
+const selectedRaidMembers = computed((): RaidMemberItem[] => {
+  return selectedRaid.value?.members ?? [];
+});
+
+async function selectRaid(raid: RaidItem) {
+  if (selectedRaidId.value === raid.id) return;
+  selectedRaidId.value = raid.id;
+  selectedRaidLoading.value = true;
+  selectedRaid.value = null;
+  try {
+    selectedRaid.value = await guildsApi.getGuildRaid(guildId.value, raid.id);
+  } catch {
+    selectedRaid.value = null;
+  } finally {
+    selectedRaidLoading.value = false;
+  }
+}
+
+function clearSelectedRaid() {
+  selectedRaidId.value = null;
+  selectedRaid.value = null;
+}
+
+function findRaidById(items: RaidItem[], id: number): RaidItem | null {
+  for (const r of items) {
+    if (r.id === id) return r;
+    const found = r.children?.length ? findRaidById(r.children, id) : null;
+    if (found) return found;
+  }
+  return null;
+}
+
+/** Выбранный рейд в дереве (для проверки наличия дочерних). */
+const selectedRaidInTree = computed(() =>
+  selectedRaidId.value != null ? findRaidById(raids.value, selectedRaidId.value) : null
+);
+const selectedRaidHasChildren = computed(() => (selectedRaidInTree.value?.children?.length ?? 0) > 0);
+
 /** Все id в поддереве рейда (включая сам рейд). Для проверки цикла при переносе. */
 function getDescendantIds(items: RaidItem[], targetId: number): Set<number> {
   const result = new Set<number>();
@@ -212,6 +289,7 @@ function getDescendantIds(items: RaidItem[], targetId: number): Set<number> {
 }
 
 const dragSaving = ref(false);
+const isDraggingRaid = ref(false);
 
 async function handleRaidDrop(evt: { item: HTMLElement; to: HTMLElement }) {
   const movedRaidId = Number(evt.item.getAttribute('data-raid-id'));
@@ -249,6 +327,22 @@ async function handleRaidDrop(evt: { item: HTMLElement; to: HTMLElement }) {
   }
 }
 
+/** Для каждого рейда — сумма участников (своих + всех дочерних рекурсивно). */
+const raidTotalMembers = computed(() => {
+  const map = new Map<number, number>();
+  function walk(items: RaidItem[]): void {
+    for (const r of items) {
+      if (r.children?.length) walk(r.children);
+      const childSum = r.children?.length
+        ? r.children.reduce((acc, c) => acc + (map.get(c.id) ?? 0), 0)
+        : 0;
+      map.set(r.id, (r.members_count ?? 0) + childSum);
+    }
+  }
+  walk(raids.value);
+  return map;
+});
+
 const raidSortableConfig = computed(() => ({
   disabled: !canFormRaid.value || dragSaving.value,
   options: {
@@ -258,7 +352,11 @@ const raidSortableConfig = computed(() => ({
     ghostClass: 'raid-drag-ghost',
     chosenClass: 'raid-drag-chosen',
     dragClass: 'raid-drag-drag',
-    onEnd: handleRaidDrop,
+    onStart: () => { isDraggingRaid.value = true; },
+    onEnd: (evt: { item: HTMLElement; to: HTMLElement }) => {
+      isDraggingRaid.value = false;
+      handleRaidDrop(evt);
+    },
   },
 }));
 
@@ -313,24 +411,83 @@ onMounted(async () => {
             <template v-if="canFormRaid"> Нажмите «Добавить рейд», чтобы создать первый.</template>
           </p>
         </template>
-        <ul
-          v-else
-          class="raid-tree space-y-0"
-          data-parent-id=""
-          v-sortable="raidSortableConfig"
-        >
-          <RaidTreeItem
-            v-for="raid in raids"
-            :key="raid.id"
-            :raid="raid"
-            :can-edit="canFormRaid"
-            :can-delete="canDeleteRaid"
-            :sortable-config="raidSortableConfig"
-            @add-child="(id) => openCreate(id)"
-            @edit="openEdit"
-            @delete="openDelete"
-          />
-        </ul>
+        <div v-else class="flex flex-col gap-4 md:flex-row md:items-stretch">
+          <div class="min-w-0 flex-1">
+            <ul
+              class="raid-tree space-y-0"
+              data-parent-id=""
+              v-sortable="raidSortableConfig"
+            >
+              <RaidTreeItem
+                v-for="raid in raids"
+                :key="raid.id"
+                :raid="raid"
+                :depth="0"
+                :total-members="raidTotalMembers.get(raid.id) ?? 0"
+                :raid-total-members-map="Object.fromEntries(raidTotalMembers)"
+                :can-edit="canFormRaid"
+                :can-delete="canDeleteRaid"
+                :selected-raid-id="selectedRaidId"
+                :sortable-config="raidSortableConfig"
+                @add-child="(id) => openCreate(id)"
+                @edit="openEdit"
+                @delete="openDelete"
+                @select="selectRaid"
+              />
+              <li
+                v-if="canFormRaid"
+                class="list-none rounded-lg border-2 border-dashed text-center text-sm transition-all duration-150"
+                :class="isDraggingRaid
+                  ? 'border-muted-foreground/30 py-3 text-muted-foreground'
+                  : 'min-h-0 border-transparent py-0 text-transparent'"
+                data-drop-zone="root-end"
+              >
+                Перетащите сюда для переноса в конец списка (главный уровень)
+              </li>
+            </ul>
+          </div>
+          <aside
+            v-if="selectedRaidId != null"
+            class="w-full shrink-0 rounded-lg border border-border bg-muted/30 md:w-80"
+          >
+            <div class="flex flex-col gap-3 p-4">
+              <div class="flex items-center justify-between gap-2 border-b border-border pb-2">
+                <h3 class="font-semibold truncate" :title="selectedRaid?.name">
+                  {{ selectedRaid?.name ?? 'Рейд' }}
+                </h3>
+                <Button variant="ghost" size="sm" class="h-8 w-8 shrink-0 p-0" aria-label="Закрыть" @click="clearSelectedRaid">
+                  ×
+                </Button>
+              </div>
+              <p v-if="selectedRaidLoading" class="text-sm text-muted-foreground">Загрузка…</p>
+              <template v-else>
+                <p class="text-sm font-medium text-muted-foreground">Участники рейда</p>
+                <ul v-if="selectedRaidMembers.length > 0" class="space-y-1.5">
+                  <li
+                    v-for="m in selectedRaidMembers"
+                    :key="m.character_id"
+                    class="flex items-center gap-2 rounded-md bg-background px-2 py-1.5 text-sm"
+                  >
+                    <span class="min-w-0 truncate">{{ m.name }}</span>
+                    <Badge v-if="m.role" variant="outline" class="shrink-0 text-xs">{{ m.role }}</Badge>
+                  </li>
+                </ul>
+                <p v-else class="text-sm text-muted-foreground">Нет участников</p>
+                <Button
+                  v-if="canFormRaid && !selectedRaidHasChildren"
+                  type="button"
+                  class="mt-1"
+                  @click="openFormRaidModal"
+                >
+                  Сформировать рейд
+                </Button>
+                <p v-else-if="canFormRaid && selectedRaidHasChildren" class="mt-1 text-xs text-muted-foreground">
+                  Рейд с дочерними рейдами не может иметь участников.
+                </p>
+              </template>
+            </div>
+          </aside>
+        </div>
       </CardContent>
     </Card>
 
@@ -383,7 +540,7 @@ onMounted(async () => {
                     v-for="opt in parentOptions"
                     :key="opt.id"
                     :value="opt.id"
-                    :disabled="formRaidId != null && opt.id === String(formRaidId)"
+                    :disabled="(formRaidId != null && opt.id === String(formRaidId)) || (opt.members_count > 0) || (opt.depth >= 4)"
                   >
                     <span :style="{ paddingLeft: `${opt.depth * 12}px` }">
                       {{ opt.name }}
@@ -460,6 +617,17 @@ onMounted(async () => {
       confirm-variant="destructive"
       @confirm="confirmDelete"
     />
+
+    <FormRaidModal
+      :open="formRaidModalOpen"
+      :raid="selectedRaid"
+      :roster="roster"
+      :party-size="partySize"
+      :guild-id="guildId"
+      :saving="formRaidSaving"
+      @close="closeFormRaidModal"
+      @save="saveFormRaid"
+    />
   </div>
 </template>
 
@@ -484,5 +652,6 @@ onMounted(async () => {
   opacity: 1;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   border-radius: 0.5rem;
+  background-color: white;
 }
 </style>

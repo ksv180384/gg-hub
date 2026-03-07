@@ -24,6 +24,7 @@ const router = useRouter();
 const name = ref('');
 const slug = ref('');
 const description = ref('');
+const partySize = ref('1');
 const imageFile = ref<File | null>(null);
 const imagePreview = ref<string | null>(null);
 const dragOver = ref(false);
@@ -85,6 +86,7 @@ async function submit() {
       slug: effectiveSlug.value,
       description: description.value.trim() || undefined,
       image: imageFile.value,
+      party_size: parseInt(partySize.value, 10) || 1,
     });
     await router.push('/games');
   } catch (e: unknown) {
@@ -164,6 +166,19 @@ onMounted(() => {
                 class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               <p v-if="fieldErrors.description" class="text-sm text-destructive">{{ fieldErrors.description }}</p>
+            </div>
+
+            <div class="space-y-2">
+              <Label for="party-size">Размер пати</Label>
+              <Input
+                id="party-size"
+                v-model="partySize"
+                type="number"
+                min="1"
+                max="65535"
+                class="w-24"
+              />
+              <p class="text-xs text-muted-foreground">Максимальное количество участников в группе/пати (целое число).</p>
             </div>
 
             <div class="space-y-2">

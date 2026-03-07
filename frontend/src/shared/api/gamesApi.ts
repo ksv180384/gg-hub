@@ -43,6 +43,7 @@ export interface Game {
   image_thumb?: string | null;
   is_active: boolean;
   max_classes_per_character?: number;
+  party_size?: number;
   localizations?: Localization[];
   game_classes?: GameClass[];
   created_at?: string;
@@ -54,6 +55,7 @@ export interface CreateGamePayload {
   slug: string;
   description?: string;
   image?: File | null;
+  party_size?: number;
 }
 
 export interface UpdateGamePayload {
@@ -63,6 +65,7 @@ export interface UpdateGamePayload {
   image?: File | null;
   remove_image?: boolean;
   max_classes_per_character?: number;
+  party_size?: number;
 }
 
 export interface CreateGameClassPayload {
@@ -129,6 +132,9 @@ export const gamesApi = {
     form.append('slug', payload.slug);
     if (payload.description != null) form.append('description', payload.description);
     if (payload.image) form.append('image', payload.image);
+    if (payload.party_size !== undefined) {
+      form.append('party_size', String(payload.party_size));
+    }
     const res = await http.fetchPost<GameResponse | Game>('/games', form);
     throwOnError(res, 'Ошибка создания игры');
     return unwrapData(res, {} as Game) as Game;
@@ -143,6 +149,9 @@ export const gamesApi = {
     if (payload.image) form.append('image', payload.image);
     if (payload.max_classes_per_character !== undefined) {
       form.append('max_classes_per_character', String(payload.max_classes_per_character));
+    }
+    if (payload.party_size !== undefined) {
+      form.append('party_size', String(payload.party_size));
     }
     const res = await http.fetchPost<GameResponse | Game>(`/games/${id}`, form);
     throwOnError(res, 'Ошибка обновления игры');

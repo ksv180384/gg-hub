@@ -15,6 +15,7 @@ const name = ref('');
 const slug = ref('');
 const description = ref('');
 const maxClassesPerCharacter = ref('1');
+const partySize = ref('1');
 const imageFile = ref<File | null>(null);
 const imagePreview = ref<string | null>(null);
 const removeImage = ref(false);
@@ -40,6 +41,7 @@ watch(
       slug.value = g.slug;
       description.value = g.description ?? '';
       maxClassesPerCharacter.value = String(g.max_classes_per_character ?? 1);
+      partySize.value = String(g.party_size ?? 1);
     }
   },
   { immediate: true }
@@ -102,6 +104,7 @@ async function submit() {
       image: imageFile.value || undefined,
       remove_image: removeImage.value,
       max_classes_per_character: parseInt(maxClassesPerCharacter.value, 10) || 1,
+      party_size: parseInt(partySize.value, 10) || 1,
     });
     emit('update:game', updated);
     await router.push('/admin/games');
@@ -167,6 +170,19 @@ async function submit() {
             class="w-24"
           />
           <p class="text-xs text-muted-foreground">Сколько классов можно присвоить одному персонажу в этой игре.</p>
+        </div>
+
+        <div class="space-y-2">
+          <Label for="party-size">Размер пати</Label>
+          <Input
+            id="party-size"
+            v-model="partySize"
+            type="number"
+            min="1"
+            max="65535"
+            class="w-24"
+          />
+          <p class="text-xs text-muted-foreground">Максимальное количество участников в группе/пати (целое число).</p>
         </div>
 
         <div class="space-y-2">

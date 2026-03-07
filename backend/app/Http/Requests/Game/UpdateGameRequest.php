@@ -26,6 +26,7 @@ class UpdateGameRequest extends FormRequest
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
             'remove_image' => ['nullable', 'boolean'],
             'max_classes_per_character' => ['nullable', 'integer', 'min:0', 'max:255'],
+            'party_size' => ['nullable', 'integer', 'min:1', 'max:65535'],
         ];
     }
 

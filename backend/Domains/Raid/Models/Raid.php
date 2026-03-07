@@ -62,6 +62,6 @@ class Raid extends Model
             'raid_members',
             'raid_id',
             'character_id'
-        )->withPivot(['role', 'accepted_at'])->withTimestamps();
+        )->withPivot(['role', 'accepted_at', 'slot_index'])->withTimestamps();
     }
 }

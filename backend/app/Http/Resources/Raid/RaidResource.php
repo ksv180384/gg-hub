@@ -36,6 +36,14 @@ class RaidResource extends JsonResource
                 'name' => $this->creator->name,
             ] : null),
             'children' => RaidResource::collection($this->whenLoaded('children')),
+            'members_count' => $this->members_count ?? 0,
+            'members' => $this->whenLoaded('members', fn () => $this->members->map(fn ($m) => [
+                'character_id' => $m->id,
+                'name' => $m->name,
+                'role' => $m->pivot?->role,
+                'accepted_at' => $m->pivot?->accepted_at?->toIso8601String(),
+                'slot_index' => $m->pivot?->slot_index !== null ? (int) $m->pivot->slot_index : null,
+            ])->values()->all()),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

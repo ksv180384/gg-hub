@@ -24,6 +24,12 @@ class UpdateGameAction
                 $data['max_classes_per_character'] = 0;
             }
         }
+        if (array_key_exists('party_size', $data)) {
+            $data['party_size'] = (int) $data['party_size'];
+            if ($data['party_size'] < 1) {
+                $data['party_size'] = 1;
+            }
+        }
         $game->update($data);
 
         if ($removeImage) {

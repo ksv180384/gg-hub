@@ -32,6 +32,7 @@ class GameResource extends JsonResource
             'image_thumb' => $imageThumbUrl,
             'is_active' => $this->is_active,
             'max_classes_per_character' => $this->max_classes_per_character ?? 1,
+            'party_size' => $this->party_size ?? 1,
             'localizations' => LocalizationResource::collection($this->whenLoaded('localizations')),
             'game_classes' => GameClassResource::collection($this->whenLoaded('gameClasses')),
             'created_at' => $this->created_at?->toIso8601String(),

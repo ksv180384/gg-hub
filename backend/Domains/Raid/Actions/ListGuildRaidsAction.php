@@ -19,6 +19,7 @@ class ListGuildRaidsAction
         $all = Raid::query()
             ->where('guild_id', $guild->id)
             ->with('leader:id,name')
+            ->withCount('members')
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();

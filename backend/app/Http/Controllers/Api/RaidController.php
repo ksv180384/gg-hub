@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Raid\SetRaidCompositionRequest;
 use App\Http\Requests\Raid\StoreRaidRequest;
 use App\Http\Requests\Raid\UpdateRaidRequest;
 use App\Http\Resources\Raid\RaidResource;
@@ -11,6 +12,7 @@ use Domains\Raid\Actions\CreateRaidAction;
 use Domains\Raid\Actions\DeleteRaidAction;
 use Domains\Raid\Actions\GetRaidAction;
 use Domains\Raid\Actions\ListGuildRaidsAction;
+use Domains\Raid\Actions\SetRaidCompositionAction;
 use Domains\Raid\Actions\UpdateRaidAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -24,7 +26,8 @@ class RaidController extends Controller
         private GetRaidAction $getRaidAction,
         private CreateRaidAction $createRaidAction,
         private UpdateRaidAction $updateRaidAction,
-        private DeleteRaidAction $deleteRaidAction
+        private DeleteRaidAction $deleteRaidAction,
+        private SetRaidCompositionAction $setRaidCompositionAction
     ) {}
 
     /**
@@ -77,5 +80,19 @@ class RaidController extends Controller
         }
         ($this->deleteRaidAction)($model);
         return response()->noContent();
+    }
+
+    /**
+     * Установить состав рейда (участники и их слоты).
+     */
+    public function setComposition(SetRaidCompositionRequest $request, Guild $guild, int $raid): JsonResponse
+    {
+        $model = ($this->getRaidAction)($guild, $raid);
+        if ($model === null) {
+            throw new NotFoundHttpException('Рейд не найден.');
+        }
+        $updated = ($this->setRaidCompositionAction)($model, $request->validated()['members']);
+        $updated->load(['leader:id,name', 'parent:id,name', 'members:id,name']);
+        return response()->json(new RaidResource($updated));
     }
 }

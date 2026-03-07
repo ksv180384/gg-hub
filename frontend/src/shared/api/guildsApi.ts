@@ -11,6 +11,8 @@ export interface GuildGame {
   id: number;
   name: string;
   slug: string;
+  /** Размер пати (число ячеек в ряду сетки рейда). */
+  party_size?: number;
 }
 
 export interface GuildLocalization {
@@ -673,7 +675,40 @@ export const guildsApi = {
     const res = await http.fetchDelete(`/guilds/${guildId}/raids/${raidId}`);
     throwOnError(res, 'Ошибка удаления рейда');
   },
+
+  /** Установить состав рейда (участники и слоты). PUT /guilds/:id/raids/:raidId/composition */
+  async setRaidComposition(
+    guildId: number,
+    raidId: number,
+    members: RaidCompositionMemberPayload[]
+  ): Promise<RaidItem> {
+    const res = await http.fetchPut<{ data: RaidItem } | RaidItem>(
+      `/guilds/${guildId}/raids/${raidId}/composition`,
+      { members }
+    );
+    throwOnError(res, 'Ошибка сохранения состава рейда');
+    const raw = res.data as { data?: RaidItem } | RaidItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: RaidItem }).data!;
+    return raw as RaidItem;
+  },
 };
+
+/** Участник рейда (персонаж). */
+export interface RaidMemberItem {
+  character_id: number;
+  name: string;
+  role?: string | null;
+  accepted_at?: string | null;
+  /** Индекс ячейки в сетке рейда (0-based). null = не назначен в ячейку. */
+  slot_index?: number | null;
+}
+
+/** Элемент для обновления состава рейда. */
+export interface RaidCompositionMemberPayload {
+  character_id: number;
+  slot_index: number | null;
+}
 
 /** Рейд (дерево: children). */
 export interface RaidItem {
@@ -689,6 +724,10 @@ export interface RaidItem {
   parent?: { id: number; name: string } | null;
   creator?: { id: number; name: string } | null;
   children?: RaidItem[];
+  /** Количество участников рейда (в списке дерева). */
+  members_count?: number;
+  /** Участники рейда (загружаются при запросе одного рейда GET /guilds/:id/raids/:raidId). */
+  members?: RaidMemberItem[];
   created_at?: string | null;
   updated_at?: string | null;
 }

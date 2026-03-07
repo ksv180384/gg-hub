@@ -21,6 +21,7 @@ class StoreGameRequest extends FormRequest
             'slug' => ['required', 'string', 'max:255', 'unique:games,slug'],
             'description' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+            'party_size' => ['nullable', 'integer', 'min:1', 'max:65535'],
         ];
     }
 

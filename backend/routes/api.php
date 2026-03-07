@@ -83,6 +83,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds/{guild}/raids', [RaidController::class, 'store'])->middleware('guild.member', 'guild.role.permission:formirovat-reidy');
     Route::match(['put', 'patch'], '/guilds/{guild}/raids/{raid}', [RaidController::class, 'update'])->middleware('guild.member', 'guild.role.permission:formirovat-reidy');
     Route::delete('/guilds/{guild}/raids/{raid}', [RaidController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-reidy');
+    Route::put('/guilds/{guild}/raids/{raid}/composition', [RaidController::class, 'setComposition'])->middleware('guild.member', 'guild.role.permission:formirovat-reidy');
 
     Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster']);
     Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember']);

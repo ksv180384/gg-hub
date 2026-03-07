@@ -19,6 +19,7 @@ class Game extends Model
         'image',
         'is_active',
         'max_classes_per_character',
+        'party_size',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class Game extends Model
         return [
             'is_active' => 'boolean',
             'max_classes_per_character' => 'integer',
+            'party_size' => 'integer',
         ];
     }
 

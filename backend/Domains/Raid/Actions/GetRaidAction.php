@@ -12,7 +12,7 @@ class GetRaidAction
         return Raid::query()
             ->where('guild_id', $guild->id)
             ->where('id', $raidId)
-            ->with(['leader:id,name', 'parent:id,name,parent_id', 'creator:id,name'])
+            ->with(['leader:id,name', 'parent:id,name,parent_id', 'creator:id,name', 'members:id,name'])
             ->first();
     }
 }
