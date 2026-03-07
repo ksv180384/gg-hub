@@ -34,6 +34,7 @@ import {
   type UpdateRaidPayload,
   type RaidCompositionMemberPayload,
 } from '@/shared/api/guildsApi';
+import { Sortable } from 'sortablejs-vue3';
 import RaidTreeItem from './RaidTreeItem.vue';
 import FormRaidModal from './FormRaidModal.vue';
 
@@ -290,25 +291,74 @@ function getDescendantIds(items: RaidItem[], targetId: number): Set<number> {
 
 const dragSaving = ref(false);
 const isDraggingRaid = ref(false);
+/** Ключ корневого Sortable: после дропа увеличиваем, чтобы пересоздать список и убрать дубликат. */
+const raidSortableKey = ref(0);
 
-async function handleRaidDrop(evt: { item: HTMLElement; to: HTMLElement }) {
+/** Находит рейд в дереве по id и удаляет из массива, возвращает найденный рейд или null. */
+function findAndRemoveRaid(items: RaidItem[], raidId: number): RaidItem | null {
+  const i = items.findIndex((r) => r.id === raidId);
+  if (i !== -1) {
+    const [removed] = items.splice(i, 1);
+    return removed;
+  }
+  for (const r of items) {
+    if (r.children) {
+      const found = findAndRemoveRaid(r.children, raidId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Находит рейд по id в дереве (без удаления). */
+function findRaidInTree(items: RaidItem[], raidId: number): RaidItem | null {
+  for (const r of items) {
+    if (r.id === raidId) return r;
+    if (r.children) {
+      const found = findRaidInTree(r.children, raidId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Обработчик дропа рейда (sortablejs-vue3 передаёт событие с item, to и from). */
+async function handleRaidDrop(evt: { item: HTMLElement; to: HTMLElement; from?: HTMLElement }) {
   const movedRaidId = Number(evt.item.getAttribute('data-raid-id'));
   if (!Number.isInteger(movedRaidId)) return;
-  const toList = evt.to as HTMLElement;
-  const parentIdAttr = toList.getAttribute('data-parent-id');
-  const parentId = parentIdAttr === null || parentIdAttr === '' ? null : Number(parentIdAttr);
+  const toEl = evt.to as HTMLElement;
+  const parentIdAttr = toEl.getAttribute?.('data-parent-id') ?? toEl.parentElement?.getAttribute?.('data-parent-id') ?? '';
+  const parentId = parentIdAttr === '' ? null : Number(parentIdAttr);
   const descendantIds = getDescendantIds(raids.value, movedRaidId);
   if (parentId !== null && descendantIds.has(parentId)) {
     await loadRaids();
     return;
   }
-  // Новый порядок по DOM после дропа — обновляем sort_order у всех в списке
-  const raidIdsInOrder = Array.from(toList.children)
-    .map((el) => el.getAttribute('data-raid-id'))
+  const raidIdsInOrder = Array.from(toEl.children)
+    .map((el) => (el as HTMLElement).getAttribute('data-raid-id'))
     .filter(Boolean)
     .map(Number)
     .filter((id) => Number.isInteger(id));
   if (raidIdsInOrder.length === 0) return;
+
+  // Сразу обновляем дерево: убираем рейд из источника и вставляем в целевой список, чтобы не было дубликата до loadRaids()
+  const movedRaid = findAndRemoveRaid(raids.value, movedRaidId);
+  if (movedRaid) {
+    const parent = parentId === null ? null : findRaidInTree(raids.value, parentId);
+    const currentList = parentId === null ? raids.value : (parent?.children ?? []);
+    const byId = new Map<number, RaidItem>();
+    for (const r of currentList) byId.set(r.id, r);
+    byId.set(movedRaid.id, movedRaid);
+    const ordered = raidIdsInOrder.map((id) => byId.get(id)).filter((r): r is RaidItem => r != null);
+    if (parentId === null) {
+      raids.value = ordered;
+    } else if (parent) {
+      parent.children = ordered;
+    }
+    // Пересоздаём корневой Sortable, иначе он не обновляет DOM и элемент остаётся в двух местах
+    raidSortableKey.value++;
+  }
+
   dragSaving.value = true;
   try {
     await Promise.all(
@@ -327,6 +377,11 @@ async function handleRaidDrop(evt: { item: HTMLElement; to: HTMLElement }) {
   }
 }
 
+function onRaidSortEnd(evt: { item: HTMLElement; to: HTMLElement; from?: HTMLElement }) {
+  isDraggingRaid.value = false;
+  handleRaidDrop(evt);
+}
+
 /** Для каждого рейда — сумма участников (своих + всех дочерних рекурсивно). */
 const raidTotalMembers = computed(() => {
   const map = new Map<number, number>();
@@ -343,21 +398,14 @@ const raidTotalMembers = computed(() => {
   return map;
 });
 
-const raidSortableConfig = computed(() => ({
+const raidSortableOptions = computed(() => ({
+  group: 'raids',
+  animation: 200,
+  handle: '.raid-drag-handle',
+  ghostClass: 'raid-drag-ghost',
+  chosenClass: 'raid-drag-chosen',
+  dragClass: 'raid-drag-drag',
   disabled: !canFormRaid.value || dragSaving.value,
-  options: {
-    group: 'raids',
-    animation: 200,
-    handle: '.raid-drag-handle',
-    ghostClass: 'raid-drag-ghost',
-    chosenClass: 'raid-drag-chosen',
-    dragClass: 'raid-drag-drag',
-    onStart: () => { isDraggingRaid.value = true; },
-    onEnd: (evt: { item: HTMLElement; to: HTMLElement }) => {
-      isDraggingRaid.value = false;
-      handleRaidDrop(evt);
-    },
-  },
 }));
 
 onMounted(async () => {
@@ -413,37 +461,48 @@ onMounted(async () => {
         </template>
         <div v-else class="flex flex-col gap-4 md:flex-row md:items-stretch">
           <div class="min-w-0 flex-1">
-            <ul
-              class="raid-tree space-y-0"
-              data-parent-id=""
-              v-sortable="raidSortableConfig"
-            >
-              <RaidTreeItem
-                v-for="raid in raids"
-                :key="raid.id"
-                :raid="raid"
-                :depth="0"
-                :total-members="raidTotalMembers.get(raid.id) ?? 0"
-                :raid-total-members-map="Object.fromEntries(raidTotalMembers)"
-                :can-edit="canFormRaid"
-                :can-delete="canDeleteRaid"
-                :selected-raid-id="selectedRaidId"
-                :sortable-config="raidSortableConfig"
-                @add-child="(id) => openCreate(id)"
-                @edit="openEdit"
-                @delete="openDelete"
-                @select="selectRaid"
-              />
-              <li
-                v-if="canFormRaid"
-                class="list-none rounded-lg border-2 border-dashed text-center text-sm transition-all duration-150"
-                :class="isDraggingRaid
-                  ? 'border-muted-foreground/30 py-3 text-muted-foreground'
-                  : 'min-h-0 border-transparent py-0 text-transparent'"
-                data-drop-zone="root-end"
+            <ul class="raid-tree space-y-0" data-parent-id="">
+              <Sortable
+                :key="raidSortableKey"
+                :list="raids"
+                item-key="id"
+                tag="div"
+                class="contents"
+                :options="raidSortableOptions"
+                @start="isDraggingRaid = true"
+                @end="onRaidSortEnd"
               >
-                Перетащите сюда для переноса в конец списка (главный уровень)
-              </li>
+                <template #item="{ element }">
+                  <RaidTreeItem
+                    :raid="element"
+                    :depth="0"
+                    :total-members="raidTotalMembers.get(element.id) ?? 0"
+                    :raid-total-members-map="Object.fromEntries(raidTotalMembers)"
+                    :can-edit="canFormRaid"
+                    :can-delete="canDeleteRaid"
+                    :selected-raid-id="selectedRaidId"
+                    :sortable-options="raidSortableOptions"
+                    :sortable-key="raidSortableKey"
+                    @add-child="(id) => openCreate(id)"
+                    @edit="openEdit"
+                    @delete="openDelete"
+                    @select="selectRaid"
+                    @sort-end="onRaidSortEnd"
+                  />
+                </template>
+                <template #footer>
+                  <li
+                    v-if="canFormRaid"
+                    class="list-none rounded-lg border-2 border-dashed text-center text-sm transition-all duration-150"
+                    :class="isDraggingRaid
+                      ? 'border-muted-foreground/30 py-3 text-muted-foreground'
+                      : 'min-h-0 border-transparent py-0 text-transparent'"
+                    data-drop-zone="root-end"
+                  >
+                    Перетащите сюда для переноса в конец списка (главный уровень)
+                  </li>
+                </template>
+              </Sortable>
             </ul>
           </div>
           <aside

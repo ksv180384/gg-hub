@@ -1,6 +1,5 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import VueSortable from 'vue3-sortablejs';
 
 import App from './App.vue';
 import router from './router';
@@ -16,7 +15,6 @@ const pinia = createPinia();
 
 app.use(pinia);
 app.use(router);
-app.use(VueSortable);
 
 setupHttpInterceptors();
 

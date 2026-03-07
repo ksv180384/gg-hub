@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, shallowRef } from 'vue';
+import { Sortable } from 'sortablejs-vue3';
 import { Button } from '@/shared/ui';
 import {
   Badge,
@@ -24,8 +25,10 @@ const props = defineProps<{
   canDelete: boolean;
   /** id выбранного рейда (для подсветки активного). */
   selectedRaidId?: number | null;
-  /** Конфиг для v-sortable (корень и вложенные списки). */
-  sortableConfig?: { disabled?: boolean; options?: Record<string, unknown> };
+  /** Опции Sortable (sortablejs-vue3) для корня и вложенных списков. */
+  sortableOptions?: Record<string, unknown>;
+  /** Ключ для пересоздания вложенного Sortable после дропа (убирает дубликат). */
+  sortableKey?: number;
 }>();
 
 const emit = defineEmits<{
@@ -33,10 +36,14 @@ const emit = defineEmits<{
   (e: 'edit', raid: RaidItem): void;
   (e: 'delete', raid: RaidItem): void;
   (e: 'select', raid: RaidItem): void;
+  (e: 'sort-end', evt: { item: HTMLElement; to: HTMLElement }): void;
 }>();
 
 const expanded = ref(true);
 const hasChildren = computed(() => (props.raid.children?.length ?? 0) > 0);
+/** Стабильный пустой массив для Sortable, когда у рейда ещё нет детей (чтобы не менять ссылку каждый рендер). */
+const emptyChildren = shallowRef<RaidItem[]>([]);
+const childrenList = computed(() => props.raid.children ?? emptyChildren.value);
 const isSelected = computed(() => props.selectedRaidId != null && props.raid.id === props.selectedRaidId);
 /** Рейд с участниками не может иметь дочерних; макс. вложенность 5 уровней. */
 const canAddChild = computed(() => {
@@ -46,13 +53,13 @@ const canAddChild = computed(() => {
 </script>
 
 <template>
-  <li class="list-none" :data-raid-id="raid.id">
+  <li class="list-none pb-1" :data-raid-id="raid.id">
     <div
       role="button"
       tabindex="0"
       class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/40 cursor-pointer"
       :class="[
-        raid.parent_id ? 'ml-4 mt-1 border-l-2 border-primary/40' : '',
+        raid.parent_id ? 'mt-1 border-l-2 border-primary/40' : '',
         isSelected
           ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
           : 'border-border/60 bg-card',
@@ -62,7 +69,7 @@ const canAddChild = computed(() => {
       @keydown.space.prevent="emit('select', raid)"
     >
       <span
-        v-if="canEdit && sortableConfig"
+        v-if="canEdit && sortableOptions"
         class="raid-drag-handle flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted active:cursor-grabbing"
         aria-hidden="true"
         @click.stop
@@ -76,7 +83,7 @@ const canAddChild = computed(() => {
           <circle cx="15" cy="18" r="1.5" />
         </svg>
       </span>
-      <span v-else-if="sortableConfig" class="w-7 shrink-0" />
+      <span v-else-if="sortableOptions" class="w-7 shrink-0" />
       <button
         v-if="hasChildren"
         type="button"
@@ -122,28 +129,36 @@ const canAddChild = computed(() => {
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    <ul
-      v-if="hasChildren && expanded"
-      class="raid-tree mt-1 space-y-0 border-l border-border/60 pl-2"
+    <!-- Показываем список дочерних и зону дропа, если рейд может иметь детей или уже имеет (иначе нельзя перетащить рейд «в подрейд») -->
+    <Sortable
+      v-if="(canAddChild || hasChildren) && expanded"
+      :key="sortableKey ?? 0"
+      :list="childrenList"
+      item-key="id"
+      tag="ul"
+      class="raid-tree mt-1 space-y-0 border-l border-border/60 pl-8"
       :data-parent-id="String(raid.id)"
-      v-sortable="sortableConfig"
+      :options="sortableOptions ?? {}"
+      @end="(evt: { item: HTMLElement; to: HTMLElement }) => emit('sort-end', evt)"
     >
-      <RaidTreeItem
-        v-for="child in raid.children"
-        :key="child.id"
-        :raid="child"
-        :depth="(depth ?? 0) + 1"
-        :total-members="raidTotalMembersMap?.[String(child.id)] ?? 0"
-        :raid-total-members-map="raidTotalMembersMap"
-        :can-edit="canEdit"
-        :can-delete="canDelete"
-        :selected-raid-id="selectedRaidId"
-        :sortable-config="sortableConfig"
-        @add-child="emit('add-child', $event)"
-        @edit="emit('edit', $event)"
-        @delete="emit('delete', $event)"
-        @select="emit('select', $event)"
-      />
-    </ul>
+      <template #item="{ element }">
+        <RaidTreeItem
+          :raid="element"
+          :depth="(depth ?? 0) + 1"
+          :total-members="raidTotalMembersMap?.[String(element.id)] ?? 0"
+          :raid-total-members-map="raidTotalMembersMap"
+          :can-edit="canEdit"
+          :can-delete="canDelete"
+          :selected-raid-id="selectedRaidId"
+          :sortable-options="sortableOptions"
+          :sortable-key="sortableKey"
+          @add-child="emit('add-child', $event)"
+          @edit="emit('edit', $event)"
+          @delete="emit('delete', $event)"
+          @select="emit('select', $event)"
+          @sort-end="emit('sort-end', $event)"
+        />
+      </template>
+    </Sortable>
   </li>
 </template>
