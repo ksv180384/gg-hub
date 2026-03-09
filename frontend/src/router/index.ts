@@ -148,6 +148,24 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'my-posts',
+          name: 'my-posts',
+          component: () => import('@/pages/my-posts/index.vue'),
+          meta: { requiresAuth: true, title: 'Мои посты' },
+        },
+        {
+          path: 'my-posts/create',
+          name: 'my-posts-create',
+          component: () => import('@/pages/my-posts/create/index.vue'),
+          meta: { requiresAuth: true, title: 'Новый пост' },
+        },
+        {
+          path: 'my-posts/:id/edit',
+          name: 'my-posts-edit',
+          component: () => import('@/pages/my-posts/[id]/edit.vue'),
+          meta: { requiresAuth: true, title: 'Редактирование поста' },
+        },
+        {
           path: 'change-password',
           redirect: { name: 'profile' },
         },

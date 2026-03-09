@@ -19,8 +19,9 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventHistoryController;
-use App\Http\Controllers\Api\RaidController;
 use App\Http\Controllers\Api\EventHistoryTitleController;
+use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\RaidController;
 use App\Http\Controllers\Api\TagController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/user/guilds', [UserController::class, 'guilds']);
     Route::get('/user/applications', [UserController::class, 'applications']);
+    Route::get('/user/posts', [PostController::class, 'index']);
+    Route::post('/user/posts', [PostController::class, 'store']);
+    Route::get('/user/posts/{post}', [PostController::class, 'show']);
+    Route::match(['put', 'patch'], '/user/posts/{post}', [PostController::class, 'update']);
     Route::get('/games/{game}/characters', [CharacterController::class, 'indexForGame']);
     Route::get('/games/{game}/characters/{character}', [CharacterController::class, 'showForGame']);
     Route::get('/characters', [CharacterController::class, 'index']);

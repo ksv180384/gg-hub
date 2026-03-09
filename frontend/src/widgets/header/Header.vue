@@ -353,6 +353,11 @@ const navItems = [
                 </RouterLink>
               </DropdownMenuItem>
               <DropdownMenuItem as-child>
+                <RouterLink to="/my-posts" class="cursor-pointer">
+                  Мои посты
+                </RouterLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem as-child>
                 <RouterLink to="/profile" class="cursor-pointer">
                   Профиль
                 </RouterLink>
@@ -423,6 +428,9 @@ const navItems = [
             </RouterLink>
             <Separator />
             <template v-if="auth.isAuthenticated">
+              <RouterLink to="/my-posts" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">
+                Мои посты
+              </RouterLink>
               <RouterLink to="/profile" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">
                 Профиль
               </RouterLink>

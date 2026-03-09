@@ -1,0 +1,112 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { RouterLink } from 'vue-router';
+import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Separator } from '@/shared/ui';
+import { postsApi, type Post } from '@/shared/api/postsApi';
+
+const posts = ref<Post[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return iso;
+  }
+}
+
+function excerpt(body: string, maxLen = 160): string {
+  const text = body.replace(/<[^>]+>/g, '').trim();
+  if (text.length <= maxLen) return text;
+  return text.slice(0, maxLen) + '…';
+}
+
+function humanStatus(status: string | null): string {
+  if (!status) return '—';
+  if (status === 'published') return 'Опубликован';
+  if (status === 'draft') return 'Черновик';
+  if (status === 'pending') return 'На модерации';
+  return 'Скрыт';
+}
+
+async function loadPosts() {
+  loading.value = true;
+  error.value = null;
+  try {
+    posts.value = await postsApi.getMyPosts();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось загрузить посты';
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(() => {
+  loadPosts();
+});
+</script>
+
+<template>
+  <div class="container py-8 md:py-12">
+    <div class="mx-auto max-w-3xl">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="mb-1 text-3xl font-bold tracking-tight">Мои посты</h1>
+          <p class="text-muted-foreground">
+            Список ваших постов.
+          </p>
+        </div>
+        <RouterLink :to="{ name: 'my-posts-create' }">
+          <Button class="min-h-11 min-w-[44px] shrink-0 touch-manipulation">
+            Добавить пост
+          </Button>
+        </RouterLink>
+      </div>
+      <Separator class="my-8" />
+
+      <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
+      <p v-else-if="error" class="text-sm text-destructive">{{ error }}</p>
+      <p v-else-if="posts.length === 0" class="text-sm text-muted-foreground">
+        У вас пока нет постов.
+      </p>
+      <ul v-else class="space-y-6">
+        <li
+          v-for="(post, i) in posts"
+          :key="post.id"
+          class="animate-in fade-in slide-in-from-bottom-3"
+          :style="{ animationDelay: `${i * 80}ms`, animationDuration: '400ms', animationFillMode: 'backwards' }"
+        >
+          <Card class="overflow-hidden transition-all hover:shadow-md">
+            <CardHeader class="pb-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" class="text-xs">
+                  Общие: {{ humanStatus(post.is_visible_global ? post.status_global : 'hidden') }}
+                </Badge>
+                <Badge variant="outline" class="text-xs">
+                  Гильдия: {{ humanStatus(post.is_visible_guild ? post.status_guild : 'hidden') }}
+                </Badge>
+                <span class="text-xs text-muted-foreground">
+                  {{ formatDate(post.published_at_global ?? post.published_at_guild ?? post.created_at) }}
+                </span>
+              </div>
+              <CardTitle class="mt-2 text-lg flex items-center justify-between gap-3">
+                <span>{{ post.title || 'Без названия' }}</span>
+                <RouterLink :to="{ name: 'my-posts-edit', params: { id: post.id } }">
+                  <Button variant="outline" size="xs">
+                    Редактировать
+                  </Button>
+                </RouterLink>
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="pt-0">
+              <p class="text-sm text-muted-foreground line-clamp-2">{{ excerpt(post.body) }}</p>
+            </CardContent>
+          </Card>
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
