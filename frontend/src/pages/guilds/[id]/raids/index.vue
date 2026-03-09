@@ -405,6 +405,12 @@ const raidSortableOptions = computed(() => ({
   ghostClass: 'raid-drag-ghost',
   chosenClass: 'raid-drag-chosen',
   dragClass: 'raid-drag-drag',
+  /** Ось списка — без неё swapThreshold может не применяться. */
+  direction: 'vertical',
+  /** Зона обмена от краёв: смена местами только когда курсор пересёк больше половины элемента (0.5 = 50%). */
+  swapThreshold: 0.5,
+  /** Зоны от краёв элемента, а не от центра — нужно перетащить дальше, чтобы сработала смена. */
+  invertSwap: true,
   disabled: !canFormRaid.value || dragSaving.value,
 }));
 

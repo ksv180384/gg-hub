@@ -136,7 +136,7 @@ const canAddChild = computed(() => {
       :list="childrenList"
       item-key="id"
       tag="ul"
-      class="raid-tree mt-1 space-y-0 border-l border-border/60 pl-8"
+      class="raid-tree mt-1 space-y-0 border-l border-border/60 ml-8"
       :data-parent-id="String(raid.id)"
       :options="sortableOptions ?? {}"
       @end="(evt: { item: HTMLElement; to: HTMLElement }) => emit('sort-end', evt)"
