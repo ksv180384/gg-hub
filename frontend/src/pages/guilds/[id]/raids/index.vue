@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   DialogRoot,
@@ -414,11 +414,19 @@ const raidSortableOptions = computed(() => ({
   disabled: !canFormRaid.value || dragSaving.value,
 }));
 
-onMounted(async () => {
+async function loadRaidPage() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
+
+  guild.value = null;
+  raids.value = [];
+  roster.value = [];
+  selectedRaidId.value = null;
+  selectedRaid.value = null;
+  selectedRaidLoading.value = false;
   loading.value = true;
   accessDenied.value = false;
   error.value = null;
+
   try {
     guild.value = await guildsApi.getGuildForSettings(guildId.value);
   } catch {
@@ -433,7 +441,11 @@ onMounted(async () => {
   }
   await loadRaids();
   loading.value = false;
-});
+}
+
+watch(guildId, () => {
+  loadRaidPage();
+}, { immediate: true });
 </script>
 
 <template>

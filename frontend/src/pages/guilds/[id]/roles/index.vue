@@ -58,6 +58,17 @@ function isPermissionChecked(permissionId: number): boolean {
 
 async function loadData() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
+
+  guild.value = null;
+  roles.value = [];
+  myPermissionSlugs.value = [];
+  permissionGroups.value = [];
+  selectedRole.value = null;
+  addingRole.value = false;
+  newRoleName.value = '';
+  deleteDialogOpen.value = false;
+  roleToDelete.value = null;
+  deletingRoleId.value = null;
   loading.value = true;
   error.value = null;
   try {
@@ -70,7 +81,7 @@ async function loadData() {
     roles.value = rolesResult.roles;
     myPermissionSlugs.value = rolesResult.myPermissionSlugs;
     permissionGroups.value = groupsData;
-    if (!selectedRole.value && rolesResult.roles.length > 0) {
+    if (rolesResult.roles.length > 0) {
       selectedRole.value = rolesResult.roles[0];
     }
   } catch (e: unknown) {
@@ -171,8 +182,7 @@ async function confirmDeleteRole() {
   }
 }
 
-onMounted(loadData);
-watch(guildId, () => loadData());
+watch(guildId, () => loadData(), { immediate: true });
 </script>
 
 <template>

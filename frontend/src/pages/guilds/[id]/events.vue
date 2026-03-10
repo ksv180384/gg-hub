@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Card,
@@ -110,10 +110,21 @@ function formatDateTime(iso: string | null): string {
   });
 }
 
-onMounted(async () => {
+async function loadEventsPage() {
+  items.value = [];
+  myPermissionSlugs.value = [];
+  deleteConfirmOpen.value = false;
+  deleteTarget.value = null;
+  deleteLoading.value = false;
+  loading.value = false;
+
   await fetchPermissionsAndRoster();
   await fetchHistory();
-});
+}
+
+watch(guildId, () => {
+  loadEventsPage();
+}, { immediate: true });
 </script>
 
 <template>

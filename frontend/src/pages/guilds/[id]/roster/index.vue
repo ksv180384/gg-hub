@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui';
@@ -23,11 +23,15 @@ function avatarFallback(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-onMounted(async () => {
+async function loadRoster() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
+
+  guild.value = null;
+  roster.value = [];
   loading.value = true;
   accessDenied.value = false;
   error.value = null;
+
   try {
     guild.value = await guildsApi.getGuild(guildId.value);
   } catch {
@@ -48,7 +52,11 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+}
+
+watch(guildId, () => {
+  loadRoster();
+}, { immediate: true });
 </script>
 
 <template>

@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle, Button, PostCard } from '@/shared/ui';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { postsApi, type Post } from '@/shared/api/postsApi';
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
@@ -20,8 +20,16 @@ const canModeratePosts = computed(
   () => !!guild.value?.my_permission_slugs?.includes('publikovat-post')
 );
 
-onMounted(async () => {
+async function loadGuildJournal() {
   if (!guildId.value) return;
+
+  guild.value = null;
+  publishedPosts.value = [];
+  pendingPosts.value = [];
+  showPending.value = false;
+  loadingGuild.value = true;
+  loadingPublished.value = true;
+  loadingPending.value = false;
 
   try {
     // Используем настройки гильдии, чтобы получить my_permission_slugs
@@ -46,7 +54,11 @@ onMounted(async () => {
       loadingPending.value = false;
     }
   }
-});
+}
+
+watch(guildId, () => {
+  loadGuildJournal();
+}, { immediate: true });
 
 const pendingCount = computed(() => pendingPosts.value.length);
 </script>

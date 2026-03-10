@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   Card,
   CardContent,
@@ -107,15 +107,33 @@ function onViewRange(from: Date, to: Date) {
   fetchEvents(from, to);
 }
 
-onMounted(async () => {
+async function loadCalendarPage() {
   if (!guildId.value) return;
+
+  events.value = [];
+  myPermissionSlugs.value = [];
+  myCharactersInGuild.value = [];
+  loadingMyCharacters.value = false;
+  modalOpen.value = false;
+  modalEditingId.value = null;
+  viewModalOpen.value = false;
+  viewEvent.value = null;
+  deleteConfirmOpen.value = false;
+  eventToDelete.value = null;
+  editingEvent.value = null;
+  formError.value = '';
+
   try {
     const guild = await guildsApi.getGuildForSettings(guildId.value);
     myPermissionSlugs.value = guild.my_permission_slugs ?? [];
   } catch {
     myPermissionSlugs.value = [];
   }
-});
+
+  if (viewRangeFrom.value && viewRangeTo.value) {
+    await fetchEvents(viewRangeFrom.value, viewRangeTo.value);
+  }
+}
 
 /**
  * Разворачивает повторяющиеся события в отдельные вхождения по дням в заданном диапазоне.
@@ -388,6 +406,10 @@ function handleSelectDate(date: Date) {
 function handleClickEvent(event: CalendarEvent) {
   openEvent(event);
 }
+
+watch(guildId, () => {
+  loadCalendarPage();
+}, { immediate: true });
 </script>
 
 <template>

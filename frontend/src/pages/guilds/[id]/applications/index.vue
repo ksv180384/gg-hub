@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
@@ -28,7 +28,13 @@ function goToApplication(appId: number) {
   router.push({ name: 'guild-application-show', params: { id: String(guildId.value), applicationId: String(appId) } });
 }
 
-onMounted(async () => {
+async function loadApplications() {
+  applications.value = [];
+  meta.value = { current_page: 1, last_page: 1, per_page: 20, total: 0 };
+  loading.value = true;
+  error.value = null;
+  noAccess.value = false;
+
   if (!guildId.value || Number.isNaN(guildId.value)) {
     error.value = 'Неверная ссылка.';
     loading.value = false;
@@ -51,7 +57,11 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+}
+
+watch(guildId, () => {
+  loadApplications();
+}, { immediate: true });
 </script>
 
 <template>
