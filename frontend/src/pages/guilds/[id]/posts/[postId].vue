@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle, Button, PostCard } from '@/shared/ui';
+import type { ApiError } from '@/shared/api/errors';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { computed, onMounted, ref } from 'vue';
@@ -25,16 +26,29 @@ const isPendingInGuild = computed(
   () => post.value?.status_guild === 'pending'
 );
 
+function redirectToGuildPosts() {
+  router.replace({
+    name: 'guild-show',
+    params: { id: String(guildId.value) },
+  });
+}
+
 async function loadData() {
   loading.value = true;
   error.value = null;
   try {
     if (!guildId.value || !postId.value) {
-      throw new Error('Некорректный идентификатор гильдии или поста.');
+      redirectToGuildPosts();
+      return;
     }
     guild.value = await guildsApi.getGuildForSettings(guildId.value);
     post.value = await postsApi.getGuildPost(guildId.value, postId.value);
   } catch (e) {
+    const apiError = e as ApiError;
+    if (apiError?.status === 403 || apiError?.status === 404) {
+      redirectToGuildPosts();
+      return;
+    }
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить пост';
   } finally {
     loading.value = false;

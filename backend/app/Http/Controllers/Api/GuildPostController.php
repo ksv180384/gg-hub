@@ -9,6 +9,7 @@ use App\Actions\Notification\CreatePostGuildRejectedNotificationAction;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\ListGuildPendingPostsForModerationAction;
 use Domains\Post\Actions\ListGuildPostsForJournalAction;
+use Domains\Post\Actions\CanViewGuildPostAction;
 use Domains\Post\Actions\PublishGuildPostAction;
 use Domains\Post\Actions\RejectGuildPostAction;
 use Domains\Post\Models\Post;
@@ -21,6 +22,7 @@ class GuildPostController extends Controller
     public function __construct(
         private ListGuildPostsForJournalAction $listGuildPostsForJournalAction,
         private ListGuildPendingPostsForModerationAction $listGuildPendingPostsForModerationAction,
+        private CanViewGuildPostAction $canViewGuildPostAction,
         private PublishGuildPostAction $publishGuildPostAction,
         private RejectGuildPostAction $rejectGuildPostAction,
         private CreatePostGuildPublishedNotificationAction $createPostGuildPublishedNotificationAction,
@@ -48,9 +50,9 @@ class GuildPostController extends Controller
     /**
      * Полная версия одного поста гильдии.
      */
-    public function show(Guild $guild, Post $post): JsonResponse
+    public function show(Request $request, Guild $guild, Post $post): JsonResponse
     {
-        if ((int) $post->guild_id !== (int) $guild->id) {
+        if (! ($this->canViewGuildPostAction)($request->user(), $guild, $post)) {
             abort(404);
         }
 
