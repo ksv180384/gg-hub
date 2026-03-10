@@ -41,6 +41,7 @@ class UpdateCharacterRequest extends FormRequest
             ],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'remove_avatar' => ['nullable', 'boolean'],
+            'use_profile_avatar' => ['nullable', 'boolean'],
             'is_main' => ['nullable', 'boolean'],
             'game_class_ids' => ['nullable', 'array', 'max:' . $maxClasses],
             'tag_ids' => ['nullable', 'array'],

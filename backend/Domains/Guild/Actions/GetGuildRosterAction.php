@@ -33,6 +33,7 @@ final class GetGuildRosterAction
             ->with([
                 'character.gameClasses',
                 'character.tags',
+                'character.user',
                 'guildRole',
             ])
             ->orderBy('joined_at')

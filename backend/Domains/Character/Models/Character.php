@@ -3,6 +3,8 @@
 namespace Domains\Character\Models;
 
 use App\Models\User;
+use App\Services\CharacterAvatarService;
+use App\Services\UserAvatarService;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
 
 class Character extends Model
 {
@@ -26,12 +29,14 @@ class Character extends Model
         'server_id',
         'name',
         'avatar',
+        'use_profile_avatar',
         'is_main',
     ];
 
     protected function casts(): array
     {
         return [
+            'use_profile_avatar' => 'boolean',
             'is_main' => 'boolean',
         ];
     }
@@ -71,5 +76,22 @@ class Character extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'character_tag');
+    }
+
+    public function getResolvedAvatarUrlAttribute(): ?string
+    {
+        if ($this->use_profile_avatar && $this->user?->avatar) {
+            return Storage::disk('public')->url(
+                UserAvatarService::smallPath($this->user->avatar)
+            );
+        }
+
+        if ($this->avatar) {
+            return Storage::disk('public')->url(
+                CharacterAvatarService::smallPath($this->avatar)
+            );
+        }
+
+        return null;
     }
 }

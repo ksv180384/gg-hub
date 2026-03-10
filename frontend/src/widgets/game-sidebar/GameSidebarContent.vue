@@ -31,7 +31,7 @@ const guildsLoading = ref(false);
 const openGuildIds = ref<Set<number>>(new Set());
 
 const guildSubmenuItems: { pathSuffix: string; label: string }[] = [
-  { pathSuffix: '', label: 'Журнал гильдии' },
+  { pathSuffix: '/posts', label: 'Журнал гильдии' },
   { pathSuffix: '/settings', label: 'Информация' },
   { pathSuffix: '/roster', label: 'Состав' },
   { pathSuffix: '/raids', label: 'Рейды|Группы|КП' },

@@ -8,6 +8,7 @@ enum PostStatus: string
     case Published = 'published';
     case Draft = 'draft';
     case Hidden = 'hidden';
+    case Rejected = 'rejected';
 
     /**
      * @return string[]

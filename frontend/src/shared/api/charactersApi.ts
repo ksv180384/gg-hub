@@ -13,6 +13,7 @@ export interface Character {
   name: string;
   avatar: string | null;
   avatar_url: string | null;
+  use_profile_avatar?: boolean;
   is_main: boolean;
   game_id: number;
   localization_id: number;
@@ -33,6 +34,7 @@ export interface CreateCharacterPayload {
   localization_id: number;
   server_id: number;
   avatar?: File | null;
+  use_profile_avatar?: boolean;
   game_class_ids?: number[];
   tag_ids?: number[];
 }
@@ -43,6 +45,7 @@ export interface UpdateCharacterPayload {
   server_id: number;
   avatar?: File | null;
   remove_avatar?: boolean;
+  use_profile_avatar?: boolean;
   is_main?: boolean;
   game_class_ids?: number[];
   tag_ids?: number[];
@@ -141,6 +144,7 @@ export const charactersApi = {
     form.append('localization_id', String(payload.localization_id));
     form.append('server_id', String(payload.server_id));
     if (payload.avatar) form.append('avatar', payload.avatar);
+    if (payload.use_profile_avatar !== undefined) form.append('use_profile_avatar', payload.use_profile_avatar ? '1' : '0');
     (payload.game_class_ids ?? []).forEach((id) => form.append('game_class_ids[]', String(id)));
     (payload.tag_ids ?? []).forEach((id) => form.append('tag_ids[]', String(id)));
     const res = await http.fetchPost<CharacterResponse | Character>('/characters', form);
@@ -160,6 +164,7 @@ export const charactersApi = {
     form.append('localization_id', String(payload.localization_id));
     form.append('server_id', String(payload.server_id));
     if (payload.remove_avatar) form.append('remove_avatar', '1');
+    if (payload.use_profile_avatar !== undefined) form.append('use_profile_avatar', payload.use_profile_avatar ? '1' : '0');
     if (payload.is_main !== undefined) form.append('is_main', payload.is_main ? '1' : '0');
     if (payload.avatar) form.append('avatar', payload.avatar);
     (payload.game_class_ids ?? []).forEach((id) => form.append('game_class_ids[]', String(id)));

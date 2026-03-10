@@ -35,7 +35,7 @@ class UpdateProfileRequest extends FormRequest
             'timezone.timezone' => 'Укажите корректный часовой пояс.',
             'avatar.image' => 'Файл должен быть изображением.',
             'avatar.mimes' => 'Допустимые форматы: jpeg, png, jpg, gif, webp.',
-            'avatar.max' => 'Размер изображения не должен превышать 2 МБ.',
+            'avatar.max' => 'Размер изображения не должен превышать 5 МБ.',
         ];
     }
 }

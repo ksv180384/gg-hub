@@ -25,6 +25,9 @@ class CreateCharacterAction
         $gameClassIds = $data['game_class_ids'] ?? [];
         $tagIds = $data['tag_ids'] ?? [];
         unset($data['avatar'], $data['game_class_ids'], $data['tag_ids']);
+        if (isset($data['use_profile_avatar'])) {
+            $data['use_profile_avatar'] = (bool) $data['use_profile_avatar'];
+        }
         $character = $this->characterRepository->create($data);
         $character->gameClasses()->sync(is_array($gameClassIds) ? $gameClassIds : []);
         $character->tags()->sync(is_array($tagIds) ? array_map('intval', $tagIds) : []);

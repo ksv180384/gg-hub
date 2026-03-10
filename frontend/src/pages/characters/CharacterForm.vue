@@ -48,6 +48,7 @@ const newTagInputRef = ref<HTMLInputElement | null>(null);
 const avatarFile = ref<File | null>(null);
 const avatarPreview = ref<string | null>(null);
 const removeAvatar = ref(false);
+const useProfileAvatar = ref(false);
 const isMain = ref(false);
 const formSaving = ref(false);
 const formError = ref('');
@@ -102,6 +103,7 @@ function resetForm(editing: Character | null) {
     avatarFile.value = null;
     avatarPreview.value = null;
     removeAvatar.value = false;
+    useProfileAvatar.value = editing.use_profile_avatar ?? false;
     isMain.value = editing.is_main ?? false;
     serverId.value = '';
     nextTick().then(() => {
@@ -116,6 +118,7 @@ function resetForm(editing: Character | null) {
     avatarFile.value = null;
     avatarPreview.value = null;
     removeAvatar.value = false;
+    useProfileAvatar.value = false;
     isMain.value = false;
   }
   serverSearch.value = '';
@@ -256,6 +259,7 @@ async function submitForm() {
         localization_id: Number(localizationId.value),
         server_id: Number(serverId.value),
         remove_avatar: removeAvatar.value,
+        use_profile_avatar: useProfileAvatar.value,
         is_main: isMain.value,
         game_class_ids: selectedClassIds.value,
         tag_ids: selectedTagIds.value,
@@ -268,6 +272,7 @@ async function submitForm() {
         name: name.value.trim(),
         localization_id: Number(localizationId.value),
         server_id: Number(serverId.value),
+        use_profile_avatar: useProfileAvatar.value,
         game_class_ids: selectedClassIds.value,
         tag_ids: selectedTagIds.value,
       };
@@ -508,9 +513,13 @@ async function submitForm() {
         </template>
       </div>
       <div class="flex flex-wrap items-center gap-3 text-sm">
+        <label class="flex cursor-pointer items-center gap-2 text-muted-foreground">
+          <input v-model="useProfileAvatar" type="checkbox" class="h-4 w-4 rounded border-input" />
+          Использовать аватар профиля
+        </label>
         <label
           v-if="editingCharacter != null && (avatarDisplayUrl || removeAvatar)"
-          class="flex items-center gap-2 text-muted-foreground"
+          class="flex cursor-pointer items-center gap-2 text-muted-foreground"
         >
           <input v-model="removeAvatar" type="checkbox" class="rounded border-input" />
           Удалить аватар

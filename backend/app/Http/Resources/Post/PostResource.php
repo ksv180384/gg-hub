@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources\Post;
 
+use App\Http\Resources\Character\CharacterResource;
+use App\Services\UserAvatarService;
 use Domains\Post\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 /** @mixin Post */
 class PostResource extends JsonResource
@@ -14,10 +17,32 @@ class PostResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $character = $this->whenLoaded('character');
+        $user = $this->whenLoaded('user');
+
+        $authorName = null;
+        $authorAvatarUrl = null;
+
+        if ($character) {
+            $authorName = $character->name ?? null;
+            $authorAvatarUrl = $character->resolved_avatar_url;
+        }
+
+        if ($authorName === null && $user) {
+            $authorName = $user->name ?? null;
+        }
+
+        if ($authorAvatarUrl === null && $user?->avatar) {
+            $authorAvatarUrl = Storage::disk('public')->url(
+                UserAvatarService::smallPath($user->avatar)
+            );
+        }
+
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
             'character_id' => $this->character_id,
+            'character' => new CharacterResource($this->whenLoaded('character')),
             'guild_id' => $this->guild_id,
             'game_id' => $this->game_id,
             'title' => $this->title,
@@ -33,6 +58,8 @@ class PostResource extends JsonResource
             'published_at_guild' => $this->published_at_guild?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
+            'author_name' => $authorName,
+            'author_avatar_url' => $authorAvatarUrl,
         ];
     }
 }

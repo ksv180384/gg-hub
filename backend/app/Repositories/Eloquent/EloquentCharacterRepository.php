@@ -13,7 +13,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
     {
         return Character::query()
             ->where('game_id', $gameId)
-            ->with(['localization', 'server', 'gameClasses'])
+            ->with(['localization', 'server', 'gameClasses', 'user'])
             ->orderBy('name')
             ->get();
     }
@@ -23,7 +23,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
         return Character::query()
             ->where('id', $id)
             ->where('game_id', $gameId)
-            ->with(['game', 'localization', 'server', 'gameClasses', 'tags', 'guildMember.guild'])
+            ->with(['game', 'localization', 'server', 'gameClasses', 'tags', 'guildMember.guild', 'user'])
             ->first();
     }
 
@@ -31,7 +31,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
     {
         $query = Character::query()
             ->where('user_id', $userId)
-            ->with(['game', 'localization', 'server', 'gameClasses', 'tags', 'guildMember.guild']);
+            ->with(['game', 'localization', 'server', 'gameClasses', 'tags', 'guildMember.guild', 'user']);
         if ($gameId !== null) {
             $query->where('game_id', $gameId);
         }
@@ -50,7 +50,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
             ->where('server_id', $serverId)
             ->whereDoesntHave('guildMember')
             ->whereNotIn('id', $leaderIds)
-            ->with(['game', 'localization', 'server', 'gameClasses', 'tags'])
+            ->with(['game', 'localization', 'server', 'gameClasses', 'tags', 'user'])
             ->get();
     }
 
@@ -59,7 +59,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
         return Character::query()
             ->where('id', $id)
             ->where('user_id', $userId)
-            ->with(['game', 'localization', 'server', 'gameClasses', 'tags', 'guildMember.guild'])
+            ->with(['game', 'localization', 'server', 'gameClasses', 'tags', 'guildMember.guild', 'user'])
             ->first();
     }
 

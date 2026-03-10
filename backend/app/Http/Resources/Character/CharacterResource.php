@@ -7,11 +7,9 @@ use App\Http\Resources\Game\GameResource;
 use App\Http\Resources\Game\LocalizationResource;
 use App\Http\Resources\Game\ServerResource;
 use App\Http\Resources\Tag\TagResource;
-use App\Services\CharacterAvatarService;
 use Domains\Character\Models\Character;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /** @mixin Character */
 class CharacterResource extends JsonResource
@@ -21,17 +19,13 @@ class CharacterResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $avatarUrl = null;
-        if ($this->avatar) {
-            $avatarUrl = Storage::disk('public')->url(CharacterAvatarService::smallPath($this->avatar));
-        }
-
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
             'name' => $this->name,
             'avatar' => $this->avatar,
-            'avatar_url' => $avatarUrl,
+            'use_profile_avatar' => (bool) $this->use_profile_avatar,
+            'avatar_url' => $this->resolved_avatar_url,
             'is_main' => (bool) ($this->is_main ?? false),
             'game_id' => $this->game_id,
             'localization_id' => $this->localization_id,

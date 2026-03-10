@@ -42,6 +42,7 @@ class StoreCharacterRequest extends FormRequest
                 Rule::unique('characters')->where('server_id', $this->input('server_id')),
             ],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+            'use_profile_avatar' => ['nullable', 'boolean'],
             'game_class_ids' => ['nullable', 'array', 'max:' . $maxClasses],
             'game_class_ids.*' => ['integer', Rule::exists('game_classes', 'id')->where('game_id', $gameId)],
             'tag_ids' => ['nullable', 'array'],

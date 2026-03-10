@@ -27,6 +27,9 @@ class UpdateCharacterAction
         $tagIds = $data['tag_ids'] ?? null;
         $isMain = isset($data['is_main']) ? (bool) $data['is_main'] : null;
         unset($data['avatar'], $data['remove_avatar'], $data['game_class_ids'], $data['tag_ids'], $data['is_main']);
+        if (array_key_exists('use_profile_avatar', $data)) {
+            $data['use_profile_avatar'] = (bool) $data['use_profile_avatar'];
+        }
         if ($isMain === true) {
             Character::query()
                 ->where('user_id', $character->user_id)

@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
 use App\Http\Resources\Post\PostResource;
-use App\Models\Guild;
+use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\ApplyPostModerationRulesAction;
 use Domains\Post\Actions\BuildPostDataFromRequestAction;
 use Domains\Post\Actions\CreatePostAction;
@@ -33,6 +33,7 @@ class PostController extends Controller
     {
         $posts = Post::query()
             ->where('user_id', $request->user()->id)
+            ->with(['character', 'character.user', 'user'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -60,10 +61,12 @@ class PostController extends Controller
         if ($result['notify_guild_id'] !== null) {
             $guild = Guild::query()->find($result['notify_guild_id']);
             if ($guild) {
-                $link = '/guilds/' . $guild->id . '/posts';
+                $link = '/guilds/' . $guild->id . '/posts/' .  $post->id;
                 ($this->createPostPendingGuildModerationNotificationAction)($guild, $post, $link);
             }
         }
+
+        $post->loadMissing(['character', 'character.user', 'user']);
 
         return new PostResource($post);
     }
@@ -76,6 +79,8 @@ class PostController extends Controller
         if ($post->user_id !== $request->user()->id) {
             abort(404);
         }
+
+        $post->loadMissing(['character', 'character.user', 'user']);
 
         return new PostResource($post);
     }
@@ -96,13 +101,14 @@ class PostController extends Controller
         $data = $result['data'];
 
         $post = ($this->updatePostAction)($post, $data);
+        $post->loadMissing(['character', 'character.user', 'user']);
 
         // Уведомляем модераторов только при новом переводе поста на модерацию (не при каждом сохранении уже ожидающего)
         $wasAlreadyPending = $previousStatusGuild === 'pending';
         if ($result['notify_guild_id'] !== null && !$wasAlreadyPending) {
             $guild = Guild::query()->find($result['notify_guild_id']);
             if ($guild) {
-                $link = '/guilds/' . $guild->id . '/posts';
+                $link = '/guilds/' . $guild->id . '/posts/' . $post->id;
                 ($this->createPostPendingGuildModerationNotificationAction)($guild, $post, $link);
             }
         }

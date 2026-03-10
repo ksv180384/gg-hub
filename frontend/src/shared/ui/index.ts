@@ -8,6 +8,7 @@ export * from './multi-select';
 export * from './select';
 export { default as Sheet } from './sheet/Sheet.vue';
 export { default as Avatar } from './avatar/Avatar.vue';
+export { default as PostCard } from './post/PostCard.vue';
 export * from './calendar';
 export { default as Badge } from './badge/Badge.vue';
 export { default as Skeleton } from './skeleton/Skeleton.vue';

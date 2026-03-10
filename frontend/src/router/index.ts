@@ -33,9 +33,15 @@ const router = createRouter({
           meta: { requiresAuth: true, title: 'Мои заявки и приглашения' },
         },
         {
-          path: 'guilds/:id',
+          path: 'guilds/:id/posts',
           name: 'guild-show',
           component: () => import('@/pages/guilds/[id]/index.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'guilds/:id/posts/:postId',
+          name: 'guild-post-show',
+          component: () => import('@/pages/guilds/[id]/posts/[postId].vue'),
           meta: { requiresAuth: true },
         },
         {
