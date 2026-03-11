@@ -5,6 +5,7 @@ namespace Domains\Post\Actions;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Enums\PostVisibilityType;
 use Illuminate\Http\Request;
+use Stevebauman\Purify\Facades\Purify;
 
 class BuildPostDataFromRequestAction
 {
@@ -56,12 +57,18 @@ class BuildPostDataFromRequestAction
             $statusGuild = 'hidden';
         }
 
+        $body = $request->input('body') ?? '';
+        $body = app(FixPostBodyHtmlAction::class)($body);
+        $body = Purify::config('guild_rich_text')->clean($body);
+        $preview = app(BuildPostPreviewAction::class)($body);
+
         return [
             'character_id' => $request->input('character_id'),
             'guild_id' => $request->input('guild_id'),
             'game_id' => $request->input('game_id'),
             'title' => $request->input('title'),
-            'body' => $request->input('body'),
+            'preview' => $preview,
+            'body' => $body,
 
             'is_visible_global' => $isVisibleGlobal,
             'is_visible_guild' => $isVisibleGuild,

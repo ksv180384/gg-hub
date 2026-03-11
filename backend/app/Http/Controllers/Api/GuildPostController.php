@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Post\PostListResource;
 use App\Http\Resources\Post\PostResource;
 use App\Actions\Notification\CreatePostGuildPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGuildRejectedNotificationAction;
@@ -46,7 +47,7 @@ class GuildPostController extends Controller
 
         $posts->loadMissing(['character', 'character.user', 'user']);
 
-        return PostResource::collection($posts);
+        return PostListResource::collection($posts);
     }
 
     /**
@@ -82,7 +83,7 @@ class GuildPostController extends Controller
 
         $posts->loadMissing(['character', 'character.user', 'user']);
 
-        return PostResource::collection($posts);
+        return PostListResource::collection($posts);
     }
 
     /**
@@ -111,6 +112,21 @@ class GuildPostController extends Controller
         $post->loadMissing(['character', 'character.user', 'user']);
 
         return response()->json(new PostResource($post));
+    }
+
+    /**
+     * Засчитать просмотр поста (например, при воспроизведении видео в превью).
+     */
+    public function recordView(Request $request, Guild $guild, Post $post): JsonResponse
+    {
+        if (! ($this->canViewGuildPostAction)($request->user(), $guild, $post)) {
+            abort(404);
+        }
+
+        $sessionId = $request->session()?->getId() ?? '';
+        $recorded = ($this->recordPostViewAction)($post, $request->user(), $sessionId);
+
+        return response()->json(['ok' => true, 'recorded' => $recorded]);
     }
 }
 

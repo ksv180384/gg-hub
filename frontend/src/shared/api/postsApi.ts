@@ -5,35 +5,30 @@
 import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 
-export interface PostCharacter {
-  id: number;
-  name: string;
-  avatar_url: string | null;
-}
-
 export interface Post {
   id: number;
-  user_id: number;
-  character_id: number | null;
-  character?: PostCharacter | null;
-  guild_id: number | null;
-  game_id: number | null;
   title: string | null;
-  body: string;
-  is_visible_global: boolean;
-  is_visible_guild: boolean;
-  is_anonymous: boolean;
-  is_global_as_guild: boolean;
+  preview: string | null;
   status_global: string | null;
   status_guild: string | null;
-  is_hidden: boolean;
+  is_visible_global: boolean;
+  is_visible_guild: boolean;
   published_at_global: string | null;
   published_at_guild: string | null;
+  created_at: string;
+  updated_at: string;
   author_name?: string | null;
   author_avatar_url?: string | null;
   views_count?: number;
-  created_at: string;
-  updated_at: string;
+  /** Полный текст — только при запросе одного поста. В списках отсутствует. */
+  body?: string;
+  /** Только для формы редактирования (single post). */
+  character_id?: number | null;
+  guild_id?: number | null;
+  game_id?: number | null;
+  is_anonymous?: boolean;
+  is_global_as_guild?: boolean;
+  is_hidden?: boolean;
 }
 
 export interface PostsListResponse {
@@ -154,6 +149,19 @@ export const postsApi = {
       return (data as { data: Post }).data;
     }
     return data as Post;
+  },
+
+  /**
+   * Засчитать просмотр поста (например, при воспроизведении видео в превью).
+   * Бэкенд: POST /guilds/{guild}/posts/{post}/view
+   * @returns true, если просмотр засчитан впервые; false, если уже был учтён
+   */
+  async recordGuildPostView(guildId: number, postId: number): Promise<boolean> {
+    const res = await http.fetchPost<{ ok?: boolean; recorded?: boolean }>(
+      `/guilds/${guildId}/posts/${postId}/view`,
+      {}
+    );
+    return res.data?.recorded === true;
   },
 
   /**

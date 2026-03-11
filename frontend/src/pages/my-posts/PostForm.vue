@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Separator, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Separator, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem, RichTextEditor } from '@/shared/ui';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { guildsApi, type UserGuildItem } from '@/shared/api/guildsApi';
@@ -42,6 +42,7 @@ const isVisibleGuild = ref<boolean>(false);
 const globalVisibilityType = ref<'anonymous' | 'guild' | null>(null);
 const status = ref<'published' | 'draft' | 'hidden'>('draft');
 
+const bodyPreviewMode = ref(false);
 const loading = ref(false);
 const loadError = ref<string | null>(null);
 const submitError = ref<string | null>(null);
@@ -75,7 +76,7 @@ async function loadInitialData() {
     if (isEdit.value && effectivePostId.value) {
       const post: Post = await postsApi.getPost(effectivePostId.value);
       title.value = post.title ?? '';
-      body.value = post.body;
+      body.value = post.body?.startsWith('<') ? post.body : `<p>${(post.body || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`;
       characterId.value = post.character_id;
       guildId.value = post.guild_id;
       isVisibleGlobal.value = post.is_visible_global;
@@ -140,8 +141,23 @@ const canPublishGlobalAsGuild = computed(() => {
   return slugs.includes('sozdavat-posty-ot-imeni-gildii');
 });
 
+function isBodyEmpty(html: string): boolean {
+  const trimmed = html.trim();
+  if (!trimmed) return true;
+  // Есть текст (без тегов)
+  const stripped = trimmed.replace(/<[^>]*>/g, '').trim();
+  if (stripped) return false;
+  // Только теги — считаем непустым, если есть видео (YouTube, VK)
+  const hasVideo =
+    trimmed.includes('data-video-embed') ||
+    trimmed.includes('<iframe') ||
+    trimmed.includes('youtube.com/embed') ||
+    trimmed.includes('vk.com/video_ext');
+  return !hasVideo;
+}
+
 async function submit() {
-  if (!body.value.trim()) {
+  if (isBodyEmpty(body.value)) {
     submitError.value = 'Введите текст поста.';
     return;
   }
@@ -265,14 +281,46 @@ onMounted(() => {
             <Input id="title" v-model="title" placeholder="Например, «Советы по рейдам в пятницу»" />
           </div>
           <div class="space-y-2">
-            <Label for="body">Текст поста</Label>
-            <textarea
-              id="body"
-              v-model="body"
-              rows="6"
-              class="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Напишите текст вашего поста…"
-            />
+            <div class="flex flex-wrap items-center gap-2 border-b border-border pb-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                :class="{ 'bg-muted': !bodyPreviewMode }"
+                @click="bodyPreviewMode = false"
+              >
+                Редактирование
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                :class="{ 'bg-muted': bodyPreviewMode }"
+                @click="bodyPreviewMode = true"
+              >
+                Предпросмотр
+              </Button>
+            </div>
+            <Label for="body">Текст поста *</Label>
+            <div v-show="!bodyPreviewMode">
+              <RichTextEditor
+                id="body"
+                v-model="body"
+                placeholder="Напишите текст вашего поста…"
+                :disabled="loading"
+              />
+            </div>
+            <div
+              v-show="bodyPreviewMode"
+              class="min-h-[200px] rounded-md border border-input bg-muted/30 px-3 py-3 text-sm"
+            >
+              <div
+                v-if="body"
+                class="prose prose-sm max-w-none text-muted-foreground dark:prose-invert [&_p]:my-2 [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600/40 [&_a]:underline-offset-2 hover:[&_a]:text-blue-700 dark:[&_a]:text-blue-400 dark:hover:[&_a]:text-blue-300 dark:[&_a]:decoration-blue-400/50 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_ol]:space-y-1 [&_li]:my-0.5"
+                v-html="body"
+              />
+              <p v-else class="text-muted-foreground">Нет текста. Переключитесь в режим редактирования и добавьте описание.</p>
+            </div>
           </div>
           <div>
             <Label for="character">Персонаж (от кого пишете)</Label>

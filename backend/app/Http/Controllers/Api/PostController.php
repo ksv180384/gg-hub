@@ -6,6 +6,7 @@ use App\Actions\Notification\CreatePostPendingGuildModerationNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
+use App\Http\Resources\Post\PostListResource;
 use App\Http\Resources\Post\PostResource;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\ApplyPostModerationRulesAction;
@@ -37,7 +38,7 @@ class PostController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return PostResource::collection($posts);
+        return PostListResource::collection($posts);
     }
 
     /**
@@ -54,7 +55,7 @@ class PostController extends Controller
 
         $data['user_id'] = $user->id;
         $data['published_at_global'] = null;
-        $data['published_at_guild'] = null;
+        // published_at_guild задаётся в ApplyPostModerationRulesAction (now при праве publikovat-post, null при модерации)
 
         $post = ($this->createPostAction)($data);
 

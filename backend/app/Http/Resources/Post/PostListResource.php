@@ -9,11 +9,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Ресурс одного поста. Только поля, нужные для отображения и формы редактирования.
+ * Ресурс поста для списков. Только поля, нужные для отображения.
  *
  * @mixin Post
  */
-class PostResource extends JsonResource
+class PostListResource extends JsonResource
 {
     /**
      * @return array<string, mixed>
@@ -45,17 +45,10 @@ class PostResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'preview' => $this->preview,
-            'body' => $this->body,
-            'character_id' => $this->character_id,
-            'guild_id' => $this->guild_id,
-            'game_id' => $this->game_id,
-            'is_visible_global' => $this->is_visible_global,
-            'is_visible_guild' => $this->is_visible_guild,
-            'is_anonymous' => $this->is_anonymous,
-            'is_global_as_guild' => $this->is_global_as_guild,
             'status_global' => $this->status_global,
             'status_guild' => $this->status_guild,
-            'is_hidden' => $this->is_hidden,
+            'is_visible_global' => $this->is_visible_global,
+            'is_visible_guild' => $this->is_visible_guild,
             'published_at_global' => $this->published_at_global?->toIso8601String(),
             'published_at_guild' => $this->published_at_guild?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),

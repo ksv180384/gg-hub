@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Post;
 
-use App\Models\Guild;
+use Domains\Guild\Models\Guild;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Enums\PostVisibilityType;

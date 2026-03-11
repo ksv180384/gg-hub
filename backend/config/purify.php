@@ -51,13 +51,15 @@ return [
         ],
 
         /*
-         * «О гильдии» и «Устав»: сохраняются размер, выравнивание и обтекание картинок.
+         * «О гильдии», «Устав», посты: размер/выравнивание картинок, видео YouTube и VK.
          */
         'guild_rich_text' => [
             'Core.Encoding' => 'utf-8',
             'HTML.Doctype' => 'HTML 4.01 Transitional',
-            'HTML.Allowed' => 'h1,h2,h3,h4,h5,h6,b,u,strong,i,em,s,del,a[href|title|target|rel],ul,ol,li,p[style],br,span[style],img[width|height|alt|src|style|data-width|data-align|data-wrap],blockquote',
+            'HTML.Allowed' => 'h1,h2,h3,h4,h5,h6,b,u,strong,i,em,s,del,a[href|title|target|rel],ul,ol,li,p[style],br,span[style],img[width|height|alt|src|style|data-width|data-align|data-wrap],blockquote,div[data-video-embed|data-src|data-width|data-height|style|class],iframe[src|width|height|frameborder|allow|allowfullscreen|title]',
             'HTML.ForbiddenElements' => '',
+            'HTML.SafeIframe' => true,
+            'URI.SafeIframeRegexp' => '%^(https?:)?//(www\.youtube(?:-nocookie)?\.com/embed/|vk\.com/video_ext\.php)%',
             'CSS.AllowedProperties' => 'font,font-size,font-weight,font-style,font-family,text-decoration,padding-left,padding-right,padding-top,padding-bottom,margin,max-width,width,float,text-align,color,background-color,margin-left,margin-right',
             'AutoFormat.AutoParagraph' => false,
             'AutoFormat.RemoveEmpty' => false,

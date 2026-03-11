@@ -61,6 +61,12 @@ watch(guildId, () => {
 }, { immediate: true });
 
 const pendingCount = computed(() => pendingPosts.value.length);
+
+function onViewRecorded(postId: number) {
+  const p = publishedPosts.value.find((x) => x.id === postId)
+    ?? pendingPosts.value.find((x) => x.id === postId);
+  if (p) p.views_count = (p.views_count ?? 0) + 1;
+}
 </script>
 
 <template>
@@ -105,8 +111,11 @@ const pendingCount = computed(() => pendingPosts.value.length);
           v-for="post in pendingPosts"
           :key="post.id"
           :post="post"
+          :guild-id="guildId"
           date-type="guild"
+          show-preview
           @titleClick="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+          @view-recorded="onViewRecorded(post.id)"
         />
       </div>
     </template>
@@ -120,8 +129,11 @@ const pendingCount = computed(() => pendingPosts.value.length);
           v-for="post in publishedPosts"
           :key="post.id"
           :post="post"
+          :guild-id="guildId"
           date-type="guild"
+          show-preview
           @titleClick="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+          @view-recorded="onViewRecorded(post.id)"
         />
       </div>
     </template>

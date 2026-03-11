@@ -99,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/guilds/{guild}/posts', [GuildPostController::class, 'index'])->middleware('guild.member');
     Route::get('/guilds/{guild}/posts/pending', [GuildPostController::class, 'pending'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::get('/guilds/{guild}/posts/{post}', [GuildPostController::class, 'show']);
+    Route::post('/guilds/{guild}/posts/{post}/view', [GuildPostController::class, 'recordView']);
     Route::post('/guilds/{guild}/posts/{post}/publish', [GuildPostController::class, 'publish'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::post('/guilds/{guild}/posts/{post}/reject', [GuildPostController::class, 'reject'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::post('/guilds/{guild}/leave', [GuildController::class, 'leave'])->middleware('guild.member');

@@ -25,6 +25,7 @@ import {
 } from '@/shared/ui';
 import { cn } from '@/shared/lib/utils';
 import { ImageWithSizeAlign } from './image-extended';
+import { VideoEmbed, parseVideoUrl } from './video-embed';
 
 const props = withDefaults(
   defineProps<{
@@ -44,8 +45,11 @@ const currentFontSize = ref('default');
 
 const linkDialogOpen = ref(false);
 const imageDialogOpen = ref(false);
+const videoDialogOpen = ref(false);
 const linkUrlInput = ref('');
 const imageUrlInput = ref('');
+const videoUrlInput = ref('');
+const videoUrlError = ref('');
 
 const fontSizeOptions = [
   { value: 'default', label: 'Обычный' },
@@ -68,12 +72,13 @@ const editor = useEditor({
     Underline,
     Link.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener' } }),
     ImageWithSizeAlign,
+    VideoEmbed.configure({ width: 640, height: 360 }),
   ],
   editable: !props.disabled,
   editorProps: {
     attributes: {
       class:
-        'min-h-[280px] w-full px-3 py-2 text-sm outline-none prose prose-sm max-w-none dark:prose-invert [&_p]:my-2 first:[&_p]:mt-0 last:[&_p]:mb-0 [&_img]:max-w-full [&_img[data-wrap="left"]]:float-left [&_img[data-wrap="left"]]:mr-4 [&_img[data-wrap="left"]]:mb-2 [&_img[data-wrap="right"]]:float-right [&_img[data-wrap="right"]]:ml-4 [&_img[data-wrap="right"]]:mb-2 [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600/40 [&_a]:underline-offset-2 hover:[&_a]:text-blue-700 dark:[&_a]:text-blue-400 dark:hover:[&_a]:text-blue-300 dark:[&_a]:decoration-blue-400/50 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_ol]:space-y-1 [&_li]:my-0.5',
+        'min-h-[280px] w-full px-3 py-2 text-sm outline-none prose prose-sm max-w-none dark:prose-invert [&_p]:my-2 first:[&_p]:mt-0 last:[&_p]:mb-0 [&_img]:max-w-full [&_img[data-wrap="left"]]:float-left [&_img[data-wrap="left"]]:mr-4 [&_img[data-wrap="left"]]:mb-2 [&_img[data-wrap="right"]]:float-right [&_img[data-wrap="right"]]:ml-4 [&_img[data-wrap="right"]]:mb-2 [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600/40 [&_a]:underline-offset-2 hover:[&_a]:text-blue-700 dark:[&_a]:text-blue-400 dark:hover:[&_a]:text-blue-300 dark:[&_a]:decoration-blue-400/50 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_ol]:space-y-1 [&_li]:my-0.5 [&_.video-embed-wrapper]:my-4 [&_.video-embed-wrapper_iframe]:rounded-lg [&_.video-embed-wrapper_iframe]:max-w-full',
     },
   },
   onUpdate: ({ editor }) => {
@@ -131,6 +136,63 @@ function openImageDialog() {
   if (!editor.value || props.disabled) return;
   imageUrlInput.value = imageUrl.value || 'https://';
   imageDialogOpen.value = true;
+}
+
+function openVideoDialog() {
+  if (!editor.value || props.disabled) return;
+  videoUrlInput.value = '';
+  videoUrlError.value = '';
+  videoDialogOpen.value = true;
+}
+
+function extractSrcFromPastedIframe(pastedText: string): string | null {
+  // Ищем src="..." или src='...' в iframe
+  const m =
+    pastedText.match(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/i) ??
+    pastedText.match(/src\s*=\s*["'](https?:\/\/[^"']+)["']/i);
+  return m ? m[1] : null;
+}
+
+async function onVideoUrlPaste(e: ClipboardEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  let pasted =
+    e.clipboardData?.getData('text/html') ||
+    e.clipboardData?.getData('text/plain');
+
+  if (!pasted && navigator.clipboard?.readText) {
+    try {
+      pasted = await navigator.clipboard.readText();
+    } catch {
+      // clipboard API недоступен
+    }
+  }
+
+  if (pasted) {
+    const src = extractSrcFromPastedIframe(pasted);
+    if (src && (src.includes('youtube') || src.includes('vk.com'))) {
+      videoUrlInput.value = src;
+      videoUrlError.value = '';
+    } else {
+      // Не iframe — вставляем как есть (отменяем preventDefault уже поздно, вставляем вручную)
+      videoUrlInput.value = pasted;
+    }
+  }
+}
+
+function submitVideo() {
+  if (!editor.value) return;
+  const url = videoUrlInput.value.trim();
+  if (!url) return;
+  const parsed = parseVideoUrl(url);
+  if (!parsed) {
+    videoUrlError.value = 'Неверная ссылка. Поддерживаются YouTube и VK.';
+    return;
+  }
+  videoUrlError.value = '';
+  editor.value.chain().focus().setVideoEmbed({ src: url }).run();
+  videoDialogOpen.value = false;
 }
 
 function submitImage() {
@@ -374,6 +436,18 @@ onBeforeUnmount(() => {
           <span class="text-xs">🖼</span>
         </Button>
       </Tooltip>
+      <Tooltip content="Вставить видео (YouTube, VK)" side="bottom">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          class="h-7 w-7 p-0"
+          :disabled="disabled"
+          @click="openVideoDialog"
+        >
+          <span class="text-xs">▶</span>
+        </Button>
+      </Tooltip>
 
       <!-- Управление изображением (видно при выделении изображения) -->
       <template v-if="editor.isActive('image')">
@@ -592,6 +666,51 @@ onBeforeUnmount(() => {
               Отмена
             </Button>
             <Button :disabled="!imageUrlInput.trim()" @click="submitImage">
+              Вставить
+            </Button>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
+
+    <!-- Диалог добавления видео -->
+    <DialogRoot v-model:open="videoDialogOpen">
+      <DialogPortal>
+        <DialogOverlay
+          class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        />
+        <DialogContent
+          class="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          :aria-describedby="undefined"
+        >
+          <DialogTitle class="text-lg font-semibold">
+            Вставить видео
+          </DialogTitle>
+          <DialogDescription class="text-sm text-muted-foreground">
+            Вставьте ссылку на видео с YouTube или ВКонтакте.
+          </DialogDescription>
+          <div class="grid gap-4 py-2">
+            <div class="grid gap-2">
+              <Label for="video-url">Ссылка на видео</Label>
+              <input
+                id="video-url"
+                v-model="videoUrlInput"
+                type="text"
+                placeholder="https://www.youtube.com/watch?v=... или https://vk.com/video..."
+                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
+                @keydown.enter.prevent="submitVideo"
+                @paste="onVideoUrlPaste"
+              >
+              <p v-if="videoUrlError" class="text-sm text-destructive">
+                {{ videoUrlError }}
+              </p>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <Button variant="outline" @click="videoDialogOpen = false">
+              Отмена
+            </Button>
+            <Button :disabled="!videoUrlInput.trim()" @click="submitVideo">
               Вставить
             </Button>
           </div>

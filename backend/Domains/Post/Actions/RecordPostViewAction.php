@@ -20,22 +20,28 @@ final class RecordPostViewAction
 
     private const VIEWER_KEY_SESSION = 'session:%s';
 
-    public function __invoke(Post $post, ?User $user, string $sessionId): void
+    /**
+     * @return bool true, если просмотр засчитан впервые; false, если уже был учтён
+     */
+    public function __invoke(Post $post, ?User $user, string $sessionId): bool
     {
         if (empty($sessionId) && $user === null) {
-            return;
+            return false;
         }
 
-        DB::transaction(function () use ($post, $user, $sessionId): void {
+        $recorded = false;
+        DB::transaction(function () use ($post, $user, $sessionId, &$recorded): void {
             $userKey = $user !== null ? sprintf(self::VIEWER_KEY_USER, $user->id) : null;
             $sessionKey = ! empty($sessionId) ? sprintf(self::VIEWER_KEY_SESSION, $sessionId) : null;
 
             if ($user !== null) {
-                $this->recordForAuthenticatedUser($post, $user, $userKey, $sessionKey);
+                $recorded = $this->recordForAuthenticatedUser($post, $user, $userKey, $sessionKey);
             } else {
-                $this->recordForAnonymous($post, $sessionKey);
+                $recorded = $this->recordForAnonymous($post, $sessionKey);
             }
         });
+
+        return $recorded;
     }
 
     private function recordForAuthenticatedUser(
@@ -43,13 +49,13 @@ final class RecordPostViewAction
         User $user,
         string $userKey,
         ?string $sessionKey
-    ): void {
+    ): bool {
         $existingByUser = PostView::where('post_id', $post->id)
             ->where('viewer_key', $userKey)
             ->first();
 
         if ($existingByUser !== null) {
-            return;
+            return false;
         }
 
         $existingBySession = $sessionKey !== null
@@ -65,7 +71,7 @@ final class RecordPostViewAction
                 'viewer_key' => $userKey,
             ]);
 
-            return;
+            return false;
         }
 
         PostView::create([
@@ -76,16 +82,18 @@ final class RecordPostViewAction
         ]);
 
         $post->increment('views_count');
+
+        return true;
     }
 
-    private function recordForAnonymous(Post $post, string $sessionKey): void
+    private function recordForAnonymous(Post $post, string $sessionKey): bool
     {
         $existing = PostView::where('post_id', $post->id)
             ->where('viewer_key', $sessionKey)
             ->first();
 
         if ($existing !== null) {
-            return;
+            return false;
         }
 
         PostView::create([
@@ -96,5 +104,7 @@ final class RecordPostViewAction
         ]);
 
         $post->increment('views_count');
+
+        return true;
     }
 }

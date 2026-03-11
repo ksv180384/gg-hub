@@ -18,10 +18,15 @@ function formatDate(iso: string | null): string {
   }
 }
 
-function excerpt(body: string, maxLen = 160): string {
-  const text = body.replace(/<[^>]+>/g, '').trim();
-  if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen) + '…';
+function displayPreview(post: Post): string {
+  if (post.preview && post.preview.trim()) return post.preview;
+  const text = (post.body || '').replace(/<[^>]+>/g, '').trim();
+  if (text.length <= 160) return text;
+  return text.slice(0, 160) + '…';
+}
+
+function isPreviewHtml(post: Post): boolean {
+  return !!(post.preview && post.preview.trim().startsWith('<'));
 }
 
 function humanStatus(status: string | null): string {
@@ -102,7 +107,14 @@ onMounted(() => {
               </CardTitle>
             </CardHeader>
             <CardContent class="pt-0">
-              <p class="text-sm text-muted-foreground line-clamp-2">{{ excerpt(post.body) }}</p>
+              <div
+                v-if="isPreviewHtml(post)"
+                class="prose prose-sm max-w-none text-md dark:prose-invert [&_p]:my-1 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_a]:text-blue-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
+                v-html="displayPreview(post)"
+              />
+              <p v-else class="text-sm text-muted-foreground line-clamp-2">
+                {{ displayPreview(post) }}
+              </p>
             </CardContent>
           </Card>
         </li>

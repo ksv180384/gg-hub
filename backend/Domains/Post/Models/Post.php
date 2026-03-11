@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * - guild_id         — гильдия, к которой относится пост (если пост гильдейский или «от имени гильдии»)
  * - game_id          — игра, к которой относится пост (опционально)
  * - title            — заголовок поста (опционален)
+ * - preview          — превью: первые 20 слов текста без HTML (для списков)
  * - body             — основной текст поста
  * - is_visible_global  — флаг отображения поста в общих постах (раздел «Общие»)
  * - is_visible_guild   — флаг отображения поста в разделе гильдии
@@ -37,6 +38,7 @@ class Post extends Model
         'guild_id',
         'game_id',
         'title',
+        'preview',
         'body',
         'is_visible_global',
         'is_visible_guild',

@@ -7,8 +7,8 @@ use Stevebauman\Purify\Definitions\Definition;
 use Stevebauman\Purify\Definitions\Html5Definition;
 
 /**
- * Определение для HTMLPurifier: HTML5 + атрибуты data-width, data-align, data-wrap у img
- * (для контента «О гильдии» и «Устав»).
+ * Определение для HTMLPurifier: HTML5 + атрибуты data-width, data-align, data-wrap у img,
+ * iframe для видео YouTube и VK.
  */
 class GuildRichTextPurifyDefinition implements Definition
 {
@@ -19,5 +19,13 @@ class GuildRichTextPurifyDefinition implements Definition
         $definition->addAttribute('img', 'data-width', 'Text');
         $definition->addAttribute('img', 'data-align', 'Text');
         $definition->addAttribute('img', 'data-wrap', 'Text');
+
+        $definition->addAttribute('div', 'data-video-embed', 'Text');
+        $definition->addAttribute('div', 'data-src', 'URI');
+        $definition->addAttribute('div', 'data-width', 'Text');
+        $definition->addAttribute('div', 'data-height', 'Text');
+
+        $definition->addAttribute('iframe', 'allow', 'Text');
+        $definition->addAttribute('iframe', 'allowfullscreen', 'Bool');
     }
 }
