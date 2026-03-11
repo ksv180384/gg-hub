@@ -64,11 +64,14 @@ const pendingCount = computed(() => pendingPosts.value.length);
 </script>
 
 <template>
-  <div class="container py-6 space-y-4">
+  <div class="container py-6 space-y-4 max-w-2xl mx-auto">
     <div
       v-if="canModeratePosts"
-      class="flex justify-end"
+      class="flex justify-between"
     >
+      <div>
+        {{ showPending ? 'Посты, ожидающие публикации' : 'Журнал гильдии' }}
+      </div>
       <Button
         type="button"
         variant="outline"
@@ -90,47 +93,38 @@ const pendingCount = computed(() => pendingPosts.value.length);
       </Button>
     </div>
 
-    <Card>
-      <CardHeader>
-        <CardTitle class="text-base">
-          {{ showPending ? 'Посты, ожидающие публикации' : 'Журнал гильдии' }}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <template v-if="showPending">
-          <p v-if="loadingPending" class="text-sm text-muted-foreground">
-            Загрузка постов на модерации…
-          </p>
-          <p v-else-if="pendingPosts.length === 0" class="text-sm text-muted-foreground">
-            Нет постов, ожидающих публикации.
-          </p>
-          <div v-else class="space-y-4">
-            <PostCard
-              v-for="post in pendingPosts"
-              :key="post.id"
-              :post="post"
-              date-type="guild"
-              @titleClick="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
-            />
-          </div>
-        </template>
+    <template v-if="showPending">
+      <p v-if="loadingPending" class="text-sm text-muted-foreground">
+        Загрузка постов на модерации…
+      </p>
+      <p v-else-if="pendingPosts.length === 0" class="text-sm text-muted-foreground">
+        Нет постов, ожидающих публикации.
+      </p>
+      <div v-else class="space-y-4">
+        <PostCard
+          v-for="post in pendingPosts"
+          :key="post.id"
+          :post="post"
+          date-type="guild"
+          @titleClick="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+        />
+      </div>
+    </template>
+    <template v-else>
+      <p v-if="loadingPublished" class="text-sm text-muted-foreground">Загрузка постов…</p>
+      <p v-else-if="publishedPosts.length === 0" class="text-sm text-muted-foreground">
+        В журнале гильдии пока нет постов.
+      </p>
+      <div v-else class="space-y-4">
+        <PostCard
+          v-for="post in publishedPosts"
+          :key="post.id"
+          :post="post"
+          date-type="guild"
+          @titleClick="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+        />
+      </div>
+    </template>
 
-        <template v-else>
-          <p v-if="loadingPublished" class="text-sm text-muted-foreground">Загрузка постов…</p>
-          <p v-else-if="publishedPosts.length === 0" class="text-sm text-muted-foreground">
-            В журнале гильдии пока нет постов.
-          </p>
-          <div v-else class="space-y-4">
-            <PostCard
-              v-for="post in publishedPosts"
-              :key="post.id"
-              :post="post"
-              date-type="guild"
-              @titleClick="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
-            />
-          </div>
-        </template>
-      </CardContent>
-    </Card>
   </div>
 </template>

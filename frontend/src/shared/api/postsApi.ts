@@ -31,6 +31,7 @@ export interface Post {
   published_at_guild: string | null;
   author_name?: string | null;
   author_avatar_url?: string | null;
+  views_count?: number;
   created_at: string;
   updated_at: string;
 }

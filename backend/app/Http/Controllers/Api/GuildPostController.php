@@ -11,6 +11,7 @@ use Domains\Post\Actions\ListGuildPendingPostsForModerationAction;
 use Domains\Post\Actions\ListGuildPostsForJournalAction;
 use Domains\Post\Actions\CanViewGuildPostAction;
 use Domains\Post\Actions\PublishGuildPostAction;
+use Domains\Post\Actions\RecordPostViewAction;
 use Domains\Post\Actions\RejectGuildPostAction;
 use Domains\Post\Models\Post;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class GuildPostController extends Controller
         private ListGuildPostsForJournalAction $listGuildPostsForJournalAction,
         private ListGuildPendingPostsForModerationAction $listGuildPendingPostsForModerationAction,
         private CanViewGuildPostAction $canViewGuildPostAction,
+        private RecordPostViewAction $recordPostViewAction,
         private PublishGuildPostAction $publishGuildPostAction,
         private RejectGuildPostAction $rejectGuildPostAction,
         private CreatePostGuildPublishedNotificationAction $createPostGuildPublishedNotificationAction,
@@ -56,7 +58,11 @@ class GuildPostController extends Controller
             abort(404);
         }
 
+        $sessionId = $request->session()?->getId() ?? '';
+        ($this->recordPostViewAction)($post, $request->user(), $sessionId);
+
         $post->loadMissing(['character', 'character.user', 'user']);
+        $post->refresh();
 
         return response()->json(new PostResource($post));
     }

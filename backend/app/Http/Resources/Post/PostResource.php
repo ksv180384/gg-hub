@@ -60,6 +60,7 @@ class PostResource extends JsonResource
             'updated_at' => $this->updated_at->toIso8601String(),
             'author_name' => $authorName,
             'author_avatar_url' => $authorAvatarUrl,
+            'views_count' => (int) ($this->views_count ?? 0),
         ];
     }
 }

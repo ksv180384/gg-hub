@@ -49,6 +49,7 @@ class Post extends Model
         'is_published',
         'type',
         'published_at',
+        'views_count',
     ];
 
     protected function casts(): array
