@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle, Button, PostCard } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, PostCardFull } from '@/shared/ui';
 import type { ApiError } from '@/shared/api/errors';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { postsApi, type Post } from '@/shared/api/postsApi';
@@ -120,7 +120,7 @@ onMounted(() => {
             Пост не найден.
           </p>
           <template v-else>
-            <PostCard :post="post" date-type="guild" />
+            <PostCardFull :post="post" date-type="guild" />
 
             <div
               v-if="canModeratePosts && isPendingInGuild"

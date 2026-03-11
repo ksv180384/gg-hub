@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle, Button, PostCard } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, PostCardPreview } from '@/shared/ui';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { ref, computed, watch } from 'vue';
@@ -107,14 +107,13 @@ function onViewRecorded(postId: number) {
         Нет постов, ожидающих публикации.
       </p>
       <div v-else class="space-y-4">
-        <PostCard
+        <PostCardPreview
           v-for="post in pendingPosts"
           :key="post.id"
           :post="post"
           :guild-id="guildId"
           date-type="guild"
-          show-preview
-          @titleClick="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+          @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
           @view-recorded="onViewRecorded(post.id)"
         />
       </div>
@@ -125,14 +124,13 @@ function onViewRecorded(postId: number) {
         В журнале гильдии пока нет постов.
       </p>
       <div v-else class="space-y-4">
-        <PostCard
+        <PostCardPreview
           v-for="post in publishedPosts"
           :key="post.id"
           :post="post"
           :guild-id="guildId"
           date-type="guild"
-          show-preview
-          @titleClick="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+          @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
           @view-recorded="onViewRecorded(post.id)"
         />
       </div>

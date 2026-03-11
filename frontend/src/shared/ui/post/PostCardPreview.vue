@@ -7,35 +7,23 @@ import { useVideoPlaybackTracking } from '@/shared/lib/useVideoPlaybackTracking'
 
 interface Props {
   post: Post;
-  /**
-   * Какую дату считать датой публикации:
-   * - guild  — published_at_guild → updated_at → created_at
-   * - global — published_at_global → updated_at → created_at
-   */
+  /** Какую дату считать датой публикации: guild | global */
   dateType?: 'guild' | 'global';
-  /** Показывать превью (первые 20 слов) вместо полного текста. Для списков. */
-  showPreview?: boolean;
-  /** ID гильдии — для засчёта просмотра при воспроизведении видео в превью. */
+  /** ID гильдии — для засчёта просмотра при воспроизведении видео. */
   guildId?: number | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   dateType: 'guild',
-  showPreview: false,
 });
 
-function displayBody(preview: boolean): string {
-  if (!preview) return props.post.body ?? '';
+function displayBody(): string {
   if (props.post.preview?.trim()) return props.post.preview;
-  const text = (props.post.body ?? '').replace(/<[^>]+>/g, '').trim();
-  return text.length > 160 ? text.slice(0, 160) + '…' : text;
+  return '';
 }
 
 const isPreviewHtml = computed(
-  () => props.showPreview && (props.post.preview ?? '').trim().startsWith('<')
-);
-const isHtmlBody = computed(
-  () => !props.showPreview && (props.post.body ?? '').trim().startsWith('<')
+  () => (props.post.preview ?? '').trim().startsWith('<')
 );
 
 const emit = defineEmits<{
@@ -47,12 +35,10 @@ const displayIso = computed(() => {
   const p = props.post;
   const published =
     props.dateType === 'guild' ? p.published_at_guild : p.published_at_global;
-  const fallback = p.updated_at || p.created_at;
-  return published || fallback;
+  return published || p.updated_at || p.created_at;
 });
 
 const displayTime = computed(() => formatRelativeTime(displayIso.value));
-
 const displayName = computed(
   () => props.post.author_name ?? 'Неизвестный персонаж'
 );
@@ -60,10 +46,7 @@ const avatarUrl = computed(
   () => props.post.author_avatar_url || null
 );
 const avatarFallback = computed(() =>
-  (displayName.value || '??')
-    .trim()
-    .slice(0, 2)
-    .toUpperCase()
+  (displayName.value || '??').trim().slice(0, 2).toUpperCase()
 );
 
 const previewContainerRef = ref<HTMLElement | null>(null);
@@ -103,24 +86,13 @@ useVideoPlaybackTracking(previewContainerRef, {
       </div>
     </header>
     <div
-      v-if="showPreview && isPreviewHtml"
+      v-if="isPreviewHtml"
       ref="previewContainerRef"
       class="prose prose-sm max-w-none text-md dark:prose-invert [&_p]:my-1 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_a]:text-blue-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
-      v-html="displayBody(true)"
+      v-html="displayBody()"
     />
-    <p
-      v-else-if="showPreview"
-      class="text-sm text-muted-foreground line-clamp-2"
-    >
-      {{ displayBody(true) }}
-    </p>
-    <div
-      v-else-if="isHtmlBody"
-      class="prose prose-sm max-w-none text-sm dark:prose-invert [&_p]:my-2 [&_a]:text-blue-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
-      v-html="post.body ?? ''"
-    />
-    <p v-else class="whitespace-pre-wrap text-sm">
-      {{ post.body ?? '' }}
+    <p v-else class="text-sm text-muted-foreground line-clamp-2">
+      {{ displayBody() }}
     </p>
     <div
       v-if="post.views_count != null"
@@ -146,4 +118,3 @@ useVideoPlaybackTracking(previewContainerRef, {
     </div>
   </article>
 </template>
-
