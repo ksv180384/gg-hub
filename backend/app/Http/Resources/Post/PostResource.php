@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Post;
 
 use App\Services\UserAvatarService;
+use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -55,6 +56,8 @@ class PostResource extends JsonResource
             'is_global_as_guild' => $this->is_global_as_guild,
             'status_global' => $this->status_global,
             'status_guild' => $this->status_guild,
+            'status_global_label' => PostStatus::labelFor($this->status_global),
+            'status_guild_label' => PostStatus::labelFor($this->status_guild),
             'is_hidden' => $this->is_hidden,
             'published_at_global' => $this->published_at_global?->toIso8601String(),
             'published_at_guild' => $this->published_at_guild?->toIso8601String(),

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle, Button, PostCardFull } from '@/shared/ui';
+import { Button, PostCardFull } from '@/shared/ui';
 import type { ApiError } from '@/shared/api/errors';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { postsApi, type Post } from '@/shared/api/postsApi';
@@ -90,71 +90,52 @@ onMounted(() => {
   <div class="container py-6 md:py-8">
     <div class="mx-auto max-w-3xl space-y-4">
       <div class="flex items-center justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight">
-            Пост гильдии
-          </h1>
-          <p v-if="guild" class="text-sm text-muted-foreground">
-            Гильдия: {{ guild.name }}
-          </p>
-        </div>
-        <Button variant="outline" size="sm" @click="router.back()">
+        <h1 class="text-2xl font-bold tracking-tight">
+          Пост гильдии
+        </h1>
+        <Button variant="link" size="sm" @click="router.back()" class="cursor-pointer">
           Назад
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle class="text-base">
-            Полная версия поста
-          </CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <p v-if="loading" class="text-sm text-muted-foreground">
-            Загрузка поста…
-          </p>
-          <p v-else-if="error" class="text-sm text-destructive">
-            {{ error }}
-          </p>
-          <p v-else-if="!post" class="text-sm text-muted-foreground">
-            Пост не найден.
-          </p>
-          <template v-else>
-            <PostCardFull :post="post" date-type="guild" />
+      <div class="space-y-4">
+        <p v-if="loading" class="text-sm text-muted-foreground">
+          Загрузка поста…
+        </p>
+        <p v-else-if="error" class="text-sm text-destructive">
+          {{ error }}
+        </p>
+        <p v-else-if="!post" class="text-sm text-muted-foreground">
+          Пост не найден.
+        </p>
+        <template v-else>
+          <PostCardFull :post="post" date-type="guild" :show-status="canModeratePosts" />
 
-            <div
-              v-if="canModeratePosts && isPendingInGuild"
-              class="flex flex-wrap items-center justify-end gap-3 pt-2"
+          <div
+            v-if="canModeratePosts && isPendingInGuild"
+            class="flex flex-wrap items-center justify-end gap-3 pt-2"
+          >
+            <span class="text-xs text-muted-foreground">
+              Статус: ожидает публикации
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="submitting"
+              @click="reject"
             >
-              <span class="text-xs text-muted-foreground">
-                Статус: ожидает публикации
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                :disabled="submitting"
-                @click="reject"
-              >
-                {{ submitting ? 'Обработка…' : 'Отклонить' }}
-              </Button>
-              <Button
-                size="sm"
-                :disabled="submitting"
-                @click="publish"
-              >
-                {{ submitting ? 'Обработка…' : 'Опубликовать' }}
-              </Button>
-            </div>
-
-            <div
-              v-else-if="canModeratePosts"
-              class="flex justify-end pt-2 text-xs text-muted-foreground"
+              {{ submitting ? 'Обработка…' : 'Отклонить' }}
+            </Button>
+            <Button
+              size="sm"
+              :disabled="submitting"
+              @click="publish"
             >
-              Статус в гильдии: {{ post.status_guild || '—' }}
-            </div>
-          </template>
-        </CardContent>
-      </Card>
+              {{ submitting ? 'Обработка…' : 'Опубликовать' }}
+            </Button>
+          </div>
+        </template>
+      </div>
     </div>
   </div>
 </template>

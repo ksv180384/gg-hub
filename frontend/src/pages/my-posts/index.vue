@@ -29,12 +29,12 @@ function isPreviewHtml(post: Post): boolean {
   return !!(post.preview && post.preview.trim().startsWith('<'));
 }
 
-function humanStatus(status: string | null): string {
-  if (!status) return '—';
-  if (status === 'published') return 'Опубликован';
-  if (status === 'draft') return 'Черновик';
-  if (status === 'pending') return 'На модерации';
-  return 'Скрыт';
+function effectiveStatusLabel(
+  isVisible: boolean,
+  statusLabel: string | undefined,
+  hiddenLabel: string
+): string {
+  return isVisible ? (statusLabel ?? '—') : hiddenLabel;
 }
 
 async function loadPosts() {
@@ -88,10 +88,10 @@ onMounted(() => {
             <CardHeader class="pb-2">
               <div class="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" class="text-xs">
-                  Общие: {{ humanStatus(post.is_visible_global ? post.status_global : 'hidden') }}
+                  Общие: {{ effectiveStatusLabel(post.is_visible_global, post.status_global_label, 'Скрыт') }}
                 </Badge>
                 <Badge variant="outline" class="text-xs">
-                  Гильдия: {{ humanStatus(post.is_visible_guild ? post.status_guild : 'hidden') }}
+                  Гильдия: {{ effectiveStatusLabel(post.is_visible_guild, post.status_guild_label, 'Скрыт') }}
                 </Badge>
                 <span class="text-xs text-muted-foreground">
                   {{ formatDate(post.published_at_global ?? post.published_at_guild ?? post.created_at) }}

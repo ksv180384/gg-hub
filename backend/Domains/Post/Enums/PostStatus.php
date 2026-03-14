@@ -2,6 +2,8 @@
 
 namespace Domains\Post\Enums;
 
+use Illuminate\Support\Facades\Lang;
+
 enum PostStatus: string
 {
     case Pending = 'pending';
@@ -9,6 +11,25 @@ enum PostStatus: string
     case Draft = 'draft';
     case Hidden = 'hidden';
     case Rejected = 'rejected';
+
+    public function label(): string
+    {
+        return Lang::get("post.status.{$this->value}", [], $this->value);
+    }
+
+    /**
+     * Человекочитаемая подпись для значения статуса или null.
+     */
+    public static function labelFor(?string $status): string
+    {
+        if ($status === null || $status === '') {
+            return '—';
+        }
+
+        $enum = self::tryFrom($status);
+
+        return $enum !== null ? $enum->label() : '—';
+    }
 
     /**
      * @return string[]

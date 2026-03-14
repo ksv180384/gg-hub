@@ -11,6 +11,8 @@ export interface Post {
   preview: string | null;
   status_global: string | null;
   status_guild: string | null;
+  status_global_label?: string;
+  status_guild_label?: string;
   is_visible_global: boolean;
   is_visible_guild: boolean;
   published_at_global: string | null;

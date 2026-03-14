@@ -8,10 +8,13 @@ interface Props {
   post: Post;
   /** Какую дату считать датой публикации: guild | global */
   dateType?: 'guild' | 'global';
+  /** Показывать статус поста (только для пользователей с правом publikovat-post) */
+  showStatus?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   dateType: 'guild',
+  showStatus: false,
 });
 
 const isHtmlBody = computed(
@@ -35,10 +38,16 @@ const avatarUrl = computed(
 const avatarFallback = computed(() =>
   (displayName.value || '??').trim().slice(0, 2).toUpperCase()
 );
+
+const displayStatus = computed(() =>
+  props.dateType === 'guild'
+    ? (props.post.status_guild_label ?? '—')
+    : (props.post.status_global_label ?? '—')
+);
 </script>
 
 <template>
-  <article class="bg-card p-4">
+  <article class="bg-card">
     <header class="mb-2 flex items-center justify-between gap-3">
       <div class="flex min-w-0 items-center gap-3">
         <Avatar
@@ -72,26 +81,37 @@ const avatarFallback = computed(() =>
       {{ post.body ?? '' }}
     </p>
     <div
-      v-if="post.views_count != null"
-      class="mt-3 flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground"
-      title="Просмотры"
+      v-if="post.views_count != null || (showStatus && (post.status_guild ?? post.status_global))"
+      class="mt-3 flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+      <div
+        v-if="post.views_count != null"
+        class="flex items-center gap-1.5"
+        title="Просмотры"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="shrink-0"
+        >
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        <span>{{ post.views_count }}</span>
+      </div>
+      <span
+        v-if="showStatus && (post.status_guild ?? post.status_global)"
         class="shrink-0"
       >
-        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-      <span>{{ post.views_count }}</span>
+        {{ displayStatus }}
+      </span>
     </div>
   </article>
 </template>
