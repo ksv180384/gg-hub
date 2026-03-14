@@ -12,7 +12,15 @@ interface Props {
   showStatus?: boolean;
   /** Актуальное количество комментариев (переопределяет post.comments_count) */
   commentsCount?: number | null;
+  /** ID пользователя автора — если задан, имя автора становится кликабельным (emit authorClick). */
+  authorUserId?: number | null;
+  /** Показывать название игры (только для админки). */
+  showGame?: boolean;
 }
+
+const emit = defineEmits<{
+  (e: 'authorClick', userId: number): void;
+}>();
 
 const props = withDefaults(defineProps<Props>(), {
   dateType: 'guild',
@@ -50,6 +58,8 @@ const displayStatus = computed(() =>
 const displayCommentsCount = computed(() =>
   props.commentsCount != null ? props.commentsCount : (props.post.comments_count ?? null)
 );
+
+const isAuthorClickable = computed(() => (props.authorUserId ?? 0) > 0);
 </script>
 
 <template>
@@ -63,7 +73,11 @@ const displayCommentsCount = computed(() =>
           :fallback="avatarFallback"
         />
         <div class="min-w-0">
-          <p class="truncate text-sm font-medium text-gray-600">
+          <p
+            class="truncate text-sm font-medium text-gray-600"
+            :class="{ 'cursor-pointer hover:underline': isAuthorClickable }"
+            @click.stop="isAuthorClickable && props.authorUserId && emit('authorClick', props.authorUserId)"
+          >
             {{ displayName }}
           </p>
           <h3
@@ -72,9 +86,15 @@ const displayCommentsCount = computed(() =>
           >
             {{ post.title || 'Без заголовка' }}
           </h3>
-          <span class="shrink-0 text-xs text-muted-foreground">
-            {{ displayTime }}
-          </span>
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span class="text-xs text-muted-foreground">{{ displayTime }}</span>
+            <span
+              v-if="showGame && post.game_name"
+              class="text-xs text-muted-foreground"
+            >
+              {{ post.game_name }}
+            </span>
+          </div>
         </div>
       </div>
     </header>

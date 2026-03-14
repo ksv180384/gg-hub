@@ -144,10 +144,9 @@ onMounted(() => {
             </Button>
           </div>
 
-          <Separator class="my-6" />
-
           <PostComments
             v-if="post"
+            class="mt-8"
             :guild-id="guildId"
             :post-id="post.id"
             :can-comment="canComment"

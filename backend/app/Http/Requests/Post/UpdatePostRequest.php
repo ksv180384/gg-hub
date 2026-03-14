@@ -47,7 +47,12 @@ class UpdatePostRequest extends FormRequest
                 Rule::in(PostVisibilityType::values()),
             ],
 
-            'status' => [
+            'status_global' => [
+                'nullable',
+                'string',
+                Rule::in(PostStatus::values()),
+            ],
+            'status_guild' => [
                 'nullable',
                 'string',
                 Rule::in(PostStatus::values()),

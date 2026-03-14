@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin.subdomain' => \App\Http\Middleware\EnsureAdminSubdomain::class,
+            'ensure.not.banned' => \App\Http\Middleware\EnsureUserNotBanned::class,
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
             'permission.roles-permissions' => \App\Http\Middleware\EnsureUserCanUpdateUserRolesPermissions::class,
             'guild.member' => \App\Http\Middleware\EnsureUserIsGuildMember::class,

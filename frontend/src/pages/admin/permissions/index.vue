@@ -37,33 +37,30 @@ onMounted(async () => {
     </div>
     <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
     <div v-else-if="loading" class="text-sm text-muted-foreground">Загрузка…</div>
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-4">
       <Card v-for="group in groups" :key="group.id">
-        <CardHeader>
+        <CardHeader class="pb-2">
           <CardTitle class="text-base">{{ group.name }} ({{ group.slug }})</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ul v-if="group.permissions?.length" class="space-y-2">
-            <li
+        <CardContent class="pt-0">
+          <div v-if="group.permissions?.length" class="flex flex-col gap-1.5">
+            <div
               v-for="p in group.permissions"
               :key="p.id"
-              class="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+              class="flex items-center gap-1.5 rounded border px-2 py-1 text-sm"
             >
-              <div>
-                <span class="font-medium">{{ p.name }}</span>
-                <span class="ml-2 text-muted-foreground">{{ p.slug }}</span>
-                <p v-if="p.description" class="mt-1 text-xs text-muted-foreground">{{ p.description }}</p>
-              </div>
+              <span class="font-medium">{{ p.name }}</span>
+              <span class="text-muted-foreground" :title="p.description ?? undefined">{{ p.slug }}</span>
               <RouterLink v-if="canManageRoles" :to="{ name: 'admin-permissions-edit', params: { id: p.id } }">
-                <Button variant="ghost" size="icon" class="h-8 w-8" aria-label="Редактировать" title="Редактировать">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" aria-label="Редактировать" title="Редактировать">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                     <path d="m15 5 4 4" />
                   </svg>
                 </Button>
               </RouterLink>
-            </li>
-          </ul>
+            </div>
+          </div>
           <p v-else class="text-sm text-muted-foreground">Нет прав в группе</p>
         </CardContent>
       </Card>

@@ -59,6 +59,24 @@ class AccessSeeder extends Seeder
             ]
         );
 
+        Permission::firstOrCreate(
+            ['slug' => 'publikovat-post'],
+            [
+                'name' => 'Публиковать посты',
+                'description' => 'Одобрение постов на модерации в админке',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            ['slug' => 'blokirovat-posty'],
+            [
+                'name' => 'Блокировать посты',
+                'description' => 'Блокировка опубликованных постов в админке',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
         $gamesGroup = PermissionGroup::firstOrCreate(
             ['slug' => 'games'],
             ['name' => 'Игры']

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\Notification\CreatePostPendingGuildModerationNotificationAction;
+use App\Actions\Notification\SendPostOrCommentTelegramNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
@@ -25,6 +26,7 @@ class PostController extends Controller
         private UpdatePostAction $updatePostAction,
         private ApplyPostModerationRulesAction $applyPostModerationRulesAction,
         private CreatePostPendingGuildModerationNotificationAction $createPostPendingGuildModerationNotificationAction,
+        private SendPostOrCommentTelegramNotificationAction $sendPostOrCommentTelegramNotificationAction,
     ) {}
 
     /**
@@ -58,6 +60,8 @@ class PostController extends Controller
         // published_at_guild задаётся в ApplyPostModerationRulesAction (now при праве publikovat-post, null при модерации)
 
         $post = ($this->createPostAction)($data);
+
+        $this->sendPostOrCommentTelegramNotificationAction->postCreated($post);
 
         if ($result['notify_guild_id'] !== null) {
             $guild = Guild::query()->find($result['notify_guild_id']);

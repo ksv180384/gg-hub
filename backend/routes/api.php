@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\ContextController;
 use App\Http\Controllers\Api\GameClassController;
 use App\Http\Controllers\Api\GameController;
+use App\Http\Controllers\Api\GlobalJournalController;
 use App\Http\Controllers\Api\GuildApplicationController;
 use App\Http\Controllers\Api\GuildApplicationFormFieldController;
 use App\Http\Controllers\Api\GuildController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\ServerController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PermissionGroupController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\AdminPostController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UserController;
@@ -54,9 +56,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/user/guilds', [UserController::class, 'guilds']);
     Route::get('/user/applications', [UserController::class, 'applications']);
     Route::get('/user/posts', [PostController::class, 'index']);
-    Route::post('/user/posts', [PostController::class, 'store']);
+    Route::post('/user/posts', [PostController::class, 'store'])->middleware('ensure.not.banned');
     Route::get('/user/posts/{post}', [PostController::class, 'show']);
-    Route::match(['put', 'patch'], '/user/posts/{post}', [PostController::class, 'update']);
+    Route::match(['put', 'patch'], '/user/posts/{post}', [PostController::class, 'update'])->middleware('ensure.not.banned');
+    Route::get('/games/{game}/journal-posts', [GlobalJournalController::class, 'index']);
     Route::get('/games/{game}/characters', [CharacterController::class, 'indexForGame']);
     Route::get('/games/{game}/characters/{character}', [CharacterController::class, 'showForGame']);
     Route::get('/characters', [CharacterController::class, 'index']);
@@ -101,8 +104,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/guilds/{guild}/posts/pending', [GuildPostController::class, 'pending'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::get('/guilds/{guild}/posts/{post}', [GuildPostController::class, 'show']);
     Route::get('/guilds/{guild}/posts/{post}/comments', [GuildPostCommentController::class, 'index']);
-    Route::post('/guilds/{guild}/posts/{post}/comments', [GuildPostCommentController::class, 'store'])->middleware('guild.member');
-    Route::match(['put', 'patch'], '/guilds/{guild}/posts/{post}/comments/{comment}', [GuildPostCommentController::class, 'update'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/posts/{post}/comments', [GuildPostCommentController::class, 'store'])->middleware('guild.member', 'ensure.not.banned');
+    Route::match(['put', 'patch'], '/guilds/{guild}/posts/{post}/comments/{comment}', [GuildPostCommentController::class, 'update'])->middleware('guild.member', 'ensure.not.banned');
     Route::delete('/guilds/{guild}/posts/{post}/comments/{comment}', [GuildPostCommentController::class, 'destroy'])->middleware('guild.member');
     Route::post('/guilds/{guild}/posts/{post}/view', [GuildPostController::class, 'recordView']);
     Route::post('/guilds/{guild}/posts/{post}/publish', [GuildPostController::class, 'publish'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
@@ -135,6 +138,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tags', [TagController::class, 'store']);
 
     Route::middleware(['admin.subdomain', 'permission:admnistrirovanie'])->group(function () {
+        Route::get('/admin/posts', [AdminPostController::class, 'index']);
+        Route::get('/admin/posts-pending-count', [AdminPostController::class, 'pendingCount']);
+        Route::get('/admin/posts/{post}', [AdminPostController::class, 'show']);
+        Route::post('/admin/posts/{post}/publish', [AdminPostController::class, 'publish'])->middleware('permission:publikovat-post');
+        Route::post('/admin/posts/{post}/reject', [AdminPostController::class, 'reject'])->middleware('permission:publikovat-post');
+        Route::post('/admin/posts/{post}/block', [AdminPostController::class, 'block'])->middleware('permission:blokirovat-posty');
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
         Route::get('/permission-groups/{permission_group}', [PermissionGroupController::class, 'show']);
         Route::post('/permission-groups', [PermissionGroupController::class, 'store'])->middleware('permission:obshhie-roli');

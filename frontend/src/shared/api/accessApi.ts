@@ -77,6 +77,15 @@ export interface UserRolesPermissionsResponse {
   };
 }
 
+/** Персонаж пользователя (в карточке). */
+export interface AdminUserCharacterDto {
+  id: number;
+  name: string;
+  game: { id: number; name: string } | null;
+  server: { id: number; name: string } | null;
+  guild: { id: number; name: string } | null;
+}
+
 /** Пользователь в админке (список / карточка). */
 export interface AdminUserDto {
   id: number;
@@ -85,6 +94,7 @@ export interface AdminUserDto {
   banned_at: string | null;
   permissions: string[];
   roles: { id: number; name: string; slug: string }[];
+  characters?: AdminUserCharacterDto[];
 }
 
 /** Ответ сервера: список пользователей. */

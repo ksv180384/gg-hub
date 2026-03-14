@@ -30,31 +30,25 @@ class BuildPostDataFromRequestAction
         $globalVisibilityType = $request->input('global_visibility_type'); // anonymous | guild | null
         $isAnonymous = $globalVisibilityType === PostVisibilityType::Anonymous->value;
 
-        $status = $request->input('status', PostStatus::Draft->value);
-        if (!\in_array($status, PostStatus::values(), true)) {
-            $status = PostStatus::Draft->value;
+        $statusGlobal = $request->input('status_global', PostStatus::Draft->value);
+        $statusGuild = $request->input('status_guild', PostStatus::Draft->value);
+        if (!\in_array($statusGlobal, PostStatus::values(), true)) {
+            $statusGlobal = PostStatus::Draft->value;
+        }
+        if (!\in_array($statusGuild, PostStatus::values(), true)) {
+            $statusGuild = PostStatus::Draft->value;
         }
 
-        // Распределение одного выбранного статуса по областям
-        // - Если включены только «Для всех»      → global = выбранный, guild = hidden
-        // - Если включены только «Для гильдии»   → global = hidden,    guild = выбранный
-        // - Если включены обе галочки            → global = выбранный, guild = выбранный
-        // - Если обе галочки выключены           → global = hidden,    guild = hidden
-        $statusGlobal = null;
-        $statusGuild = null;
-
-        if ($isVisibleGlobal && !$isVisibleGuild) {
-            $statusGlobal = $status;
-            $statusGuild = 'hidden';
-        } elseif (!$isVisibleGlobal && $isVisibleGuild) {
-            $statusGlobal = 'hidden';
-            $statusGuild = $status;
-        } elseif ($isVisibleGlobal && $isVisibleGuild) {
-            $statusGlobal = $status;
-            $statusGuild = $status;
-        } else {
-            $statusGlobal = 'hidden';
-            $statusGuild = 'hidden';
+        // Статусы по областям в зависимости от видимости:
+        // - Если только «Для всех»      → guild = hidden
+        // - Если только «Для гильдии»   → global = hidden
+        // - Если обе галочки            → оба из запроса
+        // - Если обе выключены          → оба hidden
+        if (!$isVisibleGlobal) {
+            $statusGlobal = PostStatus::Hidden->value;
+        }
+        if (!$isVisibleGuild) {
+            $statusGuild = PostStatus::Hidden->value;
         }
 
         $body = $request->input('body') ?? '';

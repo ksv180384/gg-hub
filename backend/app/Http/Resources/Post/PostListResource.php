@@ -42,9 +42,15 @@ class PostListResource extends JsonResource
             );
         }
 
+        $game = $this->whenLoaded('game');
+
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'user_id' => $this->user_id,
+            'guild_id' => $this->guild_id,
+            'game_id' => $this->game_id,
+            'game_name' => $game?->name ?? null,
             'preview' => $this->preview,
             'status_global' => $this->status_global,
             'status_guild' => $this->status_guild,

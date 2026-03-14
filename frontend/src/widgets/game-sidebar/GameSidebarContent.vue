@@ -6,25 +6,15 @@ import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { PERMISSION_ACCESS_ADMIN } from '@/shared/api/authApi';
 import { guildsApi, type UserGuildItem } from '@/shared/api/guildsApi';
+import { postsApi } from '@/shared/api/postsApi';
 import { cn } from '@/shared/lib/utils';
 
-const SIDEBAR_STORAGE_KEY_MANAGEMENT = 'gg-sidebar-management-open';
 const SIDEBAR_STORAGE_KEY_GUILD_PREFIX = 'gg-sidebar-open-guild-';
 
 const route = useRoute();
 const auth = useAuthStore();
 const siteContext = useSiteContextStore();
 
-function loadSavedManagementOpen(): boolean {
-  try {
-    const v = localStorage.getItem(SIDEBAR_STORAGE_KEY_MANAGEMENT);
-    return v === '1';
-  } catch {
-    return true;
-  }
-}
-
-const managementOpen = ref(loadSavedManagementOpen());
 const userGuilds = ref<UserGuildItem[]>([]);
 const guildsLoading = ref(false);
 /** Множество id гильдий с раскрытым подменю (можно держать открытыми несколько). */
@@ -47,7 +37,10 @@ function guildPath(guildId: number, pathSuffix: string): string {
   return `/guilds/${guildId}${pathSuffix}`;
 }
 
+const adminPendingCount = ref(0);
+
 const adminItems = [
+  { to: '/admin/journal', label: 'Журнал' },
   { to: '/admin/games', label: 'Игры' },
   { to: '/admin/users', label: 'Пользователи' },
   { to: '/admin/roles', label: 'Роли пользователей' },
@@ -76,6 +69,15 @@ function isGuildRoute(guildId: number, pathSuffix: string): boolean {
   }
   const path = guildPath(guildId, pathSuffix);
   return route.path === path || route.path.startsWith(path + '/');
+}
+
+async function loadAdminPendingCount() {
+  if (!showAdminBlock.value) return;
+  try {
+    adminPendingCount.value = await postsApi.getAdminPendingCount();
+  } catch {
+    adminPendingCount.value = 0;
+  }
 }
 
 async function loadUserGuilds() {
@@ -127,16 +129,12 @@ function isGuildOpen(guildId: number): boolean {
   return openGuildIds.value.has(guildId);
 }
 
-watch(managementOpen, (open) => {
-  try {
-    localStorage.setItem(SIDEBAR_STORAGE_KEY_MANAGEMENT, open ? '1' : '0');
-  } catch {
-    /* ignore */
-  }
+onMounted(() => {
+  loadUserGuilds();
+  loadAdminPendingCount();
 });
-
-onMounted(() => loadUserGuilds());
 watch(() => siteContext.game?.id, () => loadUserGuilds());
+watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
 </script>
 
 <template>
@@ -146,6 +144,17 @@ watch(() => siteContext.game?.id, () => loadUserGuilds());
     </div>
     <nav class="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
       <template v-if="siteContext.isGameSubdomain">
+        <RouterLink
+          to="/journal"
+          :class="cn(
+            'rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
+            route.path === '/journal' || route.path.startsWith('/journal/')
+              ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
+              : ''
+          )"
+        >
+          Журнал
+        </RouterLink>
         <RouterLink
           to="/characters"
           :class="cn(
@@ -239,51 +248,25 @@ watch(() => siteContext.game?.id, () => loadUserGuilds());
       </template>
 
       <template v-if="showAdminBlock">
-        <div class="mt-2">
-          <button
-            type="button"
-            class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]"
-            :class="{ 'bg-[var(--sidebar-accent)]/50': managementOpen }"
-            :aria-expanded="managementOpen"
-            @click="managementOpen = !managementOpen"
+        <RouterLink
+          v-for="item in adminItems"
+          :key="item.to"
+          :to="item.to"
+          :class="cn(
+            'flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
+            isAdminRoute(item.to)
+              ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
+              : ''
+          )"
+        >
+          <span>{{ item.label }}</span>
+          <span
+            v-if="item.to === '/admin/journal' && adminPendingCount > 0"
+            class="shrink-0 rounded-full bg-destructive/90 px-2 py-0.5 text-xs font-medium text-destructive-foreground"
           >
-            <span>Управление</span>
-            <span
-              class="inline-block text-[10px] transition-transform duration-200"
-              :class="managementOpen ? '' : '-rotate-90'"
-              aria-hidden
-            >
-              ▼
-            </span>
-          </button>
-          <Transition
-            enter-active-class="transition-all duration-200 ease-out overflow-hidden"
-            enter-from-class="opacity-0 -translate-y-2 max-h-0"
-            enter-to-class="opacity-100 translate-y-0 max-h-40"
-            leave-active-class="transition-all duration-200 ease-in overflow-hidden"
-            leave-from-class="opacity-100 translate-y-0 max-h-40"
-            leave-to-class="opacity-0 -translate-y-2 max-h-0"
-          >
-            <div
-              v-if="managementOpen"
-              class="ml-2 mt-1 flex flex-col gap-0.5 border-l border-[var(--sidebar-border)] pl-2"
-            >
-              <RouterLink
-                v-for="item in adminItems"
-                :key="item.to"
-                :to="item.to"
-                :class="cn(
-                  'rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
-                  isAdminRoute(item.to)
-                    ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
-                    : ''
-                )"
-              >
-                {{ item.label }}
-              </RouterLink>
-            </div>
-          </Transition>
-        </div>
+            {{ adminPendingCount }}
+          </span>
+        </RouterLink>
       </template>
     </nav>
   </div>

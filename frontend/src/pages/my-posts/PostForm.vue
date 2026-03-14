@@ -40,7 +40,14 @@ const isVisibleGlobal = ref<boolean>(false);
 const isVisibleGuild = ref<boolean>(false);
 
 const globalVisibilityType = ref<'anonymous' | 'guild' | null>(null);
-const status = ref<'published' | 'draft' | 'hidden'>('draft');
+const statusGlobal = ref<'published' | 'draft' | 'hidden'>('draft');
+const statusGuild = ref<'published' | 'draft' | 'hidden'>('draft');
+
+const statusOptions = [
+  { value: 'published' as const, label: 'Опубликован' },
+  { value: 'draft' as const, label: 'Черновик' },
+  { value: 'hidden' as const, label: 'Скрыт' },
+] as const;
 
 const bodyPreviewMode = ref(false);
 const loading = ref(false);
@@ -94,13 +101,12 @@ async function loadInitialData() {
         globalVisibilityType.value = null;
       }
 
-      if ((post.status_global === 'published') || (post.status_guild === 'published')) {
-        status.value = 'published';
-      } else if ((post.status_global === 'draft') || (post.status_guild === 'draft')) {
-        status.value = 'draft';
-      } else {
-        status.value = 'hidden';
-      }
+      statusGlobal.value = (post.status_global === 'published' || post.status_global === 'draft' || post.status_global === 'hidden')
+        ? post.status_global
+        : 'hidden';
+      statusGuild.value = (post.status_guild === 'published' || post.status_guild === 'draft' || post.status_guild === 'hidden')
+        ? post.status_guild
+        : 'hidden';
     }
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : 'Не удалось загрузить данные для формы';
@@ -174,7 +180,8 @@ async function submit() {
       is_visible_global: isVisibleGlobal.value,
       is_visible_guild: isVisibleGuild.value,
       global_visibility_type: isVisibleGlobal.value ? globalVisibilityType.value : null,
-      status: status.value,
+      status_global: isVisibleGlobal.value ? statusGlobal.value : 'hidden',
+      status_guild: isVisibleGuild.value ? statusGuild.value : 'hidden',
     };
 
     if (isEdit.value && effectivePostId.value) {
@@ -231,6 +238,14 @@ watch(
   }
 );
 
+watch(isVisibleGlobal, (val) => {
+  if (!val) statusGlobal.value = 'hidden';
+});
+
+watch(isVisibleGuild, (val) => {
+  if (!val) statusGuild.value = 'hidden';
+});
+
 watch(
   () => guildId.value,
   async (newId) => {
@@ -266,7 +281,7 @@ onMounted(() => {
             {{ isEdit ? 'Измените содержимое и видимость поста.' : 'Укажите текст и выберите, кому будет виден пост.' }}
           </p>
         </div>
-        <Button variant="outline" size="sm" class="min-h-9" @click="router.back()">
+        <Button variant="link" size="sm" class="min-h-9 cursor-pointer" @click="router.back()">
           Назад
         </Button>
       </div>
@@ -465,41 +480,63 @@ onMounted(() => {
 
           <Separator />
 
-          <div class="space-y-3">
-            <Label class="text-sm">Статус</Label>
-            <div class="space-y-2 text-sm">
-              <label class="flex cursor-pointer items-center space-x-2">
-                <input
-                  id="post-status-published"
-                  v-model="status"
-                  type="radio"
-                  class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value="published"
-                />
-                <span>Опубликован</span>
-              </label>
-              <label class="flex cursor-pointer items-center space-x-2">
-                <input
-                  id="post-status-draft"
-                  v-model="status"
-                  type="radio"
-                  class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value="draft"
-                />
-                <span>Черновик</span>
-              </label>
-              <label class="flex cursor-pointer items-center space-x-2">
-                <input
-                  id="post-status-hidden"
-                  v-model="status"
-                  type="radio"
-                  class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value="hidden"
-                />
-                <span>Скрыт</span>
-              </label>
+          <div class="grid gap-6 sm:grid-cols-2">
+            <div
+              class="space-y-3"
+              :class="{ 'opacity-60': !isVisibleGlobal }"
+            >
+              <Label class="text-sm">Статус для раздела «Общие»</Label>
+              <div class="space-y-2 text-sm">
+                <label
+                  v-for="opt in statusOptions"
+                  :key="`global-${opt.value}`"
+                  class="flex cursor-pointer items-center space-x-2"
+                  :class="{ 'cursor-not-allowed': !isVisibleGlobal }"
+                >
+                  <input
+                    :id="`post-status-global-${opt.value}`"
+                    v-model="statusGlobal"
+                    type="radio"
+                    class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    :value="opt.value"
+                    :disabled="!isVisibleGlobal"
+                  />
+                  <span>{{ opt.label }}</span>
+                </label>
+              </div>
+              <p v-if="!isVisibleGlobal" class="text-xs text-muted-foreground">
+                Неактивно (галочка «Для всех» выключена). Установлено: Скрыт.
+              </p>
+            </div>
+            <div
+              class="space-y-3"
+              :class="{ 'opacity-60': !isVisibleGuild }"
+            >
+              <Label class="text-sm">Статус для раздела «Гильдия»</Label>
+              <div class="space-y-2 text-sm">
+                <label
+                  v-for="opt in statusOptions"
+                  :key="`guild-${opt.value}`"
+                  class="flex cursor-pointer items-center space-x-2"
+                  :class="{ 'cursor-not-allowed': !isVisibleGuild }"
+                >
+                  <input
+                    :id="`post-status-guild-${opt.value}`"
+                    v-model="statusGuild"
+                    type="radio"
+                    class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    :value="opt.value"
+                    :disabled="!isVisibleGuild"
+                  />
+                  <span>{{ opt.label }}</span>
+                </label>
+              </div>
+              <p v-if="!isVisibleGuild" class="text-xs text-muted-foreground">
+                Неактивно (галочка «Для членов гильдии» выключена). Установлено: Скрыт.
+              </p>
             </div>
           </div>
+
 
           <p v-if="profileVisibilityText" class="text-sm text-muted-foreground">
             {{ profileVisibilityText }}

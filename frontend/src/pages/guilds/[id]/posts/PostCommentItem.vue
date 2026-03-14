@@ -139,7 +139,7 @@ watch(showReplyForm, (visible) => {
     :class="['comment-item py-4', indentClass, { 'comment-item--highlight': isHighlighted }]"
   >
     <div class="flex gap-3">
-      <div class="flex flex-col items-center gap-1 shrink-0">
+      <div class="relative flex flex-col items-center gap-1 shrink-0">
         <Avatar
           class="h-8 w-8"
           :src="comment.author_avatar_url ?? undefined"
@@ -149,7 +149,7 @@ watch(showReplyForm, (visible) => {
         <button
           v-if="hasChildren"
           type="button"
-          class="flex cursor-pointer rounded p-0.5 text-green-600/60 transition-colors hover:bg-muted hover:text-green-600/80"
+          class="flex cursor-pointer rounded p-0.5 text-green-600/60 transition-colors hover:bg-muted hover:text-green-600/80 sticky top-12"
           :title="childrenCollapsed ? 'Развернуть ответы' : 'Свернуть ответы'"
           :aria-label="childrenCollapsed ? 'Развернуть ответы' : 'Свернуть ответы'"
           @click="toggleChildren"

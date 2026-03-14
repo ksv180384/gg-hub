@@ -163,6 +163,29 @@ const hasAnyPermissions = computed(() => groups.value.some((g) => g.permissions?
               </div>
             </CardContent>
           </Card>
+          <Card v-if="user.characters !== undefined" class="mt-4">
+            <CardHeader>
+              <CardTitle class="text-base">Персонажи</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul v-if="user.characters?.length" class="space-y-2">
+                <li
+                  v-for="ch in user.characters"
+                  :key="ch.id"
+                  class="rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                >
+                  <div class="font-medium">{{ ch.name }}</div>
+                  <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                    <span v-if="ch.game">Игра: {{ ch.game.name }}</span>
+                    <span v-if="ch.server">Сервер: {{ ch.server.name }}</span>
+                    <span v-if="ch.guild">Гильдия: {{ ch.guild.name }}</span>
+                    <span v-if="!ch.game && !ch.server && !ch.guild">—</span>
+                  </div>
+                </li>
+              </ul>
+              <p v-else class="text-sm text-muted-foreground">Нет персонажей</p>
+            </CardContent>
+          </Card>
         </div>
         <!-- Правая колонка: роли и права -->
         <div class="min-w-0 flex-1 space-y-4">

@@ -278,13 +278,6 @@ onMounted(() => {
 
 <template>
   <div id="comments" class="space-y-4">
-    <h2 class="text-lg font-semibold tracking-tight">
-      Комментарии
-      <span v-if="totalCount" class="ml-1.5 text-muted-foreground">
-        ({{ totalCount }})
-      </span>
-    </h2>
-
     <p v-if="loading" class="text-sm text-muted-foreground">
       Загрузка комментариев…
     </p>

@@ -25,6 +25,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'home', component: () => import('@/pages/home/index.vue') },
         { path: 'news', name: 'news', component: () => import('@/pages/news/index.vue') },
+        { path: 'journal', name: 'journal', component: () => import('@/pages/journal/index.vue'), meta: { requiresAuth: true, title: 'Журнал' } },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
         {
           path: 'applications',
@@ -201,6 +202,18 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         { path: 'guild', name: 'guild', component: () => import('@/pages/guild/index.vue') },
+        {
+          path: 'admin/journal',
+          name: 'admin-journal',
+          component: () => import('@/pages/admin/journal/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/posts/:id',
+          name: 'admin-post-show',
+          component: () => import('@/pages/admin/posts/[id].vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
         {
           path: 'admin/users',
           name: 'admin-users',

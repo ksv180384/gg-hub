@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\Notification\CreateCommentReplyNotificationAction;
+use App\Actions\Notification\SendPostOrCommentTelegramNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\StorePostCommentRequest;
 use App\Http\Requests\Post\UpdatePostCommentRequest;
@@ -29,6 +30,7 @@ class GuildPostCommentController extends Controller
         private UpdatePostCommentAction $updatePostCommentAction,
         private DeletePostCommentAction $deletePostCommentAction,
         private CreateCommentReplyNotificationAction $createCommentReplyNotificationAction,
+        private SendPostOrCommentTelegramNotificationAction $sendPostOrCommentTelegramNotificationAction,
     ) {}
 
     /**
@@ -75,6 +77,7 @@ class GuildPostCommentController extends Controller
         }
 
         ($this->createCommentReplyNotificationAction)($post, $comment);
+        $this->sendPostOrCommentTelegramNotificationAction->commentCreated($post, $comment);
 
         $comment->load(['character', 'user', 'parent.character', 'repliedToComment.character']);
 

@@ -70,6 +70,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Permission::class, 'user_permission');
     }
 
+    public function characters(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\Domains\Character\Models\Character::class);
+    }
+
     public function notifications(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Models\Notification::class);

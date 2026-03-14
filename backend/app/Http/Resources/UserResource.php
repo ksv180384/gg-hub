@@ -36,6 +36,15 @@ class UserResource extends JsonResource
                 'name' => $r->name,
                 'slug' => $r->slug,
             ])->all()),
+            'characters' => $this->whenLoaded('characters', fn () => $this->characters->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'game' => $c->game ? ['id' => $c->game->id, 'name' => $c->game->name] : null,
+                'server' => $c->server ? ['id' => $c->server->id, 'name' => $c->server->name] : null,
+                'guild' => $c->guildMember?->guild
+                    ? ['id' => $c->guildMember->guild->id, 'name' => $c->guildMember->guild->name]
+                    : null,
+            ])->values()->all()),
         ];
     }
 }

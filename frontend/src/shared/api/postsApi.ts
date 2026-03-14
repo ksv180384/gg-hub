@@ -27,8 +27,10 @@ export interface Post {
   body?: string;
   /** Только для формы редактирования (single post). */
   character_id?: number | null;
+  user_id?: number | null;
   guild_id?: number | null;
   game_id?: number | null;
+  game_name?: string | null;
   is_anonymous?: boolean;
   is_global_as_guild?: boolean;
   is_hidden?: boolean;
@@ -36,6 +38,15 @@ export interface Post {
 
 export interface PostsListResponse {
   data: Post[];
+}
+
+export interface AdminPostsResponse {
+  data: Post[];
+  meta?: {
+    pending_global_count?: number;
+    guilds?: { id: number; name: string }[];
+    games?: { id: number; name: string }[];
+  };
 }
 
 export interface CreatePostPayload {
@@ -47,7 +58,8 @@ export interface CreatePostPayload {
   is_visible_global: boolean;
   is_visible_guild: boolean;
   global_visibility_type: 'anonymous' | 'guild' | null;
-  status: 'published' | 'draft' | 'hidden';
+  status_global: 'published' | 'draft' | 'hidden';
+  status_guild: 'published' | 'draft' | 'hidden';
 }
 
 export interface PostResponse {
@@ -93,6 +105,73 @@ export const postsApi = {
       return (data as { data: Post }).data;
     }
     return data as Post;
+  },
+
+  /**
+   * Количество постов, ожидающих публикации.
+   * Бэкенд: GET /admin/posts-pending-count
+   */
+  async getAdminPendingCount(): Promise<number> {
+    const res = await http.fetchGet<{ count: number }>('/admin/posts-pending-count');
+    throwOnError(res, 'Ошибка загрузки');
+    return res.data?.count ?? 0;
+  },
+
+  /**
+   * Все посты для админ-журнала.
+   * Бэкенд: GET /admin/posts
+   * @param options.filter - "pending_global" — только посты, ожидающие публикации в раздел «Общие»
+   * @param options.scope - "global" — общий журнал; "guild" — журналы гильдий
+   * @param options.guildId - при scope=guild — фильтр по гильдии
+   * @param options.gameId - фильтр по игре
+   */
+  async getAdminPosts(options?: {
+    filter?: 'pending_global';
+    scope?: 'global' | 'guild';
+    guildId?: number;
+    gameId?: number;
+  }): Promise<{
+    posts: Post[];
+    pendingGlobalCount: number;
+    guilds: { id: number; name: string }[];
+    games: { id: number; name: string }[];
+  }> {
+    const params = new URLSearchParams();
+    if (options?.filter) params.set('filter', options.filter);
+    if (options?.scope) params.set('scope', options.scope);
+    if (options?.guildId != null && options.scope === 'guild') {
+      params.set('guild_id', String(options.guildId));
+    }
+    if (options?.gameId != null) {
+      params.set('game_id', String(options.gameId));
+    }
+    const qs = params.toString();
+    const url = `/admin/posts${qs ? `?${qs}` : ''}`;
+    const res = await http.fetchGet<AdminPostsResponse>(url);
+    throwOnError(res, 'Ошибка загрузки журнала');
+    const body = res.data;
+    const posts =
+      body && typeof body === 'object' && 'data' in body && Array.isArray((body as AdminPostsResponse).data)
+        ? (body as AdminPostsResponse).data
+        : [];
+    const pendingGlobalCount = body?.meta?.pending_global_count ?? 0;
+    const guilds = body?.meta?.guilds ?? [];
+    const games = body?.meta?.games ?? [];
+    return { posts, pendingGlobalCount, guilds, games };
+  },
+
+  /**
+   * Общие посты журнала для игры (раздел «Общие»).
+   * Бэкенд: GET /games/{game}/journal-posts
+   */
+  async getGlobalJournalPosts(gameId: number): Promise<Post[]> {
+    const res = await http.fetchGet<PostsListResponse | Post[]>(`/games/${gameId}/journal-posts`);
+    throwOnError(res, 'Ошибка загрузки журнала');
+    const data = res.data;
+    if (data && typeof data === 'object' && 'data' in data && Array.isArray((data as PostsListResponse).data)) {
+      return (data as PostsListResponse).data;
+    }
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -159,6 +238,62 @@ export const postsApi = {
    * Бэкенд: POST /guilds/{guild}/posts/{post}/view
    * @returns true, если просмотр засчитан впервые; false, если уже был учтён
    */
+  /**
+   * Один пост для админки.
+   * Бэкенд: GET /admin/posts/{post}
+   */
+  async getAdminPost(postId: number): Promise<Post> {
+    const res = await http.fetchGet<PostResponse | { data: Post } | Post>(`/admin/posts/${postId}`);
+    throwOnError(res, 'Ошибка загрузки поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
+  /**
+   * Одобрить пост в гильдии (админка).
+   * Бэкенд: POST /admin/posts/{post}/publish
+   */
+  async publishAdminPost(postId: number): Promise<Post> {
+    const res = await http.fetchPost<PostResponse | { data: Post } | Post>(`/admin/posts/${postId}/publish`, {});
+    throwOnError(res, 'Ошибка публикации поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
+  /**
+   * Отклонить пост в гильдии (админка).
+   * Бэкенд: POST /admin/posts/{post}/reject
+   */
+  async rejectAdminPost(postId: number): Promise<Post> {
+    const res = await http.fetchPost<PostResponse | { data: Post } | Post>(`/admin/posts/${postId}/reject`, {});
+    throwOnError(res, 'Ошибка отклонения поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
+  /**
+   * Заблокировать пост (скрыть из журналов).
+   * Бэкенд: POST /admin/posts/{post}/block
+   */
+  async blockAdminPost(postId: number): Promise<Post> {
+    const res = await http.fetchPost<PostResponse | { data: Post } | Post>(`/admin/posts/${postId}/block`, {});
+    throwOnError(res, 'Ошибка блокировки поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
   async recordGuildPostView(guildId: number, postId: number): Promise<boolean> {
     const res = await http.fetchPost<{ ok?: boolean; recorded?: boolean }>(
       `/guilds/${guildId}/posts/${postId}/view`,

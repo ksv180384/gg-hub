@@ -25,7 +25,7 @@ class CreatePostGuildRejectedNotificationAction
         return Notification::create([
             'user_id' => $user->id,
             'message' => "Ваш пост «{$post->title}» от {$authorName} в гильдии «{$guild->name}» был отклонён модерацией.",
-            'link' => '/guilds/' . $guild->id . '/posts/' . $post->id,
+            'link' => '/my-posts/' . $post->id . '/edit',
         ]);
     }
 }

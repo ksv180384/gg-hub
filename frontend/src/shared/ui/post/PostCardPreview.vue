@@ -11,6 +11,12 @@ interface Props {
   dateType?: 'guild' | 'global';
   /** ID гильдии — для засчёта просмотра при воспроизведении видео. */
   guildId?: number | null;
+  /** ID пользователя автора — если задан, имя автора становится кликабельным (emit authorClick). */
+  authorUserId?: number | null;
+  /** Показывать название игры (только для админки). */
+  showGame?: boolean;
+  /** Показывать статусы поста (общий и гильдейский). */
+  showStatus?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -28,9 +34,12 @@ const isPreviewHtml = computed(
 
 const emit = defineEmits<{
   (e: 'titleClick'): void;
+  (e: 'authorClick', userId: number): void;
   (e: 'commentsClick'): void;
   (e: 'viewRecorded'): void;
 }>();
+
+const isAuthorClickable = computed(() => (props.authorUserId ?? 0) > 0);
 
 const displayIso = computed(() => {
   const p = props.post;
@@ -70,7 +79,11 @@ useVideoPlaybackTracking(previewContainerRef, {
           :fallback="avatarFallback"
         />
         <div class="min-w-0">
-          <p class="truncate text-sm font-medium text-gray-600">
+          <p
+            class="truncate text-sm font-medium text-gray-600"
+            :class="{ 'cursor-pointer hover:underline': isAuthorClickable }"
+            @click.stop="isAuthorClickable && props.authorUserId && emit('authorClick', props.authorUserId)"
+          >
             {{ displayName }}
           </p>
           <h3
@@ -80,9 +93,31 @@ useVideoPlaybackTracking(previewContainerRef, {
           >
             {{ post.title || 'Без заголовка' }}
           </h3>
-          <span class="shrink-0 text-xs text-muted-foreground">
-            {{ displayTime }}
-          </span>
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span class="text-xs text-muted-foreground">{{ displayTime }}</span>
+            <span
+              v-if="showGame && post.game_name"
+              class="text-xs text-muted-foreground"
+            >
+              {{ post.game_name }}
+            </span>
+            <template v-if="showStatus">
+              <span
+                v-if="post.status_global"
+                class="text-xs text-muted-foreground"
+                title="Статус в общем журнале"
+              >
+                общие: {{ post.status_global_label ?? post.status_global }}
+              </span>
+              <span
+                v-if="post.status_guild"
+                class="text-xs text-muted-foreground"
+                title="Статус в гильдии"
+              >
+                гильдия: {{ post.status_guild_label ?? post.status_guild }}
+              </span>
+            </template>
+          </div>
         </div>
       </div>
     </header>
