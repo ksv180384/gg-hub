@@ -16,6 +16,7 @@ use Domains\Guild\Actions\ExcludeGuildMemberAction;
 use Domains\Guild\Actions\GetGuildAction;
 use Domains\Guild\Actions\GetGuildRosterAction;
 use Domains\Guild\Actions\GetGuildRosterMemberAction;
+use Domains\Guild\Actions\GetUserGuildCharactersAction;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Actions\LeaveGuildAction;
 use Domains\Guild\Actions\UpdateGuildAction;
@@ -33,6 +34,7 @@ class GuildController extends Controller
         private GetGuildAction $getGuildAction,
         private GetGuildRosterAction $getGuildRosterAction,
         private GetGuildRosterMemberAction $getGuildRosterMemberAction,
+        private GetUserGuildCharactersAction $getUserGuildCharactersAction,
         private UpdateGuildAction $updateGuildAction,
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
         private LeaveGuildAction $leaveGuildAction,
@@ -150,6 +152,12 @@ class GuildController extends Controller
         $data = (new GuildResource($guild))->toArray($request);
         $user = $request->user();
         $data['my_permission_slugs'] = $user ? ($this->getUserGuildPermissionSlugsAction)($user, $guild)->all() : [];
+        $data['my_characters'] = $user
+            ? ($this->getUserGuildCharactersAction)($user, $guild)
+                ->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'avatar_url' => $c->resolved_avatar_url])
+                ->values()
+                ->all()
+            : [];
 
         return response()->json(['data' => $data]);
     }

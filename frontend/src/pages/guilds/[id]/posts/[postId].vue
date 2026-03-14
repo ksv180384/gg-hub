@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Button, PostCardFull } from '@/shared/ui';
+import { Button, PostCardFull, Separator } from '@/shared/ui';
+import PostComments from './PostComments.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { postsApi, type Post } from '@/shared/api/postsApi';
@@ -14,6 +15,7 @@ const postId = computed(() => Number(route.params.postId));
 
 const guild = ref<Guild | null>(null);
 const post = ref<Post | null>(null);
+const commentsCount = ref<number | null>(null);
 const loading = ref(true);
 const submitting = ref(false);
 const error = ref<string | null>(null);
@@ -21,6 +23,8 @@ const error = ref<string | null>(null);
 const canModeratePosts = computed(
   () => !!guild.value?.my_permission_slugs?.includes('publikovat-post')
 );
+
+const canComment = computed(() => !!guild.value);
 
 const isPendingInGuild = computed(
   () => post.value?.status_guild === 'pending'
@@ -109,7 +113,12 @@ onMounted(() => {
           Пост не найден.
         </p>
         <template v-else>
-          <PostCardFull :post="post" date-type="guild" :show-status="canModeratePosts" />
+          <PostCardFull
+            :post="post"
+            date-type="guild"
+            :show-status="canModeratePosts"
+            :comments-count="commentsCount ?? post.comments_count"
+          />
 
           <div
             v-if="canModeratePosts && isPendingInGuild"
@@ -134,6 +143,17 @@ onMounted(() => {
               {{ submitting ? 'Обработка…' : 'Опубликовать' }}
             </Button>
           </div>
+
+          <Separator class="my-6" />
+
+          <PostComments
+            v-if="post"
+            :guild-id="guildId"
+            :post-id="post.id"
+            :can-comment="canComment"
+            :my-characters="guild?.my_characters ?? []"
+            @update:comments-count="commentsCount = $event"
+          />
         </template>
       </div>
     </div>

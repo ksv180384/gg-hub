@@ -64,6 +64,7 @@ class GuildPostController extends Controller
 
         $post->loadMissing(['character', 'character.user', 'user']);
         $post->refresh();
+        $post->loadCount(['postComments as comments_count']);
 
         return response()->json(new PostResource($post));
     }

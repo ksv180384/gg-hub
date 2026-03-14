@@ -28,6 +28,7 @@ const isPreviewHtml = computed(
 
 const emit = defineEmits<{
   (e: 'titleClick'): void;
+  (e: 'commentsClick'): void;
   (e: 'viewRecorded'): void;
 }>();
 
@@ -95,26 +96,54 @@ useVideoPlaybackTracking(previewContainerRef, {
       {{ displayBody() }}
     </p>
     <div
-      v-if="post.views_count != null"
-      class="mt-3 flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground"
-      title="Просмотры"
+      v-if="post.views_count != null || post.comments_count != null"
+      class="mt-3 flex items-center gap-4 border-t pt-3 text-xs text-muted-foreground"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="shrink-0"
+      <div
+        v-if="post.views_count != null"
+        class="flex items-center gap-1.5"
+        title="Просмотры"
       >
-        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-      <span>{{ post.views_count }}</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="shrink-0"
+        >
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        <span>{{ post.views_count }}</span>
+      </div>
+      <button
+        v-if="post.comments_count != null"
+        type="button"
+        class="flex cursor-pointer items-center gap-1.5 hover:text-foreground"
+        title="Комментарии"
+        @click.stop="emit('commentsClick')"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="shrink-0"
+        >
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <span>{{ post.comments_count }}</span>
+      </button>
     </div>
   </article>
 </template>

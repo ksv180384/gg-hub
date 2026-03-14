@@ -22,6 +22,7 @@ export interface Post {
   author_name?: string | null;
   author_avatar_url?: string | null;
   views_count?: number;
+  comments_count?: number;
   /** Полный текст — только при запросе одного поста. В списках отсутствует. */
   body?: string;
   /** Только для формы редактирования (single post). */

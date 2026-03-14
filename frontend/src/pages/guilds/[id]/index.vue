@@ -114,6 +114,7 @@ function onViewRecorded(postId: number) {
           :guild-id="guildId"
           date-type="guild"
           @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+          @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
           @view-recorded="onViewRecorded(post.id)"
         />
       </div>
@@ -131,6 +132,7 @@ function onViewRecorded(postId: number) {
           :guild-id="guildId"
           date-type="guild"
           @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+          @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
           @view-recorded="onViewRecorded(post.id)"
         />
       </div>

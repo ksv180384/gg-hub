@@ -59,6 +59,7 @@ class PostListResource extends JsonResource
             'author_name' => $authorName,
             'author_avatar_url' => $authorAvatarUrl,
             'views_count' => (int) ($this->views_count ?? 0),
+            'comments_count' => (int) ($this->comments_count ?? 0),
         ];
     }
 }

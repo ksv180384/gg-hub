@@ -10,6 +10,8 @@ interface Props {
   dateType?: 'guild' | 'global';
   /** Показывать статус поста (только для пользователей с правом publikovat-post) */
   showStatus?: boolean;
+  /** Актуальное количество комментариев (переопределяет post.comments_count) */
+  commentsCount?: number | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -43,6 +45,10 @@ const displayStatus = computed(() =>
   props.dateType === 'guild'
     ? (props.post.status_guild_label ?? '—')
     : (props.post.status_global_label ?? '—')
+);
+
+const displayCommentsCount = computed(() =>
+  props.commentsCount != null ? props.commentsCount : (props.post.comments_count ?? null)
 );
 </script>
 
@@ -81,30 +87,53 @@ const displayStatus = computed(() =>
       {{ post.body ?? '' }}
     </p>
     <div
-      v-if="post.views_count != null || (showStatus && (post.status_guild ?? post.status_global))"
+      v-if="post.views_count != null || displayCommentsCount != null || (showStatus && (post.status_guild ?? post.status_global))"
       class="mt-3 flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground"
     >
-      <div
-        v-if="post.views_count != null"
-        class="flex items-center gap-1.5"
-        title="Просмотры"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="shrink-0"
+      <div class="flex items-center gap-4">
+        <div
+          v-if="post.views_count != null"
+          class="flex items-center gap-1.5"
+          title="Просмотры"
         >
-          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-        <span>{{ post.views_count }}</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="shrink-0"
+          >
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>{{ post.views_count }}</span>
+        </div>
+        <div
+          v-if="displayCommentsCount != null"
+          class="flex items-center gap-1.5"
+          title="Комментарии"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="shrink-0"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span>{{ displayCommentsCount }}</span>
+        </div>
       </div>
       <span
         v-if="showStatus && (post.status_guild ?? post.status_global)"

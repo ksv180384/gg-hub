@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\GuildApplicationFormFieldController;
 use App\Http\Controllers\Api\GuildController;
 use App\Http\Controllers\Api\GuildRoleController;
 use App\Http\Controllers\Api\GuildPostController;
+use App\Http\Controllers\Api\GuildPostCommentController;
 use App\Http\Controllers\Api\LocalizationController;
 use App\Http\Controllers\Api\ServerController;
 use App\Http\Controllers\Api\PermissionController;
@@ -99,6 +100,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/guilds/{guild}/posts', [GuildPostController::class, 'index'])->middleware('guild.member');
     Route::get('/guilds/{guild}/posts/pending', [GuildPostController::class, 'pending'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::get('/guilds/{guild}/posts/{post}', [GuildPostController::class, 'show']);
+    Route::get('/guilds/{guild}/posts/{post}/comments', [GuildPostCommentController::class, 'index']);
+    Route::post('/guilds/{guild}/posts/{post}/comments', [GuildPostCommentController::class, 'store'])->middleware('guild.member');
+    Route::match(['put', 'patch'], '/guilds/{guild}/posts/{post}/comments/{comment}', [GuildPostCommentController::class, 'update'])->middleware('guild.member');
+    Route::delete('/guilds/{guild}/posts/{post}/comments/{comment}', [GuildPostCommentController::class, 'destroy'])->middleware('guild.member');
     Route::post('/guilds/{guild}/posts/{post}/view', [GuildPostController::class, 'recordView']);
     Route::post('/guilds/{guild}/posts/{post}/publish', [GuildPostController::class, 'publish'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::post('/guilds/{guild}/posts/{post}/reject', [GuildPostController::class, 'reject'])->middleware('guild.member', 'guild.role.permission:publikovat-post');

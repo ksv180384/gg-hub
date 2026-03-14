@@ -71,6 +71,8 @@ export interface Guild {
   application_form_fields?: GuildApplicationFormFieldDto[];
   /** Права текущего пользователя в гильдии (приходит только с GET /guilds/:id/settings). */
   my_permission_slugs?: string[];
+  /** Персонажи текущего пользователя в гильдии (приходит с GET /guilds/:id/settings). */
+  my_characters?: { id: number; name: string; avatar_url?: string | null }[];
 }
 
 /** Дополнительное поле формы заявки гильдии. */

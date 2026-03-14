@@ -21,6 +21,7 @@ final class ListGuildPostsForJournalAction
     public function __invoke(Guild $guild, array $params = []): Collection|LengthAwarePaginator
     {
         $query = Post::query()
+            ->withCount(['postComments as comments_count'])
             ->where('guild_id', $guild->id)
             ->where('is_visible_guild', true)
             ->where('status_guild', PostStatus::Published->value)

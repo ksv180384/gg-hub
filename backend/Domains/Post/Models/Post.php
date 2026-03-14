@@ -8,6 +8,7 @@ use Domains\Game\Models\Game;
 use Domains\Guild\Models\Guild;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Модель пользовательского поста.
@@ -86,5 +87,15 @@ class Post extends Model
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(PostComment::class)->whereNull('parent_id');
+    }
+
+    public function postComments(): HasMany
+    {
+        return $this->hasMany(PostComment::class);
     }
 }
