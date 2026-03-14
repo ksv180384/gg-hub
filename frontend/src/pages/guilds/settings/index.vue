@@ -266,10 +266,6 @@ watch(guildId, () => {
   loadGuild();
 });
 
-watch(guild, (g) => {
-  if (g) loadServers();
-});
-
 watch(selectedLocalizationId, (locId) => {
   const g = guild.value;
   if (!g || !locId) return;

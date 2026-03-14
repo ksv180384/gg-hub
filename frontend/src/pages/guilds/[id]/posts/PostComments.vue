@@ -319,7 +319,7 @@ onMounted(() => {
         <li
           v-for="comment in comments"
           :key="comment.id"
-          class="border-b border-border/50 last:border-b-0"
+          class=""
         >
           <PostCommentItem
             :comment="comment"

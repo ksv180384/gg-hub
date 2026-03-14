@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { RouterView, useRoute } from 'vue-router';
-import { Sheet, Button } from '@/shared/ui';
+import { Sheet, Button, Spinner } from '@/shared/ui';
+import { useRouteLoadingStore } from '@/stores/routeLoading';
 import { Header } from '@/widgets/header';
 import { GameSidebar, GameSidebarContent } from '@/widgets/game-sidebar';
 import { useAuthStore } from '@/stores/auth';
@@ -10,6 +11,7 @@ import { useSiteContextStore } from '@/stores/siteContext';
 const auth = useAuthStore();
 const siteContext = useSiteContextStore();
 const route = useRoute();
+const routeLoading = useRouteLoadingStore();
 const sidebarOpen = ref(false);
 
 // Боковое меню доступно на игровом субдомене (Персонажи, Гильдия) и на админ-субдомене (Управление).
@@ -44,7 +46,28 @@ watch(() => route.path, () => {
     </Header>
     <div class="flex flex-1">
       <GameSidebar v-if="showSidebar" />
-      <main class="flex-1 min-w-0">
+      <main class="relative flex-1 min-w-0">
+        <Transition
+          enter-active-class="ease-out duration-200"
+          enter-from-class="opacity-0"
+          enter-to-class="opacity-100"
+          leave-active-class="ease-in duration-150"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="routeLoading.isLoading"
+            :class="[
+              'fixed top-14 left-0 right-0 bottom-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm',
+              showSidebar && 'md:left-56',
+            ]"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <Spinner />
+            <p class="text-sm text-muted-foreground">Загрузка…</p>
+          </div>
+        </Transition>
         <RouterView />
       </main>
     </div>

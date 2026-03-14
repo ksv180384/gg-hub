@@ -37,7 +37,7 @@ const dragOverRoster = ref(false);
 const rosterDropZoneRef = ref<HTMLElement | null>(null);
 
 /** Сетка 100×100 ячеек. */
-const GRID_COLUMNS = 50;
+const GRID_COLUMNS = 20;
 const GRID_ROWS = 50;
 const totalSlots = computed(() => GRID_COLUMNS * GRID_ROWS);
 

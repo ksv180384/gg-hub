@@ -91,7 +91,7 @@ const isHighlighted = computed(() => props.highlightCommentId === props.comment.
 const indentClass = computed(() => {
   const d = depth.value;
   if (d === 0) return '';
-  if (d === 1) return 'ml-6 md:ml-8 pl-3 border-l-2 border-muted';
+  if (d === 1) return '';
   return 'ml-10 md:ml-12 pl-3 border-l-2 border-muted/70';
 });
 
@@ -149,7 +149,7 @@ watch(showReplyForm, (visible) => {
         <button
           v-if="hasChildren"
           type="button"
-          class="flex cursor-pointer rounded p-0.5 text-green-600/60 transition-colors hover:bg-muted hover:text-green-600/80 sticky top-12"
+          class="flex cursor-pointer rounded p-0.5 text-green-600/60 transition-colors hover:bg-muted hover:text-green-600/80 sticky top-16"
           :title="childrenCollapsed ? 'Развернуть ответы' : 'Свернуть ответы'"
           :aria-label="childrenCollapsed ? 'Развернуть ответы' : 'Свернуть ответы'"
           @click="toggleChildren"
@@ -277,39 +277,39 @@ watch(showReplyForm, (visible) => {
             </Button>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div
-      v-if="hasChildren"
-      class="grid transition-[grid-template-rows] duration-200 ease-in-out"
-      :class="childrenCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'"
-    >
-      <ul class="mt-2 min-h-0 overflow-hidden space-y-0">
-        <li
-          v-for="child in comment.children"
-          :key="child.id"
-          class="border-border/30 border-t pt-2 first:border-t-0 first:pt-0"
+        <div
+          v-if="hasChildren"
+          class="grid transition-[grid-template-rows] duration-200 ease-in-out"
+          :class="childrenCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'"
         >
-          <PostCommentItem
-          :comment="child"
-          :can-comment="canComment"
-          :can-reply="true"
-          :current-user-id="currentUserId"
-          :reply-to-id="replyToId"
-          :reply-body="replyBody"
-          :reply-submitting="replySubmitting"
-          :highlight-comment-id="props.highlightCommentId"
-          :depth="depth + 1"
-          @update:reply-body="emit('update:replyBody', $event)"
-          @reply="emit('reply', $event)"
-          @cancel-reply="emit('cancelReply')"
-          @submit-reply="emit('submitReply')"
-          @update="(id, body) => emit('update', id, body)"
-          @delete="(id) => emit('delete', id)"
-          />
-        </li>
-      </ul>
+          <ul class="mt-2 min-h-0 overflow-hidden space-y-0">
+            <li
+              v-for="child in comment.children"
+              :key="child.id"
+              class=""
+            >
+              <PostCommentItem
+                :comment="child"
+                :can-comment="canComment"
+                :can-reply="true"
+                :current-user-id="currentUserId"
+                :reply-to-id="replyToId"
+                :reply-body="replyBody"
+                :reply-submitting="replySubmitting"
+                :highlight-comment-id="props.highlightCommentId"
+                :depth="depth + 1"
+                @update:reply-body="emit('update:replyBody', $event)"
+                @reply="emit('reply', $event)"
+                @cancel-reply="emit('cancelReply')"
+                @submit-reply="emit('submitReply')"
+                @update="(id, body) => emit('update', id, body)"
+                @delete="(id) => emit('delete', id)"
+              />
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <ConfirmDialog
