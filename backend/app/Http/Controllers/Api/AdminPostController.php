@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Post\PostListResource;
 use App\Http\Resources\Post\PostResource;
 use App\Actions\Notification\CreatePostBlockedNotificationAction;
+use App\Actions\Notification\CreatePostHiddenNotificationAction;
 use App\Actions\Notification\CreatePostGlobalPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGlobalRejectedNotificationAction;
 use App\Actions\Notification\CreatePostGuildPublishedNotificationAction;
@@ -43,6 +44,7 @@ class AdminPostController extends Controller
         private CreatePostGlobalPublishedNotificationAction $createPostGlobalPublishedNotificationAction,
         private CreatePostGlobalRejectedNotificationAction $createPostGlobalRejectedNotificationAction,
         private CreatePostBlockedNotificationAction $createPostBlockedNotificationAction,
+        private CreatePostHiddenNotificationAction $createPostHiddenNotificationAction,
     ) {}
 
     /**
@@ -202,11 +204,12 @@ class AdminPostController extends Controller
     }
 
     /**
-     * Скрыть пост (убрать из журналов, status_global и status_guild → hidden). Без оповещения автору.
+     * Скрыть пост (убрать из журналов, status_global и status_guild → hidden).
      */
     public function hide(Post $post): JsonResponse
     {
         $post = ($this->hidePostAction)($post);
+        ($this->createPostHiddenNotificationAction)($post);
         $post->loadMissing(['character', 'character.user', 'user']);
 
         return response()->json(new PostResource($post));

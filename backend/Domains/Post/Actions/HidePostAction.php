@@ -6,8 +6,8 @@ use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 
 /**
- * Скрыть пост (админ): убрать из общего и гильдейского журналов (status_global и status_guild → hidden).
- * В отличие от блокировки, автору оповещение не отправляется.
+ * Скрыть пост администратором: убрать из общего и гильдейского журналов.
+ * Устанавливает status_global и status_guild в hidden (автор может снова отобразить при редактировании).
  */
 final class HidePostAction
 {

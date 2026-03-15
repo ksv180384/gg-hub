@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'no_title' => 'no title',
+    'notification' => [
+        'hidden' => 'Your post ":title" was hidden by an administrator.',
+    ],
     'status' => [
         'published' => 'Published',
         'draft' => 'Draft',
