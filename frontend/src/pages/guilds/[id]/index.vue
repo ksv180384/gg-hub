@@ -15,6 +15,7 @@ const loadingGuild = ref(true);
 const loadingPublished = ref(true);
 const loadingPending = ref(false);
 const showPending = ref(false);
+const showBlocked = ref(false);
 
 const canModeratePosts = computed(
   () => !!guild.value?.my_permission_slugs?.includes('publikovat-post')
@@ -27,6 +28,7 @@ async function loadGuildJournal() {
   publishedPosts.value = [];
   pendingPosts.value = [];
   showPending.value = false;
+  showBlocked.value = false;
   loadingGuild.value = true;
   loadingPublished.value = true;
   loadingPending.value = false;
@@ -56,15 +58,43 @@ async function loadGuildJournal() {
   }
 }
 
+const blockedPosts = ref<Post[]>([]);
+const loadingBlocked = ref(false);
+
+async function loadBlockedPosts() {
+  if (!guildId.value || !canModeratePosts.value) return;
+  loadingBlocked.value = true;
+  try {
+    blockedPosts.value = await postsApi.getGuildPosts(guildId.value, { filter: 'blocked' });
+  } finally {
+    loadingBlocked.value = false;
+  }
+}
+
 watch(guildId, () => {
   loadGuildJournal();
 }, { immediate: true });
 
+watch(showBlocked, (val) => {
+  if (val && canModeratePosts.value) loadBlockedPosts();
+});
+
 const pendingCount = computed(() => pendingPosts.value.length);
+
+function togglePending() {
+  showBlocked.value = false;
+  showPending.value = !showPending.value;
+}
+
+function toggleBlocked() {
+  showPending.value = false;
+  showBlocked.value = !showBlocked.value;
+}
 
 function onViewRecorded(postId: number) {
   const p = publishedPosts.value.find((x) => x.id === postId)
-    ?? pendingPosts.value.find((x) => x.id === postId);
+    ?? pendingPosts.value.find((x) => x.id === postId)
+    ?? blockedPosts.value.find((x) => x.id === postId);
   if (p) p.views_count = (p.views_count ?? 0) + 1;
 }
 </script>
@@ -73,22 +103,22 @@ function onViewRecorded(postId: number) {
   <div class="container py-6 space-y-4 max-w-2xl mx-auto">
     <div
       v-if="canModeratePosts"
-      class="flex justify-between"
+      class="flex flex-wrap items-center gap-2"
     >
-      <div>
-        {{ showPending ? 'Посты, ожидающие публикации' : 'Журнал гильдии' }}
+      <div class="min-w-0 flex-1">
+        {{ showPending ? 'Посты, ожидающие публикации' : showBlocked ? 'Заблокированные посты' : 'Журнал гильдии' }}
       </div>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        class="cursor-pointer"
+        class="cursor-pointer shrink-0"
         :class="
           showPending
             ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
             : ''
         "
-        @click="showPending = !showPending"
+        @click="togglePending"
       >
         Ожидают публикации
         <span
@@ -96,6 +126,20 @@ function onViewRecorded(postId: number) {
         >
           {{ loadingPending ? '…' : pendingCount }}
         </span>
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        class="cursor-pointer shrink-0"
+        :class="
+          showBlocked
+            ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+            : ''
+        "
+        @click="toggleBlocked"
+      >
+        Заблокированные
       </Button>
     </div>
 
@@ -109,6 +153,26 @@ function onViewRecorded(postId: number) {
       <div v-else class="space-y-4">
         <PostCardPreview
           v-for="post in pendingPosts"
+          :key="post.id"
+          :post="post"
+          :guild-id="guildId"
+          date-type="guild"
+          @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+          @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
+          @view-recorded="onViewRecorded(post.id)"
+        />
+      </div>
+    </template>
+    <template v-else-if="showBlocked">
+      <p v-if="loadingBlocked" class="text-sm text-muted-foreground">
+        Загрузка заблокированных постов…
+      </p>
+      <p v-else-if="blockedPosts.length === 0" class="text-sm text-muted-foreground">
+        Нет заблокированных постов в гильдии.
+      </p>
+      <div v-else class="space-y-4">
+        <PostCardPreview
+          v-for="post in blockedPosts"
           :key="post.id"
           :post="post"
           :guild-id="guildId"

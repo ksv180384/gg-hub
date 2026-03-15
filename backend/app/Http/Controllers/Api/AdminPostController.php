@@ -11,6 +11,8 @@ use App\Actions\Notification\CreatePostGlobalRejectedNotificationAction;
 use App\Actions\Notification\CreatePostGuildPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGuildRejectedNotificationAction;
 use Domains\Post\Actions\BlockPostAction;
+use Domains\Post\Actions\HidePostAction;
+use Domains\Post\Actions\UnblockPostAction;
 use Domains\Post\Actions\PublishGlobalPostAction;
 use Domains\Post\Actions\PublishGuildPostAction;
 use Domains\Post\Actions\RejectGlobalPostAction;
@@ -34,6 +36,8 @@ class AdminPostController extends Controller
         private RejectGuildPostAction $rejectGuildPostAction,
         private RejectGlobalPostAction $rejectGlobalPostAction,
         private BlockPostAction $blockPostAction,
+        private HidePostAction $hidePostAction,
+        private UnblockPostAction $unblockPostAction,
         private CreatePostGuildPublishedNotificationAction $createPostGuildPublishedNotificationAction,
         private CreatePostGuildRejectedNotificationAction $createPostGuildRejectedNotificationAction,
         private CreatePostGlobalPublishedNotificationAction $createPostGlobalPublishedNotificationAction,
@@ -192,6 +196,28 @@ class AdminPostController extends Controller
     {
         $post = ($this->blockPostAction)($post);
         ($this->createPostBlockedNotificationAction)($post);
+        $post->loadMissing(['character', 'character.user', 'user']);
+
+        return response()->json(new PostResource($post));
+    }
+
+    /**
+     * Скрыть пост (убрать из журналов, status_global и status_guild → hidden). Без оповещения автору.
+     */
+    public function hide(Post $post): JsonResponse
+    {
+        $post = ($this->hidePostAction)($post);
+        $post->loadMissing(['character', 'character.user', 'user']);
+
+        return response()->json(new PostResource($post));
+    }
+
+    /**
+     * Разблокировать пост: в разделах со статусом blocked выставить hidden.
+     */
+    public function unblock(Post $post): JsonResponse
+    {
+        $post = ($this->unblockPostAction)($post);
         $post->loadMissing(['character', 'character.user', 'user']);
 
         return response()->json(new PostResource($post));

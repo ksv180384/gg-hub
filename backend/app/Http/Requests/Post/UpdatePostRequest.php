@@ -23,7 +23,16 @@ class UpdatePostRequest extends FormRequest
         }
 
         // Пост может редактировать только его владелец
-        return (int) $post->user_id === (int) $user->id;
+        if ((int) $post->user_id !== (int) $user->id) {
+            return false;
+        }
+
+        // Редактирование недоступно только если заблокированы и общий, и гильдейский просмотр
+        if ($post->status_global === PostStatus::Blocked->value && $post->status_guild === PostStatus::Blocked->value) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -47,15 +56,16 @@ class UpdatePostRequest extends FormRequest
                 Rule::in(PostVisibilityType::values()),
             ],
 
+            // Статус blocked выставляется только администратором, автор не может его передать
             'status_global' => [
                 'nullable',
                 'string',
-                Rule::in(PostStatus::values()),
+                Rule::in(['pending', 'published', 'draft', 'hidden', 'rejected']),
             ],
             'status_guild' => [
                 'nullable',
                 'string',
-                Rule::in(PostStatus::values()),
+                Rule::in(['pending', 'published', 'draft', 'hidden', 'rejected']),
             ],
         ];
     }
@@ -88,11 +98,17 @@ class UpdatePostRequest extends FormRequest
             $globalVisibilityType = $this->input('global_visibility_type');
             $wantsGlobalAsGuild = $isVisibleGlobal && $globalVisibilityType === PostVisibilityType::Guild->value;
 
-            if ($isVisibleGuild && !$slugs->contains('redaktirovat-post')) {
+            // Право на редактирование постов гильдии требуется только при публикации в гильдию (не при сохранении заблокированного/скрытого поста).
+            $statusGuild = $this->input('status_guild', $post->status_guild);
+            $wantsGuildVisible = $isVisibleGuild && $statusGuild !== PostStatus::Hidden->value;
+            if ($wantsGuildVisible && !$slugs->contains('redaktirovat-post')) {
                 $validator->errors()->add('guild_id', 'У вас нет прав редактировать посты этой гильдии.');
             }
 
-            if ($wantsGlobalAsGuild && !$slugs->contains('sozdavat-posty-ot-imeni-gildii')) {
+            // Право «от имени гильдии» требуется только при публикации в общий журнал (не при сохранении заблокированного поста).
+            $statusGlobal = $this->input('status_global', $post->status_global);
+            $wantsGlobalVisibleAsGuild = $wantsGlobalAsGuild && $statusGlobal !== PostStatus::Hidden->value;
+            if ($wantsGlobalVisibleAsGuild && !$slugs->contains('sozdavat-posty-ot-imeni-gildii')) {
                 $validator->errors()->add('global_visibility_type', 'У вас нет прав создавать посты от имени гильдии.');
             }
         });

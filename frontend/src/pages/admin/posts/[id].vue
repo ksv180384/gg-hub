@@ -2,6 +2,7 @@
 import { Button, PostCardFull } from '@/shared/ui';
 import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';
+import { useAdminJournalStore } from '@/stores/adminJournal';
 import { useAuthStore } from '@/stores/auth';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -9,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router';
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const adminJournal = useAdminJournalStore();
 
 const postId = computed(() => Number(route.params.id));
 
@@ -35,7 +37,33 @@ const isPublished = computed(
     post.value?.status_global === 'published' ||
     post.value?.status_guild === 'published'
 );
-const canBlock = computed(() => isPublished.value && canBlockPosts.value);
+/** В общем журнале статус «Опубликован» — тогда показываем кнопки «Скрыть» и «Заблокировать» */
+const isPublishedInGlobal = computed(() => post.value?.status_global === 'published');
+const isBlocked = computed(
+  () => post.value?.status_global === 'blocked' || post.value?.status_guild === 'blocked'
+);
+const isBlockedForGlobal = computed(() => post.value?.status_global === 'blocked');
+
+const canBlock = computed(
+  () =>
+    // canBlockPosts.value &&
+    // !!post.value &&
+    isPublishedInGlobal.value //&&
+    // !isBlockedForGlobal.value
+);
+
+const canHide = computed(
+  () =>
+    // canBlockPosts.value &&
+    // !!post.value &&
+    isPublishedInGlobal.value// &&
+    // !isBlocked.value
+);
+
+/** Показывать «Разблокировать» только если пост заблокирован в общем журнале; при блокировке только в гильдии разблокировка — в гильдии */
+const canUnblock = computed(
+  () => canBlockPosts.value && !!post.value && isBlockedForGlobal.value
+);
 
 function redirectToJournal() {
   router.replace({ name: 'admin-journal' });
@@ -68,6 +96,7 @@ async function publish() {
   error.value = null;
   try {
     post.value = await postsApi.publishAdminPost(postId.value);
+    await adminJournal.refreshPendingCount();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось опубликовать пост';
   } finally {
@@ -81,6 +110,7 @@ async function reject() {
   error.value = null;
   try {
     post.value = await postsApi.rejectAdminPost(postId.value);
+    await adminJournal.refreshPendingCount();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось отклонить пост';
   } finally {
@@ -94,8 +124,37 @@ async function block() {
   error.value = null;
   try {
     post.value = await postsApi.blockAdminPost(postId.value);
+    await adminJournal.refreshPendingCount();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось заблокировать пост';
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function hide() {
+  if (!postId.value) return;
+  submitting.value = true;
+  error.value = null;
+  try {
+    post.value = await postsApi.hideAdminPost(postId.value);
+    await adminJournal.refreshPendingCount();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось скрыть пост';
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function unblock() {
+  if (!postId.value) return;
+  submitting.value = true;
+  error.value = null;
+  try {
+    post.value = await postsApi.unblockAdminPost(postId.value);
+    await adminJournal.refreshPendingCount();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось разблокировать пост';
   } finally {
     submitting.value = false;
   }
@@ -133,12 +192,18 @@ onMounted(loadPost);
           />
 
           <div
-            v-if="canModerate || canBlock"
+            v-if="canModerate || canBlock || canHide || canUnblock"
             class="flex flex-wrap items-center justify-end gap-3 pt-2"
           >
-            <span v-if="canModerate" class="text-xs text-muted-foreground">
-              {{ isPendingGlobal && isPendingInGuild ? 'Ожидает публикации (общие и гильдия)' : isPendingGlobal ? 'Ожидает публикации в общий журнал' : 'Ожидает публикации в гильдии' }}
-            </span>
+<!--            <span v-if="canModerate" class="text-xs text-muted-foreground">-->
+<!--              {{ isPendingGlobal && isPendingInGuild ? 'Ожидает публикации (общие и гильдия)' : isPendingGlobal ? 'Ожидает публикации в общий журнал' : 'Ожидает публикации в гильдии' }}-->
+<!--            </span>-->
+<!--            <span v-else-if="canUnblock" class="text-xs text-muted-foreground">-->
+<!--              Пост заблокирован-->
+<!--            </span>-->
+<!--            <span v-else-if="isPublished && (canHide || canBlock)" class="text-xs text-muted-foreground">-->
+<!--              Опубликован-->
+<!--            </span>-->
             <template v-if="canModerate">
               <Button variant="outline" size="sm" :disabled="submitting" @click="reject">
                 {{ submitting ? 'Обработка…' : 'Отклонить' }}
@@ -147,6 +212,24 @@ onMounted(loadPost);
                 {{ submitting ? 'Обработка…' : 'Опубликовать' }}
               </Button>
             </template>
+            <Button
+              v-if="canHide"
+              variant="outline"
+              size="sm"
+              :disabled="submitting"
+              @click="hide"
+            >
+              {{ submitting ? 'Обработка…' : 'Скрыть' }}
+            </Button>
+            <Button
+              v-if="canUnblock"
+              variant="outline"
+              size="sm"
+              :disabled="submitting"
+              @click="unblock"
+            >
+              {{ submitting ? 'Обработка…' : 'Разблокировать' }}
+            </Button>
             <Button
               v-if="canBlock"
               variant="destructive"

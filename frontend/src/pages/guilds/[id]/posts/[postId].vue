@@ -20,6 +20,7 @@ const loading = ref(true);
 const submitting = ref(false);
 const error = ref<string | null>(null);
 
+/** Право публиковать/отклонять/блокировать посты в гильдии */
 const canModeratePosts = computed(
   () => !!guild.value?.my_permission_slugs?.includes('publikovat-post')
 );
@@ -28,6 +29,31 @@ const canComment = computed(() => !!guild.value);
 
 const isPendingInGuild = computed(
   () => post.value?.status_guild === 'pending'
+);
+
+const isPublishedInGuild = computed(
+  () => post.value?.status_guild === 'published'
+);
+
+const isGuildBlocked = computed(() => post.value?.status_guild === 'blocked');
+const isGlobalBlocked = computed(() => post.value?.status_global === 'blocked');
+
+/** Показывать кнопку «Заблокировать»: право publikovat-post, пост ещё не заблокирован для гильдии */
+const canBlock = computed(
+  () =>
+    canModeratePosts.value &&
+    !!post.value &&
+    !isGuildBlocked.value &&
+    (isPublishedInGuild.value || isPendingInGuild.value)
+);
+
+/** Показывать «Разблокировать»: пост заблокирован только для гильдии (не в общем журнале) */
+const canUnblock = computed(
+  () =>
+    canModeratePosts.value &&
+    !!post.value &&
+    isGuildBlocked.value &&
+    !isGlobalBlocked.value
 );
 
 function redirectToGuildPosts() {
@@ -85,6 +111,32 @@ async function reject() {
   }
 }
 
+async function block() {
+  if (!guildId.value || !postId.value) return;
+  submitting.value = true;
+  error.value = null;
+  try {
+    post.value = await postsApi.blockGuildPost(guildId.value, postId.value);
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось заблокировать пост';
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function unblock() {
+  if (!guildId.value || !postId.value) return;
+  submitting.value = true;
+  error.value = null;
+  try {
+    post.value = await postsApi.unblockGuildPost(guildId.value, postId.value);
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось разблокировать пост';
+  } finally {
+    submitting.value = false;
+  }
+}
+
 onMounted(() => {
   loadData();
 });
@@ -121,26 +173,49 @@ onMounted(() => {
           />
 
           <div
-            v-if="canModeratePosts && isPendingInGuild"
+            v-if="(canModeratePosts && isPendingInGuild) || canBlock || canUnblock"
             class="flex flex-wrap items-center justify-end gap-3 pt-2"
           >
-            <span class="text-xs text-muted-foreground">
+            <span v-if="canModeratePosts && isPendingInGuild" class="text-xs text-muted-foreground">
               Статус: ожидает публикации
             </span>
+            <span v-else-if="canUnblock" class="text-xs text-muted-foreground">
+              Заблокировано для гильдии
+            </span>
+            <template v-if="canModeratePosts && isPendingInGuild">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="submitting"
+                @click="reject"
+              >
+                {{ submitting ? 'Обработка…' : 'Отклонить' }}
+              </Button>
+              <Button
+                size="sm"
+                :disabled="submitting"
+                @click="publish"
+              >
+                {{ submitting ? 'Обработка…' : 'Опубликовать' }}
+              </Button>
+            </template>
             <Button
+              v-if="canUnblock"
               variant="outline"
               size="sm"
               :disabled="submitting"
-              @click="reject"
+              @click="unblock"
             >
-              {{ submitting ? 'Обработка…' : 'Отклонить' }}
+              {{ submitting ? 'Обработка…' : 'Разблокировать' }}
             </Button>
             <Button
+              v-if="canBlock"
+              variant="destructive"
               size="sm"
               :disabled="submitting"
-              @click="publish"
+              @click="block"
             >
-              {{ submitting ? 'Обработка…' : 'Опубликовать' }}
+              {{ submitting ? 'Обработка…' : 'Заблокировать' }}
             </Button>
           </div>
 

@@ -178,8 +178,13 @@ export const postsApi = {
    * Посты журнала конкретной гильдии.
    * Бэкенд: GET /guilds/{guild}/posts
    */
-  async getGuildPosts(guildId: number): Promise<Post[]> {
-    const res = await http.fetchGet<PostsListResponse | Post[]>(`/guilds/${guildId}/posts`);
+  /**
+   * Посты гильдии для журнала. При filter: 'blocked' — только заблокированные (доступно при праве publikovat-post).
+   */
+  async getGuildPosts(guildId: number, opts?: { filter?: 'blocked' }): Promise<Post[]> {
+    const params = opts?.filter ? new URLSearchParams({ filter: opts.filter }) : '';
+    const url = params ? `/guilds/${guildId}/posts?${params}` : `/guilds/${guildId}/posts`;
+    const res = await http.fetchGet<PostsListResponse | Post[]>(url);
     throwOnError(res, 'Ошибка загрузки журнала гильдии');
     const data = res.data;
     if (data && typeof data === 'object' && 'data' in data && Array.isArray((data as PostsListResponse).data)) {
@@ -281,12 +286,40 @@ export const postsApi = {
   },
 
   /**
-   * Заблокировать пост (скрыть из журналов).
+   * Заблокировать пост (общий и гильдия → blocked, автору оповещение).
    * Бэкенд: POST /admin/posts/{post}/block
    */
   async blockAdminPost(postId: number): Promise<Post> {
     const res = await http.fetchPost<PostResponse | { data: Post } | Post>(`/admin/posts/${postId}/block`, {});
     throwOnError(res, 'Ошибка блокировки поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
+  /**
+   * Скрыть пост (общий и гильдия → hidden, без оповещения автору).
+   * Бэкенд: POST /admin/posts/{post}/hide
+   */
+  async hideAdminPost(postId: number): Promise<Post> {
+    const res = await http.fetchPost<PostResponse | { data: Post } | Post>(`/admin/posts/${postId}/hide`, {});
+    throwOnError(res, 'Ошибка скрытия поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
+  /**
+   * Разблокировать пост (админ): в разделах со статусом blocked выставить hidden.
+   * Бэкенд: POST /admin/posts/{post}/unblock
+   */
+  async unblockAdminPost(postId: number): Promise<Post> {
+    const res = await http.fetchPost<PostResponse | { data: Post } | Post>(`/admin/posts/${postId}/unblock`, {});
+    throwOnError(res, 'Ошибка разблокировки поста');
     const data = res.data as PostResponse | { data?: Post } | Post | null;
     if (data && typeof data === 'object' && 'data' in data) {
       return (data as { data: Post }).data;
@@ -312,6 +345,41 @@ export const postsApi = {
       {}
     );
     throwOnError(res, 'Ошибка отклонения поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
+  /**
+   * Заблокировать пост только для гильдии (скрыть из гильдейского журнала).
+   * Бэкенд: POST /guilds/{guild}/posts/{post}/block
+   */
+  async blockGuildPost(guildId: number, postId: number): Promise<Post> {
+    const res = await http.fetchPost<PostResponse | { data: Post } | Post>(
+      `/guilds/${guildId}/posts/${postId}/block`,
+      {}
+    );
+    throwOnError(res, 'Ошибка блокировки поста в гильдии');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
+  /**
+   * Разблокировать пост только для гильдии (status_guild → hidden).
+   * Нельзя, если пост заблокирован в общем журнале.
+   * Бэкенд: POST /guilds/{guild}/posts/{post}/unblock
+   */
+  async unblockGuildPost(guildId: number, postId: number): Promise<Post> {
+    const res = await http.fetchPost<PostResponse | { data: Post } | Post>(
+      `/guilds/${guildId}/posts/${postId}/unblock`,
+      {}
+    );
+    throwOnError(res, 'Ошибка разблокировки поста в гильдии');
     const data = res.data as PostResponse | { data?: Post } | Post | null;
     if (data && typeof data === 'object' && 'data' in data) {
       return (data as { data: Post }).data;

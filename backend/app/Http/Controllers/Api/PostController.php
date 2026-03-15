@@ -14,6 +14,7 @@ use Domains\Post\Actions\ApplyPostModerationRulesAction;
 use Domains\Post\Actions\BuildPostDataFromRequestAction;
 use Domains\Post\Actions\CreatePostAction;
 use Domains\Post\Actions\UpdatePostAction;
+use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -78,6 +79,7 @@ class PostController extends Controller
 
     /**
      * Получить один пост текущего пользователя.
+     * Владелец может просматривать свой пост при любом статусе (в т.ч. заблокированный).
      */
     public function show(Request $request, Post $post): PostResource
     {
@@ -92,6 +94,7 @@ class PostController extends Controller
 
     /**
      * Обновление поста текущего пользователя.
+     * Владелец может редактировать свой пост при любом статусе (в т.ч. заблокированный).
      */
     public function update(UpdatePostRequest $request, Post $post): PostResource
     {
@@ -105,7 +108,24 @@ class PostController extends Controller
         $result = ($this->applyPostModerationRulesAction)($data, $user);
         $data = $result['data'];
 
+        // Заблокированный статус меняет только модератор/админ; автор не может его снять при редактировании
+        if ($post->status_global === PostStatus::Blocked->value) {
+            $data['status_global'] = PostStatus::Blocked->value;
+        }
+        if ($post->status_guild === PostStatus::Blocked->value) {
+            $data['status_guild'] = PostStatus::Blocked->value;
+        }
+
+        // Статус на модерации снять при редактировании нельзя — только решение модератора
+        if ($post->status_global === PostStatus::Pending->value) {
+            $data['status_global'] = PostStatus::Pending->value;
+        }
+        if ($post->status_guild === PostStatus::Pending->value) {
+            $data['status_guild'] = PostStatus::Pending->value;
+        }
+
         $post = ($this->updatePostAction)($post, $data);
+        $this->sendPostOrCommentTelegramNotificationAction->postUpdated($post);
         $post->loadMissing(['character', 'character.user', 'user']);
 
         // Уведомляем модераторов только при новом переводе поста на модерацию (не при каждом сохранении уже ожидающего)

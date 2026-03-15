@@ -37,15 +37,16 @@ class StorePostRequest extends FormRequest
                 Rule::in(PostVisibilityType::values()),
             ],
 
+            // Статус blocked выставляется только администратором
             'status_global' => [
                 'nullable',
                 'string',
-                Rule::in(PostStatus::values()),
+                Rule::in(['pending', 'published', 'draft', 'hidden', 'rejected']),
             ],
             'status_guild' => [
                 'nullable',
                 'string',
-                Rule::in(PostStatus::values()),
+                Rule::in(['pending', 'published', 'draft', 'hidden', 'rejected']),
             ],
         ];
     }

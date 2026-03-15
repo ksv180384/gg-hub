@@ -7,5 +7,6 @@ return [
         'pending' => 'Pending moderation',
         'rejected' => 'Rejected',
         'hidden' => 'Hidden',
+        'blocked' => 'Blocked',
     ],
 ];

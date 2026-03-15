@@ -37,6 +37,11 @@ function effectiveStatusLabel(
   return isVisible ? (statusLabel ?? '—') : hiddenLabel;
 }
 
+/** Полностью заблокирован (общие и гильдия) — редактирование недоступно */
+function isPostBlocked(post: Post): boolean {
+  return post.status_global === 'blocked' && post.status_guild === 'blocked';
+}
+
 async function loadPosts() {
   loading.value = true;
   error.value = null;
@@ -88,10 +93,10 @@ onMounted(() => {
             <CardHeader class="pb-2">
               <div class="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" class="text-xs">
-                  Общие: {{ effectiveStatusLabel(post.is_visible_global, post.status_global_label, 'Скрыт') }}
+                  Общие: {{ effectiveStatusLabel(post.is_visible_global, post.status_global_label, 'Не включено') }}
                 </Badge>
                 <Badge variant="outline" class="text-xs">
-                  Гильдия: {{ effectiveStatusLabel(post.is_visible_guild, post.status_guild_label, 'Скрыт') }}
+                  Гильдия: {{ effectiveStatusLabel(post.is_visible_guild, post.status_guild_label, 'Не включено') }}
                 </Badge>
                 <span class="text-xs text-muted-foreground">
                   {{ formatDate(post.published_at_global ?? post.published_at_guild ?? post.created_at) }}
@@ -99,11 +104,15 @@ onMounted(() => {
               </div>
               <CardTitle class="mt-2 text-lg flex items-center justify-between gap-3">
                 <span>{{ post.title || 'Без названия' }}</span>
-                <RouterLink :to="{ name: 'my-posts-edit', params: { id: post.id } }">
+                <RouterLink
+                  v-if="!isPostBlocked(post)"
+                  :to="{ name: 'my-posts-edit', params: { id: post.id } }"
+                >
                   <Button variant="outline" size="xs">
                     Редактировать
                   </Button>
                 </RouterLink>
+                <span v-else class="text-xs text-muted-foreground">Редактирование недоступно</span>
               </CardTitle>
             </CardHeader>
             <CardContent class="pt-0">

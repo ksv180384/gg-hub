@@ -53,6 +53,16 @@ const bodyPreviewMode = ref(false);
 const loading = ref(false);
 const loadError = ref<string | null>(null);
 const submitError = ref<string | null>(null);
+/** Пост полностью заблокирован (общие и гильдия) — редактирование недоступно */
+const isBlocked = ref(false);
+/** Пост заблокирован для общего просмотра — статус «Общие» изменить нельзя */
+const isGlobalBlocked = ref(false);
+/** Пост заблокирован для гильдии модератором — статус для гильдии изменить нельзя */
+const isGuildBlocked = ref(false);
+/** Статус «Общие» на модерации — изменение заблокировано */
+const isPendingGlobal = ref(false);
+/** Статус «Гильдия» на модерации — изменение заблокировано */
+const isPendingGuild = ref(false);
 
 const selectedCharacter = computed(() =>
   characterId.value != null ? characters.value.find((c) => c.id === characterId.value) ?? null : null,
@@ -82,6 +92,11 @@ async function loadInitialData() {
 
     if (isEdit.value && effectivePostId.value) {
       const post: Post = await postsApi.getPost(effectivePostId.value);
+      isBlocked.value = post.status_global === 'blocked' && post.status_guild === 'blocked';
+      isGlobalBlocked.value = post.status_global === 'blocked';
+      isGuildBlocked.value = post.status_guild === 'blocked';
+      isPendingGlobal.value = post.status_global === 'pending';
+      isPendingGuild.value = post.status_guild === 'pending';
       title.value = post.title ?? '';
       body.value = post.body?.startsWith('<') ? post.body : `<p>${(post.body || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`;
       characterId.value = post.character_id;
@@ -107,6 +122,12 @@ async function loadInitialData() {
       statusGuild.value = (post.status_guild === 'published' || post.status_guild === 'draft' || post.status_guild === 'hidden')
         ? post.status_guild
         : 'hidden';
+    } else {
+      isBlocked.value = false;
+      isGlobalBlocked.value = false;
+      isGuildBlocked.value = false;
+      isPendingGlobal.value = false;
+      isPendingGuild.value = false;
     }
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : 'Не удалось загрузить данные для формы';
@@ -163,6 +184,7 @@ function isBodyEmpty(html: string): boolean {
 }
 
 async function submit() {
+  if (isBlocked.value) return;
   if (isBodyEmpty(body.value)) {
     submitError.value = 'Введите текст поста.';
     return;
@@ -178,11 +200,13 @@ async function submit() {
       guild_id: guildId.value,
       game_id: game.value?.id ?? null,
       is_visible_global: isVisibleGlobal.value,
-      is_visible_guild: isVisibleGuild.value,
+      is_visible_guild: isGuildBlocked.value ? true : isVisibleGuild.value,
       global_visibility_type: isVisibleGlobal.value ? globalVisibilityType.value : null,
-      status_global: isVisibleGlobal.value ? statusGlobal.value : 'hidden',
-      status_guild: isVisibleGuild.value ? statusGuild.value : 'hidden',
+      status_global: isPendingGlobal ? 'hidden' : (isVisibleGlobal.value ? statusGlobal.value : 'hidden'),
+      status_guild: isPendingGuild ? 'hidden' : (isVisibleGuild.value ? statusGuild.value : 'hidden'),
     };
+    if (isPendingGlobal) (payload as Record<string, unknown>).status_global = 'pending';
+    if (isPendingGuild) (payload as Record<string, unknown>).status_guild = 'pending';
 
     if (isEdit.value && effectivePostId.value) {
       await postsApi.updatePost(effectivePostId.value, payload);
@@ -286,6 +310,18 @@ onMounted(() => {
         </Button>
       </div>
 
+      <Card v-if="isBlocked" class="border-destructive/50 bg-destructive/5">
+        <CardContent class="pt-6">
+          <p class="text-sm font-medium text-destructive">
+            Пост заблокирован. Редактирование недоступно.
+          </p>
+          <p class="mt-1 text-xs text-muted-foreground">
+            Вы можете только просматривать содержимое. Для разблокировки обратитесь к администратору.
+          </p>
+        </CardContent>
+      </Card>
+
+      <template v-if="!isBlocked">
       <Card>
         <CardHeader>
           <CardTitle>Содержимое поста</CardTitle>
@@ -365,19 +401,32 @@ onMounted(() => {
           <CardTitle>Кому будет виден пост</CardTitle>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div class="flex items-start justify-between gap-4">
+          <div
+            class="flex items-start justify-between gap-4"
+            :class="{ 'opacity-70': isPendingGlobal || isGlobalBlocked }"
+          >
             <div class="space-y-1">
               <Label for="visible-global">Для всех (раздел «Общие»)</Label>
-              <p class="text-xs text-muted-foreground">
+              <p v-if="isGlobalBlocked" class="text-xs text-muted-foreground">
+                Пост заблокирован для общего просмотра. Изменить нельзя.
+              </p>
+              <p v-else-if="isPendingGlobal" class="text-xs text-muted-foreground">
+                Пост на модерации. Параметры раздела «Общие» пока изменить нельзя.
+              </p>
+              <p v-else class="text-xs text-muted-foreground">
                 Пост будет виден всем пользователям сайта после общей модерации.
               </p>
             </div>
-            <label class="inline-flex cursor-pointer items-center gap-2">
+            <label
+              class="inline-flex cursor-pointer items-center gap-2"
+              :class="{ 'cursor-not-allowed opacity-60': isPendingGlobal || isGlobalBlocked }"
+            >
               <input
                 id="visible-global"
                 v-model="isVisibleGlobal"
                 type="checkbox"
-                class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="isPendingGlobal || isGlobalBlocked"
               />
               <span class="text-sm">Включить</span>
             </label>
@@ -385,20 +434,32 @@ onMounted(() => {
 
           <Separator />
 
-          <div class="flex items-start justify-between gap-4">
+          <div
+            class="flex items-start justify-between gap-4"
+            :class="{ 'opacity-70': isGuildBlocked || isPendingGuild }"
+          >
             <div class="space-y-1">
               <Label for="visible-guild">Для членов гильдии (раздел «Гильдия»)</Label>
-              <p class="text-xs text-muted-foreground">
+              <p v-if="isGuildBlocked" class="text-xs text-muted-foreground">
+                Пост заблокирован для гильдии модератором. Изменить статус для гильдии нельзя.
+              </p>
+              <p v-else-if="isPendingGuild" class="text-xs text-muted-foreground">
+                Пост на модерации гильдии. Параметры раздела «Гильдия» пока изменить нельзя.
+              </p>
+              <p v-else class="text-xs text-muted-foreground">
                 Пост будет виден участникам выбранной гильдии после гильдейской модерации.
               </p>
             </div>
-            <label class="inline-flex cursor-pointer items-center gap-2">
+            <label
+              class="inline-flex cursor-pointer items-center gap-2"
+              :class="{ 'cursor-not-allowed opacity-60': isGuildBlocked || isPendingGuild }"
+            >
               <input
                 id="visible-guild"
                 v-model="isVisibleGuild"
                 type="checkbox"
                 class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="!canPublishToGuild"
+                :disabled="!canPublishToGuild || isGuildBlocked || isPendingGuild"
               />
               <span class="text-sm">Включить</span>
             </label>
@@ -406,31 +467,38 @@ onMounted(() => {
 
           <Separator />
 
-          <div v-if="isVisibleGlobal || isVisibleGuild" class="space-y-6">
-            <div class="space-y-3">
+          <div
+            v-if="isVisibleGlobal || isVisibleGuild || isGuildBlocked || isGlobalBlocked || isPendingGlobal || isPendingGuild"
+            class="space-y-6"
+          >
+            <div v-if="!isGlobalBlocked" class="space-y-3">
               <div class="space-y-2">
-                <label class="flex cursor-pointer items-center space-x-2 text-sm">
+                <label
+                  class="flex cursor-pointer items-center space-x-2 text-sm"
+                  :class="{ 'cursor-not-allowed opacity-60': isPendingGlobal }"
+                >
                   <input
                     id="global-anon"
                     v-model="globalVisibilityType"
                     type="radio"
-                    class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     value="anonymous"
+                    :disabled="isPendingGlobal"
                   />
                   <span>Анонимно (имя автора отображаться не будет)</span>
                 </label>
                 <label
                   v-if="isVisibleGlobal"
                   class="flex cursor-pointer items-center space-x-2 text-sm"
-                  :class="{ 'opacity-50 cursor-not-allowed': !canPublishGlobalAsGuild }"
+                  :class="{ 'opacity-50 cursor-not-allowed': !canPublishGlobalAsGuild || isPendingGlobal }"
                 >
                   <input
                     id="global-guild"
                     v-model="globalVisibilityType"
                     type="radio"
-                    class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    class="h-4 w-4 border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     value="guild"
-                    :disabled="!canPublishGlobalAsGuild"
+                    :disabled="!canPublishGlobalAsGuild || isPendingGlobal"
                   />
                   <span>От имени гильдии</span>
                 </label>
@@ -441,7 +509,7 @@ onMounted(() => {
               </p>
             </div>
 
-            <div v-if="isVisibleGuild" class="space-y-3">
+            <div v-if="isVisibleGuild && !isGuildBlocked && !isPendingGuild" class="space-y-3">
               <div class="space-y-2">
                 <Label for="guild-select">Гильдия</Label>
                 <SelectRoot
@@ -483,10 +551,16 @@ onMounted(() => {
           <div class="grid gap-6 sm:grid-cols-2">
             <div
               class="space-y-3"
-              :class="{ 'opacity-60': !isVisibleGlobal }"
+              :class="{ 'opacity-60': !isVisibleGlobal || isPendingGlobal || isGlobalBlocked }"
             >
               <Label class="text-sm">Статус для раздела «Общие»</Label>
-              <div class="space-y-2 text-sm">
+              <p v-if="isGlobalBlocked" class="text-xs text-muted-foreground">
+                Заблокировано для общего просмотра. Изменить нельзя.
+              </p>
+              <p v-else-if="isPendingGlobal" class="text-xs text-muted-foreground">
+                На модерации. Изменить статус нельзя до решения модератора.
+              </p>
+              <div v-else class="space-y-2 text-sm">
                 <label
                   v-for="opt in statusOptions"
                   :key="`global-${opt.value}`"
@@ -504,16 +578,22 @@ onMounted(() => {
                   <span>{{ opt.label }}</span>
                 </label>
               </div>
-              <p v-if="!isVisibleGlobal" class="text-xs text-muted-foreground">
+              <p v-if="!isVisibleGlobal && !isPendingGlobal && !isGlobalBlocked" class="text-xs text-muted-foreground">
                 Неактивно (галочка «Для всех» выключена). Установлено: Скрыт.
               </p>
             </div>
             <div
               class="space-y-3"
-              :class="{ 'opacity-60': !isVisibleGuild }"
+              :class="{ 'opacity-60': !isVisibleGuild || isGuildBlocked || isPendingGuild }"
             >
               <Label class="text-sm">Статус для раздела «Гильдия»</Label>
-              <div class="space-y-2 text-sm">
+              <p v-if="isGuildBlocked" class="text-xs text-muted-foreground">
+                Заблокировано для гильдии. Изменить нельзя.
+              </p>
+              <p v-else-if="isPendingGuild" class="text-xs text-muted-foreground">
+                На модерации. Изменить статус нельзя до решения модератора гильдии.
+              </p>
+              <div v-else class="space-y-2 text-sm">
                 <label
                   v-for="opt in statusOptions"
                   :key="`guild-${opt.value}`"
@@ -531,7 +611,7 @@ onMounted(() => {
                   <span>{{ opt.label }}</span>
                 </label>
               </div>
-              <p v-if="!isVisibleGuild" class="text-xs text-muted-foreground">
+              <p v-if="!isVisibleGuild && !isGuildBlocked && !isPendingGuild" class="text-xs text-muted-foreground">
                 Неактивно (галочка «Для членов гильдии» выключена). Установлено: Скрыт.
               </p>
             </div>
@@ -560,6 +640,7 @@ onMounted(() => {
           </Button>
         </div>
       </div>
+      </template>
     </div>
   </div>
 </template>

@@ -7,13 +7,17 @@ use App\Http\Resources\Post\PostListResource;
 use App\Http\Resources\Post\PostResource;
 use App\Actions\Notification\CreatePostGuildPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGuildRejectedNotificationAction;
+use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\ListGuildPendingPostsForModerationAction;
 use Domains\Post\Actions\ListGuildPostsForJournalAction;
 use Domains\Post\Actions\CanViewGuildPostAction;
+use Domains\Post\Actions\BlockGuildPostAction;
 use Domains\Post\Actions\PublishGuildPostAction;
+use Domains\Post\Actions\UnblockGuildPostAction;
 use Domains\Post\Actions\RecordPostViewAction;
 use Domains\Post\Actions\RejectGuildPostAction;
+use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -28,22 +32,37 @@ class GuildPostController extends Controller
         private RecordPostViewAction $recordPostViewAction,
         private PublishGuildPostAction $publishGuildPostAction,
         private RejectGuildPostAction $rejectGuildPostAction,
+        private BlockGuildPostAction $blockGuildPostAction,
+        private UnblockGuildPostAction $unblockGuildPostAction,
+        private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
         private CreatePostGuildPublishedNotificationAction $createPostGuildPublishedNotificationAction,
         private CreatePostGuildRejectedNotificationAction $createPostGuildRejectedNotificationAction,
     ) {}
 
     /**
      * Журнал гильдии: посты, которые относятся к гильдии и опубликованы в гильдии.
-     * Query: per_page (опционально, 1–100). Если не передан — возвращается полный список.
+     * Query: per_page (опционально, 1–100); filter=blocked — заблокированные (только при праве publikovat-post).
      */
     public function index(Request $request, Guild $guild): AnonymousResourceCollection
     {
         $perPage = $request->query('per_page');
         $perPage = is_numeric($perPage) ? (int) $perPage : null;
 
-        $posts = ($this->listGuildPostsForJournalAction)($guild, [
-            'per_page' => $perPage,
-        ]);
+        $filter = $request->query('filter');
+        $filterBlocked = $filter === 'blocked';
+        if ($filterBlocked) {
+            $userSlugs = ($this->getUserGuildPermissionSlugsAction)($request->user(), $guild);
+            if (! $userSlugs->contains('publikovat-post')) {
+                $filterBlocked = false;
+            }
+        }
+
+        $params = ['per_page' => $perPage];
+        if ($filterBlocked) {
+            $params['filter'] = 'blocked';
+        }
+
+        $posts = ($this->listGuildPostsForJournalAction)($guild, $params);
 
         $posts->loadMissing(['character', 'character.user', 'user']);
 
@@ -109,6 +128,44 @@ class GuildPostController extends Controller
         $post = ($this->rejectGuildPostAction)($guild, $post);
 
         $this->createPostGuildRejectedNotificationAction->__invoke($guild, $post);
+
+        $post->loadMissing(['character', 'character.user', 'user']);
+
+        return response()->json(new PostResource($post));
+    }
+
+    /**
+     * Заблокировать пост только для гильдии (скрыть из гильдейского журнала).
+     * Доступно участникам с правом publikovat-post.
+     */
+    public function block(Request $request, Guild $guild, Post $post): JsonResponse
+    {
+        if ((int) $post->guild_id !== (int) $guild->id) {
+            abort(404);
+        }
+
+        $post = ($this->blockGuildPostAction)($post);
+
+        $post->loadMissing(['character', 'character.user', 'user']);
+
+        return response()->json(new PostResource($post));
+    }
+
+    /**
+     * Разблокировать пост для гильдии (status_guild → hidden).
+     * Нельзя разблокировать, если пост заблокирован в общем журнале.
+     */
+    public function unblock(Request $request, Guild $guild, Post $post): JsonResponse
+    {
+        if ((int) $post->guild_id !== (int) $guild->id) {
+            abort(404);
+        }
+
+        if ($post->status_global === PostStatus::Blocked->value) {
+            abort(403, 'Нельзя разблокировать пост в гильдии: он заблокирован в общем журнале.');
+        }
+
+        $post = ($this->unblockGuildPostAction)($post);
 
         $post->loadMissing(['character', 'character.user', 'user']);
 

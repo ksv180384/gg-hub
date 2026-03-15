@@ -2,11 +2,11 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
+import { useAdminJournalStore } from '@/stores/adminJournal';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { PERMISSION_ACCESS_ADMIN } from '@/shared/api/authApi';
 import { guildsApi, type UserGuildItem } from '@/shared/api/guildsApi';
-import { postsApi } from '@/shared/api/postsApi';
 import { cn } from '@/shared/lib/utils';
 
 const SIDEBAR_STORAGE_KEY_GUILD_PREFIX = 'gg-sidebar-open-guild-';
@@ -37,7 +37,7 @@ function guildPath(guildId: number, pathSuffix: string): string {
   return `/guilds/${guildId}${pathSuffix}`;
 }
 
-const adminPendingCount = ref(0);
+const adminJournal = useAdminJournalStore();
 
 const adminItems = [
   { to: '/admin/journal', label: 'Журнал' },
@@ -73,11 +73,7 @@ function isGuildRoute(guildId: number, pathSuffix: string): boolean {
 
 async function loadAdminPendingCount() {
   if (!showAdminBlock.value) return;
-  try {
-    adminPendingCount.value = await postsApi.getAdminPendingCount();
-  } catch {
-    adminPendingCount.value = 0;
-  }
+  await adminJournal.refreshPendingCount();
 }
 
 async function loadUserGuilds() {
@@ -261,10 +257,10 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
         >
           <span>{{ item.label }}</span>
           <span
-            v-if="item.to === '/admin/journal' && adminPendingCount > 0"
+            v-if="item.to === '/admin/journal' && adminJournal.pendingCount > 0"
             class="shrink-0 rounded-full bg-destructive/90 px-2 py-0.5 text-xs font-medium text-destructive-foreground"
           >
-            {{ adminPendingCount }}
+            {{ adminJournal.pendingCount }}
           </span>
         </RouterLink>
       </template>

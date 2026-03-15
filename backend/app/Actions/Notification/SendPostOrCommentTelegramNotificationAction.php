@@ -7,7 +7,7 @@ use Domains\Post\Models\PostComment;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Отправляет уведомление в Telegram о создании поста или комментария.
+ * Отправляет уведомление в Telegram о создании, редактировании поста или комментарии.
  * Выполняется после отправки HTTP-ответа, чтобы не замедлять запрос.
  */
 class SendPostOrCommentTelegramNotificationAction
@@ -15,6 +15,12 @@ class SendPostOrCommentTelegramNotificationAction
     public function postCreated(Post $post): void
     {
         $message = 'Создан пост: ' . $this->buildPostUrl($post);
+        dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
+    }
+
+    public function postUpdated(Post $post): void
+    {
+        $message = 'Отредактирован пост: ' . $this->buildPostUrl($post);
         dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
     }
 

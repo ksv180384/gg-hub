@@ -11,6 +11,8 @@ enum PostStatus: string
     case Draft = 'draft';
     case Hidden = 'hidden';
     case Rejected = 'rejected';
+    /** Заблокирован администратором — скрыт из журналов, автор не может редактировать. */
+    case Blocked = 'blocked';
 
     public function label(): string
     {

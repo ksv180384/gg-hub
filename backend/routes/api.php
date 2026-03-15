@@ -110,6 +110,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds/{guild}/posts/{post}/view', [GuildPostController::class, 'recordView']);
     Route::post('/guilds/{guild}/posts/{post}/publish', [GuildPostController::class, 'publish'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::post('/guilds/{guild}/posts/{post}/reject', [GuildPostController::class, 'reject'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
+    Route::post('/guilds/{guild}/posts/{post}/block', [GuildPostController::class, 'block'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
+    Route::post('/guilds/{guild}/posts/{post}/unblock', [GuildPostController::class, 'unblock'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::post('/guilds/{guild}/leave', [GuildController::class, 'leave'])->middleware('guild.member');
     Route::get('/guilds/{guild}/roles', [GuildRoleController::class, 'index'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol,meniat-izieniat-polzovateliu-rol,izmeniat-prava-roli,udaliat-rol');
     Route::get('/guilds/{guild}/permission-groups', [GuildRoleController::class, 'permissionGroups'])->middleware('guild.member', 'guild.role.permission:dobavliat-rol,meniat-izieniat-polzovateliu-rol,izmeniat-prava-roli,udaliat-rol');
@@ -144,6 +146,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/posts/{post}/publish', [AdminPostController::class, 'publish'])->middleware('permission:publikovat-post');
         Route::post('/admin/posts/{post}/reject', [AdminPostController::class, 'reject'])->middleware('permission:publikovat-post');
         Route::post('/admin/posts/{post}/block', [AdminPostController::class, 'block'])->middleware('permission:blokirovat-posty');
+        Route::post('/admin/posts/{post}/hide', [AdminPostController::class, 'hide'])->middleware('permission:blokirovat-posty');
+        Route::post('/admin/posts/{post}/unblock', [AdminPostController::class, 'unblock'])->middleware('permission:blokirovat-posty');
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
         Route::get('/permission-groups/{permission_group}', [PermissionGroupController::class, 'show']);
         Route::post('/permission-groups', [PermissionGroupController::class, 'store'])->middleware('permission:obshhie-roli');

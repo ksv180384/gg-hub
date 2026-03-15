@@ -13,8 +13,8 @@ use Domains\Post\Models\Post;
  *
  * Правила:
  * - опубликованный пост может смотреть любой участник гильдии;
- * - неопубликованный пост может смотреть только автор
- *   или участник гильдии с правом publikovat-post.
+ * - неопубликованный пост (pending, draft, hidden, blocked и т.д.) доступен
+ *   только участникам гильдии с правом publikovat-post (автор без права просмотреть не может).
  */
 final class CanViewGuildPostAction
 {
@@ -30,10 +30,6 @@ final class CanViewGuildPostAction
             return false;
         }
 
-        if ((int) $post->user_id === (int) $user->id) {
-            return true;
-        }
-
         $isMember = $guild->members()
             ->whereHas('character', fn ($q) => $q->where('user_id', $user->id))
             ->exists();
@@ -46,6 +42,7 @@ final class CanViewGuildPostAction
             return true;
         }
 
+        // Неопубликованный пост — только при наличии права publikovat-post
         $userSlugs = ($this->getUserGuildPermissionSlugsAction)($user, $guild);
 
         return $userSlugs->contains(self::PERMISSION_PUBLISH_POST);
