@@ -20,8 +20,20 @@ const scope = ref<ScopeMode>('all');
 /** Radix Select не допускает value="", используем специальные значения. */
 const GUILD_ALL = '__all_guilds__';
 const GAME_ALL = '__all_games__';
+const STATUS_ALL = '__all_statuses__';
 const guildId = ref<string>(GUILD_ALL);
 const gameId = ref<string>(GAME_ALL);
+const statusFilter = ref<string>(STATUS_ALL);
+
+const statusOptions: SelectOption[] = [
+  { value: STATUS_ALL, label: 'Все статусы' },
+  { value: 'pending', label: 'На модерации' },
+  { value: 'published', label: 'Опубликован' },
+  { value: 'draft', label: 'Черновик' },
+  { value: 'hidden', label: 'Скрыт' },
+  { value: 'rejected', label: 'Отклонён' },
+  { value: 'blocked', label: 'Заблокирован' },
+];
 
 const guildOptions = computed<SelectOption[]>(() => [
   { value: GUILD_ALL, label: 'Все гильдии' },
@@ -36,7 +48,7 @@ const gameOptions = computed<SelectOption[]>(() => [
 async function loadPosts() {
   loading.value = true;
   try {
-    const opts: { filter?: 'pending_global'; scope?: 'global' | 'guild'; guildId?: number; gameId?: number } = {};
+    const opts: { filter?: 'pending_global'; scope?: 'global' | 'guild'; guildId?: number; gameId?: number; status?: string } = {};
     if (filter.value === 'pending_global') opts.filter = 'pending_global';
     if (scope.value === 'global') opts.scope = 'global';
     if (scope.value === 'guild') {
@@ -47,6 +59,9 @@ async function loadPosts() {
     }
     if (gameId.value && gameId.value !== GAME_ALL) {
       opts.gameId = Number(gameId.value);
+    }
+    if ((scope.value === 'global' || scope.value === 'guild') && statusFilter.value && statusFilter.value !== STATUS_ALL) {
+      opts.status = statusFilter.value;
     }
     const { posts: data, pendingGlobalCount: count, guilds: g, games: gm } = await postsApi.getAdminPosts(opts);
     posts.value = data;
@@ -61,7 +76,7 @@ async function loadPosts() {
 }
 
 onMounted(loadPosts);
-watch([filter, scope, guildId, gameId], loadPosts);
+watch([filter, scope, guildId, gameId, statusFilter], loadPosts);
 
 function onViewRecorded(postId: number) {
   const p = posts.value.find((x) => x.id === postId);
@@ -130,6 +145,14 @@ function onCommentsClick(post: Post) {
           :options="guildOptions"
           placeholder="Гильдия"
           trigger-class="h-8 min-w-[120px] text-xs"
+          content-class="z-[100]"
+        />
+        <Select
+          v-if="scope === 'global' || scope === 'guild'"
+          v-model="statusFilter"
+          :options="statusOptions"
+          :placeholder="scope === 'global' ? 'Статус (общий)' : 'Статус (гильдия)'"
+          trigger-class="h-8 min-w-[140px] text-xs"
           content-class="z-[100]"
         />
         <Select

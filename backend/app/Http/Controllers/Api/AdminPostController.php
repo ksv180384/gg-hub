@@ -55,6 +55,7 @@ class AdminPostController extends Controller
      *   scope=guild — только посты для журналов гильдий (guild_id не null);
      *   guild_id — при scope=guild фильтр по конкретной гильдии;
      *   game_id — фильтр по игре.
+     *   status — при scope=global фильтр по status_global; при scope=guild — по status_guild (pending, published, draft, hidden, rejected, blocked).
      */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -77,6 +78,16 @@ class AdminPostController extends Controller
             $guildId = $request->query('guild_id');
             if ($guildId && is_numeric($guildId)) {
                 $query->where('guild_id', (int) $guildId);
+            }
+        }
+
+        $status = $request->query('status');
+        if ($status !== null && $status !== '' && \in_array($status, PostStatus::values(), true)) {
+            if ($scope === 'global') {
+                $query->where('status_global', $status);
+            }
+            if ($scope === 'guild') {
+                $query->where('status_guild', $status);
             }
         }
 

@@ -124,12 +124,14 @@ export const postsApi = {
    * @param options.scope - "global" — общий журнал; "guild" — журналы гильдий
    * @param options.guildId - при scope=guild — фильтр по гильдии
    * @param options.gameId - фильтр по игре
+   * @param options.status - при scope=global — по status_global; при scope=guild — по status_guild
    */
   async getAdminPosts(options?: {
     filter?: 'pending_global';
     scope?: 'global' | 'guild';
     guildId?: number;
     gameId?: number;
+    status?: string;
   }): Promise<{
     posts: Post[];
     pendingGlobalCount: number;
@@ -144,6 +146,9 @@ export const postsApi = {
     }
     if (options?.gameId != null) {
       params.set('game_id', String(options.gameId));
+    }
+    if (options?.status) {
+      params.set('status', options.status);
     }
     const qs = params.toString();
     const url = `/admin/posts${qs ? `?${qs}` : ''}`;
