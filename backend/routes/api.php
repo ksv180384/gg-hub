@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ServerController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PermissionGroupController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\AdminPostCommentController;
 use App\Http\Controllers\Api\AdminPostController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\NotificationController;
@@ -142,12 +143,17 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['admin.subdomain', 'permission:admnistrirovanie'])->group(function () {
         Route::get('/admin/posts', [AdminPostController::class, 'index']);
         Route::get('/admin/posts-pending-count', [AdminPostController::class, 'pendingCount']);
+        Route::get('/admin/posts/suggest', [AdminPostController::class, 'suggest']);
         Route::get('/admin/posts/{post}', [AdminPostController::class, 'show']);
         Route::post('/admin/posts/{post}/publish', [AdminPostController::class, 'publish'])->middleware('permission:publikovat-post');
         Route::post('/admin/posts/{post}/reject', [AdminPostController::class, 'reject'])->middleware('permission:publikovat-post');
         Route::post('/admin/posts/{post}/block', [AdminPostController::class, 'block'])->middleware('permission:blokirovat-posty');
         Route::post('/admin/posts/{post}/hide', [AdminPostController::class, 'hide'])->middleware('permission:blokirovat-posty');
         Route::post('/admin/posts/{post}/unblock', [AdminPostController::class, 'unblock'])->middleware('permission:blokirovat-posty');
+        Route::get('/admin/comments', [AdminPostCommentController::class, 'index']);
+        Route::post('/admin/comments/{comment}/hide', [AdminPostCommentController::class, 'hide'])->middleware('permission:skryvat-kommentarii');
+        Route::post('/admin/comments/{comment}/unhide', [AdminPostCommentController::class, 'unhide'])->middleware('permission:skryvat-kommentarii');
+        Route::delete('/admin/comments/{comment}', [AdminPostCommentController::class, 'destroy'])->middleware('permission:udaliat-kommentarii');
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
         Route::get('/permission-groups/{permission_group}', [PermissionGroupController::class, 'show']);
         Route::post('/permission-groups', [PermissionGroupController::class, 'store'])->middleware('permission:obshhie-roli');

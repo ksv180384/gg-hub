@@ -49,6 +49,14 @@ export interface AdminPostsResponse {
   };
 }
 
+/** Элемент подсказки поста (админка, фильтр комментариев). */
+export interface AdminPostSuggestItem {
+  id: number;
+  title: string | null;
+  guild_id: number | null;
+  guild_name: string | null;
+}
+
 export interface CreatePostPayload {
   title: string | null;
   body: string;
@@ -115,6 +123,18 @@ export const postsApi = {
     const res = await http.fetchGet<{ count: number }>('/admin/posts-pending-count');
     throwOnError(res, 'Ошибка загрузки');
     return res.data?.count ?? 0;
+  },
+
+  /**
+   * Подсказки постов по названию (для фильтра комментариев в админке).
+   * Бэкенд: GET /admin/posts/suggest?q=
+   */
+  async getAdminPostsSuggest(q: string): Promise<AdminPostSuggestItem[]> {
+    const trimmed = q.trim();
+    if (!trimmed) return [];
+    const res = await http.fetchGet<AdminPostSuggestItem[]>(`/admin/posts/suggest?q=${encodeURIComponent(trimmed)}`);
+    throwOnError(res, 'Ошибка загрузки подсказок');
+    return Array.isArray(res.data) ? res.data : [];
   },
 
   /**

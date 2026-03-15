@@ -146,6 +146,37 @@ class AdminPostController extends Controller
     }
 
     /**
+     * Подсказки постов по названию (для фильтра комментариев в админке).
+     * Query: q — строка поиска по title. Возвращает до 15 постов.
+     */
+    public function suggest(Request $request): JsonResponse
+    {
+        $q = $request->query('q');
+        if (! is_string($q) || trim($q) === '') {
+            return response()->json([]);
+        }
+
+        $posts = Post::query()
+            ->select('id', 'title', 'guild_id')
+            ->with('guild:id,name')
+            ->where('title', 'like', '%' . trim($q) . '%')
+            ->orderByDesc('created_at')
+            ->limit(15)
+            ->get();
+
+        $items = $posts->map(function (Post $post) {
+            return [
+                'id' => $post->id,
+                'title' => $post->title,
+                'guild_id' => $post->guild_id,
+                'guild_name' => $post->guild?->name,
+            ];
+        });
+
+        return response()->json($items->all());
+    }
+
+    /**
      * Один пост для админки.
      */
     public function show(Post $post): JsonResponse

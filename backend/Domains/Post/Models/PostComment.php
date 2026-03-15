@@ -10,7 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PostComment extends Model
 {
-    protected $fillable = ['post_id', 'user_id', 'character_id', 'parent_id', 'replied_to_comment_id', 'body'];
+    protected $fillable = ['post_id', 'user_id', 'character_id', 'parent_id', 'replied_to_comment_id', 'body', 'is_hidden'];
+
+    protected function casts(): array
+    {
+        return [
+            'is_hidden' => 'boolean',
+        ];
+    }
 
     public function post(): BelongsTo
     {

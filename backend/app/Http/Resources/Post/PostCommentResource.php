@@ -34,12 +34,15 @@ class PostCommentResource extends JsonResource
             $repliedToAuthorName = $parent?->character?->name ?? $parent?->user?->name ?? null;
         }
 
+        $isHidden = (bool) $this->is_hidden;
+
         return [
             'id' => $this->id,
             'post_id' => $this->post_id,
             'user_id' => $this->user_id,
             'parent_id' => $this->parent_id,
-            'body' => $this->body,
+            'body' => $isHidden ? null : $this->body,
+            'is_hidden' => $isHidden,
             'character_id' => $this->character_id,
             'author_name' => $authorName,
             'author_avatar_url' => $avatarUrl,

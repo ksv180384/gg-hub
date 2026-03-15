@@ -35,8 +35,10 @@ const deleteSubmitting = ref(false);
 
 const editTextareaRef = ref<HTMLTextAreaElement | null>(null);
 
+const isHidden = computed(() => props.comment.is_hidden === true);
+
 function startEdit() {
-  editBody.value = props.comment.body;
+  editBody.value = props.comment.body ?? '';
   isEditing.value = true;
   nextTick(() => {
     editTextareaRef.value?.focus();
@@ -53,7 +55,7 @@ function cancelEdit() {
 
 async function saveEdit() {
   const trimmed = editBody.value.trim();
-  if (trimmed === props.comment.body || !trimmed) {
+  if (trimmed === (props.comment.body ?? '') || !trimmed) {
     cancelEdit();
     return;
   }
@@ -214,10 +216,13 @@ watch(showReplyForm, (visible) => {
           </div>
         </template>
         <template v-else>
-          <p class="mt-1 whitespace-pre-wrap break-words text-sm">
+          <p v-if="isHidden" class="mt-1 text-sm italic text-muted-foreground">
+            Комментарий скрыт
+          </p>
+          <p v-else class="mt-1 whitespace-pre-wrap break-words text-sm">
             {{ comment.body }}
           </p>
-          <div v-if="(canComment && canReply) || isOwn" class="mt-1 flex flex-wrap items-center gap-1">
+          <div v-if="!isHidden && ((canComment && canReply) || isOwn)" class="mt-1 flex flex-wrap items-center gap-1">
             <Button
               v-if="canComment && canReply"
               variant="link"

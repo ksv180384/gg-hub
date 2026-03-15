@@ -41,6 +41,7 @@ const adminJournal = useAdminJournalStore();
 
 const adminItems = [
   { to: '/admin/journal', label: 'Журнал' },
+  { to: '/admin/comments', label: 'Комментарии' },
   { to: '/admin/games', label: 'Игры' },
   { to: '/admin/users', label: 'Пользователи' },
   { to: '/admin/roles', label: 'Роли пользователей' },

@@ -77,6 +77,24 @@ class AccessSeeder extends Seeder
             ]
         );
 
+        Permission::firstOrCreate(
+            ['slug' => 'skryvat-kommentarii'],
+            [
+                'name' => 'Скрывать комментарии',
+                'description' => 'Скрытие и отображение комментариев к постам в админке',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            ['slug' => 'udaliat-kommentarii'],
+            [
+                'name' => 'Удалять комментарии',
+                'description' => 'Удаление комментариев к постам в админке',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
         $gamesGroup = PermissionGroup::firstOrCreate(
             ['slug' => 'games'],
             ['name' => 'Игры']
