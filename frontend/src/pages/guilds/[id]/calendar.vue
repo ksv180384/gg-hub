@@ -9,8 +9,8 @@ import {
   Button,
   Input,
   Label,
-  ConfirmDialog,
 } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import {
   DialogRoot,
   DialogPortal,

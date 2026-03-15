@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PostCardPreview } from '@/shared/ui';
+import PostCardPreview from '@/shared/ui/post/PostCardPreview.vue';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue';
-import { Avatar, Button, ConfirmDialog } from '@/shared/ui';
+import { Avatar, Button } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { formatRelativeTime } from '@/shared/lib/relativeTime';
 import type { PostComment } from '@/shared/api/commentsApi';
 

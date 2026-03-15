@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Separator, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem, RichTextEditor } from '@/shared/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Separator, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
+import RichTextEditor from '@/shared/ui/rich-text-editor/RichTextEditor.vue';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { guildsApi, type UserGuildItem } from '@/shared/api/guildsApi';

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { PostCardPreview } from '@/shared/ui';
-import { Button } from '@/shared/ui';
-import { Select } from '@/shared/ui';
+import PostCardPreview from '@/shared/ui/post/PostCardPreview.vue';
+import { Button, Select } from '@/shared/ui';
 import type { SelectOption } from '@/shared/ui';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { ref, onMounted, watch, computed } from 'vue';

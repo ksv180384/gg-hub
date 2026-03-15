@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'radix-vue';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Avatar, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem, RichTextEditor } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Avatar, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
+import RichTextEditor from '@/shared/ui/rich-text-editor/RichTextEditor.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import {
   guildsApi,

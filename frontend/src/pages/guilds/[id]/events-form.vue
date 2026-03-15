@@ -13,7 +13,7 @@ import {
   eventHistoryTitlesApi,
   type EventHistoryTitleDto,
 } from '@/shared/api/eventHistoryTitlesApi';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 
 const route = useRoute();
 const router = useRouter();

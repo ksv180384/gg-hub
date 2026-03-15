@@ -21,9 +21,9 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-  ConfirmDialog,
   Badge,
 } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import {
   guildsApi,
   type Guild,

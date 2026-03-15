@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Button, PostCardFull, Separator } from '@/shared/ui';
+import { Button, Separator } from '@/shared/ui';
+import PostCardFull from '@/shared/ui/post/PostCardFull.vue';
 import PostComments from './PostComments.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';

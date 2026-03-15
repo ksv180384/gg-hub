@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Button, PostCardFull } from '@/shared/ui';
+import { Button } from '@/shared/ui';
+import PostCardFull from '@/shared/ui/post/PostCardFull.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { useAdminJournalStore } from '@/stores/adminJournal';

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle, Button, PostCardPreview } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
+import PostCardPreview from '@/shared/ui/post/PostCardPreview.vue';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { ref, computed, watch } from 'vue';

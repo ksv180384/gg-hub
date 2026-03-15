@@ -10,7 +10,7 @@ import {
   Input,
   Label,
 } from '@/shared/ui';
-import { ConfirmDialog } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { guildsApi } from '@/shared/api/guildsApi';
 import {
   eventHistoryApi,

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { Avatar, Badge, Button, ConfirmDialog, Input, Label } from '@/shared/ui';
+import { Avatar, Badge, Button, Input, Label } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { formatRelativeTime } from '@/shared/lib/relativeTime';
 import { commentsApi, type AdminPostCommentItem } from '@/shared/api/commentsApi';
 import { postsApi, type AdminPostSuggestItem } from '@/shared/api/postsApi';
