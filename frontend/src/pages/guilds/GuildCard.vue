@@ -33,7 +33,7 @@ function goToApplication() {
 }
 
 function goToDetails() {
-  router.push({ name: 'guild-show', params: { id: String(props.guild.id) } });
+  router.push({ name: 'guild-info', params: { id: String(props.guild.id) } });
 }
 
 </script>

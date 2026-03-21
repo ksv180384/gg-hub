@@ -147,6 +147,12 @@ const router = createRouter({
           component: () => import('@/pages/guilds/settings/index.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: 'guilds/:id/info',
+          name: 'guild-info',
+          component: () => import('@/pages/guilds/[id]/info.vue'),
+          meta: { requiresAuth: false, title: 'О гильдии' },
+        },
         { path: 'games', name: 'games', component: () => import('@/pages/games/index.vue') },
         {
           path: 'profile',
