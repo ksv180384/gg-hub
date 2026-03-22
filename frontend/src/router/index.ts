@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import MainLayout from '@/app/layouts/MainLayout.vue';
-import { PERMISSION_ACCESS_ADMIN } from '@/shared/api/authApi';
+import { PERMISSION_ACCESS_ADMIN, PERMISSION_VIEW_POLLS } from '@/shared/api/authApi';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { useRouteLoadingStore } from '@/stores/routeLoading';
@@ -126,7 +126,7 @@ const router = createRouter({
         {
           path: 'guilds/:id/auction',
           name: 'guild-auction',
-          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          component: () => import('@/pages/guilds/[id]/auction/index.vue'),
           meta: { requiresAuth: true, title: 'Аукцион' },
         },
         {
@@ -213,6 +213,12 @@ const router = createRouter({
           name: 'admin-journal',
           component: () => import('@/pages/admin/journal/index.vue'),
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/polls',
+          name: 'admin-polls',
+          component: () => import('@/pages/admin/polls/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_VIEW_POLLS, title: 'Голосования' },
         },
         {
           path: 'admin/comments',
@@ -385,11 +391,13 @@ router.beforeEach(async (to, from) => {
   await siteContext.fetchContext();
   await auth.fetchUser();
 
-  // Админ-субдомен доступен только пользователям с правом «Администрирование» (access.admin).
+  // Админ-субдомен доступен пользователям с правом «Администрирование» или «Просматривать голосования».
   if (typeof window !== 'undefined') {
     const host = window.location.host;
     const isOnAdminSubdomain = host.startsWith('admin.');
-    if (isOnAdminSubdomain && !auth.hasPermission(PERMISSION_ACCESS_ADMIN)) {
+    const canAccessAdmin =
+      auth.hasPermission(PERMISSION_ACCESS_ADMIN) || auth.hasPermission(PERMISSION_VIEW_POLLS);
+    if (isOnAdminSubdomain && !canAccessAdmin) {
       const mainHost = host.replace(/^admin\./, '');
       window.location.href = `${window.location.protocol}//${mainHost}/`;
       return false;

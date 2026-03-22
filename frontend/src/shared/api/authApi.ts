@@ -75,6 +75,12 @@ const ROLE_ADMIN_SLUG = 'admin';
 /** Слаг права доступа к админ-субдомену и разделам управления (роли, права и т.д.). */
 export const PERMISSION_ACCESS_ADMIN = 'admnistrirovanie';
 
+/** Просмотр голосований в админке. */
+export const PERMISSION_VIEW_POLLS = 'prosmatirivat-golosovaniia';
+
+/** Удаление голосований в админке. */
+export const PERMISSION_DELETE_POLL = 'udaliat-golosovanie';
+
 function pickUser(data: unknown): User | null {
   if (!data || typeof data !== 'object') return null;
   const d = data as Record<string, unknown>;

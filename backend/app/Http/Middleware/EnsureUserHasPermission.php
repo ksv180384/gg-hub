@@ -11,8 +11,9 @@ class EnsureUserHasPermission
 {
     /**
      * Проверяет, что у пользователя есть право с указанным slug (или роль admin).
+     * Поддерживает несколько slug через запятую (OR): permission:a,b — нужен любой из них.
      *
-     * @param  string  $slug  Slug права, например access.admin
+     * @param  string  $slug  Slug права, например access.admin или admnistrirovanie,prosmatirivat-golosovaniia
      */
     public function handle(Request $request, Closure $next, string $slug): Response
     {
@@ -22,7 +23,15 @@ class EnsureUserHasPermission
         }
 
         $permissions = $user->getAllPermissionSlugs();
-        if (!in_array($slug, $permissions, true)) {
+        $requiredSlugs = array_map('trim', explode(',', $slug));
+        $hasAny = false;
+        foreach ($requiredSlugs as $s) {
+            if (in_array($s, $permissions, true)) {
+                $hasAny = true;
+                break;
+            }
+        }
+        if (!$hasAny) {
             return response()->json(['message' => 'Недостаточно прав.'], 403);
         }
 

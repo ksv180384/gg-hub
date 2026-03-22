@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\ServerController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PermissionGroupController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\AdminPollController;
 use App\Http\Controllers\Api\AdminPostCommentController;
 use App\Http\Controllers\Api\AdminPostController;
 use App\Http\Controllers\Api\AdminUserController;
@@ -161,6 +162,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/posts/{post}/block', [AdminPostController::class, 'block'])->middleware('permission:blokirovat-posty');
         Route::post('/admin/posts/{post}/hide', [AdminPostController::class, 'hide'])->middleware('permission:blokirovat-posty');
         Route::post('/admin/posts/{post}/unblock', [AdminPostController::class, 'unblock'])->middleware('permission:blokirovat-posty');
+        Route::get('/admin/polls', [AdminPollController::class, 'index'])->middleware('permission:admnistrirovanie,prosmatirivat-golosovaniia');
+        Route::delete('/admin/polls/{poll}', [AdminPollController::class, 'destroy'])->middleware('permission:udaliat-golosovanie');
         Route::get('/admin/comments', [AdminPostCommentController::class, 'index']);
         Route::post('/admin/comments/{comment}/hide', [AdminPostCommentController::class, 'hide'])->middleware('permission:skryvat-kommentarii');
         Route::post('/admin/comments/{comment}/unhide', [AdminPostCommentController::class, 'unhide'])->middleware('permission:skryvat-kommentarii');

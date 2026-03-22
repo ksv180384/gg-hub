@@ -805,6 +805,42 @@ export const guildsApi = {
     throwOnError(res, 'Ошибка отзыва голоса');
   },
 
+  // --- Админка: все голосования ---
+  async getAdminPolls(params?: {
+    page?: number;
+    per_page?: number;
+    guild_id?: number;
+  }): Promise<{
+    data: AdminPollItem[];
+    meta: { current_page: number; last_page: number; per_page: number; total: number };
+  }> {
+    const qs = new URLSearchParams();
+    if (params?.page != null) qs.set('page', String(params.page));
+    if (params?.per_page != null) qs.set('per_page', String(params.per_page));
+    if (params?.guild_id != null) qs.set('guild_id', String(params.guild_id));
+    const url = `/admin/polls${qs.toString() ? `?${qs}` : ''}`;
+    const res = await http.fetchGet<{
+      data: AdminPollItem[];
+      meta: { current_page: number; last_page: number; per_page: number; total: number };
+    }>(url);
+    throwOnError(res, 'Ошибка загрузки голосований');
+    const body = res.data;
+    const list =
+      body && typeof body === 'object' && 'data' in body && Array.isArray(body.data)
+        ? body.data
+        : [];
+    const meta =
+      body && typeof body === 'object' && body.meta
+        ? body.meta
+        : { current_page: 1, last_page: 1, per_page: 20, total: 0 };
+    return { data: list, meta };
+  },
+
+  async deleteAdminPoll(pollId: number, reason: string): Promise<void> {
+    const res = await http.fetchDeleteWithBody(`/admin/polls/${pollId}`, { reason });
+    throwOnError(res, 'Ошибка удаления голосования');
+  },
+
   /** Установить состав рейда (участники и слоты). PUT /guilds/:id/raids/:raidId/composition */
   async setRaidComposition(
     guildId: number,
@@ -857,6 +893,11 @@ export interface GuildPollItem {
 export interface UserPollItem extends GuildPollItem {
   guild?: { id: number; name: string } | null;
   my_characters?: { id: number; name: string }[];
+}
+
+/** Голосование в админке (без my_vote, с guild). */
+export interface AdminPollItem extends Omit<GuildPollItem, 'my_vote_option_id' | 'my_vote_character_id'> {
+  guild?: { id: number; name: string } | null;
 }
 
 export interface CreateGuildPollPayload {

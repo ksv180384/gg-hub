@@ -95,6 +95,24 @@ class AccessSeeder extends Seeder
             ]
         );
 
+        Permission::firstOrCreate(
+            ['slug' => 'prosmatirivat-golosovaniia'],
+            [
+                'name' => 'Просматривать голосования',
+                'description' => 'Просмотр всех голосований в админке',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            ['slug' => 'udaliat-golosovanie'],
+            [
+                'name' => 'Удалять голосования',
+                'description' => 'Удаление голосований в админке с уведомлением автора',
+                'permission_group_id' => $adminGroup->id,
+            ]
+        );
+
         $gamesGroup = PermissionGroup::firstOrCreate(
             ['slug' => 'games'],
             ['name' => 'Игры']

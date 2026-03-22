@@ -5,7 +5,7 @@ import { RouterLink } from 'vue-router';
 import { useAdminJournalStore } from '@/stores/adminJournal';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
-import { PERMISSION_ACCESS_ADMIN } from '@/shared/api/authApi';
+import { PERMISSION_ACCESS_ADMIN, PERMISSION_VIEW_POLLS } from '@/shared/api/authApi';
 import { guildsApi, type UserGuildItem } from '@/shared/api/guildsApi';
 import { cn } from '@/shared/lib/utils';
 
@@ -39,9 +39,10 @@ function guildPath(guildId: number, pathSuffix: string): string {
 
 const adminJournal = useAdminJournalStore();
 
-const adminItems = [
+const adminItems: { to: string; label: string; permission?: string }[] = [
   { to: '/admin/journal', label: 'Журнал' },
   { to: '/admin/comments', label: 'Комментарии' },
+  { to: '/admin/polls', label: 'Голосования', permission: PERMISSION_VIEW_POLLS },
   { to: '/admin/games', label: 'Игры' },
   { to: '/admin/users', label: 'Пользователи' },
   { to: '/admin/roles', label: 'Роли пользователей' },
@@ -52,7 +53,16 @@ const adminItems = [
 ];
 
 const showAdminBlock = computed(
-  () => siteContext.isAdmin && auth.hasPermission(PERMISSION_ACCESS_ADMIN)
+  () =>
+    siteContext.isAdmin &&
+    (auth.hasPermission(PERMISSION_ACCESS_ADMIN) || auth.hasPermission(PERMISSION_VIEW_POLLS))
+);
+
+const visibleAdminItems = computed(() =>
+  adminItems.filter((item) => {
+    if (auth.hasPermission(PERMISSION_ACCESS_ADMIN)) return true;
+    return item.permission && auth.hasPermission(item.permission);
+  })
 );
 
 const sidebarTitle = computed(() => {
@@ -246,7 +256,7 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
 
       <template v-if="showAdminBlock">
         <RouterLink
-          v-for="item in adminItems"
+          v-for="item in visibleAdminItems"
           :key="item.to"
           :to="item.to"
           :class="cn(
