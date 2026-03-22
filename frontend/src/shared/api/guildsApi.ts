@@ -678,6 +678,133 @@ export const guildsApi = {
     throwOnError(res, 'Ошибка удаления рейда');
   },
 
+  /** Голосования пользователя: активные + закрытые не более 3 дней назад (GET /user/polls). */
+  async getUserPolls(gameId?: number | null): Promise<UserPollItem[]> {
+    const params = gameId != null && gameId > 0 ? { game_id: gameId } : undefined;
+    const res = await http.fetchGet<{ data: UserPollItem[] } | UserPollItem[]>(
+      '/user/polls',
+      params ? { params } : {}
+    );
+    throwOnError(res, 'Ошибка загрузки голосований');
+    const raw = res.data as unknown;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw) {
+      const arr = (raw as { data?: unknown }).data;
+      return Array.isArray(arr) ? arr as UserPollItem[] : [];
+    }
+    return Array.isArray(raw) ? (raw as UserPollItem[]) : [];
+  },
+
+  /** Голосования гильдии (GET /guilds/:id/polls). Только для участников гильдии. */
+  async getGuildPolls(guildId: number): Promise<GuildPollItem[]> {
+    const res = await http.fetchGet<{ data: GuildPollItem[] } | GuildPollItem[]>(`/guilds/${guildId}/polls`);
+    throwOnError(res, 'Ошибка загрузки голосований');
+    const raw = res.data as { data?: GuildPollItem[] } | GuildPollItem[] | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildPollItem[] }).data ?? [];
+    return Array.isArray(raw) ? raw : [];
+  },
+
+  /** Одно голосование (GET /guilds/:id/polls/:pollId). */
+  async getGuildPoll(guildId: number, pollId: number): Promise<GuildPollItem> {
+    const res = await http.fetchGet<{ data: GuildPollItem } | GuildPollItem>(
+      `/guilds/${guildId}/polls/${pollId}`
+    );
+    throwOnError(res, 'Ошибка загрузки голосования');
+    const raw = res.data as { data?: GuildPollItem } | GuildPollItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildPollItem }).data!;
+    return raw as GuildPollItem;
+  },
+
+  /** Создать голосование. Требуется право dobavliat-gollosovanie. */
+  async createGuildPoll(guildId: number, payload: CreateGuildPollPayload): Promise<GuildPollItem> {
+    const res = await http.fetchPost<{ data: GuildPollItem } | GuildPollItem>(
+      `/guilds/${guildId}/polls`,
+      payload
+    );
+    throwOnError(res, 'Ошибка создания голосования');
+    const raw = res.data as { data?: GuildPollItem } | GuildPollItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildPollItem }).data!;
+    return raw as GuildPollItem;
+  },
+
+  /** Обновить голосование. Требуется право redaktirovat-gollosovanie. */
+  async updateGuildPoll(
+    guildId: number,
+    pollId: number,
+    payload: UpdateGuildPollPayload
+  ): Promise<GuildPollItem> {
+    const res = await http.fetchPut<{ data: GuildPollItem } | GuildPollItem>(
+      `/guilds/${guildId}/polls/${pollId}`,
+      payload
+    );
+    throwOnError(res, 'Ошибка сохранения голосования');
+    const raw = res.data as { data?: GuildPollItem } | GuildPollItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildPollItem }).data!;
+    return raw as GuildPollItem;
+  },
+
+  /** Удалить голосование. Требуется право udaliat-gollosovanie. */
+  async deleteGuildPoll(guildId: number, pollId: number): Promise<void> {
+    const res = await http.fetchDelete(`/guilds/${guildId}/polls/${pollId}`);
+    throwOnError(res, 'Ошибка удаления голосования');
+  },
+
+  /** Закрыть голосование. Требуется право zakryvat-gollosovanie. */
+  async closeGuildPoll(guildId: number, pollId: number): Promise<GuildPollItem> {
+    const res = await http.fetchPost<{ data: GuildPollItem } | GuildPollItem>(
+      `/guilds/${guildId}/polls/${pollId}/close`,
+      {}
+    );
+    throwOnError(res, 'Ошибка закрытия голосования');
+    const raw = res.data as { data?: GuildPollItem } | GuildPollItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildPollItem }).data!;
+    return raw as GuildPollItem;
+  },
+
+  /** Сбросить голосование (удалить все голоса). Требуется право sbrasyvat-gollosovanie. */
+  async resetGuildPoll(guildId: number, pollId: number): Promise<GuildPollItem> {
+    const res = await http.fetchPost<{ data: GuildPollItem } | GuildPollItem>(
+      `/guilds/${guildId}/polls/${pollId}/reset`,
+      {}
+    );
+    throwOnError(res, 'Ошибка сброса голосования');
+    const raw = res.data as { data?: GuildPollItem } | GuildPollItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildPollItem }).data!;
+    return raw as GuildPollItem;
+  },
+
+  /** Проголосовать. Требуется быть участником гильдии. */
+  async voteGuildPoll(
+    guildId: number,
+    pollId: number,
+    optionId: number,
+    characterId: number
+  ): Promise<void> {
+    const res = await http.fetchPost(`/guilds/${guildId}/polls/${pollId}/vote`, {
+      option_id: optionId,
+      character_id: characterId,
+    });
+    throwOnError(res, 'Ошибка голосования');
+  },
+
+  /** Отозвать голос. */
+  async withdrawGuildPollVote(
+    guildId: number,
+    pollId: number,
+    characterId: number
+  ): Promise<void> {
+    const res = await http.fetchDeleteWithBody(
+      `/guilds/${guildId}/polls/${pollId}/vote`,
+      { character_id: characterId }
+    );
+    throwOnError(res, 'Ошибка отзыва голоса');
+  },
+
   /** Установить состав рейда (участники и слоты). PUT /guilds/:id/raids/:raidId/composition */
   async setRaidComposition(
     guildId: number,
@@ -695,6 +822,61 @@ export const guildsApi = {
     return raw as RaidItem;
   },
 };
+
+/** Вариант ответа голосования. */
+export interface GuildPollOptionItem {
+  id: number;
+  text: string;
+  sort_order: number;
+  votes_count: number;
+  /** Список проголосовавших (только для открытых голосований). */
+  voters?: { character_id: number; name: string }[];
+}
+
+/** Голосование гильдии. */
+export interface GuildPollItem {
+  id: number;
+  guild_id: number;
+  title: string;
+  description: string | null;
+  is_anonymous: boolean;
+  is_closed: boolean;
+  ends_at: string | null;
+  created_by: number | null;
+  created_by_character_id: number | null;
+  creator_character?: { id: number; name: string } | null;
+  options: GuildPollOptionItem[];
+  total_votes: number;
+  my_vote_option_id: number | null;
+  my_vote_character_id: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+/** Голосование для виджета пользователя (с данными гильдии и персонажами). */
+export interface UserPollItem extends GuildPollItem {
+  guild?: { id: number; name: string } | null;
+  my_characters?: { id: number; name: string }[];
+}
+
+export interface CreateGuildPollPayload {
+  title: string;
+  description?: string | null;
+  /** По умолчанию true — анонимное. false — открытое, видны проголосовавшие. */
+  is_anonymous?: boolean;
+  /** ISO 8601 дата и время окончания (опционально). */
+  ends_at?: string | null;
+  options: string[];
+  created_by_character_id?: number | null;
+}
+
+export interface UpdateGuildPollPayload {
+  title: string;
+  description?: string | null;
+  is_anonymous?: boolean;
+  ends_at?: string | null;
+  options: string[];
+}
 
 /** Участник рейда (персонаж). */
 export interface RaidMemberItem {

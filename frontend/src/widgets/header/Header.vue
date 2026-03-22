@@ -20,7 +20,9 @@ import { useSiteContextStore } from '@/stores/siteContext';
 import { useThemeStore } from '@/stores/theme';
 import type { ThemePreference } from '@/stores/theme';
 import { notificationsApi, type NotificationItem } from '@/shared/api/notificationsApi';
+import { guildsApi, type UserPollItem } from '@/shared/api/guildsApi';
 import NotificationsDrawer from '@/widgets/header/NotificationsDrawer.vue';
+import PollsDrawer from '@/widgets/header/PollsDrawer.vue';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -36,6 +38,10 @@ const notificationsHasMore = ref(false);
 const notificationsPage = ref(1);
 const expandedId = ref<number | null>(null);
 const deletingNotificationId = ref<number | null>(null);
+
+const pollsDrawerOpen = ref(false);
+const polls = ref<UserPollItem[]>([]);
+const loadingPolls = ref(false);
 
 async function loadNotifications() {
   if (!auth.isAuthenticated) return;
@@ -70,15 +76,53 @@ async function loadMoreNotifications() {
   }
 }
 
+async function loadPolls() {
+  if (!auth.isAuthenticated) return;
+  loadingPolls.value = true;
+  polls.value = [];
+  try {
+    const gameId = siteContext.game?.id ?? null;
+    polls.value = await guildsApi.getUserPolls(gameId);
+  } catch {
+    polls.value = [];
+  } finally {
+    loadingPolls.value = false;
+  }
+}
+
+function onPollUpdated(updated: UserPollItem) {
+  const idx = polls.value.findIndex((p) => p.guild_id === updated.guild_id && p.id === updated.id);
+  if (idx !== -1) polls.value[idx] = updated;
+}
+
+const unvotedPollsCount = computed(() =>
+  polls.value.filter((p) => !p.is_closed && p.my_vote_option_id == null).length
+);
+
+watch(pollsDrawerOpen, (open) => {
+  if (open && auth.isAuthenticated) loadPolls();
+});
+
+watch(() => [siteContext.game?.id, auth.isAuthenticated], () => {
+  if (auth.isAuthenticated) loadPolls();
+}, { immediate: false });
+
+watch(() => siteContext.pollsRefreshTrigger, (val) => {
+  if (val > 0 && auth.isAuthenticated) loadPolls();
+});
+
 watch(notificationsDrawerOpen, (open) => {
   if (open && auth.isAuthenticated) loadNotifications();
 });
 
 watch(() => auth.isAuthenticated, (isAuth) => {
-  if (isAuth) loadNotifications();
-  else {
+  if (isAuth) {
+    loadNotifications();
+    loadPolls();
+  } else {
     notifications.value = [];
     unreadCount.value = 0;
+    polls.value = [];
   }
 }, { immediate: true });
 
@@ -191,6 +235,16 @@ const navItems = [
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        <!-- Голосования (только для авторизованных) -->
+        <template v-if="auth.isAuthenticated">
+          <PollsDrawer
+            v-model:open="pollsDrawerOpen"
+            :polls="polls"
+            :loading="loadingPolls"
+            :unvoted-count="unvotedPollsCount"
+            @poll-updated="onPollUpdated"
+          />
+        </template>
         <!-- Оповещения (только для авторизованных) -->
         <template v-if="auth.isAuthenticated">
           <NotificationsDrawer

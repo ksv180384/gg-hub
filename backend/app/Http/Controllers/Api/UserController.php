@@ -6,10 +6,12 @@ use App\Actions\User\GetCurrentUserAction;
 use App\Actions\User\UpdateUserProfileAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\UpdateProfileRequest;
+use App\Http\Resources\Poll\UserPollResource;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\Guild\GuildApplicationResource;
 use Domains\Guild\Actions\GetUserGuildsForGameAction;
 use Domains\Guild\Actions\ListUserGuildApplicationsAction;
+use Domains\Poll\Actions\ListUserPollsAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,7 +21,8 @@ class UserController extends Controller
         private GetCurrentUserAction $getCurrentUserAction,
         private UpdateUserProfileAction $updateUserProfileAction,
         private GetUserGuildsForGameAction $getUserGuildsForGameAction,
-        private ListUserGuildApplicationsAction $listUserGuildApplicationsAction
+        private ListUserGuildApplicationsAction $listUserGuildApplicationsAction,
+        private ListUserPollsAction $listUserPollsAction
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -52,6 +55,22 @@ class UserController extends Controller
         }
         $guilds = ($this->getUserGuildsForGameAction)($request->user(), $gameId);
         return response()->json(['data' => $guilds->values()->all()]);
+    }
+
+    /**
+     * Голосования: активные + закрытые не более 3 суток назад из гильдий пользователя.
+     * Query: game_id (опционально) — фильтр по игре.
+     */
+    public function polls(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $gameId = $request->query('game_id');
+        $gameId = $gameId !== null && $gameId !== '' ? (int) $gameId : null;
+        $gameId = $gameId > 0 ? $gameId : null;
+
+        $polls = ($this->listUserPollsAction)($user, $gameId);
+
+        return UserPollResource::collection($polls)->response();
     }
 
     /**

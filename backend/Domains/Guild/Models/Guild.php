@@ -93,4 +93,9 @@ class Guild extends Model
     {
         return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'guild_tag');
     }
+
+    public function polls(): HasMany
+    {
+        return $this->hasMany(\Domains\Poll\Models\Poll::class, 'guild_id');
+    }
 }

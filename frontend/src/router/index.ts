@@ -120,7 +120,7 @@ const router = createRouter({
         {
           path: 'guilds/:id/polls',
           name: 'guild-polls',
-          component: () => import('@/pages/guilds/[id]/_placeholder.vue'),
+          component: () => import('@/pages/guilds/[id]/polls/index.vue'),
           meta: { requiresAuth: true, title: 'Голосования' },
         },
         {

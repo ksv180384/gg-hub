@@ -42,5 +42,75 @@ class GuildPermissionsSeeder extends Seeder
                 'permission_group_id' => $raidsGroup->id,
             ]
         );
+
+        $pollsGroup = PermissionGroup::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'polls',
+            ],
+            [
+                'name' => 'Голосования',
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'dobavliat-gollosovanie',
+            ],
+            [
+                'name' => 'Добавлять голосование',
+                'description' => 'Создание новых голосований',
+                'permission_group_id' => $pollsGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'redaktirovat-gollosovanie',
+            ],
+            [
+                'name' => 'Редактировать голосование',
+                'description' => 'Изменение существующих голосований',
+                'permission_group_id' => $pollsGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'zakryvat-gollosovanie',
+            ],
+            [
+                'name' => 'Закрывать голосование',
+                'description' => 'Закрытие голосований (запрет новых голосов)',
+                'permission_group_id' => $pollsGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'sbrasyvat-gollosovanie',
+            ],
+            [
+                'name' => 'Сбрасывать голосование',
+                'description' => 'Сброс всех голосов (участники смогут голосовать снова)',
+                'permission_group_id' => $pollsGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'udaliat-gollosovanie',
+            ],
+            [
+                'name' => 'Удалять голосование',
+                'description' => 'Удаление голосований',
+                'permission_group_id' => $pollsGroup->id,
+            ]
+        );
     }
 }

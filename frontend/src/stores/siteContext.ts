@@ -13,6 +13,12 @@ export const useSiteContextStore = defineStore('siteContext', () => {
   const isAdmin = computed(() => mode.value === 'admin');
   const isGameSubdomain = computed(() => mode.value === 'game');
 
+  const pollsRefreshTrigger = ref(0);
+
+  function triggerPollsRefresh(): void {
+    pollsRefreshTrigger.value += 1;
+  }
+
   async function fetchContext(): Promise<SiteContextData | null> {
     loading.value = true;
     try {
@@ -34,6 +40,8 @@ export const useSiteContextStore = defineStore('siteContext', () => {
     game,
     isAdmin,
     isGameSubdomain,
+    pollsRefreshTrigger,
+    triggerPollsRefresh,
     fetchContext,
   };
 });

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\GuildApplicationController;
 use App\Http\Controllers\Api\GuildApplicationFormFieldController;
 use App\Http\Controllers\Api\GuildController;
 use App\Http\Controllers\Api\GuildRoleController;
+use App\Http\Controllers\Api\GuildPollController;
 use App\Http\Controllers\Api\GuildPostController;
 use App\Http\Controllers\Api\GuildPostCommentController;
 use App\Http\Controllers\Api\LocalizationController;
@@ -55,6 +56,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/user', [UserController::class, 'update']);
 
     Route::get('/user/guilds', [UserController::class, 'guilds']);
+    Route::get('/user/polls', [UserController::class, 'polls']);
     Route::get('/user/applications', [UserController::class, 'applications']);
     Route::get('/user/posts', [PostController::class, 'index']);
     Route::post('/user/posts', [PostController::class, 'store'])->middleware('ensure.not.banned');
@@ -101,6 +103,15 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/guilds/{guild}/members/{character}/role', [GuildController::class, 'updateMemberRole'])->middleware('guild.member', 'guild.role.permission:meniat-izieniat-polzovateliu-rol');
     Route::delete('/guilds/{guild}/members/{character}', [GuildController::class, 'excludeMember'])->middleware('guild.member', 'guild.role.permission:iskliucenie-polzovatelia-iz-gildii');
     Route::get('/guilds/{guild}/settings', [GuildController::class, 'settings'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/polls', [GuildPollController::class, 'index'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/polls/{poll}', [GuildPollController::class, 'show'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/polls', [GuildPollController::class, 'store'])->middleware('guild.member', 'guild.role.permission:dobavliat-gollosovanie');
+    Route::match(['put', 'patch'], '/guilds/{guild}/polls/{poll}', [GuildPollController::class, 'update'])->middleware('guild.member', 'guild.role.permission:redaktirovat-gollosovanie');
+    Route::delete('/guilds/{guild}/polls/{poll}', [GuildPollController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-gollosovanie');
+    Route::post('/guilds/{guild}/polls/{poll}/close', [GuildPollController::class, 'close'])->middleware('guild.member', 'guild.role.permission:zakryvat-gollosovanie');
+    Route::post('/guilds/{guild}/polls/{poll}/reset', [GuildPollController::class, 'reset'])->middleware('guild.member', 'guild.role.permission:sbrasyvat-gollosovanie');
+    Route::post('/guilds/{guild}/polls/{poll}/vote', [GuildPollController::class, 'vote'])->middleware('guild.member');
+    Route::delete('/guilds/{guild}/polls/{poll}/vote', [GuildPollController::class, 'withdrawVote'])->middleware('guild.member');
     Route::get('/guilds/{guild}/posts', [GuildPostController::class, 'index'])->middleware('guild.member');
     Route::get('/guilds/{guild}/posts/pending', [GuildPostController::class, 'pending'])->middleware('guild.member', 'guild.role.permission:publikovat-post');
     Route::get('/guilds/{guild}/posts/{post}', [GuildPostController::class, 'show']);
