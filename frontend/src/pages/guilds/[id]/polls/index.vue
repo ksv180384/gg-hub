@@ -381,174 +381,175 @@ watch(
 </script>
 
 <template>
-  <div class="container py-4 md:py-6">
-    <Card>
-      <CardHeader class="flex flex-row flex-wrap items-center justify-between gap-4">
-        <CardTitle>Голосования</CardTitle>
-        <Button
-          v-if="canAdd"
-          type="button"
-          @click="openCreate"
+  <div class="container py-4 md:py-6 max-w-2xl mx-auto">
+
+    <div class="flex pb-4 justify-between items-center">
+      <div class="text-xl font-semibold pb-4">Голосования</div>
+      <Button
+        v-if="canAdd"
+        type="button"
+        @click="openCreate"
+      >
+        Создать голосование
+      </Button>
+    </div>
+
+    <div>
+      <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
+
+      <template v-else-if="accessDenied">
+        <p class="text-sm text-muted-foreground">
+          Голосования доступны только участникам гильдии.
+        </p>
+      </template>
+
+      <template v-else-if="error">
+        <p class="text-sm text-destructive">{{ error }}</p>
+      </template>
+
+      <template v-else-if="polls.length === 0 && guild">
+        <p class="text-sm text-muted-foreground">
+          Пока нет голосований.
+          <template v-if="canAdd"> Нажмите «Создать голосование», чтобы создать первое.</template>
+        </p>
+      </template>
+
+      <div v-else class="space-y-6">
+        <Card
+          v-for="poll in polls"
+          :key="poll.id"
+          class="overflow-hidden"
         >
-          Создать голосование
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
-
-        <template v-else-if="accessDenied">
-          <p class="text-sm text-muted-foreground">
-            Голосования доступны только участникам гильдии.
-          </p>
-        </template>
-
-        <template v-else-if="error">
-          <p class="text-sm text-destructive">{{ error }}</p>
-        </template>
-
-        <template v-else-if="polls.length === 0 && guild">
-          <p class="text-sm text-muted-foreground">
-            Пока нет голосований.
-            <template v-if="canAdd"> Нажмите «Создать голосование», чтобы создать первое.</template>
-          </p>
-        </template>
-
-        <div v-else class="space-y-6">
-          <Card
-            v-for="poll in polls"
-            :key="poll.id"
-            class="overflow-hidden"
-          >
-            <CardHeader class="pb-2">
-              <div class="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <CardTitle class="text-base">{{ poll.title }}</CardTitle>
-                  <p
-                    v-if="poll.description"
-                    class="mt-1 text-sm text-muted-foreground"
-                  >
-                    {{ poll.description }}
-                  </p>
-                  <p class="mt-1 text-xs text-muted-foreground">
-                    {{ poll.creator_character?.name ? `Создано: ${poll.creator_character.name}` : '' }}
-                    <span v-if="poll.ends_at && !poll.is_closed" class="ml-2">
-                      Окончание: {{ formatEndsAt(poll.ends_at) }}
-                    </span>
-                    <span v-if="poll.is_closed" class="ml-2 text-amber-600">Закрыто</span>
-                    <span v-if="!poll.is_anonymous" class="ml-2 text-muted-foreground">Открытое</span>
-                  </p>
-                </div>
-                <div v-if="canEdit || canClose || canReset || canDelete" class="flex flex-wrap gap-1">
-                  <Button
-                    v-if="canEdit && !poll.is_closed"
-                    variant="outline"
-                    size="sm"
-                    @click="openEdit(poll)"
-                  >
-                    Редактировать
-                  </Button>
-                  <Button
-                    v-if="canClose && !poll.is_closed"
-                    variant="outline"
-                    size="sm"
-                    @click="openClose(poll)"
-                  >
-                    Закрыть
-                  </Button>
-                  <Button
-                    v-if="canReset"
-                    variant="outline"
-                    size="sm"
-                    @click="openReset(poll)"
-                  >
-                    Сбросить
-                  </Button>
-                  <Button
-                    v-if="canDelete"
-                    variant="outline"
-                    size="sm"
-                    class="text-destructive hover:text-destructive"
-                    @click="openDelete(poll)"
-                  >
-                    Удалить
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent class="space-y-3">
-              <div
-                v-if="!poll.is_closed && myCharacters.length > 1"
-                class="flex items-center gap-2 pb-2"
-              >
-                <span class="text-sm text-muted-foreground">Голосовать от имени:</span>
-                <SelectRoot
-                  :model-value="voteCharacterId != null ? String(voteCharacterId) : ''"
-                  @update:model-value="(v) => { voteCharacterId = v ? Number(v) : null; }"
-                  class="w-48"
-                >
-                  <SelectTrigger class="h-8 text-sm">
-                    <SelectValue placeholder="Выберите персонажа" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="c in myCharacters"
-                      :key="c.id"
-                      :value="String(c.id)"
-                    >
-                      {{ c.name }}
-                    </SelectItem>
-                  </SelectContent>
-                </SelectRoot>
-              </div>
-              <div
-                v-for="opt in poll.options"
-                :key="opt.id"
-                class="space-y-1"
-              >
-                <button
-                  v-if="!poll.is_closed && myCharacters.length > 0"
-                  type="button"
-                  class="flex w-full cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted disabled:opacity-70"
-                  :class="voteOptionIdByPoll[poll.id] === opt.id ? 'border-primary bg-primary/10' : 'border-border'"
-                  :disabled="voteLoadingByPoll[poll.id]"
-                  @click="selectOptionAndVote(poll, voteOptionIdByPoll[poll.id] === opt.id ? null : opt.id)"
-                >
-                  <span
-                    class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border"
-                    :class="voteOptionIdByPoll[poll.id] === opt.id ? 'border-primary bg-primary' : 'border-muted-foreground'"
-                  >
-                    <span v-if="voteOptionIdByPoll[poll.id] === opt.id" class="h-2 w-2 rounded-full bg-primary-foreground" />
-                  </span>
-                  <span class="min-w-0 flex-1">{{ opt.text }}</span>
-                  <span class="shrink-0 text-muted-foreground">{{ opt.votes_count }} ({{ optionVotePercent(opt, poll.total_votes) }}%)</span>
-                </button>
-                <template v-else>
-                  <div class="flex items-center justify-between gap-2 text-sm">
-                    <span>{{ opt.text }}</span>
-                    <span class="text-muted-foreground">{{ opt.votes_count }} ({{ optionVotePercent(opt, poll.total_votes) }}%)</span>
-                  </div>
-                </template>
-                <div class="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    class="h-full bg-primary transition-all"
-                    :style="{ width: `${optionVotePercent(opt, poll.total_votes)}%` }"
-                  />
-                </div>
+          <CardHeader class="pb-2">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <CardTitle class="text-base">{{ poll.title }}</CardTitle>
                 <p
-                v-if="!poll.is_anonymous && opt.voters?.length"
-                class="text-xs text-muted-foreground"
-              >
-                Проголосовали: {{ opt.voters.map((v) => v.name).join(', ') }}
-              </p>
+                  v-if="poll.description"
+                  class="mt-1 text-sm text-muted-foreground"
+                >
+                  {{ poll.description }}
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                  {{ poll.creator_character?.name ? `Создано: ${poll.creator_character.name}` : '' }}
+                  <span v-if="poll.ends_at && !poll.is_closed" class="ml-2">
+                    Окончание: {{ formatEndsAt(poll.ends_at) }}
+                  </span>
+                  <span v-if="poll.is_closed" class="ml-2 text-amber-600">Закрыто</span>
+                  <span v-if="!poll.is_anonymous" class="ml-2 text-muted-foreground">Открытое</span>
+                </p>
               </div>
-              <p v-if="poll.total_votes > 0" class="pt-1 text-xs text-muted-foreground">
-                Всего голосов: {{ poll.total_votes }}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </CardContent>
-    </Card>
+              <div v-if="canEdit || canClose || canReset || canDelete" class="flex flex-wrap gap-1">
+                <Button
+                  v-if="canEdit && !poll.is_closed"
+                  variant="outline"
+                  size="sm"
+                  @click="openEdit(poll)"
+                >
+                  Редактировать
+                </Button>
+                <Button
+                  v-if="canClose && !poll.is_closed"
+                  variant="outline"
+                  size="sm"
+                  @click="openClose(poll)"
+                >
+                  Закрыть
+                </Button>
+                <Button
+                  v-if="canReset"
+                  variant="outline"
+                  size="sm"
+                  @click="openReset(poll)"
+                >
+                  Сбросить
+                </Button>
+                <Button
+                  v-if="canDelete"
+                  variant="outline"
+                  size="sm"
+                  class="text-destructive hover:text-destructive"
+                  @click="openDelete(poll)"
+                >
+                  Удалить
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div
+              v-if="!poll.is_closed && myCharacters.length > 1"
+              class="flex items-center gap-2 pb-2"
+            >
+              <span class="text-sm text-muted-foreground">Голосовать от имени:</span>
+              <SelectRoot
+                :model-value="voteCharacterId != null ? String(voteCharacterId) : ''"
+                @update:model-value="(v) => { voteCharacterId = v ? Number(v) : null; }"
+                class="w-48"
+              >
+                <SelectTrigger class="h-8 text-sm">
+                  <SelectValue placeholder="Выберите персонажа" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="c in myCharacters"
+                    :key="c.id"
+                    :value="String(c.id)"
+                  >
+                    {{ c.name }}
+                  </SelectItem>
+                </SelectContent>
+              </SelectRoot>
+            </div>
+            <div
+              v-for="opt in poll.options"
+              :key="opt.id"
+              class="space-y-1"
+            >
+              <button
+                v-if="!poll.is_closed && myCharacters.length > 0"
+                type="button"
+                class="flex w-full cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted disabled:opacity-70"
+                :class="voteOptionIdByPoll[poll.id] === opt.id ? 'border-primary bg-primary/10' : 'border-border'"
+                :disabled="voteLoadingByPoll[poll.id]"
+                @click="selectOptionAndVote(poll, voteOptionIdByPoll[poll.id] === opt.id ? null : opt.id)"
+              >
+                <span
+                  class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border"
+                  :class="voteOptionIdByPoll[poll.id] === opt.id ? 'border-primary bg-primary' : 'border-muted-foreground'"
+                >
+                  <span v-if="voteOptionIdByPoll[poll.id] === opt.id" class="h-2 w-2 rounded-full bg-primary-foreground" />
+                </span>
+                <span class="min-w-0 flex-1">{{ opt.text }}</span>
+                <span class="shrink-0 text-muted-foreground">{{ opt.votes_count }} ({{ optionVotePercent(opt, poll.total_votes) }}%)</span>
+              </button>
+              <template v-else>
+                <div class="flex items-center justify-between gap-2 text-sm">
+                  <span>{{ opt.text }}</span>
+                  <span class="text-muted-foreground">{{ opt.votes_count }} ({{ optionVotePercent(opt, poll.total_votes) }}%)</span>
+                </div>
+              </template>
+              <div class="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  class="h-full bg-primary transition-all"
+                  :style="{ width: `${optionVotePercent(opt, poll.total_votes)}%` }"
+                />
+              </div>
+              <p
+              v-if="!poll.is_anonymous && opt.voters?.length"
+              class="text-xs text-muted-foreground"
+            >
+              Проголосовали: {{ opt.voters.map((v) => v.name).join(', ') }}
+            </p>
+            </div>
+            <p v-if="poll.total_votes > 0" class="pt-1 text-xs text-muted-foreground">
+              Всего голосов: {{ poll.total_votes }}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+
 
     <!-- Модальное окно создания/редактирования -->
     <DialogRoot v-model:open="modalOpen">

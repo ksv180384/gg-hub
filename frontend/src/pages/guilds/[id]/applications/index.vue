@@ -65,68 +65,59 @@ watch(guildId, () => {
 </script>
 
 <template>
-  <div class="container py-6">
-    <Card class="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle class="text-xl">Заявки и приглашения</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div v-if="loading" class="flex justify-center py-12">
-          <Spinner class="h-8 w-8" />
-        </div>
+  <div class="container py-6 max-w-2xl mx-auto">
+    <div class="text-xl font-semibold pb-4">Заявки и приглашения</div>
 
-        <template v-else-if="noAccess">
-          <p class="text-muted-foreground mb-4">
-            Список заявок доступен только участникам гильдии с правом просмотра заявок.
-          </p>
-          <Button
-            variant="outline"
-            @click="router.push({ name: 'guild-application-form', params: { id: String(guildId) } })"
+    <div>
+      <div v-if="loading" class="flex justify-center py-12">
+        <Spinner class="h-8 w-8" />
+      </div>
+
+      <template v-else-if="noAccess">
+        <p class="text-muted-foreground mb-4">
+          Список заявок доступен только участникам гильдии с правом просмотра заявок.
+        </p>
+        <Button
+          variant="outline"
+          @click="router.push({ name: 'guild-application-form', params: { id: String(guildId) } })"
+        >
+          Подать заявку в гильдию
+        </Button>
+      </template>
+
+      <template v-else-if="error">
+        <p class="text-destructive">{{ error }}</p>
+        <Button variant="outline" class="mt-4" @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })">
+          К гильдии
+        </Button>
+      </template>
+
+      <template v-else>
+        <p v-if="applications.length === 0" class="text-muted-foreground">
+          Заявок пока нет.
+        </p>
+        <ul v-else class="space-y-2">
+          <li
+            v-for="app in applications"
+            :key="app.id"
+            class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
           >
-            Подать заявку в гильдию
-          </Button>
-        </template>
+            <div class="min-w-0">
+              <p class="font-medium">{{ app.character?.name ?? '—' }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ statusLabel(app.status) }}
+                <template v-if="app.created_at">
+                  · {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
+                </template>
+              </p>
+            </div>
+            <Button variant="outline" size="sm" @click="goToApplication(app.id)">
+              Открыть
+            </Button>
+          </li>
+        </ul>
+      </template>
+    </div>
 
-        <template v-else-if="error">
-          <p class="text-destructive">{{ error }}</p>
-          <Button variant="outline" class="mt-4" @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })">
-            К гильдии
-          </Button>
-        </template>
-
-        <template v-else>
-          <p v-if="applications.length === 0" class="text-muted-foreground">
-            Заявок пока нет.
-          </p>
-          <ul v-else class="space-y-2">
-            <li
-              v-for="app in applications"
-              :key="app.id"
-              class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-            >
-              <div class="min-w-0">
-                <p class="font-medium">{{ app.character?.name ?? '—' }}</p>
-                <p class="text-sm text-muted-foreground">
-                  {{ statusLabel(app.status) }}
-                  <template v-if="app.created_at">
-                    · {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
-                  </template>
-                </p>
-              </div>
-              <Button variant="outline" size="sm" @click="goToApplication(app.id)">
-                Открыть
-              </Button>
-            </li>
-          </ul>
-          <Button
-            variant="outline"
-            class="mt-4"
-            @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })"
-          >
-            К гильдии
-          </Button>
-        </template>
-      </CardContent>
-    </Card>
   </div>
 </template>

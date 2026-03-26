@@ -258,10 +258,10 @@ watch(guildId, () => loadData(), { immediate: true });
 
       <!-- Правая колонка: права выбранной роли -->
       <div class="min-w-0 flex-1">
-        <Card>
-          <CardHeader>
-            <CardTitle class="text-base">Список прав группы пользователей</CardTitle>
-            <p v-if="selectedRole" class="text-xs text-muted-foreground">
+        <div>
+          <div>
+            <div class="text-lg font-semibold">Список прав группы пользователей</div>
+            <p v-if="selectedRole" class="text-xs text-muted-foreground py-2">
               <template v-if="isLeaderRole">
                 У роли «Лидер» все права включены и не изменяются.
               </template>
@@ -269,12 +269,12 @@ watch(guildId, () => loadData(), { immediate: true });
                 Роль «{{ selectedRole.name }}». Включение или отключение права сохраняется сразу.
               </template>
             </p>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div>
             <div v-if="!selectedRole" class="py-8 text-center text-sm text-muted-foreground">
               Выберите роль слева или создайте новую.
             </div>
-            <div v-else class="max-h-[calc(100vh-14rem)] space-y-4 overflow-y-auto">
+            <div v-else class=" space-y-4">
               <div v-for="group in permissionGroups" :key="group.id" class="space-y-2">
                 <div class="text-xs font-medium text-muted-foreground">{{ group.name }}</div>
                 <div class="space-y-1.5 pl-1">
@@ -299,8 +299,8 @@ watch(guildId, () => loadData(), { immediate: true });
                 Нет групп прав гильдии. Добавьте их в админке в разделе «Права гильдии».
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
 

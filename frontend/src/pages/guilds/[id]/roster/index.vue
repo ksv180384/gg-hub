@@ -60,83 +60,80 @@ watch(guildId, () => {
 </script>
 
 <template>
-  <div class="container py-4 md:py-6">
-    <Card>
-      <CardHeader>
-        <CardTitle>Состав гильдии</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
+  <div class="container py-4 md:py-6 max-w-2xl mx-auto">
+    <div class="text-xl font-semibold pb-4">Состав гильдии</div>
+    <div>
+      <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
 
-        <template v-else-if="accessDenied">
-          <p class="text-sm text-muted-foreground">
-            Состав гильдии доступен только участникам гильдии.
-          </p>
-        </template>
+      <template v-else-if="accessDenied">
+        <p class="text-sm text-muted-foreground">
+          Состав гильдии доступен только участникам гильдии.
+        </p>
+      </template>
 
-        <template v-else-if="error">
-          <p class="text-sm text-destructive">{{ error }}</p>
-        </template>
+      <template v-else-if="error">
+        <p class="text-sm text-destructive">{{ error }}</p>
+      </template>
 
-        <template v-else-if="roster.length === 0 && guild">
-          <p class="text-sm text-muted-foreground">В гильдии пока никого нет.</p>
-        </template>
+      <template v-else-if="roster.length === 0 && guild">
+        <p class="text-sm text-muted-foreground">В гильдии пока никого нет.</p>
+      </template>
 
-        <div
-          v-else
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      <div
+        v-else
+        class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2"
+      >
+        <RouterLink
+          v-for="member in roster"
+          :key="member.character_id"
+          :to="{ name: 'guild-roster-member', params: { id: String(guildId), characterId: String(member.character_id) } }"
+          class="block transition-opacity hover:opacity-90 focus:opacity-90"
         >
-          <RouterLink
-            v-for="member in roster"
-            :key="member.character_id"
-            :to="{ name: 'guild-roster-member', params: { id: String(guildId), characterId: String(member.character_id) } }"
-            class="block transition-opacity hover:opacity-90 focus:opacity-90"
-          >
-            <Card class="h-full overflow-hidden">
-              <CardContent class="flex flex-col items-start gap-3 p-4">
-                <div class="flex w-full items-center gap-3">
-                  <Avatar
-                    :src="member.avatar_url ?? undefined"
-                    :alt="member.name"
-                    :fallback="avatarFallback(member.name)"
-                    class="h-12 w-12 shrink-0 md:h-14 md:w-14"
-                  />
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate font-medium">{{ member.name }}</p>
-                    <Badge
-                      v-if="member.guild_role"
-                      variant="secondary"
-                      class="mt-1 text-xs"
-                    >
-                      {{ member.guild_role.name }}
-                    </Badge>
-                  </div>
-                </div>
-                <div v-if="member.game_classes.length > 0" class="flex flex-wrap gap-1">
+          <Card class="h-full overflow-hidden">
+            <CardContent class="flex flex-col items-start gap-3 p-4">
+              <div class="flex w-full items-center gap-3">
+                <Avatar
+                  :src="member.avatar_url ?? undefined"
+                  :alt="member.name"
+                  :fallback="avatarFallback(member.name)"
+                  class="h-12 w-12 shrink-0 md:h-14 md:w-14"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-medium">{{ member.name }}</p>
                   <Badge
-                    v-for="gc in member.game_classes"
-                    :key="gc.id"
-                    variant="outline"
-                    class="text-xs"
-                  >
-                    {{ gc.name_ru ?? gc.name }}
-                  </Badge>
-                </div>
-                <div v-if="member.tags.length > 0" class="flex flex-wrap gap-1">
-                  <Badge
-                    v-for="tag in member.tags"
-                    :key="tag.id"
+                    v-if="member.guild_role"
                     variant="secondary"
-                    class="text-xs"
+                    class="mt-1 text-xs"
                   >
-                    {{ tag.name }}
+                    {{ member.guild_role.name }}
                   </Badge>
                 </div>
-              </CardContent>
-            </Card>
-          </RouterLink>
-        </div>
-      </CardContent>
-    </Card>
+              </div>
+              <div v-if="member.game_classes.length > 0" class="flex flex-wrap gap-1">
+                <Badge
+                  v-for="gc in member.game_classes"
+                  :key="gc.id"
+                  variant="outline"
+                  class="text-xs"
+                >
+                  {{ gc.name_ru ?? gc.name }}
+                </Badge>
+              </div>
+              <div v-if="member.tags.length > 0" class="flex flex-wrap gap-1">
+                <Badge
+                  v-for="tag in member.tags"
+                  :key="tag.id"
+                  variant="secondary"
+                  class="text-xs"
+                >
+                  {{ tag.name }}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </RouterLink>
+      </div>
+    </div>
+
   </div>
 </template>

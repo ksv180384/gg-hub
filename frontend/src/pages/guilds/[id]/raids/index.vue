@@ -449,124 +449,124 @@ watch(guildId, () => {
 </script>
 
 <template>
-  <div class="container py-4 md:py-6">
-    <Card>
-      <CardHeader class="flex flex-row flex-wrap items-center justify-between gap-4">
-        <CardTitle>Рейды · Группы · КП</CardTitle>
-        <Button
-          v-if="canFormRaid"
-          type="button"
-          @click="openCreate(null)"
-        >
-          Добавить рейд
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
-        <template v-else-if="accessDenied">
-          <p class="text-sm text-muted-foreground">
-            Раздел доступен только участникам гильдии.
-          </p>
-        </template>
-        <template v-else-if="error">
-          <p class="text-sm text-destructive">{{ error }}</p>
-        </template>
-        <template v-else-if="raids.length === 0 && !loading">
-          <p class="text-sm text-muted-foreground">
-            Рейдов пока нет.
-            <template v-if="canFormRaid"> Нажмите «Добавить рейд», чтобы создать первый.</template>
-          </p>
-        </template>
-        <div v-else class="flex flex-col gap-4 md:flex-row md:items-stretch">
-          <div class="min-w-0 flex-1">
-            <ul class="raid-tree space-y-0" data-parent-id="">
-              <Sortable
-                :key="raidSortableKey"
-                :list="raids"
-                item-key="id"
-                tag="div"
-                class="contents"
-                :options="raidSortableOptions"
-                @start="isDraggingRaid = true"
-                @end="onRaidSortEnd"
-              >
-                <template #item="{ element }">
-                  <RaidTreeItem
-                    :raid="element"
-                    :depth="0"
-                    :total-members="raidTotalMembers.get(element.id) ?? 0"
-                    :raid-total-members-map="Object.fromEntries(raidTotalMembers)"
-                    :can-edit="canFormRaid"
-                    :can-delete="canDeleteRaid"
-                    :selected-raid-id="selectedRaidId"
-                    :sortable-options="raidSortableOptions"
-                    :sortable-key="raidSortableKey"
-                    @add-child="(id) => openCreate(id)"
-                    @edit="openEdit"
-                    @delete="openDelete"
-                    @select="selectRaid"
-                    @sort-end="onRaidSortEnd"
-                  />
-                </template>
-                <template #footer>
-                  <li
-                    v-if="canFormRaid"
-                    class="list-none rounded-lg border-2 border-dashed text-center text-sm transition-all duration-150"
-                    :class="isDraggingRaid
-                      ? 'border-muted-foreground/30 py-3 text-muted-foreground'
-                      : 'min-h-0 border-transparent py-0 text-transparent'"
-                    data-drop-zone="root-end"
-                  >
-                    Перетащите сюда для переноса в конец списка (главный уровень)
-                  </li>
-                </template>
-              </Sortable>
-            </ul>
-          </div>
-          <aside
-            v-if="selectedRaidId != null"
-            class="w-full shrink-0 rounded-lg border border-border bg-muted/30 md:w-80"
-          >
-            <div class="flex flex-col gap-3 p-4">
-              <div class="flex items-center justify-between gap-2 border-b border-border pb-2">
-                <h3 class="font-semibold truncate" :title="selectedRaid?.name">
-                  {{ selectedRaid?.name ?? 'Рейд' }}
-                </h3>
-                <Button variant="ghost" size="sm" class="h-8 w-8 shrink-0 p-0" aria-label="Закрыть" @click="clearSelectedRaid">
-                  ×
-                </Button>
-              </div>
-              <p v-if="selectedRaidLoading" class="text-sm text-muted-foreground">Загрузка…</p>
-              <template v-else>
-                <p class="text-sm font-medium text-muted-foreground">Участники рейда</p>
-                <ul v-if="selectedRaidMembers.length > 0" class="space-y-1.5">
-                  <li
-                    v-for="m in selectedRaidMembers"
-                    :key="m.character_id"
-                    class="flex items-center gap-2 rounded-md bg-background px-2 py-1.5 text-sm"
-                  >
-                    <span class="min-w-0 truncate">{{ m.name }}</span>
-                    <Badge v-if="m.role" variant="outline" class="shrink-0 text-xs">{{ m.role }}</Badge>
-                  </li>
-                </ul>
-                <p v-else class="text-sm text-muted-foreground">Нет участников</p>
-                <Button
-                  v-if="canFormRaid && !selectedRaidHasChildren"
-                  type="button"
-                  class="mt-1"
-                  @click="openFormRaidModal"
-                >
-                  Сформировать рейд
-                </Button>
-                <p v-else-if="canFormRaid && selectedRaidHasChildren" class="mt-1 text-xs text-muted-foreground">
-                  Рейд с дочерними рейдами не может иметь участников.
-                </p>
+  <div class="container py-4 md:py-6 max-w-2xl mx-auto">
+
+    <div class="flex justify-between items-center">
+      <div class="text-xl font-semibold pb-4">Рейды · Группы · КП</div>
+      <Button
+        v-if="canFormRaid"
+        type="button"
+        @click="openCreate(null)"
+      >
+        Добавить рейд
+      </Button>
+    </div>
+
+    <div class="">
+      <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
+      <template v-else-if="accessDenied">
+        <p class="text-sm text-muted-foreground">
+          Раздел доступен только участникам гильдии.
+        </p>
+      </template>
+      <template v-else-if="error">
+        <p class="text-sm text-destructive">{{ error }}</p>
+      </template>
+      <template v-else-if="raids.length === 0 && !loading">
+        <p class="text-sm text-muted-foreground">
+          Рейдов пока нет.
+          <template v-if="canFormRaid"> Нажмите «Добавить рейд», чтобы создать первый.</template>
+        </p>
+      </template>
+      <div v-else class="flex flex-col gap-4 md:flex-row md:items-stretch">
+        <div class="min-w-0 flex-1">
+          <ul class="raid-tree space-y-0" data-parent-id="">
+            <Sortable
+              :key="raidSortableKey"
+              :list="raids"
+              item-key="id"
+              tag="div"
+              class="contents"
+              :options="raidSortableOptions"
+              @start="isDraggingRaid = true"
+              @end="onRaidSortEnd"
+            >
+              <template #item="{ element }">
+                <RaidTreeItem
+                  :raid="element"
+                  :depth="0"
+                  :total-members="raidTotalMembers.get(element.id) ?? 0"
+                  :raid-total-members-map="Object.fromEntries(raidTotalMembers)"
+                  :can-edit="canFormRaid"
+                  :can-delete="canDeleteRaid"
+                  :selected-raid-id="selectedRaidId"
+                  :sortable-options="raidSortableOptions"
+                  :sortable-key="raidSortableKey"
+                  @add-child="(id) => openCreate(id)"
+                  @edit="openEdit"
+                  @delete="openDelete"
+                  @select="selectRaid"
+                  @sort-end="onRaidSortEnd"
+                />
               </template>
-            </div>
-          </aside>
+              <template #footer>
+                <li
+                  v-if="canFormRaid"
+                  class="list-none rounded-lg border-2 border-dashed text-center text-sm transition-all duration-150"
+                  :class="isDraggingRaid
+                    ? 'border-muted-foreground/30 py-3 text-muted-foreground'
+                    : 'min-h-0 border-transparent py-0 text-transparent'"
+                  data-drop-zone="root-end"
+                >
+                  Перетащите сюда для переноса в конец списка (главный уровень)
+                </li>
+              </template>
+            </Sortable>
+          </ul>
         </div>
-      </CardContent>
-    </Card>
+        <aside
+          v-if="selectedRaidId != null"
+          class="w-full shrink-0 rounded-lg border border-border bg-muted/30 md:w-80"
+        >
+          <div class="flex flex-col gap-3 p-4">
+            <div class="flex items-center justify-between gap-2 border-b border-border pb-2">
+              <h3 class="font-semibold truncate" :title="selectedRaid?.name">
+                {{ selectedRaid?.name ?? 'Рейд' }}
+              </h3>
+              <Button variant="ghost" size="sm" class="h-8 w-8 shrink-0 p-0" aria-label="Закрыть" @click="clearSelectedRaid">
+                ×
+              </Button>
+            </div>
+            <p v-if="selectedRaidLoading" class="text-sm text-muted-foreground">Загрузка…</p>
+            <template v-else>
+              <p class="text-sm font-medium text-muted-foreground">Участники рейда</p>
+              <ul v-if="selectedRaidMembers.length > 0" class="space-y-1.5">
+                <li
+                  v-for="m in selectedRaidMembers"
+                  :key="m.character_id"
+                  class="flex items-center gap-2 rounded-md bg-background px-2 py-1.5 text-sm"
+                >
+                  <span class="min-w-0 truncate">{{ m.name }}</span>
+                  <Badge v-if="m.role" variant="outline" class="shrink-0 text-xs">{{ m.role }}</Badge>
+                </li>
+              </ul>
+              <p v-else class="text-sm text-muted-foreground">Нет участников</p>
+              <Button
+                v-if="canFormRaid && !selectedRaidHasChildren"
+                type="button"
+                class="mt-1"
+                @click="openFormRaidModal"
+              >
+                Сформировать рейд
+              </Button>
+              <p v-else-if="canFormRaid && selectedRaidHasChildren" class="mt-1 text-xs text-muted-foreground">
+                Рейд с дочерними рейдами не может иметь участников.
+              </p>
+            </template>
+          </div>
+        </aside>
+      </div>
+    </div>
 
     <!-- Модальное окно создания/редактирования рейда -->
     <DialogRoot v-model:open="modalOpen">

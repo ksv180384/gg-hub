@@ -135,7 +135,7 @@ watch([guildId, characterId], () => loadData());
 </script>
 
 <template>
-  <div class="container py-4 md:py-6">
+  <div class="container py-4 md:py-6 max-w-2xl mx-auto">
     <div class="mb-4">
       <Button variant="ghost" size="sm" class="-ml-2 shrink-0" @click="backToRoster">
         ← К составу гильдии

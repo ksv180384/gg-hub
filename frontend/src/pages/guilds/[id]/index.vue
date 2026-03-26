@@ -101,10 +101,10 @@ function onViewRecorded(postId: number) {
 </script>
 
 <template>
-  <div class="container py-6 space-y-4 max-w-2xl mx-auto">
+  <div class="py-6 space-y-4 max-w-2xl mx-auto">
     <div
       v-if="canModeratePosts"
-      class="flex flex-wrap items-center gap-2"
+      class="flex flex-wrap items-center gap-2 px-4"
     >
       <div class="min-w-0 flex-1">
         {{ showPending ? 'Посты, ожидающие публикации' : showBlocked ? 'Заблокированные посты' : 'Журнал гильдии' }}

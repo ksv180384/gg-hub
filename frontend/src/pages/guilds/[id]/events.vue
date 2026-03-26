@@ -128,7 +128,7 @@ watch(guildId, () => {
 </script>
 
 <template>
-  <div class="container py-6 space-y-4">
+  <div class="container py-6 space-y-4 max-w-2xl mx-auto">
     <div class="flex items-center justify-between gap-2">
       <h1 class="text-xl font-semibold">
         События гильдии
@@ -142,106 +142,100 @@ watch(guildId, () => {
       </Button>
     </div>
 
-    <Card>
-      <CardHeader>
-        <CardTitle class="text-base">
-          История событий
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p
-          v-if="loading"
-          class="text-sm text-muted-foreground"
+    <div>
+      <p
+        v-if="loading"
+        class="text-sm text-muted-foreground"
+      >
+        Загрузка истории событий...
+      </p>
+      <p
+        v-else-if="!items.length"
+        class="text-sm text-muted-foreground"
+      >
+        Пока нет записей в истории событий.
+      </p>
+      <ul
+        v-else
+        class="space-y-4"
+      >
+        <li
+          v-for="item in items"
+          :key="item.id"
+          class="rounded-md border p-3 flex flex-col gap-2"
         >
-          Загрузка истории событий...
-        </p>
-        <p
-          v-else-if="!items.length"
-          class="text-sm text-muted-foreground"
-        >
-          Пока нет записей в истории событий.
-        </p>
-        <ul
-          v-else
-          class="space-y-4"
-        >
-          <li
-            v-for="item in items"
-            :key="item.id"
-            class="rounded-md border p-3 flex flex-col gap-2"
-          >
-            <div class="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                class="min-w-0 flex-1 text-left"
-                @click="goToShow(item)"
-              >
-                <div class="flex flex-col gap-0.5">
-                  <span class="font-semibold truncate">
-                    {{ item.title }}
-                  </span>
-                  <span
-                    v-if="item.occurred_at"
-                    class="text-xs text-muted-foreground"
-                  >
-                    {{ formatDateTime(item.occurred_at) }}
-                  </span>
-                </div>
-              </button>
-              <div class="flex items-center gap-1">
-                <Button
-                  v-if="canEdit"
-                  size="icon"
-                  variant="ghost"
-                  class="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  aria-label="Редактировать"
-                  @click.stop="goToEdit(item)"
+          <div class="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="min-w-0 flex-1 text-left"
+              @click="goToShow(item)"
+            >
+              <div class="flex flex-col gap-0.5">
+                <span class="font-semibold truncate">
+                  {{ item.title }}
+                </span>
+                <span
+                  v-if="item.occurred_at"
+                  class="text-xs text-muted-foreground"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z" />
-                  </svg>
-                </Button>
-                <Button
-                  v-if="canDelete"
-                  size="icon"
-                  variant="ghost"
-                  class="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  aria-label="Удалить"
-                  @click.stop="askDelete(item)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M3 6h18" />
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                  </svg>
-                </Button>
+                  {{ formatDateTime(item.occurred_at) }}
+                </span>
               </div>
+            </button>
+            <div class="flex items-center gap-1">
+              <Button
+                v-if="canEdit"
+                size="icon"
+                variant="ghost"
+                class="h-8 w-8 text-muted-foreground hover:text-foreground"
+                aria-label="Редактировать"
+                @click.stop="goToEdit(item)"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z" />
+                </svg>
+              </Button>
+              <Button
+                v-if="canDelete"
+                size="icon"
+                variant="ghost"
+                class="h-8 w-8 text-muted-foreground hover:text-destructive"
+                aria-label="Удалить"
+                @click.stop="askDelete(item)"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+              </Button>
             </div>
-          </li>
-        </ul>
-      </CardContent>
-    </Card>
+          </div>
+        </li>
+      </ul>
+    </div>
+
 
     <ConfirmDialog
       v-model:open="deleteConfirmOpen"
