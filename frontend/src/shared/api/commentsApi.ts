@@ -114,10 +114,10 @@ export const commentsApi = {
     return { data: list, meta };
   },
 
-  async hideAdminComment(commentId: number): Promise<AdminPostCommentItem> {
+  async hideAdminComment(commentId: number, reason: string): Promise<AdminPostCommentItem> {
     const res = await http.fetchPost<{ data: AdminPostCommentItem } | AdminPostCommentItem>(
       `/admin/comments/${commentId}/hide`,
-      {}
+      { reason }
     );
     throwOnError(res, 'Ошибка скрытия комментария');
     const body = res.data;
@@ -136,8 +136,8 @@ export const commentsApi = {
     return body as AdminPostCommentItem;
   },
 
-  async deleteAdminComment(commentId: number): Promise<void> {
-    const res = await http.fetchDelete<{ message?: string }>(`/admin/comments/${commentId}`);
+  async deleteAdminComment(commentId: number, reason: string): Promise<void> {
+    const res = await http.fetchDeleteWithBody<{ message?: string }>(`/admin/comments/${commentId}`, { reason });
     throwOnError(res, 'Ошибка удаления комментария');
   },
 };
@@ -148,6 +148,10 @@ export interface AdminPostCommentItem {
   post_id: number;
   body: string | null;
   is_hidden: boolean;
+  hidden_reason?: string | null;
+  delete_reason?: string | null;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
   author_name: string;
   author_avatar_url: string | null;
   created_at: string;
@@ -155,3 +159,66 @@ export interface AdminPostCommentItem {
   guild_id: number | null;
   guild_name: string | null;
 }
+
+export interface AdminApplicationCommentItem {
+  id: number;
+  application_id: number;
+  body: string | null;
+  is_hidden: boolean;
+  hidden_reason?: string | null;
+  delete_reason?: string | null;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  author_name: string;
+  author_avatar_url: string | null;
+  created_at: string;
+  guild_id: number | null;
+  guild_name: string | null;
+  application_status: string | null;
+}
+
+export const applicationCommentsAdminApi = {
+  async getAdminApplicationComments(params?: { page?: number; per_page?: number; application_id?: number }): Promise<{
+    data: AdminApplicationCommentItem[];
+    meta: { current_page: number; last_page: number; per_page: number; total: number };
+  }> {
+    const qs = new URLSearchParams();
+    if (params?.page != null) qs.set('page', String(params.page));
+    if (params?.per_page != null) qs.set('per_page', String(params.per_page));
+    if (params?.application_id != null) qs.set('application_id', String(params.application_id));
+    const url = `/admin/application-comments${qs.toString() ? `?${qs}` : ''}`;
+    const res = await http.fetchGet<{ data: AdminApplicationCommentItem[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }>(url);
+    throwOnError(res, 'Ошибка загрузки комментариев заявок');
+    const body = res.data;
+    const list = body && typeof body === 'object' && 'data' in body && Array.isArray(body.data) ? body.data : [];
+    const meta = body && typeof body === 'object' && body.meta ? body.meta : { current_page: 1, last_page: 1, per_page: 20, total: 0 };
+    return { data: list, meta };
+  },
+
+  async hideAdminApplicationComment(commentId: number, reason: string): Promise<AdminApplicationCommentItem> {
+    const res = await http.fetchPost<{ data: AdminApplicationCommentItem } | AdminApplicationCommentItem>(
+      `/admin/application-comments/${commentId}/hide`,
+      { reason }
+    );
+    throwOnError(res, 'Ошибка скрытия комментария');
+    const body = res.data;
+    if (body && typeof body === 'object' && 'data' in body) return (body as { data: AdminApplicationCommentItem }).data;
+    return body as AdminApplicationCommentItem;
+  },
+
+  async unhideAdminApplicationComment(commentId: number): Promise<AdminApplicationCommentItem> {
+    const res = await http.fetchPost<{ data: AdminApplicationCommentItem } | AdminApplicationCommentItem>(
+      `/admin/application-comments/${commentId}/unhide`,
+      {}
+    );
+    throwOnError(res, 'Ошибка отображения комментария');
+    const body = res.data;
+    if (body && typeof body === 'object' && 'data' in body) return (body as { data: AdminApplicationCommentItem }).data;
+    return body as AdminApplicationCommentItem;
+  },
+
+  async deleteAdminApplicationComment(commentId: number, reason: string): Promise<void> {
+    const res = await http.fetchDeleteWithBody<{ message?: string }>(`/admin/application-comments/${commentId}`, { reason });
+    throwOnError(res, 'Ошибка удаления комментария');
+  },
+};

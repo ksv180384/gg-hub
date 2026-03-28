@@ -227,6 +227,12 @@ const router = createRouter({
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
+          path: 'admin/application-comments',
+          name: 'admin-application-comments',
+          component: () => import('@/pages/admin/application-comments/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
           path: 'admin/posts/:id',
           name: 'admin-post-show',
           component: () => import('@/pages/admin/posts/[id].vue'),

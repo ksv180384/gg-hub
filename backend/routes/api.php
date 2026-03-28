@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\GameClassController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\GlobalJournalController;
 use App\Http\Controllers\Api\GuildApplicationController;
+use App\Http\Controllers\Api\GuildApplicationCommentController;
 use App\Http\Controllers\Api\GuildApplicationFormFieldController;
 use App\Http\Controllers\Api\GuildController;
 use App\Http\Controllers\Api\GuildRoleController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\PermissionGroupController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\AdminPollController;
 use App\Http\Controllers\Api\AdminPostCommentController;
+use App\Http\Controllers\Api\AdminGuildApplicationCommentController;
 use App\Http\Controllers\Api\AdminPostController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\NotificationController;
@@ -139,6 +141,10 @@ Route::middleware(['auth'])->group(function () {
     // Просмотр заявки пользователем, который её подал
     Route::get('/guilds/{guild}/applications/{application}/owner', [GuildApplicationController::class, 'showForOwner']);
     Route::post('/guilds/{guild}/applications/{application}/withdraw', [GuildApplicationController::class, 'withdraw']);
+    Route::get('/guilds/{guild}/applications/{application}/comments', [GuildApplicationCommentController::class, 'index']);
+    Route::post('/guilds/{guild}/applications/{application}/comments', [GuildApplicationCommentController::class, 'store'])->middleware('ensure.not.banned');
+    Route::match(['put', 'patch'], '/guilds/{guild}/applications/{application}/comments/{comment}', [GuildApplicationCommentController::class, 'update'])->middleware('ensure.not.banned');
+    Route::delete('/guilds/{guild}/applications/{application}/comments/{comment}', [GuildApplicationCommentController::class, 'destroy']);
     Route::post('/guilds/{guild}/applications/{application}/accept-invitation', [GuildApplicationController::class, 'acceptInvitation']);
     Route::post('/guilds/{guild}/applications/{application}/decline-invitation', [GuildApplicationController::class, 'declineInvitation']);
     Route::post('/guilds/{guild}/applications/{application}/revoke-invitation', [GuildApplicationController::class, 'revokeInvitation'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
@@ -168,6 +174,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/comments/{comment}/hide', [AdminPostCommentController::class, 'hide'])->middleware('permission:skryvat-kommentarii');
         Route::post('/admin/comments/{comment}/unhide', [AdminPostCommentController::class, 'unhide'])->middleware('permission:skryvat-kommentarii');
         Route::delete('/admin/comments/{comment}', [AdminPostCommentController::class, 'destroy'])->middleware('permission:udaliat-kommentarii');
+        Route::get('/admin/application-comments', [AdminGuildApplicationCommentController::class, 'index']);
+        Route::post('/admin/application-comments/{comment}/hide', [AdminGuildApplicationCommentController::class, 'hide'])->middleware('permission:skryvat-kommentarii');
+        Route::post('/admin/application-comments/{comment}/unhide', [AdminGuildApplicationCommentController::class, 'unhide'])->middleware('permission:skryvat-kommentarii');
+        Route::delete('/admin/application-comments/{comment}', [AdminGuildApplicationCommentController::class, 'destroy'])->middleware('permission:udaliat-kommentarii');
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
         Route::get('/permission-groups/{permission_group}', [PermissionGroupController::class, 'show']);
         Route::post('/permission-groups', [PermissionGroupController::class, 'store'])->middleware('permission:obshhie-roli');

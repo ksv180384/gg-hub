@@ -2,6 +2,7 @@
 
 namespace Domains\Guild\Actions;
 
+use App\Actions\Notification\CreateGuildMemberLeftNotificationAction;
 use App\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
@@ -9,6 +10,10 @@ use Illuminate\Validation\ValidationException;
 
 class LeaveGuildAction
 {
+    public function __construct(
+        private CreateGuildMemberLeftNotificationAction $createGuildMemberLeftNotificationAction
+    ) {}
+
     public function __invoke(User $user, Guild $guild): void
     {
         $guild->loadMissing(['leader', 'members.character']);
@@ -30,7 +35,11 @@ class LeaveGuildAction
             ]);
         }
 
+        $leftCharacterName = $member->character?->name ?? 'Участник';
+
         $member->delete();
+
+        ($this->createGuildMemberLeftNotificationAction)($guild, $leftCharacterName);
     }
 }
 

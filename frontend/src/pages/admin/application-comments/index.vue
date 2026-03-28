@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Avatar, Badge, Button, Input, Label } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { formatRelativeTime } from '@/shared/lib/relativeTime';
-import { commentsApi, type AdminPostCommentItem } from '@/shared/api/commentsApi';
-import { postsApi, type AdminPostSuggestItem } from '@/shared/api/postsApi';
+import {
+  applicationCommentsAdminApi,
+  type AdminApplicationCommentItem,
+} from '@/shared/api/commentsApi';
 import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
@@ -17,29 +19,25 @@ const PERMISSION_DELETE = 'udaliat-kommentarii';
 const canHide = computed(() => auth.hasPermission(PERMISSION_HIDE));
 const canDelete = computed(() => auth.hasPermission(PERMISSION_DELETE));
 
-const comments = ref<AdminPostCommentItem[]>([]);
+const comments = ref<AdminApplicationCommentItem[]>([]);
 const meta = ref<{ current_page: number; last_page: number; per_page: number; total: number } | null>(null);
 const loading = ref(true);
 const actionLoadingId = ref<number | null>(null);
-const deleteDialog = ref<{ open: boolean; comment: AdminPostCommentItem | null }>({ open: false, comment: null });
-const hideDialog = ref<{ open: boolean; comment: AdminPostCommentItem | null }>({ open: false, comment: null });
+const deleteDialog = ref<{ open: boolean; comment: AdminApplicationCommentItem | null }>({ open: false, comment: null });
+const hideDialog = ref<{ open: boolean; comment: AdminApplicationCommentItem | null }>({ open: false, comment: null });
 const hideReason = ref('');
 const hideSubmitting = ref(false);
 const deleteReason = ref('');
-
-const postSearchQuery = ref('');
-const suggestions = ref<AdminPostSuggestItem[]>([]);
-const suggestionsLoading = ref(false);
-const selectedPost = ref<AdminPostSuggestItem | null>(null);
-let suggestTimeout: ReturnType<typeof setTimeout> | null = null;
+const applicationFilter = ref('');
 
 async function loadComments(page = 1) {
   loading.value = true;
   try {
-    const res = await commentsApi.getAdminComments({
+    const applicationId = Number(applicationFilter.value);
+    const res = await applicationCommentsAdminApi.getAdminApplicationComments({
       page,
       per_page: 20,
-      post_id: selectedPost.value?.id,
+      application_id: Number.isInteger(applicationId) && applicationId > 0 ? applicationId : undefined,
     });
     comments.value = res.data;
     meta.value = res.meta;
@@ -51,57 +49,17 @@ async function loadComments(page = 1) {
   }
 }
 
-watch(postSearchQuery, (q) => {
-  if (suggestTimeout) clearTimeout(suggestTimeout);
-  const trimmed = q.trim();
-  if (!trimmed) {
-    suggestions.value = [];
-    return;
-  }
-  suggestTimeout = setTimeout(async () => {
-    suggestTimeout = null;
-    suggestionsLoading.value = true;
-    try {
-      suggestions.value = await postsApi.getAdminPostsSuggest(trimmed);
-    } catch {
-      suggestions.value = [];
-    } finally {
-      suggestionsLoading.value = false;
-    }
-  }, 300);
-});
-
-function selectPost(post: AdminPostSuggestItem) {
-  selectedPost.value = post;
-  postSearchQuery.value = '';
-  suggestions.value = [];
-  loadComments(1);
-}
-
-function clearPostFilter() {
-  selectedPost.value = null;
-  loadComments(1);
-}
-
 onMounted(() => loadComments());
 
-function postLink(c: AdminPostCommentItem) {
-  if (c.guild_id != null) {
-    return {
-      name: 'guild-post-show' as const,
-      params: { id: String(c.guild_id), postId: String(c.post_id) },
-      hash: '#comments',
-    };
-  }
-  return null;
+function goToApplication(c: AdminApplicationCommentItem) {
+  if (c.guild_id == null) return;
+  router.push({
+    name: 'guild-application-show',
+    params: { id: String(c.guild_id), applicationId: String(c.application_id) },
+  });
 }
 
-function goToPost(c: AdminPostCommentItem) {
-  const link = postLink(c);
-  if (link) router.push(link);
-}
-
-function openHideDialog(c: AdminPostCommentItem) {
+function openHideDialog(c: AdminApplicationCommentItem) {
   hideDialog.value = { open: true, comment: c };
   hideReason.value = '';
 }
@@ -115,10 +73,11 @@ async function hideCommentWithReason() {
   const c = hideDialog.value.comment;
   const reason = hideReason.value.trim();
   if (!c || !canHide.value || !reason) return;
+  if (!canHide.value) return;
   actionLoadingId.value = c.id;
   hideSubmitting.value = true;
   try {
-    const updated = await commentsApi.hideAdminComment(c.id, reason);
+    const updated = await applicationCommentsAdminApi.hideAdminApplicationComment(c.id, reason);
     const idx = comments.value.findIndex((x) => x.id === c.id);
     if (idx !== -1) comments.value[idx] = updated;
     closeHideDialog();
@@ -128,11 +87,11 @@ async function hideCommentWithReason() {
   }
 }
 
-async function unhideComment(c: AdminPostCommentItem) {
+async function unhideComment(c: AdminApplicationCommentItem) {
   if (!canHide.value) return;
   actionLoadingId.value = c.id;
   try {
-    const updated = await commentsApi.unhideAdminComment(c.id);
+    const updated = await applicationCommentsAdminApi.unhideAdminApplicationComment(c.id);
     const idx = comments.value.findIndex((x) => x.id === c.id);
     if (idx !== -1) comments.value[idx] = updated;
   } finally {
@@ -140,7 +99,7 @@ async function unhideComment(c: AdminPostCommentItem) {
   }
 }
 
-function openDeleteDialog(c: AdminPostCommentItem) {
+function openDeleteDialog(c: AdminApplicationCommentItem) {
   deleteDialog.value = { open: true, comment: c };
   deleteReason.value = '';
 }
@@ -161,7 +120,7 @@ async function confirmDelete() {
   if (!reason) return;
   deleteSubmitting.value = true;
   try {
-    await commentsApi.deleteAdminComment(c.id, reason);
+    await applicationCommentsAdminApi.deleteAdminApplicationComment(c.id, reason);
     const idx = comments.value.findIndex((x) => x.id === c.id);
     if (idx !== -1) {
       comments.value[idx] = {
@@ -183,49 +142,22 @@ const total = computed(() => meta.value?.total ?? 0);
 
 <template>
   <div class="container py-6 space-y-4 max-w-3xl mx-auto">
-    <h1 class="text-xl font-semibold">Модерация комментариев</h1>
+    <h1 class="text-xl font-semibold">Модерация комментариев заявок</h1>
     <p class="text-sm text-muted-foreground">
-      Все комментарии к постам в одном списке. Введите название поста, чтобы оставить только его комментарии.
+      Все комментарии к заявкам в гильдии в одном списке. Можно фильтровать по ID заявки.
     </p>
 
-    <div class="relative space-y-2">
-      <Label for="post-search">Пост</Label>
-      <div class="relative">
+    <div class="space-y-2">
+      <Label for="application-filter">ID заявки</Label>
+      <div class="flex gap-2">
         <Input
-          id="post-search"
-          v-model="postSearchQuery"
-          type="text"
-          placeholder="Введите название поста для фильтра…"
+          id="application-filter"
+          v-model="applicationFilter"
+          type="number"
+          placeholder="Например: 5"
           class="w-full"
-          autocomplete="off"
         />
-        <ul
-          v-if="(suggestions.length > 0 || suggestionsLoading) && postSearchQuery.trim()"
-          class="absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover py-1 shadow-md"
-        >
-          <li v-if="suggestionsLoading" class="px-3 py-2 text-sm text-muted-foreground">
-            Загрузка…
-          </li>
-          <li
-            v-for="post in suggestions"
-            v-else
-            key="post.id"
-            class="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-            @click="selectPost(post)"
-          >
-            <span class="font-medium">{{ post.title || 'Без названия' }}</span>
-            <span v-if="post.guild_name" class="text-muted-foreground"> — {{ post.guild_name }}</span>
-          </li>
-        </ul>
-      </div>
-      <div v-if="selectedPost" class="flex items-center gap-2">
-        <Badge variant="secondary" class="text-xs">
-          {{ selectedPost.title || 'Без названия' }}
-          <span v-if="selectedPost.guild_name"> ({{ selectedPost.guild_name }})</span>
-        </Badge>
-        <Button variant="ghost" size="sm" class="h-6 px-1 text-xs" @click="clearPostFilter">
-          Сбросить фильтр
-        </Button>
+        <Button variant="outline" @click="loadComments(1)">Применить</Button>
       </div>
     </div>
 
@@ -253,17 +185,12 @@ const total = computed(() => meta.value?.total ?? 0);
               <Badge v-if="c.is_deleted" variant="destructive" class="text-xs">Удалён</Badge>
             </div>
             <button
-              v-if="c.post_title || c.guild_name"
+              v-if="c.guild_id != null"
               type="button"
               class="mt-1 text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
-              @click="goToPost(c)"
+              @click="goToApplication(c)"
             >
-              <template v-if="c.guild_name">
-                {{ c.guild_name }} — {{ c.post_title || `Пост #${c.post_id}` }}
-              </template>
-              <template v-else>
-                Пост: {{ c.post_title || `#${c.post_id}` }}
-              </template>
+              {{ c.guild_name || 'Гильдия' }} — заявка #{{ c.application_id }}
             </button>
             <p class="mt-2 whitespace-pre-wrap break-words text-sm">
               {{ c.body }}

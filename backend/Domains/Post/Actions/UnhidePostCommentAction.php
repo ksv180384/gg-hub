@@ -17,7 +17,10 @@ final class UnhidePostCommentAction
             throw new InvalidArgumentException('Недостаточно прав для отображения комментария.');
         }
 
-        $comment->update(['is_hidden' => false]);
+        $comment->update([
+            'is_hidden' => false,
+            'hidden_reason' => null,
+        ]);
 
         return $comment->fresh();
     }

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
+import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -219,6 +220,8 @@ onMounted(async () => {
               </div>
             </dl>
           </div>
+
+          <ApplicationComments :guild-id="guildId" :application-id="applicationId" />
         </CardContent>
       </Card>
     </template>

@@ -6,6 +6,8 @@ use App\Actions\Notification\CreateCommentDeletedNotificationAction;
 use App\Actions\Notification\CreateCommentHiddenNotificationAction;
 use App\Actions\Notification\CreateCommentShownNotificationAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Post\AdminDeletePostCommentRequest;
+use App\Http\Requests\Post\AdminHidePostCommentRequest;
 use App\Http\Resources\Post\AdminPostCommentResource;
 use Domains\Post\Actions\DeletePostCommentAction;
 use Domains\Post\Actions\HidePostCommentAction;
@@ -50,15 +52,16 @@ class AdminPostCommentController extends Controller
     /**
      * Скрыть комментарий. Требуется право skryvat-kommentarii.
      */
-    public function hide(Request $request, PostComment $comment): JsonResponse
+    public function hide(AdminHidePostCommentRequest $request, PostComment $comment): JsonResponse
     {
+        $reason = (string) $request->validated('reason');
         try {
-            $comment = ($this->hidePostCommentAction)($comment, $request->user());
+            $comment = ($this->hidePostCommentAction)($comment, $request->user(), $reason);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 403);
         }
 
-        ($this->createCommentHiddenNotificationAction)($comment);
+        ($this->createCommentHiddenNotificationAction)($comment, $reason);
 
         return response()->json(new AdminPostCommentResource($comment));
     }
@@ -82,11 +85,12 @@ class AdminPostCommentController extends Controller
     /**
      * Удалить комментарий. Требуется право udaliat-kommentarii или автор комментария.
      */
-    public function destroy(Request $request, PostComment $comment): JsonResponse
+    public function destroy(AdminDeletePostCommentRequest $request, PostComment $comment): JsonResponse
     {
+        $reason = (string) $request->validated('reason');
         try {
-            ($this->createCommentDeletedNotificationAction)($comment);
-            ($this->deletePostCommentAction)($comment, $request->user());
+            ($this->createCommentDeletedNotificationAction)($comment, $reason);
+            ($this->deletePostCommentAction)($comment, $request->user(), $reason);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 403);
         }

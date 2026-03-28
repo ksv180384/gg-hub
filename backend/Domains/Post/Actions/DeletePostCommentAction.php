@@ -10,7 +10,7 @@ final class DeletePostCommentAction
 {
     private const PERMISSION_DELETE_SLUG = 'udaliat-kommentarii';
 
-    public function __invoke(PostComment $comment, User $user): void
+    public function __invoke(PostComment $comment, User $user, ?string $reason = null): void
     {
         $permissions = $user->getAllPermissionSlugs();
         $canModerate = in_array(self::PERMISSION_DELETE_SLUG, $permissions, true);
@@ -20,6 +20,10 @@ final class DeletePostCommentAction
             throw new InvalidArgumentException('Вы можете удалять только свои комментарии.');
         }
 
+        if ($reason !== null) {
+            $comment->delete_reason = trim($reason);
+            $comment->save();
+        }
         $comment->delete();
     }
 }

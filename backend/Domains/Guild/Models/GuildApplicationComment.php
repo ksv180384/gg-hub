@@ -1,6 +1,6 @@
 <?php
 
-namespace Domains\Post\Models;
+namespace Domains\Guild\Models;
 
 use App\Models\User;
 use Domains\Character\Models\Character;
@@ -9,11 +9,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class PostComment extends Model
+class GuildApplicationComment extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['post_id', 'user_id', 'character_id', 'parent_id', 'replied_to_comment_id', 'body', 'is_hidden', 'hidden_reason', 'delete_reason'];
+    protected $fillable = [
+        'guild_application_id',
+        'user_id',
+        'character_id',
+        'parent_id',
+        'replied_to_comment_id',
+        'body',
+        'is_hidden',
+        'hidden_reason',
+        'delete_reason',
+    ];
 
     protected function casts(): array
     {
@@ -22,9 +32,9 @@ class PostComment extends Model
         ];
     }
 
-    public function post(): BelongsTo
+    public function application(): BelongsTo
     {
-        return $this->belongsTo(Post::class);
+        return $this->belongsTo(GuildApplication::class, 'guild_application_id');
     }
 
     public function user(): BelongsTo
@@ -39,16 +49,16 @@ class PostComment extends Model
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(PostComment::class, 'parent_id');
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
     public function repliedToComment(): BelongsTo
     {
-        return $this->belongsTo(PostComment::class, 'replied_to_comment_id');
+        return $this->belongsTo(self::class, 'replied_to_comment_id');
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(PostComment::class, 'parent_id')->orderBy('created_at');
+        return $this->hasMany(self::class, 'parent_id')->orderBy('created_at');
     }
 }

@@ -133,6 +133,28 @@ export interface GuildApplicationItem {
   created_at?: string | null;
 }
 
+export interface GuildApplicationCommentItem {
+  id: number;
+  post_id: number;
+  user_id: number;
+  parent_id: number | null;
+  replied_to_comment_id?: number | null;
+  body: string | null;
+  is_hidden?: boolean;
+  author_name: string;
+  author_avatar_url: string | null;
+  replied_to_author_name: string | null;
+  created_at: string;
+  depth: number;
+  children: GuildApplicationCommentItem[];
+}
+
+export interface GuildApplicationCommentCharacter {
+  id: number;
+  name: string;
+  avatar_url: string | null;
+}
+
 export interface CreateGuildApplicationFormFieldPayload {
   name: string;
   type: 'text' | 'textarea' | 'screenshot' | 'select' | 'multiselect';
@@ -404,6 +426,76 @@ export const guildsApi = {
     if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
       return (raw as { data: GuildApplicationItem }).data!;
     return raw as GuildApplicationItem;
+  },
+
+  /** Комментарии к заявке (для автора заявки и участников гильдии). */
+  async getGuildApplicationComments(guildId: number, applicationId: number): Promise<{
+    comments: GuildApplicationCommentItem[];
+    myCharacters: GuildApplicationCommentCharacter[];
+    defaultCharacterId: number | null;
+  }> {
+    const res = await http.fetchGet<{
+      data: GuildApplicationCommentItem[];
+      meta?: {
+        my_characters?: GuildApplicationCommentCharacter[];
+        default_character_id?: number | null;
+      };
+    } | { data: GuildApplicationCommentItem[] } | GuildApplicationCommentItem[]>(
+      `/guilds/${guildId}/applications/${applicationId}/comments`
+    );
+    throwOnError(res, 'Ошибка загрузки комментариев');
+    const raw = res.data as {
+      data?: GuildApplicationCommentItem[];
+      meta?: { my_characters?: GuildApplicationCommentCharacter[]; default_character_id?: number | null };
+    } | GuildApplicationCommentItem[] | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw) {
+      return {
+        comments: raw.data ?? [],
+        myCharacters: raw.meta?.my_characters ?? [],
+        defaultCharacterId: raw.meta?.default_character_id ?? null,
+      };
+    }
+    return { comments: Array.isArray(raw) ? raw : [], myCharacters: [], defaultCharacterId: null };
+  },
+
+  async createGuildApplicationComment(
+    guildId: number,
+    applicationId: number,
+    body: string,
+    parentId?: number | null,
+    characterId?: number | null
+  ): Promise<GuildApplicationCommentItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationCommentItem } | GuildApplicationCommentItem>(
+      `/guilds/${guildId}/applications/${applicationId}/comments`,
+      { body, parent_id: parentId ?? null, character_id: characterId }
+    );
+    throwOnError(res, 'Ошибка отправки комментария');
+    const raw = res.data as { data?: GuildApplicationCommentItem } | GuildApplicationCommentItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationCommentItem }).data!;
+    return raw as GuildApplicationCommentItem;
+  },
+
+  async updateGuildApplicationComment(
+    guildId: number,
+    applicationId: number,
+    commentId: number,
+    body: string
+  ): Promise<GuildApplicationCommentItem> {
+    const res = await http.fetchPut<{ data: GuildApplicationCommentItem } | GuildApplicationCommentItem>(
+      `/guilds/${guildId}/applications/${applicationId}/comments/${commentId}`,
+      { body }
+    );
+    throwOnError(res, 'Ошибка сохранения комментария');
+    const raw = res.data as { data?: GuildApplicationCommentItem } | GuildApplicationCommentItem | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationCommentItem }).data!;
+    return raw as GuildApplicationCommentItem;
+  },
+
+  async deleteGuildApplicationComment(guildId: number, applicationId: number, commentId: number): Promise<void> {
+    const res = await http.fetchDelete(`/guilds/${guildId}/applications/${applicationId}/comments/${commentId}`);
+    throwOnError(res, 'Ошибка удаления комментария');
   },
 
   /** Заявки текущего пользователя во все гильдии (GET /user/applications). */

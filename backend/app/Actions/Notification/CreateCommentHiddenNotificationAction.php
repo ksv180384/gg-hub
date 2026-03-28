@@ -10,7 +10,7 @@ use Domains\Post\Models\PostComment;
  */
 class CreateCommentHiddenNotificationAction
 {
-    public function __invoke(PostComment $comment): ?Notification
+    public function __invoke(PostComment $comment, ?string $reason = null): ?Notification
     {
         $comment->loadMissing(['post.guild', 'user']);
 
@@ -24,6 +24,10 @@ class CreateCommentHiddenNotificationAction
         $guildName = $post->guild?->name ?? 'гильдии';
 
         $message = "Ваш комментарий к посту «{$postTitle}» в гильдии «{$guildName}» был скрыт модератором.";
+        $cleanReason = trim((string) $reason);
+        if ($cleanReason !== '') {
+            $message .= " Причина: {$cleanReason}";
+        }
 
         $link = $post->guild_id
             ? '/guilds/' . $post->guild_id . '/posts/' . $post->id . '#comments'

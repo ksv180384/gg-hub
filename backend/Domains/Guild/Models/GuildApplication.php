@@ -5,6 +5,7 @@ namespace Domains\Guild\Models;
 use Domains\Character\Models\Character;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GuildApplication extends Model
 {
@@ -47,5 +48,10 @@ class GuildApplication extends Model
     public function revokedByCharacter(): BelongsTo
     {
         return $this->belongsTo(Character::class, 'revoked_by_character_id');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(GuildApplicationComment::class, 'guild_application_id')->orderBy('created_at');
     }
 }

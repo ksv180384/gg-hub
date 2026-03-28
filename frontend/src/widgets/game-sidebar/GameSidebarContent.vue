@@ -42,6 +42,7 @@ const adminJournal = useAdminJournalStore();
 const adminItems: { to: string; label: string; permission?: string }[] = [
   { to: '/admin/journal', label: 'Журнал' },
   { to: '/admin/comments', label: 'Комментарии' },
+  { to: '/admin/application-comments', label: 'Комментарии заявок' },
   { to: '/admin/polls', label: 'Голосования', permission: PERMISSION_VIEW_POLLS },
   { to: '/admin/games', label: 'Игры' },
   { to: '/admin/users', label: 'Пользователи' },

@@ -15,6 +15,7 @@ final class ListAdminPostCommentsAction
     public function __invoke(int $perPage = 20, ?int $postId = null): LengthAwarePaginator
     {
         $query = PostComment::query()
+            ->withTrashed()
             ->with([
                 'post:id,title,guild_id',
                 'post.guild:id,name',
