@@ -234,9 +234,6 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
 
       <div class="container relative py-20 md:py-32">
         <div class="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center">
-          <Badge variant="secondary" class="animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-500 fill-mode-backwards">
-            Throne and Liberty &middot; Aion 2 &middot; Black Desert
-          </Badge>
 
           <h1
             id="landing-hero-heading"
@@ -262,21 +259,6 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
                 Найти гильдию
               </Button>
             </RouterLink>
-          </div>
-
-          <!-- Stats with counter animation -->
-          <div
-            :ref="(el) => { setRef('stats')(el); if (show('stats')) animateCounters(); }"
-            data-reveal-id="stats"
-            class="mt-10 flex flex-wrap items-center justify-center gap-8 md:gap-14 transition-all duration-700"
-            :class="show('stats') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'"
-          >
-            <div v-for="(s, i) in stats" :key="s.label" class="text-center">
-              <div class="text-3xl font-bold text-primary md:text-4xl tabular-nums">
-                {{ s.display ? s.display : animatedStats[i] }}
-              </div>
-              <div class="mt-1 text-sm text-muted-foreground">{{ s.label }}</div>
-            </div>
           </div>
 
           <!-- Scroll indicator -->
@@ -320,7 +302,6 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
         class="mx-auto max-w-3xl text-center transition-all duration-700"
         :class="show('players-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
       >
-        <Badge variant="secondary" class="mb-4">Для игроков</Badge>
         <h2 id="section-players-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
           Забудь о хаосе в поиске гильдии
         </h2>
@@ -367,8 +348,7 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
         data-reveal-id="guild-header"
         class="mx-auto max-w-3xl text-center transition-all duration-700"
         :class="show('guild-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-      >
-        <Badge variant="secondary" class="mb-4">Для гильдий</Badge>
+      >2048
         <h2 id="section-guilds-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
           Управляй гильдией как профессионал
         </h2>
@@ -462,7 +442,6 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
         class="mx-auto max-w-3xl text-center transition-all duration-700"
         :class="show('features-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
       >
-        <Badge variant="secondary" class="mb-4">Возможности платформы</Badge>
         <h2 id="section-features-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
           Всё для жизни гильдии
         </h2>
