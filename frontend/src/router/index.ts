@@ -422,8 +422,14 @@ router.beforeEach(async (to, from) => {
   }
 });
 
-router.afterEach(() => {
+router.afterEach((to) => {
   useRouteLoadingStore().setLoading(false);
+  // Заголовок вкладки: главная задаёт свой title через usePageSeo на лендинге
+  if (to.name === 'home') {
+    return;
+  }
+  const metaTitle = to.meta.title as string | undefined;
+  document.title = metaTitle ? `${metaTitle} — gg-hub` : 'gg-hub';
 });
 
 export default router;

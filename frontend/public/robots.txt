@@ -1,0 +1,6 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# SPA: основной контент индексируется после выполнения JS
+Sitemap: https://gg-hub.ru/sitemap.xml
