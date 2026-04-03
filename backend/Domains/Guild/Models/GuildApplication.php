@@ -54,4 +54,9 @@ class GuildApplication extends Model
     {
         return $this->hasMany(GuildApplicationComment::class, 'guild_application_id')->orderBy('created_at');
     }
+
+    public function votes(): HasMany
+    {
+        return $this->hasMany(GuildApplicationVote::class, 'guild_application_id');
+    }
 }

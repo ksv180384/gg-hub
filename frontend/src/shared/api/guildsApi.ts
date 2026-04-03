@@ -129,6 +129,9 @@ export interface GuildApplicationItem {
   /** ID персонажа, отозвавшего приглашение (для status === 'revoked'). */
   revoked_by_character_id?: number | null;
   revoked_by_character?: { id: number; name: string } | null;
+  likes_count?: number;
+  dislikes_count?: number;
+  my_vote?: 'like' | 'dislike' | null;
   reviewed_at?: string | null;
   created_at?: string | null;
 }
@@ -422,6 +425,35 @@ export const guildsApi = {
       {}
     );
     throwOnError(res, 'Ошибка отзыва заявки');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Лайк/дизлайк заявки участником гильдии. */
+  async voteGuildApplication(
+    guildId: number,
+    applicationId: number,
+    vote: 'like' | 'dislike'
+  ): Promise<GuildApplicationItem> {
+    const res = await http.fetchPost<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/vote`,
+      { vote }
+    );
+    throwOnError(res, 'Ошибка голосования по заявке');
+    const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
+      return (raw as { data: GuildApplicationItem }).data!;
+    return raw as GuildApplicationItem;
+  },
+
+  /** Убрать голос (лайк/дизлайк) с заявки. */
+  async removeGuildApplicationVote(guildId: number, applicationId: number): Promise<GuildApplicationItem> {
+    const res = await http.fetchDelete<{ data: GuildApplicationItem } | GuildApplicationItem>(
+      `/guilds/${guildId}/applications/${applicationId}/vote`
+    );
+    throwOnError(res, 'Ошибка удаления голоса по заявке');
     const raw = res.data as GuildApplicationItem | { data?: GuildApplicationItem } | null;
     if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
       return (raw as { data: GuildApplicationItem }).data!;

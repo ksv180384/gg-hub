@@ -14,6 +14,7 @@ const application = ref<GuildApplicationItem | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const actionLoading = ref<'approve' | 'reject' | 'revoke' | null>(null);
+const voteLoading = ref<false | 'like' | 'dislike'>(false);
 const canReview = ref(false);
 const fullSizeImageUrl = ref<string | null>(null);
 
@@ -55,6 +56,9 @@ const statusLabel = computed(() => {
 const isInvitation = computed(() => application.value?.status === 'invitation');
 const inviterName = computed(() => application.value?.invited_by_character?.name ?? null);
 const revokerName = computed(() => application.value?.revoked_by_character?.name ?? null);
+const likesCount = computed(() => application.value?.likes_count ?? 0);
+const dislikesCount = computed(() => application.value?.dislikes_count ?? 0);
+const myVote = computed(() => application.value?.my_vote ?? null);
 
 function getFieldLabel(fieldId: number | string): string {
   const labels = application.value?.form_field_labels;
@@ -146,6 +150,23 @@ async function revokeInvitation() {
     actionLoading.value = null;
   }
 }
+
+async function setVote(vote: 'like' | 'dislike') {
+  if (!application.value || voteLoading.value) return;
+  voteLoading.value = vote;
+  try {
+    if (myVote.value === vote) {
+      application.value = await guildsApi.removeGuildApplicationVote(guildId.value, applicationId.value);
+    } else {
+      application.value = await guildsApi.voteGuildApplication(guildId.value, applicationId.value, vote);
+    }
+    error.value = null;
+  } catch (e: unknown) {
+    error.value = (e as Error).message ?? 'Ошибка голосования по заявке.';
+  } finally {
+    voteLoading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -211,6 +232,63 @@ async function revokeInvitation() {
                 </dd>
               </div>
             </dl>
+          </div>
+
+          <div class="space-y-2 border-t pt-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <Button
+                variant="ghost"
+                :disabled="!!voteLoading"
+                size="icon"
+                aria-label="Поставить лайк"
+                :aria-pressed="myVote === 'like'"
+                @click="setVote('like')"
+              >
+                <Spinner v-if="voteLoading === 'like'" class="h-4 w-4" />
+                <svg
+                  v-else
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  :class="myVote === 'like' ? 'text-foreground' : 'text-muted-foreground'"
+                  viewBox="0 0 24 24"
+                  :fill="myVote === 'like' ? 'currentColor' : 'none'"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M7 10v12" />
+                  <path d="M15 5.88 14 10h5.83a2 2 0 0 1 2 2.32l-1 7A2 2 0 0 1 18.85 21H7a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.94-1.51L12.83 2A1.65 1.65 0 0 1 16 2.4a10 10 0 0 1-1 3.48Z" />
+                </svg>
+              </Button>
+              <span class="text-sm text-muted-foreground">{{ likesCount }}</span>
+              <Button
+                variant="ghost"
+                :disabled="!!voteLoading"
+                size="icon"
+                aria-label="Поставить дизлайк"
+                :aria-pressed="myVote === 'dislike'"
+                @click="setVote('dislike')"
+              >
+                <Spinner v-if="voteLoading === 'dislike'" class="h-4 w-4" />
+                <svg
+                  v-else
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  :class="myVote === 'dislike' ? 'text-foreground' : 'text-muted-foreground'"
+                  viewBox="0 0 24 24"
+                  :fill="myVote === 'dislike' ? 'currentColor' : 'none'"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M17 14V2" />
+                  <path d="M9 18.12 10 14H4.17a2 2 0 0 1-2-2.32l1-7A2 2 0 0 1 5.15 3H17a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.94 1.51L11.17 22A1.65 1.65 0 0 1 8 21.6a10 10 0 0 1 1-3.48Z" />
+                </svg>
+              </Button>
+              <span class="text-sm text-muted-foreground">{{ dislikesCount }}</span>
+            </div>
           </div>
 
           <div

@@ -42,6 +42,13 @@ class GuildApplicationResource extends JsonResource
                 'id' => $this->revokedByCharacter->id,
                 'name' => $this->revokedByCharacter->name,
             ]),
+            'likes_count' => (int) ($this->likes_count ?? 0),
+            'dislikes_count' => (int) ($this->dislikes_count ?? 0),
+            'my_vote' => match ((int) ($this->my_vote ?? 0)) {
+                1 => 'like',
+                -1 => 'dislike',
+                default => null,
+            },
             'reviewed_at' => $this->reviewed_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

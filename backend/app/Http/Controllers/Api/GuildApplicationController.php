@@ -10,6 +10,7 @@ use App\Actions\Notification\CreateGuildInvitationRevokedNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\SendGuildInvitationRequest;
 use App\Http\Requests\Guild\SubmitGuildApplicationRequest;
+use App\Http\Requests\Guild\VoteGuildApplicationRequest;
 use App\Http\Resources\Guild\GuildApplicationResource;
 use Domains\Guild\Actions\ApproveGuildApplicationAction;
 use Domains\Guild\Actions\CreateGuildInvitationAction;
@@ -20,6 +21,7 @@ use Domains\Guild\Actions\SubmitGuildApplicationAction;
 use Domains\Guild\Actions\WithdrawGuildApplicationAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
+use Domains\Guild\Models\GuildApplicationVote;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -47,7 +49,7 @@ class GuildApplicationController extends Controller
     {
         $perPage = (int) $request->input('per_page', 20);
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
-        $paginator = ($this->listAction)($guild, $perPage);
+        $paginator = ($this->listAction)($guild, $perPage, $request->user());
 
         return response()->json([
             'data' => GuildApplicationResource::collection($paginator->items()),
@@ -63,12 +65,17 @@ class GuildApplicationController extends Controller
     /**
      * Одна заявка. Доступно участникам с правом «Просмотр заявок в гильдию».
      */
-    public function show(Guild $guild, GuildApplication $application): JsonResponse
+    public function show(Request $request, Guild $guild, GuildApplication $application): JsonResponse
     {
         if ($application->guild_id !== $guild->id) {
             return response()->json(['message' => 'Заявка не найдена.'], 404);
         }
-        $application->load(['character.gameClasses', 'character.game', 'guild.applicationFormFields', 'invitedByCharacter', 'revokedByCharacter']);
+        $application->load(['character.gameClasses', 'character.game', 'guild.applicationFormFields', 'invitedByCharacter', 'revokedByCharacter'])
+            ->loadCount([
+                'votes as likes_count' => fn ($q) => $q->where('vote', 1),
+                'votes as dislikes_count' => fn ($q) => $q->where('vote', -1),
+            ]);
+        $application->setAttribute('my_vote', $this->resolveMyVote($application, $guild, $request->user()?->id));
 
         return response()->json(new GuildApplicationResource($application));
     }
@@ -158,7 +165,12 @@ class GuildApplicationController extends Controller
             return response()->json(['message' => 'Заявка не найдена.'], 404);
         }
 
-        $application->load(['character.gameClasses', 'character.game', 'guild.applicationFormFields']);
+        $application->load(['character.gameClasses', 'character.game', 'guild.applicationFormFields'])
+            ->loadCount([
+                'votes as likes_count' => fn ($q) => $q->where('vote', 1),
+                'votes as dislikes_count' => fn ($q) => $q->where('vote', -1),
+            ]);
+        $application->setAttribute('my_vote', $this->resolveMyVote($application, $guild, $request->user()?->id));
 
         return response()->json(new GuildApplicationResource($application));
     }
@@ -241,5 +253,74 @@ class GuildApplicationController extends Controller
         $application->load('character');
         ($this->createRejectedNotificationAction)($application);
         return response()->json(new GuildApplicationResource($application));
+    }
+
+    /**
+     * Лайк/дизлайк заявки участником гильдии.
+     */
+    public function vote(VoteGuildApplicationRequest $request, Guild $guild, GuildApplication $application): JsonResponse
+    {
+        if ($application->guild_id !== $guild->id) {
+            return response()->json(['message' => 'Заявка не найдена.'], 404);
+        }
+
+        $value = $request->validated('vote') === 'like' ? 1 : -1;
+        GuildApplicationVote::query()->updateOrCreate(
+            [
+                'guild_application_id' => $application->id,
+                'user_id' => $request->user()->id,
+            ],
+            ['vote' => $value]
+        );
+
+        $application->loadCount([
+            'votes as likes_count' => fn ($q) => $q->where('vote', 1),
+            'votes as dislikes_count' => fn ($q) => $q->where('vote', -1),
+        ]);
+        $application->setAttribute('my_vote', $value);
+
+        return response()->json(new GuildApplicationResource($application));
+    }
+
+    /**
+     * Удалить голос пользователя с заявки.
+     */
+    public function removeVote(Request $request, Guild $guild, GuildApplication $application): JsonResponse
+    {
+        if ($application->guild_id !== $guild->id) {
+            return response()->json(['message' => 'Заявка не найдена.'], 404);
+        }
+
+        GuildApplicationVote::query()
+            ->where('guild_application_id', $application->id)
+            ->where('user_id', $request->user()->id)
+            ->delete();
+
+        $application->loadCount([
+            'votes as likes_count' => fn ($q) => $q->where('vote', 1),
+            'votes as dislikes_count' => fn ($q) => $q->where('vote', -1),
+        ]);
+        $application->setAttribute('my_vote', null);
+
+        return response()->json(new GuildApplicationResource($application));
+    }
+
+    private function resolveMyVote(GuildApplication $application, Guild $guild, ?int $userId): ?int
+    {
+        if (!$userId) {
+            return null;
+        }
+
+        $isMember = $guild->members()
+            ->whereHas('character', fn ($q) => $q->where('user_id', $userId))
+            ->exists();
+        if (!$isMember) {
+            return null;
+        }
+
+        return GuildApplicationVote::query()
+            ->where('guild_application_id', $application->id)
+            ->where('user_id', $userId)
+            ->value('vote');
     }
 }
