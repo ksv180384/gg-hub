@@ -199,24 +199,36 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
 </script>
 
 <template>
-  <main id="main-content" class="overflow-x-hidden" aria-labelledby="landing-hero-heading">
+  <main
+    id="main-content"
+    class="landing-light-root overflow-x-hidden bg-background text-foreground"
+    aria-labelledby="landing-hero-heading"
+  >
     <!-- Hero -->
     <section
-      class="relative overflow-hidden border-b border-border bg-gradient-to-b from-background via-background to-muted/30"
+      class="relative flex min-h-[calc(100svh-3.5rem)] items-center justify-center overflow-hidden border-b border-border"
       aria-label="Главный экран"
     >
+      <!-- Hero background image -->
+      <div
+        class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style="background-image: url('/accets/images/1.webp')"
+        aria-hidden="true"
+      />
+      <!-- Мягкий переход: размытие + тонировка снизу (без резкой рамки) -->
+      <div class="hero-content-scrim" aria-hidden="true" />
       <!-- Animated gradient orbs -->
       <div
-        class="pointer-events-none absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-primary/5 blur-[100px] transition-transform duration-[2000ms] ease-out"
+        class="pointer-events-none absolute -top-32 -left-32 z-[2] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[100px] transition-transform duration-[2000ms] ease-out"
         :style="{ transform: `translate(${mouseX * 0.8}px, ${mouseY * 0.8}px)` }"
       />
       <div
-        class="pointer-events-none absolute -bottom-40 -right-40 h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px] transition-transform duration-[2000ms] ease-out"
+        class="pointer-events-none absolute -bottom-40 -right-40 z-[2] h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px] transition-transform duration-[2000ms] ease-out"
         :style="{ transform: `translate(${mouseX * -0.6}px, ${mouseY * -0.6}px)` }"
       />
 
       <!-- Floating particles -->
-      <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div class="pointer-events-none absolute inset-0 z-[2] overflow-hidden">
         <div
           v-for="n in 6"
           :key="n"
@@ -232,19 +244,21 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
         />
       </div>
 
-      <div class="container relative py-20 md:py-32">
-        <div class="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center">
+      <div class="container relative z-10 w-full py-10 md:py-14">
+        <div class="mx-auto flex max-w-4xl flex-col items-center gap-6 px-2 text-center sm:px-4">
 
           <h1
             id="landing-hero-heading"
             class="animate-in fade-in slide-in-from-bottom-3 duration-700 delay-100 fill-mode-backwards text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
           >
-            Твоя гильдия.<br />
-            <span class="hero-gradient-text">Твоя команда.</span>
+            <span class="hero-gradient-text">Твоя гильдия</span><br />
+            <span class="hero-gradient-text-next">Твоя команда</span>
           </h1>
 
-          <p class="max-w-2xl text-lg text-muted-foreground md:text-xl animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200 fill-mode-backwards">
-            gg-hub — платформа для игроков MMORPG: находи гильдии в Throne and Liberty, Aion 2 и Black Desert,
+          <p
+            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200 fill-mode-backwards text-[#363636] h-[240px]"
+          >
+            GG-HUB — платформа для игроков MMORPG: находи гильдии в Throne and Liberty, Aion 2 и Black Desert,
             собирай рейды, веди календарь событий и управляй сообществом — всё в одном месте.
           </p>
 
@@ -262,7 +276,7 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
           </div>
 
           <!-- Scroll indicator -->
-          <div class="mt-8 animate-bounce opacity-40">
+          <div class="mt-8 animate-bounce text-foreground/70">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </div>
         </div>
@@ -270,21 +284,17 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
     </section>
 
     <!-- Games ticker -->
-    <section class="border-b border-border bg-muted/30 overflow-hidden" aria-label="Поддерживаемые игры">
+    <section
+      :ref="setRef('games')"
+      class="border-b border-border bg-muted/30 overflow-hidden"
+      aria-label="Поддерживаемые игры"
+    >
       <div class="container py-10">
-        <p
-          :ref="setRef('games')"
-          data-reveal-id="games"
-          class="mb-6 text-center text-sm font-medium uppercase tracking-wider text-muted-foreground transition-all duration-500"
-          :class="show('games') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-        >
-          Поддерживаемые игры
-        </p>
         <div class="flex flex-wrap items-center justify-center gap-6 md:gap-12">
           <div
             v-for="(game, i) in games"
             :key="game.slug"
-            class="text-lg font-semibold text-muted-foreground/70 transition-all hover:text-foreground hover:scale-110 md:text-xl"
+            class="text-lg font-semibold text-foreground/75 transition-all hover:text-foreground hover:scale-110 md:text-xl"
             :class="show('games') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
             :style="{ transitionDelay: `${200 + i * 150}ms`, transitionDuration: '600ms' }"
           >
@@ -295,7 +305,7 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
     </section>
 
     <!-- Player Benefits -->
-    <section class="container py-16 md:py-24" aria-labelledby="section-players-heading">
+    <section class="container relative py-16 md:py-24" aria-labelledby="section-players-heading">
       <div
         :ref="setRef('players-header')"
         data-reveal-id="players-header"
@@ -348,7 +358,7 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
         data-reveal-id="guild-header"
         class="mx-auto max-w-3xl text-center transition-all duration-700"
         :class="show('guild-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-      >2048
+      >
         <h2 id="section-guilds-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
           Управляй гильдией как профессионал
         </h2>
@@ -471,7 +481,13 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
     </section>
 
     <!-- CTA -->
-    <section class="relative border-t border-border overflow-hidden" aria-label="Регистрация">
+    <section class="relative flex items-center min-h-screen border-t border-border overflow-hidden" aria-label="Регистрация">
+      <!-- Player Benefits background image -->
+      <div
+        class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style="background-image: url('/accets/images/2.webp')"
+        aria-hidden="true"
+      />
       <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-muted/30 to-primary/5" />
       <div
         :ref="setRef('cta')"
@@ -482,7 +498,7 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
           class="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center transition-all duration-700"
           :class="show('cta') ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'"
         >
-          <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 class="player-gradient-text text-3xl font-bold tracking-tight sm:text-4xl">
             Готов найти свою команду?
           </h2>
           <p class="max-w-xl text-lg text-muted-foreground">
@@ -508,21 +524,97 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
 </template>
 
 <style scoped>
-.hero-gradient-text {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(270 70% 60%) 50%, hsl(var(--primary)) 100%);
+/* Плавное «стекло» снизу: маска гасит эффект к верху и по краям */
+.hero-content-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    color-mix(in oklch, var(--background) 78%, transparent) 0%,
+    color-mix(in oklch, var(--background) 42%, transparent) 32%,
+    color-mix(in oklch, var(--background) 14%, transparent) 52%,
+    transparent 72%
+  );
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  mask-image: radial-gradient(
+    125% 85% at 50% 100%,
+    #000 0%,
+    #000 28%,
+    rgba(0, 0, 0, 0.55) 48%,
+    rgba(0, 0, 0, 0.18) 62%,
+    transparent 76%
+  );
+  -webkit-mask-image: radial-gradient(
+    125% 85% at 50% 100%,
+    #000 0%,
+    #000 28%,
+    rgba(0, 0, 0, 0.55) 48%,
+    rgba(0, 0, 0, 0.18) 62%,
+    transparent 76%
+  );
+}
+
+.hero-text-readable {
+  text-shadow: 0 1px 2px hsl(0 0% 0% / 0.14), 0 2px 24px hsl(0 0% 0% / 0.12);
+}
+
+/* Лёгкая стеклянная подложка: радиальный градиент, без рамки и кромок */
+.hero-lead-glass {
+  position: relative;
+  margin-inline: auto;
+  padding: 1rem 1.25rem;
+  border: none;
+  border-radius: 60px;
+  /*background: radial-gradient(
+    ellipse 95% 120% at 50% 42%,
+    color-mix(in oklch, white 12%, transparent) 0%,
+    color-mix(in oklch, var(--background) 90%, transparent) 38%,
+    color-mix(in oklch, var(--primary) 4%, transparent) 55%,
+    transparent 72%
+  );*/
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 90%, rgba(255, 255, 255, 0) 100%);
+  backdrop-filter: blur(2px) saturate(1.05);
+  -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  box-shadow: none;
+}
+
+@media (min-width: 768px) {
+  .hero-lead-glass {
+    padding: 1.125rem 1.75rem;
+  }
+}
+
+.hero-gradient-text,
+.hero-gradient-text-next{
+  /*background: linear-gradient(135deg, var(--primary) 0%, oklch(0.43 0 0 / 0.81) 50%, var(--primary) 100%);*/
+  background: linear-gradient(135deg, oklch(1 0 0) 0%, oklch(1 0 0 / 0.81) 50%, oklch(0.94 0.07 76.35) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: gradient-shift 4s ease-in-out infinite;
+  filter: drop-shadow(0 2px 10px hsl(0 0% 0% / 0.35)) drop-shadow(0 1px 2px hsl(0 0% 0% / 0.25));
 }
 
-:global(.dark) .hero-gradient-text {
-  background: linear-gradient(135deg, oklch(0.922 0 0) 0%, oklch(0.75 0.15 280) 50%, oklch(0.922 0 0) 100%);
+.hero-gradient-text{
+  animation: gradient-shift 2s ease-in-out infinite;
+}
+
+.hero-gradient-text-next{
+  animation: gradient-shift 4s ease-in-out infinite;
+}
+
+.player-gradient-text{
+  background: linear-gradient(135deg, oklch(1 0 0) 0%, oklch(1 0 0 / 0.81) 50%, oklch(0.92 0.03 234.14) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: gradient-shift 4s ease-in-out infinite;
+  filter: drop-shadow(0 2px 10px hsl(0 0% 0% / 0.35)) drop-shadow(0 1px 2px hsl(0 0% 0% / 0.25));
   animation: gradient-shift 4s ease-in-out infinite;
 }
 
@@ -538,7 +630,7 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
 }
 .hero-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 8px 30px -8px hsl(var(--primary) / 0.4);
+  box-shadow: 0 8px 30px -8px color-mix(in oklch, var(--primary) 40%, transparent);
 }
 .hero-btn::after {
   content: '';
