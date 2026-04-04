@@ -1,4 +1,4 @@
-FROM php:8.2.19-fpm
+FROM php:8.4-fpm
 
 WORKDIR /var/www/gg
 
@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y nodejs npm zlib1g-dev g++ git libicu-de
     && docker-php-ext-configure zip \
     && docker-php-ext-install zip
 
-
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # Node.js
 RUN curl -sL https://deb.nodesource.com/setup_current.x -o nodesource_setup.sh

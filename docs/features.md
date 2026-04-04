@@ -35,7 +35,7 @@
 
 | Компонент | Технологии |
 |-----------|------------|
-| Backend | PHP 8.2+, Laravel 12, Laravel Fortify (auth), Pest 3 (тесты) |
+| Backend | PHP 8.4+, Laravel 12, Laravel Fortify (auth), Pest 3 (тесты) |
 | Frontend | Vue 3, TypeScript, Vite 7, Vue Router, Pinia, Tailwind CSS 4, radix-vue, TipTap (редактор) |
 | Realtime | Node.js, Fastify 5, Socket.IO |
 | Инфраструктура | Docker (nginx, PHP-FPM, MariaDB, Redis, phpMyAdmin, Certbot SSL) |

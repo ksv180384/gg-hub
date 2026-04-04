@@ -7,7 +7,7 @@
 Из каталога проекта (где лежит `docker-compose.yml`):
 
 ```bash
-docker compose exec gg-php_8.2 php artisan migrate
+docker compose exec gg-php_8.4 php artisan migrate
 ```
 
 Или по имени контейнера:
@@ -19,7 +19,7 @@ docker exec gg-php-8-container php artisan migrate
 При необходимости добавьте `--force` для production:
 
 ```bash
-docker compose exec gg-php_8.2 php artisan migrate --force
+docker compose exec gg-php_8.4 php artisan migrate --force
 ```
 
 ## Переменные окружения

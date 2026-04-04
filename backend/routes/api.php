@@ -43,6 +43,10 @@ Route::get('/admin', function (Request $request) {
     return response()->json(['message' => 'admin']);
 });
 
+Route::get('/php-info', function () {
+    return phpinfo();
+});
+
 Route::get('/context', [ContextController::class, 'show']);
 
 Route::get('/games', [GameController::class, 'index']);

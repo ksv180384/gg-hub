@@ -13,7 +13,7 @@ services:
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
         depends_on:
-            - gg-php_8.2
+            - gg-php_8.4
             - gg-mariadb
         networks:
             - gg
@@ -37,7 +37,7 @@ services:
             - gg
 
     #php
-    gg-php_8.2:
+    gg-php_8.4:
         container_name: gg-php-8-container
         build:
             context: .
