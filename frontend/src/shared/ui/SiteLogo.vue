@@ -14,17 +14,19 @@ withDefaults(defineProps<{ size?: number }>(), { size: 36 });
     <g transform="translate(50, 50)">
       <text
         x="0"
-        y="8"
+        y="2"
         text-anchor="middle"
         font-family="system-ui, -apple-system, sans-serif"
         font-weight="900"
         font-size="58"
         class="logo-text"
-      >GG</text>
+      >
+        GG
+      </text>
 
       <text
         x="0"
-        y="34"
+        y="42"
         text-anchor="middle"
         font-family="system-ui, -apple-system, sans-serif"
         font-weight="700"
@@ -32,7 +34,9 @@ withDefaults(defineProps<{ size?: number }>(), { size: 36 });
         textLength="68"
         lengthAdjust="spacingAndGlyphs"
         class="logo-text-sub"
-      >HUB</text>
+      >
+        HUB
+      </text>
     </g>
   </svg>
 </template>

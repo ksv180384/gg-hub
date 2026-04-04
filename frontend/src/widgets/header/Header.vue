@@ -157,12 +157,6 @@ async function deleteNotification(id: number) {
   }
 }
 
-const siteTitle = computed(() => {
-  if (siteContext.isAdmin) return 'Админ · GG Hub';
-  if (siteContext.game) return `${siteContext.game.name} · GG Hub`;
-  return 'GG Hub';
-});
-
 const themeOptions: { value: ThemePreference; label: string }[] = [
   { value: 'light', label: 'Светлая' },
   { value: 'dark', label: 'Тёмная' },
@@ -193,7 +187,6 @@ const navItems = [
     <div class="flex h-14 items-center gap-2 md:gap-4 px-4 md:px-6">
       <RouterLink to="/" class="flex items-center gap-2 font-semibold md:mr-6 shrink-0 group">
         <SiteLogo :size="36" class="transition-transform group-hover:scale-105" />
-        <span class="hidden font-bold sm:inline-block text-foreground">{{ siteTitle }}</span>
       </RouterLink>
       <div class="md:hidden shrink-0">
         <slot name="sidebar-trigger" />
@@ -311,12 +304,11 @@ const navItems = [
         </template>
         <!-- Не авторизован -->
         <template v-else>
-          <RouterLink to="/login">
-            <Button variant="ghost" size="sm" class="hidden sm:inline-flex">Войти</Button>
-          </RouterLink>
-          <RouterLink to="/register">
-            <Button size="sm" class="hidden sm:inline-flex">Регистрация</Button>
-          </RouterLink>
+
+<!--          <RouterLink to="/login">-->
+<!--            <Button variant="ghost" size="sm" class="hidden sm:inline-flex">Войти</Button>-->
+<!--          </RouterLink>-->
+
         </template>
 
         <Sheet v-model:open="mobileMenuOpen" side="right" class="md:hidden">
@@ -375,13 +367,14 @@ const navItems = [
               <RouterLink to="/profile" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">
                 Профиль
               </RouterLink>
+
               <button type="button" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent text-left" @click="auth.logout(); mobileMenuOpen = false">
                 Выйти
               </button>
+
             </template>
             <template v-else>
-              <RouterLink to="/login" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">Войти</RouterLink>
-              <RouterLink to="/register" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">Регистрация</RouterLink>
+<!--              <RouterLink to="/login" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">Войти</RouterLink>-->
             </template>
           </div>
         </Sheet>

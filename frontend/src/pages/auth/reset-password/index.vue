@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
-import { Button, Input, Label, Card, CardContent } from '@/shared/ui';
+import {Button, Input, Label, Card, CardContent, SiteLogo} from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -54,8 +54,7 @@ async function onSubmit(e: Event) {
   <div class="grid min-h-svh lg:grid-cols-2">
     <div class="flex flex-col gap-4 p-6 md:p-10">
       <RouterLink to="/" class="flex items-center gap-2 font-medium md:justify-start">
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">⚔</span>
-        GG Hub
+        <SiteLogo :size="36" />
       </RouterLink>
       <div class="flex flex-1 items-center justify-center">
         <div class="w-full max-w-xs space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">

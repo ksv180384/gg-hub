@@ -45,7 +45,6 @@ async function onSubmit(e: Event) {
     <div class="flex flex-col gap-4 p-6 md:p-10">
       <RouterLink to="/" class="flex items-center gap-2 font-medium md:justify-start">
         <SiteLogo :size="36" />
-        <span class="font-bold text-foreground">GG Hub</span>
       </RouterLink>
       <div class="flex flex-1 items-center justify-center">
         <div class="w-full max-w-xs space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">
