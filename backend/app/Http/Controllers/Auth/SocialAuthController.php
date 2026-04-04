@@ -42,9 +42,7 @@ class SocialAuthController extends Controller
             ->first();
 
         if (! $user && $socialUser->getEmail()) {
-            $user = User::where('email', $socialUser->getEmail())
-                ->whereNull('provider')
-                ->first();
+            $user = User::where('email', $socialUser->getEmail())->first();
 
             if ($user) {
                 $user->update([

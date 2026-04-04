@@ -14,6 +14,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  SiteLogo,
 } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
@@ -190,9 +191,9 @@ const navItems = [
 <template>
   <header class="sticky top-0 z-[2] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
     <div class="flex h-14 items-center gap-2 md:gap-4 px-4 md:px-6">
-      <RouterLink to="/" class="flex items-center gap-2 font-semibold md:mr-6 shrink-0">
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground text-lg">⚔</span>
-        <span class="hidden font-bold sm:inline-block">{{ siteTitle }}</span>
+      <RouterLink to="/" class="flex items-center gap-2 font-semibold md:mr-6 shrink-0 group">
+        <SiteLogo :size="36" class="transition-transform group-hover:scale-105" />
+        <span class="hidden font-bold sm:inline-block text-foreground">{{ siteTitle }}</span>
       </RouterLink>
       <div class="md:hidden shrink-0">
         <slot name="sidebar-trigger" />

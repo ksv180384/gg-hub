@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { RouterView, useRoute } from 'vue-router';
-import { Sheet, Button, Spinner } from '@/shared/ui';
+import { Sheet, Button, Spinner, SiteLogo } from '@/shared/ui';
 import { useRouteLoadingStore } from '@/stores/routeLoading';
 import { Header } from '@/widgets/header';
 import { GameSidebar, GameSidebarContent } from '@/widgets/game-sidebar';
@@ -77,9 +77,10 @@ watch(() => route.path, () => {
     </Sheet>
     <footer class="border-t py-6 md:py-0">
       <div class="container flex flex-col items-center justify-between gap-4 md:h-14 md:flex-row">
-        <p class="text-center text-sm text-muted-foreground md:text-left">
-          GG Hub — соцсеть для игроков MMORPG
-        </p>
+        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+          <SiteLogo :size="20" />
+          <span>GG Hub — соцсеть для игроков MMORPG</span>
+        </div>
       </div>
     </footer>
   </div>
