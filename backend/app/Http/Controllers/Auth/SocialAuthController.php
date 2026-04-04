@@ -10,7 +10,7 @@ use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthController extends Controller
 {
-    private const PROVIDERS = ['google', 'twitch'];
+    private const PROVIDERS = ['yandex', 'vkontakte'];
 
     public function redirect(string $provider)
     {
@@ -31,7 +31,7 @@ class SocialAuthController extends Controller
 
         if (! $request->filled('code')) {
             return redirect($this->frontendUrl().'/login?error='.rawurlencode(
-                'Нет кода авторизации: TWITCH_REDIRECT_URI в .env должен совпадать с OAuth Redirect URL в консоли Twitch (схема, хост, порт, путь).'
+                'Нет кода авторизации: redirect URI в .env должен совпадать с OAuth Redirect URL в консоли провайдера (схема, хост, порт, путь).'
             ));
         }
 

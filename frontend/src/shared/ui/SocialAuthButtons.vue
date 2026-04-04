@@ -9,25 +9,22 @@ function socialUrl(provider: string) {
 <template>
   <div class="flex flex-col gap-2">
     <a
-      :href="socialUrl('google')"
-      class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84Z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53Z" fill="#EA4335"/>
-      </svg>
-      Google
-    </a>
-    <a
-      :href="socialUrl('twitch')"
-      class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-[#9146FF]/10 hover:text-[#9146FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      :href="socialUrl('yandex')"
+      class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-[#FC3F1D]/10 hover:text-[#FC3F1D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0 1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+        <path d="M13.62 21.75h2.56V2.25h-3.78c-4.03 0-6.15 2.08-6.15 5.12 0 2.56 1.28 4.03 3.62 5.56l-4.1 8.82h2.72l4.47-9.56-1.2-.83c-1.83-1.28-2.74-2.35-2.74-4.2 0-1.88 1.28-3.22 3.44-3.22h.92l.24 19.81Z"/>
       </svg>
-      Twitch
+      Яндекс
+    </a>
+    <a
+      :href="socialUrl('vkontakte')"
+      class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-[#0077FF]/10 hover:text-[#0077FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93v6.14C2 20.67 3.33 22 8.93 22h6.14C20.67 22 22 20.67 22 15.07V8.93C22 3.33 20.67 2 15.07 2Zm3.59 14.56h-1.79c-.67 0-.88-.54-2.09-1.76-1.05-1.02-1.52-1.15-1.78-1.15-.37 0-.47.1-.47.6v1.61c0 .43-.13.69-1.25.69-1.84 0-3.89-1.12-5.33-3.2C3.96 10.84 3.5 8.94 3.5 8.46c0-.26.1-.5.6-.5h1.79c.45 0 .62.2.79.68.87 2.52 2.33 4.74 2.93 4.74.23 0 .33-.1.33-.67V10.3c-.07-1.16-.68-1.26-.68-1.67 0-.2.17-.4.44-.4h2.81c.38 0 .51.2.51.65v3.06c0 .38.17.51.28.51.23 0 .42-.13.84-.55 1.3-1.46 2.23-3.71 2.23-3.71.12-.26.33-.5.78-.5h1.79c.54 0 .66.27.54.65-.23 1.05-2.44 4.18-2.44 4.18-.19.31-.26.45 0 .8.19.26.81.8 1.23 1.28.77.88 1.36 1.62 1.52 2.13.17.51-.08.77-.59.77Z"/>
+      </svg>
+      VK
     </a>
   </div>
 </template>

@@ -8,6 +8,6 @@ Route::get('/', function () {
 });
 
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
-    ->where('provider', 'google|twitch');
+    ->where('provider', 'yandex|vkontakte');
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
-    ->where('provider', 'google|twitch');
+    ->where('provider', 'yandex|vkontakte');

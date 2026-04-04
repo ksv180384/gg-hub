@@ -36,7 +36,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event) {
-            $event->extendSocialite('twitch', \SocialiteProviders\Twitch\Provider::class);
+            $event->extendSocialite('yandex', \SocialiteProviders\Yandex\Provider::class);
+            $event->extendSocialite('vkontakte', \SocialiteProviders\VKontakte\Provider::class);
         });
     }
 }
