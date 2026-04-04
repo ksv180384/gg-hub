@@ -10,6 +10,7 @@ use App\Repositories\Eloquent\EloquentCharacterRepository;
 use App\Repositories\Eloquent\EloquentGameRepository;
 use App\Repositories\Eloquent\EloquentGuildRepository;
 use App\Repositories\Eloquent\EloquentLocalizationRepository;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,6 +33,10 @@ class AppServiceProvider extends ServiceProvider
     {
         \Illuminate\Support\Facades\Route::bind('tag', function (string $value) {
             return \Domains\Tag\Models\Tag::findOrFail($value);
+        });
+
+        Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event) {
+            $event->extendSocialite('twitch', \SocialiteProviders\Twitch\Provider::class);
         });
     }
 }

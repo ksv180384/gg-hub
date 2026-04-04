@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
-import { Button, Input, Label, Card, CardContent } from '@/shared/ui';
+import { Button, Input, Label, Card, CardContent, Separator } from '@/shared/ui';
+import SocialAuthButtons from '@/shared/ui/SocialAuthButtons.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
@@ -82,6 +83,13 @@ async function onSubmit(e: Event) {
                 <Button type="submit" class="w-full" :disabled="auth.loading">
                   {{ auth.loading ? 'Регистрация...' : 'Зарегистрироваться' }}
                 </Button>
+                <div class="relative my-2">
+                  <div class="absolute inset-0 flex items-center"><Separator /></div>
+                  <div class="relative flex justify-center text-xs uppercase">
+                    <span class="bg-card px-2 text-muted-foreground">или</span>
+                  </div>
+                </div>
+                <SocialAuthButtons />
               </form>
             </CardContent>
           </Card>

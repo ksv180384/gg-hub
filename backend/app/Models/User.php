@@ -29,6 +29,8 @@ class User extends Authenticatable
         'avatar',
         'timezone',
         'banned_at',
+        'provider',
+        'provider_id',
     ];
 
     /**

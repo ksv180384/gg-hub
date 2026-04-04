@@ -1,16 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
-import { useRouter, RouterLink } from 'vue-router';
-import { Button, Input, Label, Card, CardContent } from '@/shared/ui';
+import { ref, onMounted, watch, computed } from 'vue';
+import { useRouter, useRoute, RouterLink } from 'vue-router';
+import { Button, Input, Label, Card, CardContent, Separator } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
+import SocialAuthButtons from '@/shared/ui/SocialAuthButtons.vue';
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 
 const email = ref('');
 const password = ref('');
 
-// Редирект на главную, если пользователь уже авторизован (например, fetchUser из main.ts завершился)
+const socialError = computed(() => {
+  if (route.query.error === 'banned') return 'Аккаунт заблокирован. Обратитесь к администратору.';
+  return null;
+});
+
 watch(
   () => auth.isAuthenticated,
   (isAuth) => {
@@ -52,7 +58,7 @@ async function onSubmit(e: Event) {
           <Card>
             <CardContent class="pt-6">
               <form class="flex flex-col gap-4" @submit="onSubmit">
-                <p v-if="auth.error" class="text-sm text-destructive">{{ auth.error }}</p>
+                <p v-if="auth.error || socialError" class="text-sm text-destructive">{{ auth.error || socialError }}</p>
                 <div class="space-y-2">
                   <Label for="email">Email</Label>
                   <Input id="email" v-model="email" type="email" placeholder="you@example.com" required />
@@ -69,6 +75,13 @@ async function onSubmit(e: Event) {
                 <Button type="submit" class="w-full" :disabled="auth.loading">
                   {{ auth.loading ? 'Вход...' : 'Войти' }}
                 </Button>
+                <div class="relative my-2">
+                  <div class="absolute inset-0 flex items-center"><Separator /></div>
+                  <div class="relative flex justify-center text-xs uppercase">
+                    <span class="bg-card px-2 text-muted-foreground">или</span>
+                  </div>
+                </div>
+                <SocialAuthButtons />
               </form>
             </CardContent>
           </Card>
