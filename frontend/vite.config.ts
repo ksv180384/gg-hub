@@ -82,7 +82,14 @@ export default defineConfig(({ mode }) => {
             },
         },
         ssr: {
-            noExternal: true,
+            noExternal: [
+                /^@?vue(\/|$)/,
+                'pinia',
+                'radix-vue',
+                'radix-ui',
+                'axios',
+                '@tiptap/vue-3',
+            ],
         },
         build: {
             rollupOptions: ssrBuild
