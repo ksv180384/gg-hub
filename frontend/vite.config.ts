@@ -101,6 +101,9 @@ export default defineConfig(({ mode }) => {
                 externalConditions: ['node', 'import', 'module', 'default'],
             },
         },
+        define: {
+            __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: true,
+        },
         build: {
             rollupOptions: ssrBuild
                 ? undefined

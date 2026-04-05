@@ -10,6 +10,16 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import compression from 'compression';
 import express from 'express';
 
+/**
+ * Безопасная замена маркера в шаблоне.
+ * String.replace интерпретирует $&, $`, $' в replacement — функция этого не делает.
+ */
+function safeReplace(str, marker, replacement) {
+  const idx = str.indexOf(marker);
+  if (idx === -1) return str;
+  return str.slice(0, idx) + replacement + str.slice(idx + marker.length);
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const resolve = (p) => path.resolve(__dirname, p);
 
@@ -36,9 +46,11 @@ async function createDevServer() {
         host: req.headers.host,
       });
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
-      const html = template
-        .replace('<!--app-html-->', result.html)
-        .replace('<!--pinia-state-->', stateJson);
+      const html = safeReplace(
+        safeReplace(template, '<!--app-html-->', result.html),
+        '<!--pinia-state-->',
+        stateJson,
+      );
       res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
     } catch (e) {
       vite.ssrFixStacktrace(e);
@@ -68,9 +80,11 @@ async function createProdServer() {
         host: req.headers.host,
       });
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
-      const html = template
-        .replace('<!--app-html-->', result.html)
-        .replace('<!--pinia-state-->', stateJson);
+      const html = safeReplace(
+        safeReplace(template, '<!--app-html-->', result.html),
+        '<!--pinia-state-->',
+        stateJson,
+      );
       res.status(200).type('html').send(html);
     } catch (e) {
       console.error(e);
