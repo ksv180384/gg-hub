@@ -33,6 +33,10 @@ services:
         environment:
             - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
             - NODE_ENV=${NODE_ENV}
+            # Запросы к Laravel API из Node при SSR (имя сервиса nginx в сети compose)
+            - VITE_SSR_API_ORIGIN=${VITE_SSR_API_ORIGIN:-http://gg-nginx}
+        depends_on:
+            - gg-nginx
         networks:
             - gg
 

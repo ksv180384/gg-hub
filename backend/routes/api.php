@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\LandingCtaClickController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\ContextController;
 use App\Http\Controllers\Api\GameClassController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\AdminPollController;
 use App\Http\Controllers\Api\AdminPostCommentController;
 use App\Http\Controllers\Api\AdminGuildApplicationCommentController;
+use App\Http\Controllers\Api\AdminLandingCtaClickController;
 use App\Http\Controllers\Api\AdminPostController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\NotificationController;
@@ -48,6 +50,9 @@ Route::get('/php-info', function () {
 });
 
 Route::get('/context', [ContextController::class, 'show']);
+
+Route::post('/landing/cta-clicks', [LandingCtaClickController::class, 'store'])
+    ->middleware('throttle:60,1');
 
 Route::get('/games', [GameController::class, 'index']);
 Route::get('/games/{game}', [GameController::class, 'show']);
@@ -165,6 +170,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tags', [TagController::class, 'store']);
 
     Route::middleware(['admin.subdomain', 'permission:admnistrirovanie'])->group(function () {
+        Route::get('/admin/landing-cta-clicks/stats', [AdminLandingCtaClickController::class, 'stats']);
         Route::get('/admin/posts', [AdminPostController::class, 'index']);
         Route::get('/admin/posts-pending-count', [AdminPostController::class, 'pendingCount']);
         Route::get('/admin/posts/suggest', [AdminPostController::class, 'suggest']);

@@ -1,56 +1,86 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import {
+  DialogRoot,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogTitle,
+} from 'radix-vue';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Separator } from '@/shared/ui';
 import { RouterLink } from 'vue-router';
 import { usePageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
+import { recordLandingCtaClick, type LandingCtaButton } from '@/shared/api/landingApi';
+import { gamesApi } from '@/shared/api/gamesApi';
+import {
+  HOME_PAGE_SEO_TITLE,
+  HOME_PAGE_SEO_DESCRIPTION,
+  HOME_PAGE_SEO_KEYWORDS,
+  HOME_PAGE_LEAD,
+  HOME_HERO_IMAGE_PATH,
+  buildHomeCanonicalUrl,
+  buildHomeJsonLdGraph,
+} from '@/seo/homePageSeo';
 
 const siteOrigin = getSiteOrigin();
-const canonicalUrl = `${siteOrigin}/`;
-const seoDescription =
-  'gg-hub — бесплатная платформа для игроков MMORPG и гильдий: поиск команды, Throne and Liberty, Aion 2, Black Desert, заявки в гильдию, рейды, календарь событий, ростер, блог и голосования. Русскоязычное сообщество.';
-const seoKeywords =
-  'гильдия MMORPG, найти гильдию, поиск гильдии, Throne and Liberty гильдия, Aion 2 гильдия, Black Desert гильдия, рекрутинг гильдии, клан MMORPG, рейды MMORPG, календарь ивентов, заявка в гильдию, gg-hub';
+const canonicalUrl = buildHomeCanonicalUrl(siteOrigin);
+
+const ogImageEnv = (import.meta.env.VITE_OG_IMAGE_URL as string | undefined)?.trim();
+const logoUrlEnv = (import.meta.env.VITE_ORGANIZATION_LOGO_URL as string | undefined)?.trim();
+const sameAsRaw = (import.meta.env.VITE_ORG_SAME_AS as string | undefined)?.trim();
+const sameAsList = sameAsRaw
+  ? sameAsRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : [];
+const contactEmailEnv = (import.meta.env.VITE_ORG_CONTACT_EMAIL as string | undefined)?.trim();
 
 usePageSeo({
-  title: 'gg-hub — гильдии MMORPG | Throne and Liberty, Aion 2, Black Desert',
-  description: seoDescription,
+  title: HOME_PAGE_SEO_TITLE,
+  description: HOME_PAGE_SEO_DESCRIPTION,
   canonicalUrl,
-  keywords: seoKeywords,
-  ogImageUrl: (import.meta.env.VITE_OG_IMAGE_URL as string | undefined) || undefined,
-  jsonLd: [
-    {
-      '@type': 'WebSite',
-      '@id': `${siteOrigin}/#website`,
-      name: 'gg-hub',
-      url: canonicalUrl,
-      description: seoDescription,
-      inLanguage: 'ru-RU',
-      publisher: { '@id': `${siteOrigin}/#organization` },
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${siteOrigin}/guilds?name={search_term_string}`,
-        },
-        'query-input': 'required name=search_term_string',
-      },
-    },
-    {
-      '@type': 'Organization',
-      '@id': `${siteOrigin}/#organization`,
-      name: 'gg-hub',
-      url: canonicalUrl,
-      description: 'Платформа для организации игровых гильдий и игроков MMORPG.',
-      logo: `${siteOrigin}/favicon.ico`,
-    },
-  ],
+  keywords: HOME_PAGE_SEO_KEYWORDS,
+  ogImageUrl: ogImageEnv || undefined,
+  jsonLd: buildHomeJsonLdGraph(siteOrigin, {
+    ogImageUrl: ogImageEnv,
+    logoUrl: logoUrlEnv,
+    sameAs: sameAsList.length ? sameAsList : undefined,
+    contactEmail: contactEmailEnv,
+  }),
 });
 
-const games = [
+const heroImageAlt =
+  'Платформа gg-hub для гильдий MMORPG: Throne and Liberty, Aion 2, Black Desert — каталог гильдий и инструменты для кланов';
+const homeCtaImagePath = '/assets/images/2.webp';
+const homeCtaImageAlt = '';
+
+const games = ref<
+  { name: string; slug: string; id?: number }[]
+>([
   { name: 'Throne and Liberty', slug: 'throne-and-liberty' },
   { name: 'Aion 2', slug: 'aion-2' },
   { name: 'Black Desert', slug: 'black-desert' },
-];
+]);
+
+onMounted(async () => {
+  try {
+    const list = await gamesApi.getGames();
+    games.value = games.value.map((g) => {
+      const found = list.find((x) => x.slug === g.slug);
+      return found ? { ...g, id: found.id } : g;
+    });
+  } catch {
+    /* остаётся список без id — ссылки ведут на /guilds */
+  }
+});
+
+function guildsLinkForGame(game: { id?: number }) {
+  if (game.id != null) {
+    return { path: '/guilds' as const, query: { game_id: String(game.id) } };
+  }
+  return '/guilds';
+}
 
 const playerBenefits = [
   {
@@ -114,9 +144,13 @@ const features = [
 ];
 
 const steps = [
-  { num: '01', title: 'Создай профиль', desc: 'Зарегистрируйся и добавь своих персонажей — игру, сервер, класс.' },
-  { num: '02', title: 'Найди гильдию', desc: 'Используй фильтры или создай свою гильдию и начни набор.' },
-  { num: '03', title: 'Играй вместе', desc: 'Рейды, ивенты, блог — управляй сообществом прямо на платформе.' },
+  {
+    num: '01',
+    title: 'Создай профиль',
+    desc: 'Регистрация откроется вместе с релизом; следи за обновлениями. Позже — персонажи, игра, сервер, класс.',
+  },
+  { num: '02', title: 'Найди гильдию', desc: 'Уже сейчас смотри каталог и фильтры по игре и серверу или подай заявку позже.' },
+  { num: '03', title: 'Играй вместе', desc: 'Рейды, календарь, блог гильдии — по мере запуска функций на платформе.' },
 ];
 
 // --- Scroll-reveal ---
@@ -196,6 +230,19 @@ function handleMouseMove(e: MouseEvent) {
 
 onMounted(() => window.addEventListener('mousemove', handleMouseMove, { passive: true }));
 onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
+
+const devModalOpen = ref(false);
+
+function openLandingCtaModal(button: LandingCtaButton) {
+  devModalOpen.value = true;
+  void recordLandingCtaClick(button).catch(() => {
+    /* запись в БД — best effort, модалка уже показана */
+  });
+}
+
+function closeLandingCtaModal() {
+  devModalOpen.value = false;
+}
 </script>
 
 <template>
@@ -209,11 +256,15 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
       class="relative flex min-h-[calc(100svh-3.5rem)] items-center justify-center overflow-hidden border-b border-border"
       aria-label="Главный экран"
     >
-      <!-- Hero background image -->
-      <div
-        class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style="background-image: url('/accets/images/1.webp')"
-        aria-hidden="true"
+      <!-- LCP: осмысленное изображение вместо одного только background-image -->
+      <img
+        :src="HOME_HERO_IMAGE_PATH"
+        :alt="heroImageAlt"
+        width="1920"
+        height="1080"
+        fetchpriority="high"
+        decoding="async"
+        class="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center"
       />
       <!-- Мягкий переход: размытие + тонировка снизу (без резкой рамки) -->
       <div class="hero-content-scrim" aria-hidden="true" />
@@ -249,25 +300,27 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
 
           <h1
             id="landing-hero-heading"
-            class="animate-in fade-in slide-in-from-bottom-3 duration-700 delay-100 fill-mode-backwards text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
+            class="animate-in fade-in slide-in-from-bottom-3 duration-700 delay-100 fill-mode-backwards text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
           >
             <span class="hero-gradient-text">Твоя гильдия</span><br />
             <span class="hero-gradient-text-next">Твоя команда</span>
           </h1>
 
           <p
-            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200 fill-mode-backwards text-[#363636] h-[240px]"
+            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200 fill-mode-backwards text-[#363636] min-h-[8rem] sm:min-h-[7rem]"
           >
-            GG-HUB — платформа для игроков MMORPG: находи гильдии в Throne and Liberty, Aion 2 и Black Desert,
-            собирай рейды, веди календарь событий и управляй сообществом — всё в одном месте.
+            {{ HOME_PAGE_LEAD }}
           </p>
 
           <div class="flex flex-wrap justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 fill-mode-backwards">
-            <RouterLink to="/register">
-              <Button size="lg" class="hero-btn rounded-lg text-base px-8">
-                Начать бесплатно
-              </Button>
-            </RouterLink>
+            <Button
+              type="button"
+              size="lg"
+              class="hero-btn rounded-lg text-base px-8"
+              @click="openLandingCtaModal('start_free')"
+            >
+              Начать бесплатно
+            </Button>
             <RouterLink to="/guilds">
               <Button variant="outline" size="lg" class="rounded-lg text-base px-8 transition-all duration-300 hover:scale-105">
                 Найти гильдию
@@ -291,15 +344,16 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
     >
       <div class="container py-10">
         <div class="flex flex-wrap items-center justify-center gap-6 md:gap-12">
-          <div
+          <RouterLink
             v-for="(game, i) in games"
             :key="game.slug"
-            class="text-lg font-semibold text-foreground/75 transition-all hover:text-foreground hover:scale-110 md:text-xl"
+            :to="guildsLinkForGame(game)"
+            class="text-lg font-semibold text-foreground/75 underline-offset-4 transition-all hover:text-foreground hover:scale-110 hover:underline md:text-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
             :class="show('games') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
             :style="{ transitionDelay: `${200 + i * 150}ms`, transitionDuration: '600ms' }"
           >
             {{ game.name }}
-          </div>
+          </RouterLink>
         </div>
       </div>
     </section>
@@ -482,10 +536,14 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
 
     <!-- CTA -->
     <section class="relative flex items-center min-h-screen border-t border-border overflow-hidden" aria-label="Регистрация">
-      <!-- Player Benefits background image -->
-      <div
-        class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style="background-image: url('/accets/images/2.webp')"
+      <img
+        :src="homeCtaImagePath"
+        :alt="homeCtaImageAlt"
+        width="1920"
+        height="1080"
+        loading="lazy"
+        decoding="async"
+        class="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center"
         aria-hidden="true"
       />
       <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-muted/30 to-primary/5" />
@@ -502,15 +560,18 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
             Готов найти свою команду?
           </h2>
           <p class="max-w-xl text-lg text-muted-foreground">
-            Присоединяйся к gg-hub — бесплатной платформе для игроков и гильдий MMORPG.
-            Throne and Liberty, Aion 2, Black Desert и другие игры.
+            Следи за запуском: бесплатная платформа для игроков и гильдий MMORPG. Throne and Liberty, Aion 2, Black Desert
+            — каталог гильдий уже доступен.
           </p>
           <div class="flex flex-wrap justify-center gap-4">
-            <RouterLink to="/register">
-              <Button size="lg" class="hero-btn rounded-lg text-base px-8">
-                Создать аккаунт
-              </Button>
-            </RouterLink>
+            <Button
+              type="button"
+              size="lg"
+              class="hero-btn rounded-lg text-base px-8"
+              @click="openLandingCtaModal('create_account')"
+            >
+              Создать аккаунт
+            </Button>
             <RouterLink to="/guilds">
               <Button variant="outline" size="lg" class="rounded-lg text-base px-8 transition-all duration-300 hover:scale-105">
                 Смотреть гильдии
@@ -520,6 +581,38 @@ onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
         </div>
       </div>
     </section>
+
+    <DialogRoot :open="devModalOpen" @update:open="(v: boolean) => { if (!v) closeLandingCtaModal(); }">
+      <DialogPortal>
+        <DialogOverlay
+          class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        />
+        <DialogContent
+          class="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 pt-14 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:max-w-lg"
+          :aria-describedby="'landing-dev-modal-desc'"
+        >
+          <button
+            type="button"
+            class="absolute right-4 top-4 z-10 rounded-sm p-1.5 text-muted-foreground opacity-80 ring-offset-background transition-opacity hover:opacity-100 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Закрыть"
+            @click="closeLandingCtaModal"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+          <DialogTitle class="text-lg font-semibold pr-10">Сайт в разработке</DialogTitle>
+          <p id="landing-dev-modal-desc" class="mt-4 text-sm text-muted-foreground leading-relaxed">
+            Мы активно работаем над платформой. Регистрация и часть функций появятся позже; каталог гильдий и разделы сайта
+            уже можно открывать. Спасибо за интерес к gg-hub.
+          </p>
+          <div class="mt-6 flex justify-end">
+            <Button type="button" @click="closeLandingCtaModal">Понятно</Button>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
   </main>
 </template>
 

@@ -226,9 +226,9 @@ function onTextareaInput(fieldId: number, e: Event) {
             <p class="text-muted-foreground">
               Чтобы подать заявку, войдите в аккаунт.
             </p>
-            <Button @click="router.push({ name: 'login', query: { redirect: route.fullPath } })">
-              Войти
-            </Button>
+<!--            <Button @click="router.push({ name: 'login', query: { redirect: route.fullPath } })">-->
+<!--              Войти-->
+<!--            </Button>-->
           </template>
 
           <template v-else-if="success">

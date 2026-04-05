@@ -40,6 +40,7 @@ function guildPath(guildId: number, pathSuffix: string): string {
 const adminJournal = useAdminJournalStore();
 
 const adminItems: { to: string; label: string; permission?: string }[] = [
+  { to: '/admin/landing-cta', label: 'Клики лендинга' },
   { to: '/admin/journal', label: 'Журнал' },
   { to: '/admin/comments', label: 'Комментарии' },
   { to: '/admin/application-comments', label: 'Комментарии заявок' },

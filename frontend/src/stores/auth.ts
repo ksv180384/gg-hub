@@ -10,7 +10,7 @@ import {
   ROLE_ADMIN_SLUG,
 } from '@/shared/api/authApi';
 import { getErrorMessage } from '@/shared/lib/errorMessage';
-import router from '@/router';
+import { getActiveRouter } from '@/router/activeRouter';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
@@ -85,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authApi.logout();
       user.value = null;
-      await router.push('/login');
+      await getActiveRouter()?.push('/login');
     } catch {
       user.value = null;
     } finally {

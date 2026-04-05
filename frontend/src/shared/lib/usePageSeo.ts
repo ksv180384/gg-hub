@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted } from 'vue';
+import { DEFAULT_PRODUCTION_ORIGIN } from '@/seo/homePageSeo';
 
 const SEO_MARK = 'data-gg-seo';
 
@@ -138,5 +139,5 @@ export function getSiteOrigin(): string {
   if (typeof window !== 'undefined') {
     return `${window.location.protocol}//${window.location.host}`;
   }
-  return 'https://gg-hub.ru';
+  return DEFAULT_PRODUCTION_ORIGIN;
 }

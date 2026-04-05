@@ -1,26 +1,45 @@
+import path from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vueDevTools from 'vite-plugin-vue-devtools';
 import tailwindcss from '@tailwindcss/vite';
+import {
+    buildHomeNoscriptHtml,
+    buildHomePageStaticHeadHtml,
+    DEFAULT_PRODUCTION_ORIGIN,
+    normalizeSiteOrigin,
+} from './src/seo/homePageSeo';
 
-// https://vite.dev/config/
-/*export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-  ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    },
-  },
-})*/
+function injectHomeSeoPlugin(mode: string): Plugin {
+    const root = path.dirname(fileURLToPath(import.meta.url));
+    return {
+        name: 'gg-inject-home-seo',
+        transformIndexHtml: {
+            order: 'pre',
+            handler(html, ctx) {
+                const env = loadEnv(mode, root, '');
+                const fallbackOrigin =
+                    mode === 'development' ? 'http://gg-hub.local' : DEFAULT_PRODUCTION_ORIGIN;
+                const siteOrigin = normalizeSiteOrigin(env.VITE_SITE_URL, fallbackOrigin);
+                const seo = buildHomePageStaticHeadHtml(siteOrigin, env);
+                const noscript = buildHomeNoscriptHtml();
+                let out = html
+                    .replace('<!--INJECT_HOME_SEO-->', seo)
+                    .replace('<!--INJECT_HOME_NOSCRIPT-->', noscript);
+                /* В dev (vite без SSR) подставляем null; в prod сборке оставляем маркер для Node SSR. */
+                if (ctx.server) {
+                    out = out.replace('<!--pinia-state-->', 'null');
+                }
+                return out;
+            },
+        },
+    };
+}
 
 export default defineConfig(({ mode }) => {
-
-    console.log(mode);
+    const ssrBuild = process.argv.includes('--ssr');
 
     const env = loadEnv(mode, process.cwd() + '/frontend');
 
@@ -52,6 +71,7 @@ export default defineConfig(({ mode }) => {
             }
         },
         plugins: [
+            injectHomeSeoPlugin(mode),
             tailwindcss(),
             vue(),
             vueDevTools(),
@@ -61,16 +81,21 @@ export default defineConfig(({ mode }) => {
                 '@': fileURLToPath(new URL('./src', import.meta.url))
             },
         },
+        ssr: {
+            noExternal: ['pinia', 'vue-router', 'radix-vue', 'radix-ui', 'axios', '@tiptap/vue-3'],
+        },
         build: {
-            rollupOptions: {
-                output: {
-                    manualChunks(id) {
-                        if (id.includes('node_modules')) {
-                            return 'vendor';
-                        }
-                    },
-                },
-            },
+            rollupOptions: ssrBuild
+                ? undefined
+                : {
+                      output: {
+                          manualChunks(id) {
+                              if (id.includes('node_modules')) {
+                                  return 'vendor';
+                              }
+                          },
+                      },
+                  },
             chunkSizeWarningLimit: 900,
         },
     }

@@ -1,0 +1,6 @@
+# Контекст сборки — корень репозитория. Не тащить в образ артефакты и node_modules с хоста
+.git
+**/node_modules
+frontend/dist
+backend/vendor
+certbot

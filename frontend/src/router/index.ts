@@ -1,4 +1,9 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import {
+  createRouter,
+  createWebHistory,
+  type RouteRecordRaw,
+  type RouterHistory,
+} from 'vue-router';
 import MainLayout from '@/app/layouts/MainLayout.vue';
 import { PERMISSION_ACCESS_ADMIN, PERMISSION_VIEW_POLLS } from '@/shared/api/authApi';
 import { useAuthStore } from '@/stores/auth';
@@ -16,9 +21,7 @@ declare module 'vue-router' {
 
 const guestRouteNames = ['login', 'register', 'forgot-password', 'reset-password'] as const;
 
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
+const routes: RouteRecordRaw[] = [
     {
       path: '/',
       component: MainLayout,
@@ -215,6 +218,12 @@ const router = createRouter({
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
+          path: 'admin/landing-cta',
+          name: 'admin-landing-cta',
+          component: () => import('@/pages/admin/landing-cta/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN, title: 'Клики лендинга' },
+        },
+        {
           path: 'admin/polls',
           name: 'admin-polls',
           component: () => import('@/pages/admin/polls/index.vue'),
@@ -382,54 +391,67 @@ const router = createRouter({
     { path: '/register', name: 'register', component: () => import('@/pages/auth/register/index.vue') },
     { path: '/forgot-password', name: 'forgot-password', component: () => import('@/pages/auth/forgot-password/index.vue') },
     { path: '/reset-password', name: 'reset-password', component: () => import('@/pages/auth/reset-password/index.vue') },
-  ],
-});
+  ];
 
-router.beforeEach(async (to, from) => {
-  const routeLoading = useRouteLoadingStore();
-  // Не показывать полноэкранный прелоадер при смене только query (например, фильтр на странице гильдий)
-  const queryOnlyChange = from.name === to.name && from.path === to.path;
-  if (!queryOnlyChange) {
-    routeLoading.setLoading(true);
-  }
-  const auth = useAuthStore();
-  const siteContext = useSiteContextStore();
-  await siteContext.fetchContext();
-  await auth.fetchUser();
+export function createRouterInstance(history: RouterHistory) {
+  const router = createRouter({
+    history,
+    routes,
+  });
 
-  // Админ-субдомен доступен пользователям с правом «Администрирование» или «Просматривать голосования».
-  if (typeof window !== 'undefined') {
-    const host = window.location.host;
-    const isOnAdminSubdomain = host.startsWith('admin.');
-    const canAccessAdmin =
-      auth.hasPermission(PERMISSION_ACCESS_ADMIN) || auth.hasPermission(PERMISSION_VIEW_POLLS);
-    if (isOnAdminSubdomain && !canAccessAdmin) {
-      const mainHost = host.replace(/^admin\./, '');
-      window.location.href = `${window.location.protocol}//${mainHost}/`;
-      return false;
+  router.beforeEach(async (to, from) => {
+    const routeLoading = useRouteLoadingStore();
+    // Не показывать полноэкранный прелоадер при смене только query (например, фильтр на странице гильдий)
+    const queryOnlyChange = from.name === to.name && from.path === to.path;
+    if (!queryOnlyChange) {
+      routeLoading.setLoading(true);
     }
-  }
+    const auth = useAuthStore();
+    const siteContext = useSiteContextStore();
+    await siteContext.fetchContext();
+    await auth.fetchUser();
 
-  const isGuestRoute = to.name && guestRouteNames.includes(to.name as (typeof guestRouteNames)[number]);
-  if (isGuestRoute) {
-    if (auth.isAuthenticated) {
+    // Админ-субдомен доступен пользователям с правом «Администрирование» или «Просматривать голосования».
+    if (typeof window !== 'undefined') {
+      const host = window.location.host;
+      const isOnAdminSubdomain = host.startsWith('admin.');
+      const canAccessAdmin =
+        auth.hasPermission(PERMISSION_ACCESS_ADMIN) || auth.hasPermission(PERMISSION_VIEW_POLLS);
+      if (isOnAdminSubdomain && !canAccessAdmin) {
+        const mainHost = host.replace(/^admin\./, '');
+        window.location.href = `${window.location.protocol}//${mainHost}/`;
+        return false;
+      }
+    }
+
+    const isGuestRoute = to.name && guestRouteNames.includes(to.name as (typeof guestRouteNames)[number]);
+    if (isGuestRoute) {
+      if (auth.isAuthenticated) {
+        return { path: '/', replace: true };
+      }
+    }
+    const requiredPermission = to.meta.permission as string | undefined;
+    if (requiredPermission && auth.isAuthenticated && !auth.hasPermission(requiredPermission)) {
       return { path: '/', replace: true };
     }
-  }
-  const requiredPermission = to.meta.permission as string | undefined;
-  if (requiredPermission && auth.isAuthenticated && !auth.hasPermission(requiredPermission)) {
-    return { path: '/', replace: true };
-  }
-});
+    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+    if (requiresAuth && !auth.isAuthenticated) {
+      return { path: '/login', query: { redirect: to.fullPath }, replace: true };
+    }
+  });
 
-router.afterEach((to) => {
-  useRouteLoadingStore().setLoading(false);
-  // Заголовок вкладки: главная задаёт свой title через usePageSeo на лендинге
-  if (to.name === 'home') {
-    return;
-  }
-  const metaTitle = to.meta.title as string | undefined;
-  document.title = metaTitle ? `${metaTitle} — gg-hub` : 'gg-hub';
-});
+  router.afterEach((to) => {
+    useRouteLoadingStore().setLoading(false);
+    if (typeof document === 'undefined') {
+      return;
+    }
+    // Заголовок вкладки: главная задаёт свой title через usePageSeo на лендинге
+    if (to.name === 'home') {
+      return;
+    }
+    const metaTitle = to.meta.title as string | undefined;
+    document.title = metaTitle ? `${metaTitle} — gg-hub` : 'gg-hub';
+  });
 
-export default router;
+  return router;
+}

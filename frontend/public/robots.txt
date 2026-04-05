@@ -2,5 +2,6 @@
 User-agent: *
 Allow: /
 
-# SPA: основной контент индексируется после выполнения JS
+# Главная: при сборке в HTML вставляются meta и JSON-LD (плагин Vite).
+# Sitemap: добавьте URL в Google Search Console / Яндекс.Вебмастер.
 Sitemap: https://gg-hub.ru/sitemap.xml

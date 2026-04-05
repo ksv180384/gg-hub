@@ -1,9 +1,9 @@
-import { getActivePinia } from 'pinia';
-import router from '@/router';
-import { useAuthStore } from '@/stores/auth';
+import { getActiveRouter } from '@/router/activeRouter';
 import { http } from '@/shared/api/http';
+import { attachHttpResponseInterceptor } from '@/shared/api/http-interceptors-core';
 
-export const setupHttpInterceptors = (): void => {
+/** Клиент: X-Site-Host из window, ответы через общий перехватчик. */
+export function setupHttpInterceptors(): void {
   const axiosInstance = http.instance;
 
   axiosInstance.interceptors.request.use(
@@ -13,35 +13,8 @@ export const setupHttpInterceptors = (): void => {
       }
       return config;
     },
-    (error) => Promise.reject(error)
+    (error) => Promise.reject(error),
   );
 
-  axiosInstance.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      if (error.response?.status === 419) {
-        await http.getCsrfToken();
-        return axiosInstance(error.config);
-      }
-      if (error.response?.status === 401) {
-        const pinia = getActivePinia();
-        if (pinia) {
-          const authStore = useAuthStore(pinia);
-          authStore.setUser(null);
-        }
-        const currentRoute = router.currentRoute.value;
-        const requiresAuth = currentRoute.meta?.requiresAuth === true;
-        if (requiresAuth) {
-          await router.push({ name: 'login' });
-        }
-      }
-      const data = error.response?.data;
-      const err = new Error(
-        (data as { message?: string })?.message || error.message
-      ) as Error & { status?: number; errors?: Record<string, string[]> };
-      err.status = error.response?.status;
-      err.errors = (data as { errors?: Record<string, string[]> })?.errors;
-      return Promise.reject(err);
-    }
-  );
-};
+  attachHttpResponseInterceptor(axiosInstance, getActiveRouter);
+}

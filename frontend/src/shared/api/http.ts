@@ -201,8 +201,19 @@ const httpClient = ({ baseUrl, defaultHeaders }: HttpConfig): HttpClient => {
   };
 };
 
-const rootUrl = (import.meta.env.VITE_API_URL ?? '/').replace(/\/$/, '') || '';
-const apiBaseUrl = rootUrl + '/api/v1';
+function resolveApiBaseUrl(): string {
+  if (import.meta.env.SSR) {
+    const origin =
+      (typeof process !== 'undefined' && process.env.VITE_SSR_API_ORIGIN) ||
+      (typeof process !== 'undefined' && process.env.SSR_API_ORIGIN) ||
+      'http://127.0.0.1';
+    return `${String(origin).replace(/\/$/, '')}/api/v1`;
+  }
+  const rootUrl = (import.meta.env.VITE_API_URL ?? '/').replace(/\/$/, '') || '';
+  return rootUrl ? `${rootUrl}/api/v1` : '/api/v1';
+}
+
+const apiBaseUrl = resolveApiBaseUrl();
 const defaultHeaders = {
   'Content-Type': 'application/json',
   Accept: 'application/json',
