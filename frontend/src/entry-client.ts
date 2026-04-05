@@ -6,6 +6,7 @@ import { createRouterInstance } from './router';
 import { setActiveRouter } from '@/router/activeRouter';
 import { useThemeStore } from '@/stores/theme';
 import { setupHttpInterceptors } from '@/shared/api/http-interceptors';
+import { setHydrating } from '@/ssr/hydrationFlag';
 import '@/assets/main.css';
 
 async function bootstrap() {
@@ -23,8 +24,10 @@ async function bootstrap() {
   setupHttpInterceptors();
 
   const w = window as unknown as { __INITIAL_PINIA__?: Record<string, unknown> };
-  if (w.__INITIAL_PINIA__ != null && typeof w.__INITIAL_PINIA__ === 'object') {
+  const hasSsrState = w.__INITIAL_PINIA__ != null && typeof w.__INITIAL_PINIA__ === 'object';
+  if (hasSsrState) {
     pinia.state.value = JSON.parse(JSON.stringify(w.__INITIAL_PINIA__)) as typeof pinia.state.value;
+    setHydrating(true);
   }
 
   const theme = useThemeStore(pinia);
@@ -36,6 +39,8 @@ async function bootstrap() {
   } else {
     app.mount('#app');
   }
+
+  setHydrating(false);
 }
 
 void bootstrap();

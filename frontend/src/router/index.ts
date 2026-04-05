@@ -9,6 +9,7 @@ import { PERMISSION_ACCESS_ADMIN, PERMISSION_VIEW_POLLS } from '@/shared/api/aut
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { useRouteLoadingStore } from '@/stores/routeLoading';
+import { isHydrating } from '@/ssr/hydrationFlag';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -401,13 +402,17 @@ export function createRouterInstance(history: RouterHistory) {
 
   router.beforeEach(async (to, from) => {
     const routeLoading = useRouteLoadingStore();
-    // Не показывать полноэкранный прелоадер при смене только query (например, фильтр на странице гильдий)
+    const auth = useAuthStore();
+    const siteContext = useSiteContextStore();
+
+    if (isHydrating()) {
+      return;
+    }
+
     const queryOnlyChange = from.name === to.name && from.path === to.path;
     if (!queryOnlyChange) {
       routeLoading.setLoading(true);
     }
-    const auth = useAuthStore();
-    const siteContext = useSiteContextStore();
     await siteContext.fetchContext();
     await auth.fetchUser();
 
