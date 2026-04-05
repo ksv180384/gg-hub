@@ -34,7 +34,7 @@ services:
         environment:
             - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
             - NODE_ENV=${NODE_ENV}
-            - VITE_SSR_API_ORIGIN=${VITE_SSR_API_ORIGIN:-http://gg-nginx}
+            - VITE_SSR_API_ORIGIN=${VITE_SSR_API_ORIGIN:-http://gg-nginx:81}
         depends_on:
             - gg-nginx
         networks:

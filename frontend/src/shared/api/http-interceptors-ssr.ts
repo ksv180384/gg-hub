@@ -14,6 +14,7 @@ export function setupSsrHttpInterceptors(): void {
         config.headers.set('Cookie', ctx.cookie);
       }
       if (ctx?.host) {
+        config.headers.set('Host', ctx.host);
         config.headers.set('X-Site-Host', ctx.host);
       }
       return config;
