@@ -83,10 +83,23 @@ export default defineConfig(({ mode }) => {
         },
         ssr: {
             noExternal: [
+                'vue',
+                '@vue/server-renderer',
+                '@vue/runtime-dom',
+                '@vue/runtime-core',
+                '@vue/reactivity',
+                '@vue/shared',
+                'vue-router',
+                'pinia',
                 'radix-vue',
                 'radix-ui',
+                'axios',
                 '@tiptap/vue-3',
             ],
+            resolve: {
+                conditions: ['import', 'module', 'default'],
+                externalConditions: ['node', 'import', 'module', 'default'],
+            },
         },
         build: {
             rollupOptions: ssrBuild
