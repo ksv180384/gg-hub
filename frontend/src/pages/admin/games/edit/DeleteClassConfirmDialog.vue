@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from 'radix-vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { Button } from '@/shared/ui';
 import type { GameClass } from '@/shared/api/gamesApi';
 
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 
 <template>
   <DialogRoot :open="open" @update:open="emit('update:open', $event)">
+    <ClientOnly>
     <DialogPortal>
       <DialogOverlay
         class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -43,5 +45,6 @@ const emit = defineEmits<{
         </div>
       </DialogContent>
     </DialogPortal>
+    </ClientOnly>
   </DialogRoot>
 </template>

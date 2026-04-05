@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from 'radix-vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { Badge, Button, Label } from '@/shared/ui';
 import { formatRelativeTime } from '@/shared/lib/relativeTime';
 import { guildsApi, type AdminPollItem } from '@/shared/api/guildsApi';
@@ -173,6 +174,7 @@ const total = computed(() => meta.value?.total ?? 0);
     </div>
 
     <DialogRoot :open="deleteDialog.open" @update:open="(v: boolean) => { if (!v) closeDeleteDialog(); }">
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -216,6 +218,7 @@ const total = computed(() => meta.value?.total ?? 0);
           </div>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
   </div>
 </template>

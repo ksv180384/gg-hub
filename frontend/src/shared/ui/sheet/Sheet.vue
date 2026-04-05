@@ -11,6 +11,7 @@ import {
   DialogClose,
 } from 'radix-vue';
 import { cn } from '@/shared/lib/utils';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 interface Props {
   open?: boolean;
@@ -31,6 +32,7 @@ const slots = useSlots();
     <DialogTrigger v-if="slots.trigger" as-child>
       <slot name="trigger" />
     </DialogTrigger>
+    <ClientOnly>
     <DialogPortal>
       <DialogOverlay
         class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -62,5 +64,6 @@ const slots = useSlots();
         </DialogClose>
       </DialogContent>
     </DialogPortal>
+    </ClientOnly>
   </DialogRoot>
 </template>

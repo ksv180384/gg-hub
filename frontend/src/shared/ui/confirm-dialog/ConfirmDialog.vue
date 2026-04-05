@@ -8,6 +8,7 @@ import {
   DialogDescription,
 } from 'radix-vue';
 import { Button } from '@/shared/ui';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -43,6 +44,7 @@ function close() {
 
 <template>
   <DialogRoot :open="open" @update:open="onOpenChange">
+    <ClientOnly>
     <DialogPortal>
       <DialogOverlay
         class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -73,5 +75,6 @@ function close() {
         </div>
       </DialogContent>
     </DialogPortal>
+    </ClientOnly>
   </DialogRoot>
 </template>

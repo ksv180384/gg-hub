@@ -7,6 +7,7 @@ import {
   PopoverTrigger,
 } from 'radix-vue';
 import { Input } from '@/shared/ui';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { getTimezones, getTimezoneLabel } from '@/shared/lib/timezones';
 import { cn } from '@/shared/lib/utils';
 
@@ -74,6 +75,7 @@ function select(tz: string) {
         </svg>
       </span>
     </PopoverTrigger>
+    <ClientOnly>
     <PopoverPortal>
       <PopoverContent
         side="bottom"
@@ -115,5 +117,6 @@ function select(tz: string) {
         </div>
       </PopoverContent>
     </PopoverPortal>
+    </ClientOnly>
   </PopoverRoot>
 </template>

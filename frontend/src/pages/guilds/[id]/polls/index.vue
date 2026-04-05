@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogTitle,
 } from 'radix-vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import {
   Card,
   CardContent,
@@ -553,6 +554,7 @@ watch(
 
     <!-- Модальное окно создания/редактирования -->
     <DialogRoot v-model:open="modalOpen">
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-[3] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 cursor-pointer"
@@ -689,6 +691,7 @@ watch(
           </div>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
 
     <ConfirmDialog

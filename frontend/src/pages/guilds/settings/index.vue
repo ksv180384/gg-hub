@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'radix-vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Avatar, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import RichTextEditor from '@/shared/ui/rich-text-editor/RichTextEditor.vue';
@@ -1125,6 +1126,7 @@ onMounted(async () => {
 
         <!-- Модалка: добавить/редактировать дополнительное поле формы заявки -->
         <DialogRoot v-model:open="applicationFieldModalOpen" @update:open="(v: boolean) => { if (!v) applicationFieldEditIndex.value = null; }">
+          <ClientOnly>
           <DialogPortal>
             <DialogOverlay
               class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -1237,6 +1239,7 @@ onMounted(async () => {
               </div>
             </DialogContent>
           </DialogPortal>
+          </ClientOnly>
         </DialogRoot>
           </div>
         </div>

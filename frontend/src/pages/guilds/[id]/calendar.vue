@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from 'radix-vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { useRoute } from 'vue-router';
 import { eventsApi, type GuildEvent, type CreateEventPayload } from '@/shared/api/eventsApi';
 import { guildsApi } from '@/shared/api/guildsApi';
@@ -478,6 +479,7 @@ watch(guildId, () => {
 
     <!-- Модалка создания/редактирования -->
     <DialogRoot :open="modalOpen" @update:open="(v: boolean) => !v && closeModal()">
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -594,10 +596,12 @@ watch(guildId, () => {
           </form>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
 
     <!-- Модалка просмотра (только название и описание) для пользователей без права редактирования -->
     <DialogRoot :open="viewModalOpen" @update:open="(v: boolean) => !v && (viewModalOpen = false)">
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -619,6 +623,7 @@ watch(guildId, () => {
           </div>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
 
     <ConfirmDialog

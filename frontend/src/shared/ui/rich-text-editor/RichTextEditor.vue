@@ -16,6 +16,7 @@ import {
   DialogDescription,
 } from 'radix-vue';
 import { Button, Tooltip, TooltipProvider, Input, Label } from '@/shared/ui';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import {
   SelectRoot,
   SelectTrigger,
@@ -585,6 +586,7 @@ onBeforeUnmount(() => {
 
     <!-- Диалог добавления ссылки -->
     <DialogRoot v-model:open="linkDialogOpen">
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -630,10 +632,12 @@ onBeforeUnmount(() => {
           </div>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
 
     <!-- Диалог добавления изображения -->
     <DialogRoot v-model:open="imageDialogOpen">
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -671,10 +675,12 @@ onBeforeUnmount(() => {
           </div>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
 
     <!-- Диалог добавления видео -->
     <DialogRoot v-model:open="videoDialogOpen">
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -716,6 +722,7 @@ onBeforeUnmount(() => {
           </div>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
   </div>
 </template>

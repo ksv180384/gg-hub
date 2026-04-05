@@ -5,6 +5,7 @@ import {
   SelectViewport,
 } from 'radix-vue';
 import { cn } from '@/shared/lib/utils';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 interface Props {
   class?: string;
@@ -19,6 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
+  <ClientOnly>
   <SelectPortal>
     <Root
       :position="props.position"
@@ -38,4 +40,5 @@ const props = withDefaults(defineProps<Props>(), {
       </SelectViewport>
     </Root>
   </SelectPortal>
+  </ClientOnly>
 </template>

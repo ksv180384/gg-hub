@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent } from 'radix-vue';
 import { cn } from '@/shared/lib/utils';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 interface Props {
   content?: string | null;
@@ -22,6 +23,7 @@ const hasContent = computed(() => (props.content ?? '').trim().length > 0);
     <TooltipTrigger as-child>
       <slot />
     </TooltipTrigger>
+    <ClientOnly>
     <TooltipPortal>
       <TooltipContent
         :side="side"
@@ -36,6 +38,7 @@ const hasContent = computed(() => (props.content ?? '').trim().length > 0);
         {{ content }}
       </TooltipContent>
     </TooltipPortal>
+    </ClientOnly>
   </TooltipRoot>
   <slot v-else />
 </template>

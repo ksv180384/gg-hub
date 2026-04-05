@@ -78,7 +78,8 @@ watch(() => route.path, () => {
     <footer class="border-t py-6 md:py-0">
       <div class="container flex flex-col items-center justify-between gap-4 md:h-14 md:flex-row">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
-          <SiteLogo :size="20" />
+          Платформа для развития игровых сообществ<br/>
+          2026 GG-HUB
         </div>
       </div>
     </footer>

@@ -4,6 +4,7 @@ import {
   DropdownMenuContent as Root,
 } from 'radix-vue';
 import { cn } from '@/shared/lib/utils';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 interface Props {
   class?: string;
@@ -18,6 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
+  <ClientOnly>
   <DropdownMenuPortal>
     <Root
       :align="props.align"
@@ -33,4 +35,5 @@ const props = withDefaults(defineProps<Props>(), {
       <slot />
     </Root>
   </DropdownMenuPortal>
+  </ClientOnly>
 </template>

@@ -7,6 +7,7 @@ import {
   DropdownMenuContent as DropdownContent,
 } from 'radix-vue';
 import { cn } from '@/shared/lib/utils';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import type { MultiSelectOption } from './types';
 
 const props = withDefaults(
@@ -122,6 +123,7 @@ function clearAll() {
         </svg>
       </button>
     </DropdownMenuTrigger>
+    <ClientOnly>
     <DropdownMenuPortal>
       <DropdownContent
         align="start"
@@ -186,5 +188,6 @@ function clearAll() {
         </div>
       </DropdownContent>
     </DropdownMenuPortal>
+    </ClientOnly>
   </DropdownMenuRoot>
 </template>

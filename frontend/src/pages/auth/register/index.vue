@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
 } from 'radix-vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { Button, Input, Label, Card, CardContent, Separator, SiteLogo } from '@/shared/ui';
 import SocialAuthButtons from '@/shared/ui/SocialAuthButtons.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -190,6 +191,7 @@ async function onSubmit(e: Event) {
       :open="legalModalType !== null"
       @update:open="(v: boolean) => { if (!v) closeLegalModal(); }"
     >
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
@@ -312,6 +314,7 @@ async function onSubmit(e: Event) {
           </div>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
   </div>
 </template>

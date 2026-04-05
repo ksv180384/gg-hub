@@ -40,17 +40,22 @@ function injectHomeSeoPlugin(mode: string): Plugin {
 
 export default defineConfig(({ mode }) => {
     const ssrBuild = process.argv.includes('--ssr');
-
-    const env = loadEnv(mode, process.cwd() + '/frontend');
+    const configRoot = path.dirname(fileURLToPath(import.meta.url));
+    const env = loadEnv(mode, configRoot, '');
 
     return {
         server: {
             host: '0.0.0.0',
             port: 3008,
+            /**
+             * HMR WebSocket: server.mjs передаёт hmr.server (тот же http.Server, что Express).
+             * clientPort — порт в браузере: за nginx (Docker) обычно 80; без nginx — VITE_HMR_CLIENT_PORT=3008.
+             */
             hmr: {
-                host: mode === 'development' ? 'gg-hub.local' : 'gg-hub.local',
                 protocol: 'ws',
-                clientPort: mode === 'development' ? 80 : 3008
+                clientPort:
+                    Number(env.VITE_HMR_CLIENT_PORT || env.VITE_APP_HMR_PORT) ||
+                    (mode === 'development' ? 80 : 3008),
             },
             watch: {
                 usePolling: true

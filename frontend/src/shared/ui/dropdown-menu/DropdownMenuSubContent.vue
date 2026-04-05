@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { DropdownMenuPortal, DropdownMenuSubContent as Root } from 'radix-vue';
 import { cn } from '@/shared/lib/utils';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 interface Props {
   class?: string;
@@ -13,6 +14,7 @@ const props = withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
+  <ClientOnly>
   <DropdownMenuPortal>
     <Root
       :side-offset="props.sideOffset"
@@ -27,4 +29,5 @@ const props = withDefaults(defineProps<Props>(), {
       <slot />
     </Root>
   </DropdownMenuPortal>
+  </ClientOnly>
 </template>

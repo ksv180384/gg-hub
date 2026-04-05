@@ -4,6 +4,7 @@
  * PORT (по умолчанию 3008), VITE_SSR_API_ORIGIN — база для API из Node (напр. http://gg-nginx).
  */
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -29,9 +30,14 @@ const port = Number(process.env.PORT) || 3008;
 async function createDevServer() {
   const { createServer: createViteServer } = await import('vite');
   const app = express();
+  /** Один HTTP-сервер для Express и HMR — иначе в middlewareMode WS на :24678, а клиент ходит на :80/:3008. */
+  const httpServer = http.createServer(app);
   const vite = await createViteServer({
     root: __dirname,
-    server: { middlewareMode: true },
+    server: {
+      middlewareMode: true,
+      hmr: { server: httpServer },
+    },
     appType: 'custom',
   });
   app.use(vite.middlewares);
@@ -57,7 +63,7 @@ async function createDevServer() {
       next(e);
     }
   });
-  return app;
+  return httpServer;
 }
 
 async function createProdServer() {
@@ -95,8 +101,8 @@ async function createProdServer() {
 }
 
 async function main() {
-  const app = isDev ? await createDevServer() : await createProdServer();
-  app.listen(port, '0.0.0.0', () => {
+  const server = isDev ? await createDevServer() : await createProdServer();
+  server.listen(port, '0.0.0.0', () => {
     console.log(`[ssr] ${isDev ? 'dev' : 'prod'} http://0.0.0.0:${port}`);
   });
 }

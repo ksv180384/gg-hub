@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
 } from 'radix-vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import {
   Card,
   CardContent,
@@ -570,6 +571,7 @@ watch(guildId, () => {
 
     <!-- Модальное окно создания/редактирования рейда -->
     <DialogRoot v-model:open="modalOpen">
+      <ClientOnly>
       <DialogPortal>
         <DialogOverlay
           class="fixed inset-0 z-[3] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 cursor-pointer"
@@ -682,6 +684,7 @@ watch(guildId, () => {
           </div>
         </DialogContent>
       </DialogPortal>
+      </ClientOnly>
     </DialogRoot>
 
     <ConfirmDialog
