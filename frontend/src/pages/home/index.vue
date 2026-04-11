@@ -364,8 +364,9 @@ watch(isDark, () => {
         :alt="heroImageAlt"
         width="1920"
         height="1080"
+        sizes="100vw"
         fetchpriority="high"
-        decoding="async"
+        decoding="sync"
         class="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center"
       />
       <!-- Мягкий переход: размытие + тонировка снизу (без резкой рамки) -->
@@ -461,6 +462,8 @@ watch(isDark, () => {
         />
         <svg
           class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--1"
+          width="176"
+          height="176"
           viewBox="0 0 100 100"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -474,6 +477,8 @@ watch(isDark, () => {
         </svg>
         <svg
           class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--2"
+          width="148"
+          height="148"
           viewBox="0 0 100 100"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -487,6 +492,8 @@ watch(isDark, () => {
         </svg>
         <svg
           class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--3"
+          width="124"
+          height="124"
           viewBox="0 0 100 100"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -518,8 +525,8 @@ watch(isDark, () => {
             v-for="(game, i) in games"
             :key="game.slug"
             :to="guildsLinkForGame(game)"
-            class="text-lg font-semibold text-foreground/75 underline-offset-4 transition-all hover:text-foreground hover:scale-110 hover:underline md:text-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-            :class="show('games') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
+            class="text-lg font-semibold text-foreground/75 underline-offset-4 transition-opacity hover:text-foreground hover:scale-110 hover:underline md:text-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+            :class="show('games') ? 'opacity-100' : 'opacity-0'"
             :style="{ transitionDelay: `${200 + i * 150}ms`, transitionDuration: '600ms' }"
           >
             {{ game.name }}
@@ -560,8 +567,8 @@ watch(isDark, () => {
       <div
         :ref="playersHeaderRef"
         data-reveal-id="players-header"
-        class="mx-auto max-w-3xl text-center transition-all duration-700"
-        :class="show('players-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+        class="mx-auto max-w-3xl text-center transition-opacity duration-700"
+        :class="show('players-header') ? 'opacity-100' : 'opacity-0'"
       >
         <h2 id="section-players-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
           Забудь о хаосе в поиске гильдии
@@ -579,8 +586,8 @@ watch(isDark, () => {
         <Card
           v-for="(b, i) in playerBenefits"
           :key="b.title"
-          class="group cursor-default transition-all duration-500 hover:shadow-lg hover:-translate-y-1"
-          :class="show('players-cards') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'"
+          class="group cursor-default transition-opacity duration-500 hover:shadow-lg hover:-translate-y-1"
+          :class="show('players-cards') ? 'opacity-100' : 'opacity-0'"
           :style="{
             transitionDelay: `${i * 120}ms`,
           }"
@@ -627,8 +634,8 @@ watch(isDark, () => {
       <div
         :ref="setRef('guild-header')"
         data-reveal-id="guild-header"
-        class="mx-auto max-w-3xl text-center transition-all duration-700"
-        :class="show('guild-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+        class="mx-auto max-w-3xl text-center transition-opacity duration-700"
+        :class="show('guild-header') ? 'opacity-100' : 'opacity-0'"
       >
         <h2 id="section-guilds-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
           Управляй гильдией как профессионал
@@ -646,11 +653,8 @@ watch(isDark, () => {
         <Card
           v-for="(b, i) in guildBenefits"
           :key="b.title"
-          class="group cursor-default transition-all duration-500 hover:shadow-lg hover:-translate-y-1"
-          :class="[
-            show('guild-cards') ? 'opacity-100' : 'opacity-0',
-            show('guild-cards') ? 'translate-x-0' : (i % 2 === 0 ? '-translate-x-10' : 'translate-x-10'),
-          ]"
+          class="group cursor-default transition-opacity duration-500 hover:shadow-lg hover:-translate-y-1"
+          :class="show('guild-cards') ? 'opacity-100' : 'opacity-0'"
           :style="{ transitionDelay: `${i * 120}ms` }"
         >
           <CardHeader class="flex-row items-start gap-4">
@@ -695,8 +699,8 @@ watch(isDark, () => {
       <div
         :ref="setRef('steps-header')"
         data-reveal-id="steps-header"
-        class="mx-auto max-w-3xl text-center transition-all duration-700"
-        :class="show('steps-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+        class="mx-auto max-w-3xl text-center transition-opacity duration-700"
+        :class="show('steps-header') ? 'opacity-100' : 'opacity-0'"
       >
         <Badge variant="secondary" class="mb-4">Как это работает</Badge>
         <h2 id="section-steps-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -712,8 +716,8 @@ watch(isDark, () => {
         <div
           v-for="(step, i) in steps"
           :key="step.num"
-          class="group text-center transition-all duration-600"
-          :class="show('steps') ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'"
+          class="group relative text-center transition-opacity duration-600"
+          :class="show('steps') ? 'opacity-100' : 'opacity-0'"
           :style="{ transitionDelay: `${i * 200}ms` }"
         >
           <div class="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/25">
@@ -723,9 +727,9 @@ watch(isDark, () => {
           <!-- Connector line (hidden on mobile) -->
           <div
             v-if="i < steps.length - 1"
-            class="absolute top-8 left-[calc(50%+2rem)] hidden h-px w-[calc(100%-4rem)] bg-border md:block"
-            :class="show('steps') ? 'scale-x-100' : 'scale-x-0'"
-            :style="{ transitionDelay: `${400 + i * 200}ms`, transitionDuration: '800ms', transformOrigin: 'left' }"
+            class="absolute top-8 left-[calc(50%+2rem)] hidden h-px w-[calc(100%-4rem)] bg-border transition-opacity md:block"
+            :class="show('steps') ? 'opacity-100' : 'opacity-0'"
+            :style="{ transitionDelay: `${400 + i * 200}ms`, transitionDuration: '800ms' }"
           />
           <h3 class="mt-5 text-lg font-semibold transition-colors duration-300 group-hover:text-primary">{{ step.title }}</h3>
           <p class="mt-2 text-sm text-muted-foreground leading-relaxed">{{ step.desc }}</p>
@@ -760,8 +764,8 @@ watch(isDark, () => {
       <div
         :ref="setRef('features-header')"
         data-reveal-id="features-header"
-        class="mx-auto max-w-3xl text-center transition-all duration-700"
-        :class="show('features-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+        class="mx-auto max-w-3xl text-center transition-opacity duration-700"
+        :class="show('features-header') ? 'opacity-100' : 'opacity-0'"
       >
         <h2 id="section-features-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
           Всё для жизни гильдии
@@ -776,8 +780,8 @@ watch(isDark, () => {
         <Card
           v-for="(f, i) in features"
           :key="f.title"
-          class="group cursor-default overflow-hidden transition-all duration-500 hover:shadow-lg hover:-translate-y-1"
-          :class="show('features') ? 'opacity-100 scale-100' : 'opacity-0 scale-90'"
+          class="group cursor-default overflow-hidden transition-opacity duration-500 hover:shadow-lg hover:-translate-y-1"
+          :class="show('features') ? 'opacity-100' : 'opacity-0'"
           :style="{ transitionDelay: `${i * 100}ms` }"
         >
           <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -845,8 +849,8 @@ watch(isDark, () => {
       >
         <div class="container pb-16 pt-28 md:pb-20 md:pt-36">
           <div
-            class="mx-auto flex max-w-3xl flex-col items-center gap-5 text-center transition-all duration-700 md:gap-6"
-            :class="show('cta') ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'"
+            class="mx-auto flex max-w-3xl flex-col items-center gap-5 text-center transition-opacity duration-700 md:gap-6"
+            :class="show('cta') ? 'opacity-100' : 'opacity-0'"
           >
             <h2 class="landing-cta-title text-pretty px-2 text-2xl leading-tight sm:text-3xl md:text-4xl lg:text-[2.75rem]">
               Готов найти свою команду?
@@ -1047,6 +1051,10 @@ watch(isDark, () => {
 }
 
 /* --- Средняя часть лендинга: MMORPG-фон (между hero и нижним CTA) --- */
+.landing-mid-fantasy-ambient {
+  contain: paint;
+}
+
 .landing-mid-fantasy-ambient__veil {
   position: absolute;
   inset: -14%;
@@ -1355,15 +1363,14 @@ watch(isDark, () => {
   min-width: 0;
   overflow: hidden;
   border-radius: 9999px;
-  transform: scaleX(0);
-  transition: transform 1.05s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  transition: opacity 1.05s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .landing-games-divider__arm--left {
   grid-column: 1;
   grid-row: 1;
   z-index: 1;
-  transform-origin: right center;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -1377,7 +1384,6 @@ watch(isDark, () => {
   grid-column: 3;
   grid-row: 1;
   z-index: 1;
-  transform-origin: left center;
   background: linear-gradient(
     270deg,
     transparent 0%,
@@ -1388,7 +1394,7 @@ watch(isDark, () => {
 }
 
 .landing-games-divider__arm--in {
-  transform: scaleX(1);
+  opacity: 1;
 }
 
 .landing-games-divider__arm::after {
@@ -1422,8 +1428,8 @@ watch(isDark, () => {
   justify-content: center;
   width: 5rem;
   height: 5rem;
-  transform: scale(0);
-  transition: transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.22s;
+  opacity: 0;
+  transition: opacity 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.22s;
 }
 
 .landing-games-divider__gem-halo::before {
@@ -1448,7 +1454,7 @@ watch(isDark, () => {
 }
 
 .landing-games-divider__gem-halo--in {
-  transform: scale(1);
+  opacity: 1;
 }
 
 .landing-games-divider__gem {
@@ -1523,7 +1529,7 @@ watch(isDark, () => {
 @media (prefers-reduced-motion: reduce) {
   .landing-games-divider__arm {
     transition-duration: 0.01ms;
-    transform: scaleX(1);
+    opacity: 1;
   }
 
   .landing-games-divider__arm::after {
@@ -1532,7 +1538,7 @@ watch(isDark, () => {
 
   .landing-games-divider__gem-halo {
     transition-duration: 0.01ms;
-    transform: scale(1);
+    opacity: 1;
   }
 
   .landing-games-divider__gem {
@@ -1569,12 +1575,11 @@ watch(isDark, () => {
   flex: 1;
   overflow: hidden;
   border-radius: 9999px;
-  transform: scaleX(0);
-  transition: transform 0.95s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  transition: opacity 0.95s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .landing-section-divider__arm--left {
-  transform-origin: right center;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -1584,7 +1589,6 @@ watch(isDark, () => {
 }
 
 .landing-section-divider__arm--right {
-  transform-origin: left center;
   background: linear-gradient(
     270deg,
     transparent 0%,
@@ -1594,7 +1598,7 @@ watch(isDark, () => {
 }
 
 .landing-section-divider__arm--in {
-  transform: scaleX(1);
+  opacity: 1;
 }
 
 .landing-section-divider__arm::after {
@@ -1630,12 +1634,13 @@ watch(isDark, () => {
   box-shadow:
     0 0 10px color-mix(in oklch, var(--primary) 28%, transparent),
     0 0 26px color-mix(in oklch, var(--primary) 12%, transparent);
-  transform: scale(0) rotate(45deg);
-  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s;
+  transform: rotate(45deg);
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s;
 }
 
 .landing-section-divider__gem--in {
-  transform: scale(1) rotate(45deg);
+  opacity: 1;
   animation: landing-sep-gem-pulse 2.7s ease-in-out infinite;
 }
 
@@ -1667,7 +1672,7 @@ watch(isDark, () => {
 @media (prefers-reduced-motion: reduce) {
   .landing-section-divider__arm {
     transition-duration: 0.01ms;
-    transform: scaleX(1);
+    opacity: 1;
   }
 
   .landing-section-divider__arm::after {
@@ -1676,7 +1681,8 @@ watch(isDark, () => {
 
   .landing-section-divider__gem {
     transition-duration: 0.01ms;
-    transform: scale(1) rotate(45deg);
+    opacity: 1;
+    transform: rotate(45deg);
   }
 
   .landing-section-divider__gem--in {

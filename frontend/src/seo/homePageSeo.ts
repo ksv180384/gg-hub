@@ -166,8 +166,9 @@ export function buildHomePageStaticHeadHtml(siteOrigin: string, env: Record<stri
     parts.push(`<meta name="twitter:image" content="${escapeAttr(ogImage)}" />`);
   }
   parts.push(`<link rel="canonical" href="${escapeAttr(canonicalUrl)}" />`);
+  /* Относительный URL = тот же ресурс, что у <img src>, без расхождения с origin в dev / зеркалах */
   parts.push(
-    `<link rel="preload" as="image" href="${escapeAttr(`${siteOrigin}${HOME_HERO_IMAGE_PATH}`)}" fetchpriority="high" />`,
+    `<link rel="preload" as="image" href="${escapeAttr(HOME_HERO_IMAGE_PATH)}" fetchpriority="high" />`,
   );
   parts.push(`<script type="application/ld+json" id="gg-hub-ld-json">${JSON.stringify(jsonLd)}</script>`);
 
