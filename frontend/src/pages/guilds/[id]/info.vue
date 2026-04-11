@@ -137,7 +137,7 @@ function goToApplication() {
             </div>
 
             <!-- Вкладка: О гильдии -->
-            <Card v-show="activeTab === 'about'" class="mb-6">
+            <Card v-show="activeTab === 'about'" class="mb-6 border-0 shadow-none">
               <CardHeader>
                 <CardTitle>О гильдии</CardTitle>
               </CardHeader>
@@ -152,7 +152,7 @@ function goToApplication() {
             </Card>
 
             <!-- Вкладка: Устав -->
-            <Card v-show="activeTab === 'charter'" class="mb-6">
+            <Card v-show="activeTab === 'charter'" class="mb-6 border-0 shadow-none">
               <CardHeader>
                 <CardTitle>Устав</CardTitle>
               </CardHeader>
