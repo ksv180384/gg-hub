@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from 'radix-vue';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Separator } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/shared/ui';
 import { RouterLink } from 'vue-router';
 import { usePageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 import { recordLandingCtaClick, type LandingCtaButton } from '@/shared/api/landingApi';
@@ -174,6 +174,13 @@ function show(id: string) {
   return visible.value.has(id);
 }
 
+const playersIntroAnchorEl = ref<HTMLElement | null>(null);
+
+function playersHeaderRef(el: unknown) {
+  setRef('players-header')(el);
+  playersIntroAnchorEl.value = (el as HTMLElement | null) ?? null;
+}
+
 onMounted(() => {
   observer = new IntersectionObserver(
     (entries) => {
@@ -244,17 +251,76 @@ function openLandingCtaModal(button: LandingCtaButton) {
 function closeLandingCtaModal() {
   devModalOpen.value = false;
 }
+
+/** Фон лендинга: смена от #fff1d3 к #92b2cf после того, как блок «Забудь о хаосе…» пересёк середину экрана */
+const LANDING_SCROLL_BG_FROM = { r: 255, g: 241, b: 211 }; // #fff1d3
+const LANDING_SCROLL_BG_TO = { r: 146, g: 178, b: 207 }; // #92b2cf
+const LANDING_SCROLL_BG_ALPHA = 0.4;
+
+const landingScrollBg = ref(`rgba(${LANDING_SCROLL_BG_FROM.r}, ${LANDING_SCROLL_BG_FROM.g}, ${LANDING_SCROLL_BG_FROM.b}, ${LANDING_SCROLL_BG_ALPHA})`);
+let landingScrollRaf = 0;
+let landingScrollRafPending = false;
+
+function landingBgBlendRangePx(): number {
+  if (typeof window === 'undefined') return 720;
+  const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+  const maxY = Math.max(1, h - window.innerHeight);
+  return Math.min(Math.max(window.innerHeight * 1.2, 520), Math.max(640, maxY * 0.55));
+}
+
+function applyLandingScrollBackground() {
+  landingScrollRafPending = false;
+  const el = playersIntroAnchorEl.value;
+  const a = LANDING_SCROLL_BG_ALPHA;
+
+  if (!el || typeof window === 'undefined') {
+    landingScrollBg.value = `rgba(${LANDING_SCROLL_BG_FROM.r}, ${LANDING_SCROLL_BG_FROM.g}, ${LANDING_SCROLL_BG_FROM.b}, ${a})`;
+    return;
+  }
+
+  const rect = el.getBoundingClientRect();
+  const viewportMid = window.innerHeight / 2;
+  const blockMidY = rect.top + rect.height / 2;
+  const pixelsPastCenter = viewportMid - blockMidY;
+  const range = landingBgBlendRangePx();
+  const t =
+    pixelsPastCenter <= 0 ? 0 : Math.min(1, pixelsPastCenter / range);
+
+  const r = Math.round(LANDING_SCROLL_BG_FROM.r + (LANDING_SCROLL_BG_TO.r - LANDING_SCROLL_BG_FROM.r) * t);
+  const g = Math.round(LANDING_SCROLL_BG_FROM.g + (LANDING_SCROLL_BG_TO.g - LANDING_SCROLL_BG_FROM.g) * t);
+  const b = Math.round(LANDING_SCROLL_BG_FROM.b + (LANDING_SCROLL_BG_TO.b - LANDING_SCROLL_BG_FROM.b) * t);
+  landingScrollBg.value = `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function scheduleLandingScrollBackground() {
+  if (landingScrollRafPending) return;
+  landingScrollRafPending = true;
+  landingScrollRaf = requestAnimationFrame(applyLandingScrollBackground);
+}
+
+onMounted(() => {
+  requestAnimationFrame(() => applyLandingScrollBackground());
+  window.addEventListener('scroll', scheduleLandingScrollBackground, { passive: true });
+  window.addEventListener('resize', scheduleLandingScrollBackground, { passive: true });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', scheduleLandingScrollBackground);
+  window.removeEventListener('resize', scheduleLandingScrollBackground);
+  if (landingScrollRaf) cancelAnimationFrame(landingScrollRaf);
+});
 </script>
 
 <template>
-  <main
+  <div
     id="main-content"
-    class="landing-light-root overflow-x-hidden bg-background text-foreground"
+    class="landing-light-root overflow-x-hidden text-foreground"
+    :style="{ backgroundColor: landingScrollBg }"
     aria-labelledby="landing-hero-heading"
   >
     <!-- Hero -->
     <section
-      class="relative flex min-h-[calc(100svh-3.5rem)] items-center justify-center overflow-hidden border-b border-border"
+      class="relative flex min-h-[calc(100svh-3.5rem)] items-center justify-center overflow-hidden"
       aria-label="Главный экран"
     >
       <!-- LCP: осмысленное изображение вместо одного только background-image -->
@@ -340,7 +406,7 @@ function closeLandingCtaModal() {
     <!-- Games ticker -->
     <section
       :ref="setRef('games')"
-      class="border-b border-border bg-muted/30 overflow-hidden"
+      class="overflow-hidden bg-white"
       aria-label="Поддерживаемые игры"
     >
       <div class="container py-10">
@@ -359,10 +425,37 @@ function closeLandingCtaModal() {
       </div>
     </section>
 
+    <div
+      :ref="setRef('landing-sep-games')"
+      class="landing-games-divider relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 -mt-[38px]"
+      role="presentation"
+      aria-hidden="true"
+    >
+      <div class="landing-games-divider__inner">
+        <span
+          class="landing-games-divider__arm landing-games-divider__arm--left"
+          :class="show('landing-sep-games') ? 'landing-games-divider__arm--in' : ''"
+        />
+        <span
+          class="landing-games-divider__gem-halo"
+          :class="show('landing-sep-games') ? 'landing-games-divider__gem-halo--in' : ''"
+        >
+          <span
+            class="landing-games-divider__gem"
+            :class="show('landing-sep-games') ? 'landing-games-divider__gem--in' : ''"
+          />
+        </span>
+        <span
+          class="landing-games-divider__arm landing-games-divider__arm--right"
+          :class="show('landing-sep-games') ? 'landing-games-divider__arm--in' : ''"
+        />
+      </div>
+    </div>
+
     <!-- Player Benefits -->
     <section class="container relative py-16 md:py-24" aria-labelledby="section-players-heading">
       <div
-        :ref="setRef('players-header')"
+        :ref="playersHeaderRef"
         data-reveal-id="players-header"
         class="mx-auto max-w-3xl text-center transition-all duration-700"
         :class="show('players-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
@@ -404,7 +497,27 @@ function closeLandingCtaModal() {
       </div>
     </section>
 
-    <Separator />
+    <div
+      :ref="setRef('landing-sep-1')"
+      class="landing-section-divider container py-10 md:py-12"
+      role="presentation"
+      aria-hidden="true"
+    >
+      <div class="landing-section-divider__inner">
+        <span
+          class="landing-section-divider__arm landing-section-divider__arm--left"
+          :class="show('landing-sep-1') ? 'landing-section-divider__arm--in' : ''"
+        />
+        <span
+          class="landing-section-divider__gem"
+          :class="show('landing-sep-1') ? 'landing-section-divider__gem--in' : ''"
+        />
+        <span
+          class="landing-section-divider__arm landing-section-divider__arm--right"
+          :class="show('landing-sep-1') ? 'landing-section-divider__arm--in' : ''"
+        />
+      </div>
+    </div>
 
     <!-- Guild Benefits -->
     <section class="container py-16 md:py-24" aria-labelledby="section-guilds-heading">
@@ -452,7 +565,27 @@ function closeLandingCtaModal() {
       </div>
     </section>
 
-    <Separator />
+    <div
+      :ref="setRef('landing-sep-2')"
+      class="landing-section-divider container py-10 md:py-12"
+      role="presentation"
+      aria-hidden="true"
+    >
+      <div class="landing-section-divider__inner">
+        <span
+          class="landing-section-divider__arm landing-section-divider__arm--left"
+          :class="show('landing-sep-2') ? 'landing-section-divider__arm--in' : ''"
+        />
+        <span
+          class="landing-section-divider__gem"
+          :class="show('landing-sep-2') ? 'landing-section-divider__gem--in' : ''"
+        />
+        <span
+          class="landing-section-divider__arm landing-section-divider__arm--right"
+          :class="show('landing-sep-2') ? 'landing-section-divider__arm--in' : ''"
+        />
+      </div>
+    </div>
 
     <!-- How it works -->
     <section class="container py-16 md:py-24" aria-labelledby="section-steps-heading">
@@ -497,7 +630,27 @@ function closeLandingCtaModal() {
       </div>
     </section>
 
-    <Separator />
+    <div
+      :ref="setRef('landing-sep-3')"
+      class="landing-section-divider container py-10 md:py-12"
+      role="presentation"
+      aria-hidden="true"
+    >
+      <div class="landing-section-divider__inner">
+        <span
+          class="landing-section-divider__arm landing-section-divider__arm--left"
+          :class="show('landing-sep-3') ? 'landing-section-divider__arm--in' : ''"
+        />
+        <span
+          class="landing-section-divider__gem"
+          :class="show('landing-sep-3') ? 'landing-section-divider__gem--in' : ''"
+        />
+        <span
+          class="landing-section-divider__arm landing-section-divider__arm--right"
+          :class="show('landing-sep-3') ? 'landing-section-divider__arm--in' : ''"
+        />
+      </div>
+    </div>
 
     <!-- Features grid -->
     <section class="container py-16 md:py-24" aria-labelledby="section-features-heading">
@@ -534,6 +687,35 @@ function closeLandingCtaModal() {
         </Card>
       </div>
     </section>
+
+    <div class="relative z-10">
+      <div
+        :ref="setRef('landing-sep-cta')"
+        class="landing-games-divider landing-games-divider--cool-halo absolute -top-[40px] left-1/2 w-screen max-w-[100vw] -translate-x-1/2"
+        role="presentation"
+        aria-hidden="true"
+      >
+        <div class="landing-games-divider__inner">
+          <span
+            class="landing-games-divider__arm landing-games-divider__arm--left"
+            :class="show('landing-sep-cta') ? 'landing-games-divider__arm--in' : ''"
+          />
+          <span
+            class="landing-games-divider__gem-halo"
+            :class="show('landing-sep-cta') ? 'landing-games-divider__gem-halo--in' : ''"
+          >
+            <span
+              class="landing-games-divider__gem"
+              :class="show('landing-sep-cta') ? 'landing-games-divider__gem--in landing-games-divider__gem--cool' : ''"
+            />
+          </span>
+          <span
+            class="landing-games-divider__arm landing-games-divider__arm--right"
+            :class="show('landing-sep-cta') ? 'landing-games-divider__arm--in' : ''"
+          />
+        </div>
+      </div>
+    </div>
 
     <!-- CTA -->
     <section
@@ -621,7 +803,7 @@ function closeLandingCtaModal() {
       </DialogPortal>
       </ClientOnly>
     </DialogRoot>
-  </main>
+  </div>
 </template>
 
 <style scoped>
@@ -780,7 +962,6 @@ function closeLandingCtaModal() {
 .landing-cta-title {
   font-weight: 600;
   text-transform: uppercase;
-
   background: linear-gradient(180deg, #f5ebd4 0%, #d4af37 38%, #9a7428 72%, #c9a54a 100%);
   background-size: 100% 140%;
   background-position: center 30%;
@@ -815,5 +996,401 @@ function closeLandingCtaModal() {
 
 .landing-cta-btn--muted:hover {
   background-color: hsl(0 0% 100% / 0.14);
+}
+
+/* --- Декоративные разделители между секциями --- */
+/* --- Полноширинный разделитель после блока игр (#FFE6B7) --- */
+.landing-games-divider {
+  --landing-games-line: #ffe6b7;
+  --landing-games-line-mid: rgba(255, 230, 183, 0.92);
+  --landing-games-line-soft: rgba(255, 230, 183, 0.28);
+  --landing-games-glow: rgba(255, 230, 183, 0.55);
+}
+
+/* Перед нижним CTA: холодная палитра + радиальный ореол */
+.landing-games-divider--cool-halo {
+  --landing-games-line: #c2cedd;
+  --landing-games-line-mid: rgba(148, 166, 194, 0.92);
+  --landing-games-line-soft: rgba(94, 112, 141, 0.32);
+  --landing-games-glow: rgba(148, 166, 194, 0.5);
+}
+
+.landing-games-divider--cool-halo .landing-games-divider__gem-halo::before {
+  background: radial-gradient(
+    circle closest-side at 50% 50%,
+    rgb(255, 255, 255, 0.9) 0%,
+    rgb(255, 255, 255, 0.5) 55%,
+    rgb(255, 255, 255, 0.3) 75%,
+    rgb(255, 255, 255, 0.1) 90%,
+    rgb(255, 255, 255, 0) 95%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.landing-games-divider--cool-halo .landing-games-divider__arm::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.72) 48%,
+    rgba(230, 236, 245, 0.92) 50%,
+    transparent 100%
+  );
+}
+
+.landing-games-divider--cool-halo .landing-games-divider__gem {
+  border-color: rgba(148, 166, 194, 0.95);
+  background: linear-gradient(
+    135deg,
+    rgba(225, 229, 237, 0.9) 0%,
+    rgba(148, 166, 194, 0.75) 52%,
+    rgba(94, 112, 141, 0.55) 100%
+  );
+  box-shadow:
+    0 0 14px rgba(148, 166, 194, 0.45),
+    0 0 36px rgba(148, 166, 194, 0.22);
+}
+
+.landing-games-divider__inner {
+  display: grid;
+  width: 100%;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) 5.5rem minmax(0, 1fr);
+  padding-inline: clamp(1rem, 4vw, 2.5rem);
+  isolation: isolate;
+}
+
+.landing-games-divider__arm {
+  position: relative;
+  height: 4px;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  transform: scaleX(0);
+  transition: transform 1.05s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-games-divider__arm--left {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 1;
+  transform-origin: right center;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--landing-games-line-soft) 28%,
+    var(--landing-games-line-mid) 72%,
+    var(--landing-games-line) 100%
+  );
+}
+
+.landing-games-divider__arm--right {
+  grid-column: 3;
+  grid-row: 1;
+  z-index: 1;
+  transform-origin: left center;
+  background: linear-gradient(
+    270deg,
+    transparent 0%,
+    var(--landing-games-line-soft) 28%,
+    var(--landing-games-line-mid) 72%,
+    var(--landing-games-line) 100%
+  );
+}
+
+.landing-games-divider__arm--in {
+  transform: scaleX(1);
+}
+
+.landing-games-divider__arm::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 28%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.85) 48%,
+    rgba(255, 248, 230, 0.95) 50%,
+    transparent 100%
+  );
+  animation: landing-games-shimmer 4s ease-in-out infinite;
+}
+
+.landing-games-divider__arm--right::after {
+  animation-delay: 1s;
+  animation-direction: reverse;
+}
+
+.landing-games-divider__gem-halo {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  height: 5rem;
+  transform: scale(0);
+  transition: transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.22s;
+}
+
+.landing-games-divider__gem-halo::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side at 50% 50%,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0.9) 55%,
+    rgba(255, 255, 255, 0.5) 75%,
+    rgba(255, 255, 255, 0.14) 95%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+}
+
+.landing-games-divider__gem-halo--in {
+  transform: scale(1);
+}
+
+.landing-games-divider__gem {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 2px solid var(--landing-games-line);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    var(--landing-games-line-mid) 42%,
+    rgba(255, 214, 150, 0.75) 100%
+  );
+  box-shadow:
+    0 0 14px var(--landing-games-glow),
+    0 0 36px rgba(255, 230, 183, 0.35);
+  transform: rotate(45deg);
+}
+
+.landing-games-divider__gem--in {
+  animation: landing-games-gem-pulse 3s ease-in-out infinite;
+}
+
+.landing-games-divider__gem--cool.landing-games-divider__gem--in {
+  animation: landing-games-gem-pulse-cool 3s ease-in-out infinite;
+}
+
+@keyframes landing-games-gem-pulse-cool {
+  0%,
+  100% {
+    box-shadow:
+      0 0 14px rgba(148, 166, 194, 0.45),
+      0 0 36px rgba(148, 166, 194, 0.22);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(148, 166, 194, 0.65),
+      0 0 44px rgba(194, 206, 221, 0.4);
+    filter: brightness(1.05);
+  }
+}
+
+@keyframes landing-games-shimmer {
+  0% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+@keyframes landing-games-gem-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 14px var(--landing-games-glow),
+      0 0 36px rgba(255, 230, 183, 0.35);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(255, 230, 183, 0.75),
+      0 0 44px rgba(255, 230, 183, 0.45);
+    filter: brightness(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-games-divider__arm {
+    transition-duration: 0.01ms;
+    transform: scaleX(1);
+  }
+
+  .landing-games-divider__arm::after {
+    animation: none;
+  }
+
+  .landing-games-divider__gem-halo {
+    transition-duration: 0.01ms;
+    transform: scale(1);
+  }
+
+  .landing-games-divider__gem {
+    transform: rotate(45deg);
+  }
+
+  .landing-games-divider__gem--in {
+    animation: none;
+  }
+
+  .landing-games-divider__gem--cool.landing-games-divider__gem--in {
+    animation: none;
+  }
+}
+
+.landing-section-divider__inner {
+  display: flex;
+  max-width: 36rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+  .landing-section-divider__inner {
+    gap: 1rem;
+  }
+}
+
+.landing-section-divider__arm {
+  position: relative;
+  height: 2px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 9999px;
+  transform: scaleX(0);
+  transition: transform 0.95s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-section-divider__arm--left {
+  transform-origin: right center;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklch, var(--primary) 22%, transparent) 38%,
+    color-mix(in oklch, var(--primary) 48%, transparent) 100%
+  );
+}
+
+.landing-section-divider__arm--right {
+  transform-origin: left center;
+  background: linear-gradient(
+    270deg,
+    transparent 0%,
+    color-mix(in oklch, var(--primary) 22%, transparent) 38%,
+    color-mix(in oklch, var(--primary) 48%, transparent) 100%
+  );
+}
+
+.landing-section-divider__arm--in {
+  transform: scaleX(1);
+}
+
+.landing-section-divider__arm::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    transparent 100%
+  );
+  animation: landing-sep-shimmer 3.4s ease-in-out infinite;
+}
+
+.landing-section-divider__arm--right::after {
+  animation-delay: 0.75s;
+  animation-direction: reverse;
+}
+
+.landing-section-divider__gem {
+  flex-shrink: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  border: 1px solid color-mix(in oklch, var(--primary) 42%, transparent);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.35) 0%,
+    color-mix(in oklch, var(--primary) 20%, transparent) 100%
+  );
+  box-shadow:
+    0 0 10px color-mix(in oklch, var(--primary) 28%, transparent),
+    0 0 26px color-mix(in oklch, var(--primary) 12%, transparent);
+  transform: scale(0) rotate(45deg);
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s;
+}
+
+.landing-section-divider__gem--in {
+  transform: scale(1) rotate(45deg);
+  animation: landing-sep-gem-pulse 2.7s ease-in-out infinite;
+}
+
+@keyframes landing-sep-shimmer {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes landing-sep-gem-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px color-mix(in oklch, var(--primary) 28%, transparent),
+      0 0 26px color-mix(in oklch, var(--primary) 12%, transparent);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow:
+      0 0 14px color-mix(in oklch, var(--primary) 38%, transparent),
+      0 0 32px color-mix(in oklch, var(--primary) 18%, transparent);
+    filter: brightness(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-section-divider__arm {
+    transition-duration: 0.01ms;
+    transform: scaleX(1);
+  }
+
+  .landing-section-divider__arm::after {
+    animation: none;
+  }
+
+  .landing-section-divider__gem {
+    transition-duration: 0.01ms;
+    transform: scale(1) rotate(45deg);
+  }
+
+  .landing-section-divider__gem--in {
+    animation: none;
+  }
 }
 </style>
