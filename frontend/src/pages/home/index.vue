@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useThemeStore } from '@/stores/theme';
 import {
   DialogRoot,
   DialogPortal,
@@ -252,6 +254,9 @@ function handleMouseMove(e: MouseEvent) {
 onMounted(() => window.addEventListener('mousemove', handleMouseMove, { passive: true }));
 onUnmounted(() => window.removeEventListener('mousemove', handleMouseMove));
 
+const themeStore = useThemeStore();
+const { isDark } = storeToRefs(themeStore);
+
 const devModalOpen = ref(false);
 
 function openLandingCtaModal(button: LandingCtaButton) {
@@ -265,12 +270,25 @@ function closeLandingCtaModal() {
   devModalOpen.value = false;
 }
 
-/** Фон лендинга: смена от #fff1d3 к #92b2cf после того, как блок «Забудь о хаосе…» пересёк середину экрана */
-const LANDING_SCROLL_BG_FROM = { r: 255, g: 241, b: 211 }; // #fff1d3
-const LANDING_SCROLL_BG_TO = { r: 146, g: 178, b: 207 }; // #92b2cf
-const LANDING_SCROLL_BG_ALPHA = 0.4;
+/** Фон лендинга при скролле: смешение двух оттенков после пересечения якоря (палитра зависит от темы) */
+const LANDING_SCROLL_PALETTE_LIGHT = {
+  from: { r: 255, g: 241, b: 211 },
+  to: { r: 146, g: 178, b: 207 },
+  alpha: 0.4,
+};
+const LANDING_SCROLL_PALETTE_DARK = {
+  from: { r: 24, g: 26, b: 32 },
+  to: { r: 38, g: 48, b: 64 },
+  alpha: 0.78,
+};
 
-const landingScrollBg = ref(`rgba(${LANDING_SCROLL_BG_FROM.r}, ${LANDING_SCROLL_BG_FROM.g}, ${LANDING_SCROLL_BG_FROM.b}, ${LANDING_SCROLL_BG_ALPHA})`);
+function landingScrollPalette() {
+  return isDark.value ? LANDING_SCROLL_PALETTE_DARK : LANDING_SCROLL_PALETTE_LIGHT;
+}
+
+const landingScrollBg = ref(
+  `rgba(${LANDING_SCROLL_PALETTE_LIGHT.from.r}, ${LANDING_SCROLL_PALETTE_LIGHT.from.g}, ${LANDING_SCROLL_PALETTE_LIGHT.from.b}, ${LANDING_SCROLL_PALETTE_LIGHT.alpha})`,
+);
 let landingScrollRaf = 0;
 let landingScrollRafPending = false;
 
@@ -283,11 +301,11 @@ function landingBgBlendRangePx(): number {
 
 function applyLandingScrollBackground() {
   landingScrollRafPending = false;
+  const { from, to, alpha: a } = landingScrollPalette();
   const el = playersIntroAnchorEl.value;
-  const a = LANDING_SCROLL_BG_ALPHA;
 
   if (!el || typeof window === 'undefined') {
-    landingScrollBg.value = `rgba(${LANDING_SCROLL_BG_FROM.r}, ${LANDING_SCROLL_BG_FROM.g}, ${LANDING_SCROLL_BG_FROM.b}, ${a})`;
+    landingScrollBg.value = `rgba(${from.r}, ${from.g}, ${from.b}, ${a})`;
     return;
   }
 
@@ -299,9 +317,9 @@ function applyLandingScrollBackground() {
   const t =
     pixelsPastCenter <= 0 ? 0 : Math.min(1, pixelsPastCenter / range);
 
-  const r = Math.round(LANDING_SCROLL_BG_FROM.r + (LANDING_SCROLL_BG_TO.r - LANDING_SCROLL_BG_FROM.r) * t);
-  const g = Math.round(LANDING_SCROLL_BG_FROM.g + (LANDING_SCROLL_BG_TO.g - LANDING_SCROLL_BG_FROM.g) * t);
-  const b = Math.round(LANDING_SCROLL_BG_FROM.b + (LANDING_SCROLL_BG_TO.b - LANDING_SCROLL_BG_FROM.b) * t);
+  const r = Math.round(from.r + (to.r - from.r) * t);
+  const g = Math.round(from.g + (to.g - from.g) * t);
+  const b = Math.round(from.b + (to.b - from.b) * t);
   landingScrollBg.value = `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
@@ -322,12 +340,16 @@ onUnmounted(() => {
   window.removeEventListener('resize', scheduleLandingScrollBackground);
   if (landingScrollRaf) cancelAnimationFrame(landingScrollRaf);
 });
+
+watch(isDark, () => {
+  requestAnimationFrame(() => applyLandingScrollBackground());
+});
 </script>
 
 <template>
   <div
     id="main-content"
-    class="landing-light-root overflow-x-hidden text-foreground"
+    class="landing-page-root overflow-x-hidden text-foreground"
     :style="{ backgroundColor: landingScrollBg }"
     aria-labelledby="landing-hero-heading"
   >
@@ -388,7 +410,7 @@ onUnmounted(() => {
           </h1>
 
           <p
-            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200 fill-mode-backwards text-[#363636] min-h-[8rem] sm:min-h-[7rem]"
+            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200 fill-mode-backwards text-[#363636] dark:text-white/92 min-h-[8rem] sm:min-h-[7rem]"
           >
             {{ HOME_PAGE_LEAD }}
           </p>
@@ -396,14 +418,14 @@ onUnmounted(() => {
           <div class="flex flex-wrap justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 fill-mode-backwards">
             <button
               type="button"
-              class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
+              class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
               @click="openLandingCtaModal('start_free')"
             >
               <span class="relative z-[1]">Начать бесплатно</span>
             </button>
             <RouterLink
               to="/guilds"
-              class="landing-cta-btn landing-cta-btn--muted landing-cta-btn--muted-hero inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium no-underline transition-[transform,box-shadow,background-color,backdrop-filter] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
+              class="landing-cta-btn landing-cta-btn--muted landing-cta-btn--muted-hero inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium no-underline transition-[transform,box-shadow,background-color,backdrop-filter] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
             >
               Найти гильдию
             </RouterLink>
@@ -487,7 +509,7 @@ onUnmounted(() => {
     <!-- Games ticker -->
     <section
       :ref="setRef('games')"
-      class="overflow-hidden bg-white"
+      class="overflow-hidden bg-background/95 backdrop-blur-sm dark:bg-background/90"
       aria-label="Поддерживаемые игры"
     >
       <div class="container py-10">
@@ -836,14 +858,14 @@ onUnmounted(() => {
             <div class="mt-2 flex flex-wrap justify-center gap-3 sm:gap-4">
               <button
                 type="button"
-                class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
+                class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
                 @click="openLandingCtaModal('create_account')"
               >
                 <span class="relative z-[1]">Создать аккаунт</span>
               </button>
               <RouterLink
                 to="/guilds"
-                class="landing-cta-btn landing-cta-btn--muted inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium no-underline transition-[transform,box-shadow,background-color] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
+                class="landing-cta-btn landing-cta-btn--muted inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium no-underline transition-[transform,box-shadow,background-color] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
               >
                 Смотреть гильдии
               </RouterLink>
@@ -1049,16 +1071,18 @@ onUnmounted(() => {
   position: absolute;
   bottom: -12%;
   border-radius: 50%;
+  /* Светлая тема: ледяно-синие «искры», читаются на кремовом фоне */
   background: radial-gradient(
     circle,
-    rgba(255, 252, 235, 1) 0%,
-    rgba(235, 175, 70, 0.7) 32%,
-    rgba(120, 160, 210, 0.35) 52%,
-    transparent 74%
+    rgba(218, 236, 255, 0.98) 0%,
+    rgba(120, 168, 235, 0.78) 30%,
+    rgba(62, 108, 188, 0.52) 54%,
+    transparent 78%
   );
   box-shadow:
-    0 0 14px rgba(255, 195, 110, 0.55),
-    0 0 28px rgba(130, 170, 220, 0.3);
+    0 0 8px rgba(90, 140, 220, 0.45),
+    0 0 20px rgba(130, 180, 255, 0.38),
+    0 0 34px rgba(70, 120, 200, 0.22);
   animation-name: landing-mid-fantasy-mote-rise;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
@@ -1269,6 +1293,7 @@ onUnmounted(() => {
   --landing-games-line-mid: rgba(255, 230, 183, 0.92);
   --landing-games-line-soft: rgba(255, 230, 183, 0.28);
   --landing-games-glow: rgba(255, 230, 183, 0.55);
+  --landing-games-glow-haze: rgba(255, 230, 183, 0.35);
 }
 
 /* Перед нижним CTA: холодная палитра + радиальный ореол */
@@ -1277,6 +1302,7 @@ onUnmounted(() => {
   --landing-games-line-mid: rgba(148, 166, 194, 0.92);
   --landing-games-line-soft: rgba(94, 112, 141, 0.32);
   --landing-games-glow: rgba(148, 166, 194, 0.5);
+  --landing-games-glow-haze: rgba(148, 166, 194, 0.32);
 }
 
 .landing-games-divider--cool-halo .landing-games-divider__gem-halo::before {
@@ -1483,13 +1509,13 @@ onUnmounted(() => {
   100% {
     box-shadow:
       0 0 14px var(--landing-games-glow),
-      0 0 36px rgba(255, 230, 183, 0.35);
+      0 0 36px var(--landing-games-glow-haze);
     filter: brightness(1);
   }
   50% {
     box-shadow:
-      0 0 20px rgba(255, 230, 183, 0.75),
-      0 0 44px rgba(255, 230, 183, 0.45);
+      0 0 20px var(--landing-games-glow),
+      0 0 44px var(--landing-games-glow-haze);
     filter: brightness(1.06);
   }
 }
@@ -1656,5 +1682,166 @@ onUnmounted(() => {
   .landing-section-divider__gem--in {
     animation: none;
   }
+}
+</style>
+
+<style>
+/* Тёмная тема: лендинг (класс .dark на корне документа) */
+.dark .landing-page-root .hero-lead-glass {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(255, 255, 255, 0) 88%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.dark .landing-page-root .hero-text-readable {
+  text-shadow:
+    0 1px 3px hsl(0 0% 0% / 0.75),
+    0 2px 28px hsl(0 0% 0% / 0.55);
+}
+
+/*
+ * Градиентный текст + filter на одном элементе ломает background-clip: text в Chromium
+ * (видны «прямоугольники» вместо букв). Тень переносим на h1, на span — filter: none.
+ */
+.dark .landing-page-root #landing-hero-heading {
+  filter: drop-shadow(0 2px 18px hsl(0 0% 0% / 0.88)) drop-shadow(0 1px 3px hsl(0 0% 0% / 0.65));
+}
+
+.dark .landing-page-root .hero-gradient-text,
+.dark .landing-page-root .hero-gradient-text-next {
+  filter: none;
+  /* hex вместо oklch — стабильнее для clip-text в разных движках */
+  background: linear-gradient(135deg, #ffffff 0%, #fff4dc 38%, #e8c078 72%, #c9a227 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.dark .landing-page-root .landing-mid-fantasy-ambient__veil {
+  background:
+    radial-gradient(ellipse 68% 52% at 14% 72%, rgba(180, 120, 55, 0.14) 0%, transparent 56%),
+    radial-gradient(ellipse 58% 46% at 88% 26%, rgba(90, 120, 185, 0.12) 0%, transparent 52%),
+    radial-gradient(ellipse 48% 36% at 52% 6%, rgba(255, 255, 255, 0.05) 0%, transparent 46%);
+}
+
+.dark .landing-page-root .landing-mid-fantasy-mote {
+  background: radial-gradient(
+    circle,
+    rgba(210, 228, 255, 0.62) 0%,
+    rgba(110, 155, 220, 0.42) 32%,
+    rgba(55, 95, 165, 0.28) 52%,
+    transparent 74%
+  );
+  box-shadow:
+    0 0 12px rgba(130, 175, 245, 0.32),
+    0 0 24px rgba(70, 120, 200, 0.22);
+}
+
+.dark .landing-page-root .landing-mid-fantasy-sigil {
+  color: rgba(140, 165, 210, 0.42);
+  filter: drop-shadow(0 0 14px rgba(120, 160, 220, 0.22));
+}
+
+.dark .landing-page-root .landing-games-divider:not(.landing-games-divider--cool-halo) {
+  --landing-games-line: color-mix(in oklch, var(--primary) 32%, hsl(220 14% 42%));
+  --landing-games-line-mid: color-mix(in oklch, var(--primary) 22%, transparent);
+  --landing-games-line-soft: color-mix(in oklch, var(--primary) 12%, transparent);
+  --landing-games-glow: color-mix(in oklch, var(--primary) 28%, transparent);
+  --landing-games-glow-haze: color-mix(in oklch, var(--primary) 14%, transparent);
+}
+
+.dark .landing-page-root .landing-games-divider:not(.landing-games-divider--cool-halo) .landing-games-divider__gem-halo::before {
+  background: radial-gradient(
+    circle closest-side at 50% 50%,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.08) 55%,
+    rgba(255, 255, 255, 0.03) 78%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.dark .landing-page-root .landing-games-divider:not(.landing-games-divider--cool-halo) .landing-games-divider__gem {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary) 18%, transparent) 0%,
+    color-mix(in oklch, var(--primary) 35%, hsl(220 12% 38%)) 48%,
+    color-mix(in oklch, var(--primary) 15%, hsl(40 25% 38%)) 100%
+  );
+  box-shadow:
+    0 0 12px color-mix(in oklch, var(--primary) 22%, transparent),
+    0 0 28px color-mix(in oklch, var(--primary) 10%, transparent);
+}
+
+.dark .landing-page-root .landing-games-divider:not(.landing-games-divider--cool-halo) .landing-games-divider__arm::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 48%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
+}
+
+.dark .landing-page-root .landing-games-divider--cool-halo {
+  --landing-games-line: hsl(220 14% 48%);
+  --landing-games-line-mid: rgba(120, 138, 168, 0.55);
+  --landing-games-line-soft: rgba(80, 96, 124, 0.22);
+  --landing-games-glow: rgba(130, 150, 185, 0.28);
+  --landing-games-glow-haze: rgba(100, 120, 160, 0.18);
+}
+
+.dark .landing-page-root .landing-games-divider--cool-halo .landing-games-divider__gem-halo::before {
+  background: radial-gradient(
+    circle closest-side at 50% 50%,
+    rgba(200, 210, 230, 0.2) 0%,
+    rgba(140, 155, 185, 0.08) 58%,
+    rgba(100, 115, 145, 0) 92%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.dark .landing-page-root .landing-games-divider--cool-halo .landing-games-divider__arm::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(200, 210, 230, 0.2) 48%,
+    rgba(160, 175, 205, 0.28) 50%,
+    transparent 100%
+  );
+}
+
+.dark .landing-page-root .landing-games-divider--cool-halo .landing-games-divider__gem {
+  border-color: rgba(130, 148, 178, 0.65);
+  background: linear-gradient(
+    135deg,
+    rgba(90, 105, 135, 0.45) 0%,
+    rgba(70, 88, 118, 0.5) 52%,
+    rgba(55, 68, 92, 0.42) 100%
+  );
+  box-shadow:
+    0 0 12px rgba(120, 140, 175, 0.22),
+    0 0 28px rgba(80, 100, 135, 0.12);
+}
+
+.dark .landing-page-root .landing-section-divider__arm::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%
+  );
+}
+
+.dark .landing-page-root .landing-section-divider__gem {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary) 12%, transparent) 0%,
+    color-mix(in oklch, var(--primary) 32%, hsl(220 10% 35%)) 100%
+  );
 }
 </style>
