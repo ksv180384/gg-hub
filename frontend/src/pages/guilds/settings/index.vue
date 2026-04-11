@@ -11,7 +11,7 @@ import {
   type GuildApplicationFormFieldDto,
   type CreateGuildApplicationFormFieldPayload,
 } from '@/shared/api/guildsApi';
-import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
+import { gamesApi, type Game, type Server } from '@/shared/api/gamesApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';

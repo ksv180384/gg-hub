@@ -382,23 +382,6 @@ watch(isDark, () => {
         :style="{ transform: `translate(${mouseX * -0.6}px, ${mouseY * -0.6}px)` }"
       />
 
-      <!-- Floating particles -->
-      <div class="pointer-events-none absolute inset-0 z-[2] overflow-hidden">
-        <div
-          v-for="n in 6"
-          :key="n"
-          class="absolute h-1 w-1 rounded-full bg-primary/20"
-          :class="n % 2 === 0 ? 'animate-float-slow' : 'animate-float'"
-          :style="{
-            left: `${10 + n * 15}%`,
-            top: `${15 + (n * 23) % 60}%`,
-            animationDelay: `${n * 0.7}s`,
-            width: `${3 + (n % 3) * 2}px`,
-            height: `${3 + (n % 3) * 2}px`,
-          }"
-        />
-      </div>
-
       <div class="container relative z-10 w-full py-10 md:py-14">
         <div class="mx-auto flex max-w-4xl flex-col items-center gap-6 px-2 text-center sm:px-4">
 
@@ -411,7 +394,7 @@ watch(isDark, () => {
           </h1>
 
           <p
-            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200 fill-mode-backwards text-[#363636] dark:text-white/92 min-h-[8rem] sm:min-h-[7rem]"
+            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl fill-mode-backwards text-[#363636] dark:text-white/92 min-h-[8rem] sm:min-h-[7rem]"
           >
             {{ HOME_PAGE_LEAD }}
           </p>
