@@ -50,6 +50,11 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   function init() {
+    // После SSR клиент подставляет pinia.state из __INITIAL_PINIA__ (тема с сервера = system).
+    // Иначе выбор из localStorage теряется при полной перезагрузке.
+    if (typeof localStorage !== 'undefined') {
+      preference.value = loadStored();
+    }
     updateEffective();
     if (typeof window !== 'undefined' && window.matchMedia) {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
