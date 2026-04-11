@@ -379,19 +379,19 @@ onUnmounted(() => {
             {{ HOME_PAGE_LEAD }}
           </p>
 
-          <div class="flex flex-wrap justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 fill-mode-backwards">
-            <Button
+          <div class="flex flex-wrap justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 fill-mode-backwards">
+            <button
               type="button"
-              size="lg"
-              class="hero-btn rounded-lg text-base px-8"
+              class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
               @click="openLandingCtaModal('start_free')"
             >
-              Начать бесплатно
-            </Button>
-            <RouterLink to="/guilds">
-              <Button variant="outline" size="lg" class="rounded-lg text-base px-8 transition-all duration-300 hover:scale-105">
-                Найти гильдию
-              </Button>
+              <span class="relative z-[1]">Начать бесплатно</span>
+            </button>
+            <RouterLink
+              to="/guilds"
+              class="landing-cta-btn landing-cta-btn--muted landing-cta-btn--muted-hero inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium no-underline transition-[transform,box-shadow,background-color,backdrop-filter] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
+            >
+              Найти гильдию
             </RouterLink>
           </div>
 
@@ -753,10 +753,10 @@ onUnmounted(() => {
             <div class="mt-2 flex flex-wrap justify-center gap-3 sm:gap-4">
               <button
                 type="button"
-                class="landing-cta-btn landing-cta-btn--outline rounded-md px-7 py-3 text-base font-medium transition-[transform,box-shadow,background-color] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
+                class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
                 @click="openLandingCtaModal('create_account')"
               >
-                Создать аккаунт
+                <span class="relative z-[1]">Создать аккаунт</span>
               </button>
               <RouterLink
                 to="/guilds"
@@ -898,6 +898,7 @@ onUnmounted(() => {
 .hero-btn {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .hero-btn:hover {
@@ -908,6 +909,8 @@ onUnmounted(() => {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.15) 45%, rgba(255, 255, 255, 0.25) 50%, rgba(255, 255, 255, 0.15) 55%, transparent 60%);
   background-size: 300% 100%;
   animation: shimmer 3s ease-in-out infinite;
@@ -988,6 +991,32 @@ onUnmounted(() => {
   box-shadow: 0 0 0 1px hsl(43 50% 55% / 0.35);
 }
 
+/* Главный призыв: заметнее вторичной кнопки */
+.landing-cta-btn--lead {
+  border-width: 2px;
+  border-color: #f2d9a0;
+  background: linear-gradient(165deg, #d4a82e 0%, #a67a1e 45%, #7d5c12 100%);
+  color: #fff8ec;
+  font-weight: 600;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    0 0 1px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 2px 16px rgba(0, 0, 0, 0.22),
+    0 0 28px rgba(212, 168, 46, 0.45);
+}
+
+.landing-cta-btn--lead:hover {
+  border-color: #ffe8bc;
+  background: linear-gradient(165deg, #e4b83a 0%, #b88a26 45%, #8f6c16 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 22px rgba(0, 0, 0, 0.28),
+    0 0 36px rgba(230, 185, 70, 0.55);
+  filter: brightness(1.03);
+}
+
 .landing-cta-btn--muted {
   background-color: hsl(0 0% 100% / 0.08);
   border: 1px solid #c9a54a;
@@ -996,6 +1025,30 @@ onUnmounted(() => {
 
 .landing-cta-btn--muted:hover {
   background-color: hsl(0 0% 100% / 0.14);
+}
+
+/* Вторичная кнопка на фоне hero-картинки: читаемость */
+.landing-cta-btn--muted-hero {
+  border-width: 2px;
+  border-color: rgba(255, 236, 200, 0.85);
+  color: #fff8ec;
+  background-color: rgba(12, 10, 8, 0.58);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.65),
+    0 0 12px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 2px 14px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.landing-cta-btn--muted-hero:hover {
+  background-color: rgba(12, 10, 8, 0.72);
+  border-color: #ffecc8;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 /* --- Декоративные разделители между секциями --- */
