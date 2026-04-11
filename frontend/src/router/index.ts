@@ -23,12 +23,15 @@ declare module 'vue-router' {
 const guestRouteNames = ['login', 'register', 'forgot-password', 'reset-password'] as const;
 
 const routes: RouteRecordRaw[] = [
+    { path: '/login', name: 'login', component: () => import('@/pages/auth/login/index.vue') },
+    { path: '/register', name: 'register', component: () => import('@/pages/auth/register/index.vue') },
+    { path: '/forgot-password', name: 'forgot-password', component: () => import('@/pages/auth/forgot-password/index.vue') },
+    { path: '/reset-password', name: 'reset-password', component: () => import('@/pages/auth/reset-password/index.vue') },
     {
       path: '/',
       component: MainLayout,
       children: [
         { path: '', name: 'home', component: () => import('@/pages/home/index.vue') },
-        { path: 'news', name: 'news', component: () => import('@/pages/news/index.vue') },
         { path: 'journal', name: 'journal', component: () => import('@/pages/journal/index.vue'), meta: { requiresAuth: true, title: 'Журнал' } },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
         {
@@ -386,12 +389,14 @@ const routes: RouteRecordRaw[] = [
           component: () => import('@/pages/admin/games/edit.vue'),
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
+        {
+          path: ':pathMatch(.*)*',
+          name: 'not-found',
+          component: () => import('@/pages/not-found/index.vue'),
+          meta: { title: 'Страница не найдена' },
+        },
       ],
     },
-    { path: '/login', name: 'login', component: () => import('@/pages/auth/login/index.vue') },
-    { path: '/register', name: 'register', component: () => import('@/pages/auth/register/index.vue') },
-    { path: '/forgot-password', name: 'forgot-password', component: () => import('@/pages/auth/forgot-password/index.vue') },
-    { path: '/reset-password', name: 'reset-password', component: () => import('@/pages/auth/reset-password/index.vue') },
   ];
 
 export function createRouterInstance(history: RouterHistory) {

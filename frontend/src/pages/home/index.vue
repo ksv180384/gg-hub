@@ -64,6 +64,19 @@ const games = ref<
   { name: 'Black Desert', slug: 'black-desert' },
 ]);
 
+/** Частицы «маны» для фона средней части лендинга (MMORPG, не hero и не нижний CTA) */
+const landingMidFantasyMotes = Array.from({ length: 26 }, (_, i) => {
+  const left = 2 + ((i * 37) % 91);
+  const drift = -56 + ((i * 31) % 113);
+  return {
+    size: 3 + (i % 6),
+    delay: `${((i * 0.31) % 5.2).toFixed(2)}s`,
+    duration: `${9 + (i % 9) * 1.1}s`,
+    leftPct: `${left}%`,
+    driftPx: `${drift}px`,
+  };
+});
+
 onMounted(async () => {
   try {
     const list = await gamesApi.getGames();
@@ -335,6 +348,7 @@ onUnmounted(() => {
       />
       <!-- Мягкий переход: размытие + тонировка снизу (без резкой рамки) -->
       <div class="hero-content-scrim" aria-hidden="true" />
+
       <!-- Animated gradient orbs -->
       <div
         class="pointer-events-none absolute -top-32 -left-32 z-[2] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[100px] transition-transform duration-[2000ms] ease-out"
@@ -403,6 +417,73 @@ onUnmounted(() => {
       </div>
     </section>
 
+    <div class="landing-mid relative overflow-x-hidden">
+      <!-- MMORPG-фон только для средней части страницы (между hero и нижним CTA) -->
+      <div
+        class="landing-mid-fantasy-ambient pointer-events-none absolute inset-0 z-0 min-h-full overflow-hidden"
+        aria-hidden="true"
+      >
+        <div class="landing-mid-fantasy-ambient__veil" />
+        <div
+          v-for="(m, idx) in landingMidFantasyMotes"
+          :key="idx"
+          class="landing-mid-fantasy-mote"
+          :style="{
+            left: m.leftPct,
+            width: `${m.size}px`,
+            height: `${m.size}px`,
+            animationDelay: m.delay,
+            animationDuration: m.duration,
+            '--mote-drift': m.driftPx,
+          }"
+        />
+        <svg
+          class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--1"
+          viewBox="0 0 100 100"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <polygon
+            points="50,8 88,32 88,68 50,92 12,68 12,32"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="0.8"
+          />
+          <circle cx="50" cy="50" r="18" fill="none" stroke="currentColor" stroke-width="0.5" />
+        </svg>
+        <svg
+          class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--2"
+          viewBox="0 0 100 100"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M50 6 L61 38 L95 38 L68 58 L79 90 L50 70 L21 90 L32 58 L5 38 L39 38 Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="0.7"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <svg
+          class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--3"
+          viewBox="0 0 100 100"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect
+            x="28"
+            y="28"
+            width="44"
+            height="44"
+            rx="4"
+            transform="rotate(45 50 50)"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="0.65"
+          />
+          <circle cx="50" cy="50" r="10" fill="none" stroke="currentColor" stroke-width="0.5" />
+        </svg>
+      </div>
+
+      <div class="relative z-[1]">
     <!-- Games ticker -->
     <section
       :ref="setRef('games')"
@@ -687,6 +768,8 @@ onUnmounted(() => {
         </Card>
       </div>
     </section>
+      </div>
+    </div>
 
     <div class="relative z-10">
       <div
@@ -939,6 +1022,134 @@ onUnmounted(() => {
 }
 .animate-float-slow {
   animation: float-slow 9s ease-in-out infinite;
+}
+
+/* --- Средняя часть лендинга: MMORPG-фон (между hero и нижним CTA) --- */
+.landing-mid-fantasy-ambient__veil {
+  position: absolute;
+  inset: -14%;
+  opacity: 1;
+  background:
+    radial-gradient(ellipse 68% 52% at 14% 72%, rgba(200, 130, 45, 0.26) 0%, transparent 56%),
+    radial-gradient(ellipse 58% 46% at 88% 26%, rgba(70, 110, 175, 0.22) 0%, transparent 52%),
+    radial-gradient(ellipse 48% 36% at 52% 6%, rgba(255, 255, 255, 0.16) 0%, transparent 46%);
+  animation: landing-mid-fantasy-veil-drift 28s ease-in-out infinite alternate;
+}
+
+@keyframes landing-mid-fantasy-veil-drift {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    transform: translate(-3%, 2%) rotate(2deg) scale(1.05);
+  }
+}
+
+.landing-mid-fantasy-mote {
+  position: absolute;
+  bottom: -12%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 252, 235, 1) 0%,
+    rgba(235, 175, 70, 0.7) 32%,
+    rgba(120, 160, 210, 0.35) 52%,
+    transparent 74%
+  );
+  box-shadow:
+    0 0 14px rgba(255, 195, 110, 0.55),
+    0 0 28px rgba(130, 170, 220, 0.3);
+  animation-name: landing-mid-fantasy-mote-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes landing-mid-fantasy-mote-rise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.4);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  72% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate3d(var(--mote-drift, 0px), -120vh, 0) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.landing-mid-fantasy-sigil {
+  position: absolute;
+  color: rgba(70, 100, 150, 0.65);
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0.38;
+  filter: drop-shadow(0 0 16px rgba(255, 200, 120, 0.4));
+  animation: landing-mid-fantasy-sigil-drift 20s ease-in-out infinite;
+}
+
+.landing-mid-fantasy-sigil--1 {
+  top: 8%;
+  left: 3%;
+  width: min(22vw, 176px);
+  height: auto;
+  aspect-ratio: 1;
+  animation-duration: 24s;
+}
+
+.landing-mid-fantasy-sigil--2 {
+  top: 14%;
+  right: 4%;
+  width: min(18vw, 148px);
+  height: auto;
+  aspect-ratio: 1;
+  animation-delay: -6s;
+  animation-duration: 19s;
+}
+
+.landing-mid-fantasy-sigil--3 {
+  bottom: 18%;
+  left: 6%;
+  width: min(15vw, 124px);
+  height: auto;
+  aspect-ratio: 1;
+  animation-delay: -11s;
+  animation-duration: 22s;
+}
+
+@keyframes landing-mid-fantasy-sigil-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.34;
+  }
+  33% {
+    transform: translate(1.4%, -1%) rotate(5deg);
+    opacity: 0.46;
+  }
+  66% {
+    transform: translate(-1.1%, 1.2%) rotate(-4deg);
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-mid-fantasy-ambient__veil {
+    animation: none;
+  }
+
+  .landing-mid-fantasy-mote {
+    display: none;
+  }
+
+  .landing-mid-fantasy-sigil {
+    animation: none;
+    opacity: 0.22;
+  }
 }
 
 /* --- Нижний CTA (как на макете) --- */

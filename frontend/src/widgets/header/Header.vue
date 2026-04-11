@@ -176,35 +176,55 @@ watch(
 
 const navItems = [
   { to: '/', label: 'Главная' },
-  { to: '/news', label: 'Новости' },
   { to: '/guilds', label: 'Гильдии' },
   { to: '/games', label: 'Игры' },
 ];
+
+/** Активный пункт верхнего меню: главная только по точному пути, остальные — раздел и вложенные URL. */
+function isNavActive(itemTo: string): boolean {
+  const path = route.path;
+  if (itemTo === '/') {
+    return path === '/';
+  }
+  return path === itemTo || path.startsWith(`${itemTo}/`);
+}
 </script>
 
 <template>
-  <header class="sticky top-0 z-[2] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-    <div class="flex h-14 items-center gap-2 md:gap-4 px-4 md:px-6">
-      <RouterLink to="/" class="flex items-center gap-2 font-semibold md:mr-6 shrink-0 group">
-        <SiteLogo :size="36" class="transition-transform group-hover:scale-105" />
-      </RouterLink>
-      <div class="md:hidden shrink-0">
-        <slot name="sidebar-trigger" />
+  <header class="sticky top-0 z-20 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div
+      class="flex h-14 items-center gap-2 px-4 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-4 md:px-6"
+    >
+      <div class="flex min-w-0 shrink-0 items-center gap-2">
+        <RouterLink to="/" class="group flex shrink-0 items-center gap-2 font-semibold">
+          <SiteLogo :size="36" class="transition-transform group-hover:scale-105" />
+        </RouterLink>
+        <div class="shrink-0 md:hidden">
+          <slot name="sidebar-trigger" />
+        </div>
       </div>
 
-      <nav class="hidden flex-1 items-center gap-6 md:flex">
+      <nav
+        class="hidden items-center justify-center gap-1 md:flex"
+        aria-label="Основная навигация"
+      >
         <RouterLink
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
-          class="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-          :class="{ 'text-foreground': route.path === item.to }"
+          class="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-[color,opacity] hover:text-foreground/90"
+          :class="
+            isNavActive(item.to)
+              ? 'text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/45'
+              : ''
+          "
+          :aria-current="isNavActive(item.to) ? 'page' : undefined"
         >
           {{ item.label }}
         </RouterLink>
       </nav>
 
-      <div class="flex flex-1 items-center justify-end gap-2 md:flex-none">
+      <div class="flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none">
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Тема оформления">
@@ -353,8 +373,13 @@ const navItems = [
               v-for="item in navItems"
               :key="item.to"
               :to="item.to"
-              class="rounded-lg px-3 py-2 text-base font-medium transition-colors hover:bg-accent"
-              :class="route.path === item.to ? 'bg-accent text-accent-foreground' : 'text-foreground'"
+              class="rounded-lg border-l-2 border-transparent py-2 pl-[calc(0.75rem-2px)] pr-3 text-base font-medium transition-colors hover:bg-muted/50"
+              :class="
+                isNavActive(item.to)
+                  ? 'border-primary/35 text-foreground'
+                  : 'text-muted-foreground'
+              "
+              :aria-current="isNavActive(item.to) ? 'page' : undefined"
               @click="mobileMenuOpen = false"
             >
               {{ item.label }}
