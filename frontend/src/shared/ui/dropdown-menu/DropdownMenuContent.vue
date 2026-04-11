@@ -10,11 +10,14 @@ interface Props {
   class?: string;
   align?: 'start' | 'center' | 'end';
   sideOffset?: number;
+  /** 'always' — надёжнее при повторном открытии после смены контента триггера (иконка темы и т.п.) */
+  updatePositionStrategy?: 'optimized' | 'always';
 }
 
 const props = withDefaults(defineProps<Props>(), {
   align: 'end',
   sideOffset: 4,
+  updatePositionStrategy: 'always',
 });
 </script>
 
@@ -24,6 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
     <Root
       :align="props.align"
       :side-offset="props.sideOffset"
+      :update-position-strategy="props.updatePositionStrategy"
       :class="cn(
         'z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md',
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
