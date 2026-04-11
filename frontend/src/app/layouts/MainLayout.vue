@@ -75,13 +75,34 @@ watch(() => route.path, () => {
     <Sheet v-if="showSidebar" v-model:open="sidebarOpen" side="left" class="w-64 p-0 sm:max-w-[14rem] h-full">
       <GameSidebarContent />
     </Sheet>
-    <footer class="border-t py-6 md:py-0">
-      <div class="container flex flex-col items-center justify-between gap-4 md:h-14 md:flex-row">
-        <div class="flex items-center gap-2 text-sm text-muted-foreground">
-          Платформа для развития игровых сообществ<br/>
-          2026 GG-HUB
+    <footer class="landing-home-footer relative border-t border-border/60" aria-label="Подвал страницы">
+      <div
+        class="container grid grid-cols-1 items-center gap-8 py-10 md:grid-cols-[1fr_auto_1fr] md:gap-6 md:py-12"
+      >
+        <div class="text-center text-sm leading-relaxed text-[#4a4a4a] md:justify-self-start md:text-left">
+          <p class="font-medium">Платформа для развития игровых сообществ</p>
+          <p class="mt-1 text-[#5c5c5c]">© 2026 GG-HUB</p>
         </div>
+        <div class="hidden md:block" aria-hidden="true" />
       </div>
     </footer>
   </div>
 </template>
+
+<style scoped>
+/* --- Футер лендинга --- */
+.landing-home-footer {
+  --landing-footer-bg: #ebe9e6;
+  background-color: var(--landing-footer-bg);
+  background-image:
+    radial-gradient(ellipse 140% 100% at 50% -20%, rgba(255, 255, 255, 0.85) 0%, transparent 50%),
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.018) 3px,
+      rgba(0, 0, 0, 0.018) 4px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, transparent 45%);
+}
+</style>

@@ -536,7 +536,10 @@ function closeLandingCtaModal() {
     </section>
 
     <!-- CTA -->
-    <section class="relative flex items-center min-h-screen border-t border-border overflow-hidden" aria-label="Регистрация">
+    <section
+      class="landing-cta-section relative flex min-h-[min(92vh,56rem)] items-end justify-center overflow-hidden border-t border-border"
+      aria-label="Регистрация"
+    >
       <img
         :src="homeCtaImagePath"
         :alt="homeCtaImageAlt"
@@ -547,37 +550,39 @@ function closeLandingCtaModal() {
         class="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center"
         aria-hidden="true"
       />
-      <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-muted/30 to-primary/5" />
+      <div class="landing-cta-scrim" aria-hidden="true" />
       <div
         :ref="setRef('cta')"
         data-reveal-id="cta"
-        class="container relative py-16 md:py-24"
+        class="landing-cta-solid relative z-10 w-full"
       >
-        <div
-          class="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center transition-all duration-700"
-          :class="show('cta') ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'"
-        >
-          <h2 class="player-gradient-text text-3xl font-bold tracking-tight sm:text-4xl">
-            Готов найти свою команду?
-          </h2>
-          <p class="max-w-xl text-lg text-muted-foreground">
-            Следи за запуском: бесплатная платформа для игроков и гильдий MMORPG. Throne and Liberty, Aion 2, Black Desert
-            — каталог гильдий уже доступен.
-          </p>
-          <div class="flex flex-wrap justify-center gap-4">
-            <Button
-              type="button"
-              size="lg"
-              class="hero-btn rounded-lg text-base px-8"
-              @click="openLandingCtaModal('create_account')"
-            >
-              Создать аккаунт
-            </Button>
-            <RouterLink to="/guilds">
-              <Button variant="outline" size="lg" class="rounded-lg text-base px-8 transition-all duration-300 hover:scale-105">
+        <div class="container pb-16 pt-28 md:pb-20 md:pt-36">
+          <div
+            class="mx-auto flex max-w-3xl flex-col items-center gap-5 text-center transition-all duration-700 md:gap-6"
+            :class="show('cta') ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'"
+          >
+            <h2 class="landing-cta-title text-pretty px-2 text-2xl leading-tight sm:text-3xl md:text-4xl lg:text-[2.75rem]">
+              Готов найти свою команду?
+            </h2>
+            <p class="landing-cta-lead max-w-2xl px-2 text-base leading-relaxed text-white/95 md:text-lg">
+              Следи за запуском: бесплатная платформа для игроков и гильдий. Развивай сообщество в Throne and Liberty, Aion
+              2, Black Desert.
+            </p>
+            <div class="mt-2 flex flex-wrap justify-center gap-3 sm:gap-4">
+              <button
+                type="button"
+                class="landing-cta-btn landing-cta-btn--outline rounded-md px-7 py-3 text-base font-medium transition-[transform,box-shadow,background-color] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
+                @click="openLandingCtaModal('create_account')"
+              >
+                Создать аккаунт
+              </button>
+              <RouterLink
+                to="/guilds"
+                class="landing-cta-btn landing-cta-btn--muted inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium no-underline transition-[transform,box-shadow,background-color] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] sm:px-8"
+              >
                 Смотреть гильдии
-              </Button>
-            </RouterLink>
+              </RouterLink>
+            </div>
           </div>
         </div>
       </div>
@@ -703,17 +708,6 @@ function closeLandingCtaModal() {
   animation: gradient-shift 4s ease-in-out infinite;
 }
 
-.player-gradient-text{
-  background: linear-gradient(135deg, oklch(1 0 0) 0%, oklch(1 0 0 / 0.81) 50%, oklch(0.92 0.03 234.14) 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradient-shift 4s ease-in-out infinite;
-  filter: drop-shadow(0 2px 10px hsl(0 0% 0% / 0.35)) drop-shadow(0 1px 2px hsl(0 0% 0% / 0.25));
-  animation: gradient-shift 4s ease-in-out infinite;
-}
-
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% center; }
   50% { background-position: 100% center; }
@@ -760,5 +754,66 @@ function closeLandingCtaModal() {
 }
 .animate-float-slow {
   animation: float-slow 9s ease-in-out infinite;
+}
+
+/* --- Нижний CTA (как на макете) --- */
+.landing-cta-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    hsl(220 18% 8% / 0) 0%,
+    hsl(220 16% 6% / 0.18) 34%,
+    hsl(220 14% 5% / 0.62) 56%,
+    hsl(220 12% 4% / 0.92) 76%,
+    hsl(220 10% 3.5% / 1) 100%
+  );
+}
+
+.landing-cta-solid {
+  position: relative;
+  z-index: 2;
+}
+
+.landing-cta-title {
+  font-weight: 600;
+  text-transform: uppercase;
+
+  background: linear-gradient(180deg, #f5ebd4 0%, #d4af37 38%, #9a7428 72%, #c9a54a 100%);
+  background-size: 100% 140%;
+  background-position: center 30%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 14px hsl(0 0% 0% / 0.45)) drop-shadow(0 0 24px hsl(43 45% 35% / 0.2));
+}
+
+.landing-cta-btn {
+  min-height: 2.75rem;
+  border-width: 1px;
+  border-color: #c9a54a;
+  color: #e8cf8a;
+  text-shadow: 0 1px 2px hsl(0 0% 0% / 0.35);
+}
+
+.landing-cta-btn--outline {
+  background-color: transparent;
+}
+
+.landing-cta-btn--outline:hover {
+  background-color: hsl(43 35% 40% / 0.12);
+  box-shadow: 0 0 0 1px hsl(43 50% 55% / 0.35);
+}
+
+.landing-cta-btn--muted {
+  background-color: hsl(0 0% 100% / 0.08);
+  border: 1px solid #c9a54a;
+  color: #e8cf8a;
+}
+
+.landing-cta-btn--muted:hover {
+  background-color: hsl(0 0% 100% / 0.14);
 }
 </style>
