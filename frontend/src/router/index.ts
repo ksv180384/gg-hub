@@ -54,9 +54,11 @@ const routes: RouteRecordRaw[] = [
         },
         {
           path: 'guilds/:id/roster',
-          name: 'guild-roster',
-          component: () => import('@/pages/guilds/[id]/roster/index.vue'),
-          meta: { requiresAuth: true, title: 'Состав гильдии' },
+          redirect: (to) => ({
+            name: 'guild-info',
+            params: { id: to.params.id as string },
+            query: { tab: 'roster' },
+          }),
         },
         {
           path: 'guilds/:id/roster/:characterId',

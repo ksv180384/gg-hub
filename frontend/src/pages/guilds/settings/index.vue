@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'radix-vue';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Avatar, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Badge, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import RichTextEditor from '@/shared/ui/rich-text-editor/RichTextEditor.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
@@ -787,21 +787,22 @@ onMounted(async () => {
                 Выберите теги для гильдии или добавьте новый — он станет доступен всем.
               </p>
               <div v-if="selectedTagIds.length" class="flex flex-wrap gap-2">
-                <label
+                <template
                   v-for="tag in allTags.filter((t) => selectedTagIds.includes(t.id))"
                   :key="tag.id"
-                  class="flex cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
-                  :class="{ 'bg-primary text-primary-foreground': selectedTagIds.includes(tag.id) }"
                 >
-                  <input
-                    type="checkbox"
-                    :checked="true"
-                    class="sr-only"
-                    :disabled="!isOwner"
-                    @change="toggleTag(tag.id)"
+                  <Badge v-if="!isOwner" variant="secondary">
+                    {{ tag.name }}
+                  </Badge>
+                  <button
+                    v-else
+                    type="button"
+                    class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    @click="toggleTag(tag.id)"
                   >
-                  {{ tag.name }}
-                </label>
+                    <Badge variant="secondary">{{ tag.name }}</Badge>
+                  </button>
+                </template>
               </div>
               <div class="space-y-1">
                 <Label for="tag-select" class="text-muted-foreground">Добавить тег</Label>
@@ -822,14 +823,12 @@ onMounted(async () => {
                     >
                       {{ tag.name }}
                     </SelectItem>
-                    <div
-                      class="border-t border-border p-1"
-                      @mousedown.prevent
-                    >
+                    <div class="border-t border-border p-1">
                       <template v-if="!addingNewTag">
                         <button
                           type="button"
                           class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
+                          @mousedown.prevent
                           @click="addingNewTag = true"
                         >
                           <span class="text-base leading-none">+</span>
@@ -837,12 +836,16 @@ onMounted(async () => {
                         </button>
                       </template>
                       <template v-else>
-                        <div class="flex flex-col gap-2 p-1">
+                        <div
+                          class="flex flex-col gap-2 p-1"
+                          @pointerdown.stop
+                        >
                           <Input
                             v-model="newTagName"
                             placeholder="Название тега"
                             class="h-8 text-sm"
                             :disabled="creatingTag"
+                            autofocus
                             @keydown.enter.prevent="createAndAddTag"
                           />
                           <div class="flex gap-1">

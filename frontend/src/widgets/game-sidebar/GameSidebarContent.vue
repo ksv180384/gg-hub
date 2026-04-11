@@ -20,10 +20,12 @@ const guildsLoading = ref(false);
 /** Множество id гильдий с раскрытым подменю (можно держать открытыми несколько). */
 const openGuildIds = ref<Set<number>>(new Set());
 
-const guildSubmenuItems: { pathSuffix: string; label: string }[] = [
+type GuildSubmenuItem = { pathSuffix: string; label: string; query?: Record<string, string> };
+
+const guildSubmenuItems: GuildSubmenuItem[] = [
   { pathSuffix: '/posts', label: 'Журнал гильдии' },
   { pathSuffix: '/settings', label: 'Информация' },
-  { pathSuffix: '/roster', label: 'Состав' },
+  { pathSuffix: '/info', label: 'Состав', query: { tab: 'roster' } },
   { pathSuffix: '/raids', label: 'Рейды|Группы|КП' },
   { pathSuffix: '/applications', label: 'Заявки и приглашения' },
   { pathSuffix: '/calendar', label: 'Календарь событий' },
@@ -35,6 +37,43 @@ const guildSubmenuItems: { pathSuffix: string; label: string }[] = [
 
 function guildPath(guildId: number, pathSuffix: string): string {
   return `/guilds/${guildId}${pathSuffix}`;
+}
+
+function guildItemLocation(guildId: number, item: GuildSubmenuItem) {
+  const path = guildPath(guildId, item.pathSuffix);
+  if (item.query && Object.keys(item.query).length > 0) {
+    return { path, query: { ...item.query } };
+  }
+  return path;
+}
+
+function isGuildSubmenuActive(guildId: number, item: GuildSubmenuItem): boolean {
+  const base = guildPath(guildId, item.pathSuffix);
+  if (route.path !== base && !route.path.startsWith(base + '/')) {
+    return false;
+  }
+  if (item.query) {
+    for (const [key, val] of Object.entries(item.query)) {
+      if (String(route.query[key] ?? '') !== String(val)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function isRosterInfoNavItem(item: GuildSubmenuItem): boolean {
+  return item.pathSuffix === '/info' && item.query?.tab === 'roster';
+}
+
+/** Пункт «Состав» — только если в гильдии включён показ состава всем. */
+function guildSubmenuItemsForGuild(guild: UserGuildItem): GuildSubmenuItem[] {
+  return guildSubmenuItems.filter((item) => {
+    if (isRosterInfoNavItem(item)) {
+      return guild.show_roster_to_all === true;
+    }
+    return true;
+  });
 }
 
 const adminJournal = useAdminJournalStore();
@@ -74,15 +113,6 @@ const sidebarTitle = computed(() => {
 
 const isAdminRoute = (path: string) =>
   route.path === path || route.path.startsWith(path + '/');
-
-function isGuildRoute(guildId: number, pathSuffix: string): boolean {
-  if (pathSuffix === '') {
-    const base = `/guilds/${guildId}`;
-    return route.path === base || route.path === base + '/';
-  }
-  const path = guildPath(guildId, pathSuffix);
-  return route.path === path || route.path.startsWith(path + '/');
-}
 
 async function loadAdminPendingCount() {
   if (!showAdminBlock.value) return;
@@ -237,13 +267,13 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
                 class="ml-2 mt-1 flex flex-col gap-0.5 border-l border-[var(--sidebar-border)] pl-2"
               >
                 <RouterLink
-                  v-for="item in guildSubmenuItems"
-                  :key="item.pathSuffix || 'journal'"
+                  v-for="item in guildSubmenuItemsForGuild(guild)"
+                  :key="item.pathSuffix + (item.query ? JSON.stringify(item.query) : '')"
                   v-show="item.pathSuffix !== '/roles' || guild.can_access_roles"
-                  :to="guildPath(guild.id, item.pathSuffix)"
+                  :to="guildItemLocation(guild.id, item)"
                   :class="cn(
                     'rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
-                    isGuildRoute(guild.id, item.pathSuffix)
+                    isGuildSubmenuActive(guild.id, item)
                       ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
                       : ''
                   )"

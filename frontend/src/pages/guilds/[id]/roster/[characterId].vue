@@ -39,7 +39,11 @@ function avatarFallback(name: string): string {
 }
 
 function backToRoster() {
-  router.push({ name: 'guild-roster', params: { id: String(guildId.value) } });
+  router.push({
+    name: 'guild-info',
+    params: { id: String(guildId.value) },
+    query: { tab: 'roster' },
+  });
 }
 
 async function loadData() {

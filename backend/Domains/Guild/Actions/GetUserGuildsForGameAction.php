@@ -26,7 +26,7 @@ class GetUserGuildsForGameAction
      * Гильдии текущей игры, в которых состоит пользователь (хотя бы один его персонаж в гильдии).
      * Для каждой гильдии: is_leader, can_access_roles (доступ к странице «Роли членов гильдии»).
      *
-     * @return Collection<int, array{id: int, name: string, is_leader: bool, can_access_roles: bool}>
+     * @return Collection<int, array{id: int, name: string, is_leader: bool, can_access_roles: bool, can_invite: bool, show_roster_to_all: bool}>
      */
     public function __invoke(User $user, int $gameId): Collection
     {
@@ -60,6 +60,7 @@ class GetUserGuildsForGameAction
                     (int) $guild->leader->user_id === (int) $user->id,
                 'can_access_roles' => $canAccessRoles,
                 'can_invite' => $canInvite,
+                'show_roster_to_all' => (bool) $guild->show_roster_to_all,
             ];
         });
     }

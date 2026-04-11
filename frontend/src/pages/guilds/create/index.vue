@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  Badge,
   Card,
   CardContent,
   CardHeader,
@@ -272,20 +273,19 @@ watch(availableLocalizations, (list) => {
             <div v-if="tags.length" class="space-y-2">
               <Label>Теги</Label>
               <div class="flex flex-wrap gap-2">
-                <label
+                <button
                   v-for="tag in tags"
                   :key="tag.id"
-                  class="flex cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
-                  :class="{ 'bg-primary text-primary-foreground': selectedTagIds.includes(tag.id) }"
+                  type="button"
+                  class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  @click="toggleTag(tag.id)"
                 >
-                  <input
-                    type="checkbox"
-                    :checked="selectedTagIds.includes(tag.id)"
-                    class="sr-only"
-                    @change="toggleTag(tag.id)"
+                  <Badge
+                    :variant="selectedTagIds.includes(tag.id) ? 'secondary' : 'outline'"
                   >
-                  {{ tag.name }}
-                </label>
+                    {{ tag.name }}
+                  </Badge>
+                </button>
               </div>
             </div>
 

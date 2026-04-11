@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/shared/ui';
+import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
-import { guildsApi, type Guild } from '@/shared/api/guildsApi';
+import { guildsApi, type Guild, type GuildRosterMember } from '@/shared/api/guildsApi';
 import { ref, computed, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
 
-type TabId = 'about' | 'charter';
+type TabId = 'about' | 'charter' | 'roster';
 
 const route = useRoute();
 const router = useRouter();
@@ -15,19 +16,125 @@ const guild = ref<Guild | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
-const tabs: { id: TabId; label: string }[] = [
-  { id: 'about', label: 'О гильдии' },
-  { id: 'charter', label: 'Устав' },
-];
+const roster = ref<GuildRosterMember[]>([]);
+const rosterLoading = ref(false);
+const rosterFetched = ref(false);
+const rosterErrorStatus = ref<number | null>(null);
+
+function avatarFallback(name: string): string {
+  if (!name?.trim()) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+/** Состав на странице информации — только если в настройках включено «Показывать состав всем». */
+const showRosterSection = computed(() => guild.value?.show_roster_to_all ?? false);
+
+const rosterNeedsLogin = computed(
+  () =>
+    !!guild.value?.show_roster_to_all &&
+    rosterFetched.value &&
+    !rosterLoading.value &&
+    rosterErrorStatus.value === 401
+);
+
+async function loadRoster() {
+  if (!guildId.value || Number.isNaN(guildId.value)) return;
+  rosterLoading.value = true;
+  rosterErrorStatus.value = null;
+  roster.value = [];
+  try {
+    roster.value = await guildsApi.getGuildRoster(guildId.value);
+  } catch (e: unknown) {
+    const err = e as { status?: number };
+    rosterErrorStatus.value = err.status ?? -1;
+  } finally {
+    rosterLoading.value = false;
+    rosterFetched.value = true;
+  }
+}
+
+const visibleTabs = computed(() => {
+  const all: { id: TabId; label: string }[] = [
+    { id: 'about', label: 'О гильдии' },
+    { id: 'charter', label: 'Устав' },
+    { id: 'roster', label: 'Состав гильдии' },
+  ];
+  if (!showRosterSection.value) {
+    return all.filter((t) => t.id !== 'roster');
+  }
+  return all;
+});
 
 const activeTab = ref<TabId>('about');
+
+function setTab(id: TabId) {
+  if (id === 'roster' && !showRosterSection.value) return;
+  activeTab.value = id;
+  if (id === 'roster') {
+    router.replace({
+      name: 'guild-info',
+      params: { id: String(guildId.value) },
+      query: { ...route.query, tab: 'roster' },
+    });
+  } else {
+    const { tab: _removed, ...rest } = route.query;
+    router.replace({
+      name: 'guild-info',
+      params: { id: String(guildId.value) },
+      ...(Object.keys(rest).length > 0 ? { query: rest } : {}),
+    });
+  }
+}
+
+watch(
+  () => [String(route.query.tab ?? ''), showRosterSection.value] as const,
+  ([tab, showRoster]) => {
+    if (tab === 'roster' && showRoster) {
+      activeTab.value = 'roster';
+    }
+  },
+  { immediate: true }
+);
+
+watch(visibleTabs, (tabs) => {
+  if (!tabs.some((t) => t.id === activeTab.value)) {
+    activeTab.value = 'about';
+  }
+});
+
+watch(showRosterSection, (show) => {
+  if (!show && activeTab.value === 'roster') {
+    activeTab.value = 'about';
+    if (route.query.tab === 'roster') {
+      const { tab: _t, ...rest } = route.query;
+      router.replace({
+        name: 'guild-info',
+        params: { id: String(guildId.value) },
+        ...(Object.keys(rest).length > 0 ? { query: rest } : {}),
+      });
+    }
+  }
+});
 
 async function loadGuild() {
   if (!guildId.value) return;
   loading.value = true;
   error.value = null;
+  rosterFetched.value = false;
+  roster.value = [];
+  rosterErrorStatus.value = null;
   try {
     guild.value = await guildsApi.getGuild(guildId.value);
+    if (guild.value.show_roster_to_all) {
+      void loadRoster();
+    } else {
+      rosterFetched.value = true;
+      rosterLoading.value = false;
+      roster.value = [];
+      rosterErrorStatus.value = null;
+    }
   } catch (e: unknown) {
     const err = e as { status?: number };
     if (err.status === 404) {
@@ -84,6 +191,19 @@ function goToApplication() {
               />
               <span v-else class="text-sm text-muted-foreground">Нет логотипа</span>
             </div>
+            <div
+              v-if="guild.tags?.length"
+              class="mt-3 flex w-full max-w-[290px] flex-wrap justify-center gap-1.5 px-1"
+            >
+              <Badge
+                v-for="tag in guild.tags"
+                :key="tag.id"
+                variant="outline"
+                class="text-xs font-normal"
+              >
+                {{ tag.name }}
+              </Badge>
+            </div>
             <div class="mt-3 flex w-full max-w-[290px] flex-col items-center gap-1 text-center text-sm">
               <div class="font-medium text-foreground">
                 Лидер: {{ guild.leader?.name ?? '—' }}
@@ -106,7 +226,7 @@ function goToApplication() {
           <div class="min-w-0 flex-1 order-2 md:order-2">
             <div class="mb-4 flex flex-wrap gap-1 border-b">
               <button
-                v-for="t in tabs"
+                v-for="t in visibleTabs"
                 :key="t.id"
                 type="button"
                 :aria-label="t.label"
@@ -116,7 +236,7 @@ function goToApplication() {
                     ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 "
-                @click="activeTab = t.id"
+                @click="setTab(t.id)"
               >
                 <span class="flex shrink-0 md:hidden" aria-hidden="true">
                   <svg v-if="t.id === 'about'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -130,6 +250,12 @@ function goToApplication() {
                     <path d="M16 13H8" />
                     <path d="M16 17H8" />
                     <path d="M10 9H8" />
+                  </svg>
+                  <svg v-else-if="t.id === 'roster'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 </span>
                 <span class="hidden md:inline">{{ t.label }}</span>
@@ -164,6 +290,97 @@ function goToApplication() {
                   {{ guild.charter_text }}
                 </p>
                 <p v-else class="text-sm text-muted-foreground">—</p>
+              </CardContent>
+            </Card>
+
+            <!-- Вкладка: Состав гильдии -->
+            <Card
+              v-show="activeTab === 'roster' && showRosterSection"
+              class="mb-6 border-0 shadow-none"
+              aria-labelledby="guild-info-roster-heading"
+            >
+              <CardHeader>
+                <CardTitle id="guild-info-roster-heading">Состав гильдии</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p v-if="guild?.show_roster_to_all && rosterLoading" class="text-sm text-muted-foreground">
+                  Загрузка состава…
+                </p>
+                <p v-else-if="rosterNeedsLogin" class="text-sm text-muted-foreground">
+                  Состав открыт для просмотра всем пользователям сайта.
+                  <RouterLink
+                    :to="{ name: 'login', query: { redirect: route.fullPath } }"
+                    class="font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Войдите в аккаунт
+                  </RouterLink>
+                  , чтобы увидеть список участников.
+                </p>
+                <p
+                  v-else-if="rosterFetched && rosterErrorStatus != null && rosterErrorStatus !== 401 && rosterErrorStatus !== 403"
+                  class="text-sm text-destructive"
+                >
+                  Не удалось загрузить состав. Попробуйте обновить страницу.
+                </p>
+                <template v-else-if="!rosterNeedsLogin && rosterFetched && !rosterLoading && rosterErrorStatus === null">
+                  <p v-if="roster.length === 0" class="text-sm text-muted-foreground">
+                    В гильдии пока никого нет.
+                  </p>
+                  <div
+                    v-else
+                    class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                  >
+                    <RouterLink
+                      v-for="member in roster"
+                      :key="member.character_id"
+                      :to="{ name: 'guild-roster-member', params: { id: String(guildId), characterId: String(member.character_id) } }"
+                      class="block transition-opacity hover:opacity-90 focus-visible:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <Card class="h-full overflow-hidden">
+                        <CardContent class="flex flex-col items-start gap-3 p-4">
+                          <div class="flex w-full items-center gap-3">
+                            <Avatar
+                              :src="member.avatar_url ?? undefined"
+                              :alt="member.name"
+                              :fallback="avatarFallback(member.name)"
+                              class="h-12 w-12 shrink-0 md:h-14 md:w-14"
+                            />
+                            <div class="min-w-0 flex-1">
+                              <p class="truncate font-medium">{{ member.name }}</p>
+                              <Badge
+                                v-if="member.guild_role"
+                                variant="secondary"
+                                class="mt-1 text-xs"
+                              >
+                                {{ member.guild_role.name }}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div v-if="member.game_classes.length > 0" class="flex flex-wrap gap-1">
+                            <Badge
+                              v-for="gc in member.game_classes"
+                              :key="gc.id"
+                              variant="outline"
+                              class="text-xs"
+                            >
+                              {{ gc.name_ru ?? gc.name }}
+                            </Badge>
+                          </div>
+                          <div v-if="member.tags.length > 0" class="flex flex-wrap gap-1">
+                            <Badge
+                              v-for="tag in member.tags"
+                              :key="tag.id"
+                              variant="secondary"
+                              class="text-xs"
+                            >
+                              {{ tag.name }}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </RouterLink>
+                  </div>
+                </template>
               </CardContent>
             </Card>
           </div>

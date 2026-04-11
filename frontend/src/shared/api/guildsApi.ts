@@ -5,7 +5,6 @@
 import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 import type { PermissionGroupDto } from '@/shared/api/accessApi';
-import type { Tag } from '@/shared/api/tagsApi';
 
 export interface GuildGame {
   id: number;
@@ -24,12 +23,19 @@ export interface GuildLocalization {
 export interface GuildServer {
   id: number;
   name: string;
+  slug?: string;
+}
+
+/** Тег гильдии в ответе API (только отображение). */
+export interface GuildTagLabel {
+  id: number;
+  name: string;
 }
 
 export interface GuildLeader {
   id: number;
   name: string;
-  server_id: number;
+  server_id?: number;
 }
 
 /** Гильдия пользователя для меню (текущая игра). */
@@ -41,6 +47,8 @@ export interface UserGuildItem {
   can_access_roles?: boolean;
   /** Право приглашать в гильдию (подтверждение/отклонение заявок). */
   can_invite?: boolean;
+  /** Включён показ состава на странице «О гильдии» для всех (пункт «Состав» в меню). */
+  show_roster_to_all?: boolean;
 }
 
 export interface Guild {
@@ -48,7 +56,8 @@ export interface Guild {
   name: string;
   slug: string;
   description: string | null;
-  logo_path: string | null;
+  /** Внутренний путь к файлу (если когда-либо вернётся с API). */
+  logo_path?: string | null;
   logo_url: string | null;
   /** URL логотипа 350px для карточек (если есть). */
   logo_card_url?: string | null;
@@ -66,7 +75,7 @@ export interface Guild {
   game?: GuildGame;
   localization?: GuildLocalization;
   server?: GuildServer;
-  tags?: Tag[];
+  tags?: GuildTagLabel[];
   /** Дополнительные поля формы заявки (приходит с GET /guilds/:id/settings). */
   application_form_fields?: GuildApplicationFormFieldDto[];
   /** Права текущего пользователя в гильдии (приходит только с GET /guilds/:id/settings). */
