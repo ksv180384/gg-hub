@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
 # Пустая папка vite/ на volume проходит [ -d ... ], но без package.json Node ищет index.js и падает.
-if [ ! -f /gg/node_modules/express/package.json ] || [ ! -f /gg/node_modules/vite/package.json ]; then
+# exceljs — прямая зависимость для Vite/Rollup (динамический import); старый volume без неё давал «failed to resolve».
+if [ ! -f /gg/node_modules/express/package.json ] || [ ! -f /gg/node_modules/vite/package.json ] || [ ! -f /gg/node_modules/exceljs/package.json ]; then
   echo "[entrypoint] node_modules volume is empty/stale — syncing from image cache..."
   if [ ! -f /opt/_node_modules_cache/vite/package.json ]; then
     echo "[entrypoint] FATAL: rebuild image: docker compose build --no-cache gg-frontend"

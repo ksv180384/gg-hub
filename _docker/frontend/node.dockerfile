@@ -12,7 +12,10 @@ RUN --mount=type=cache,target=/root/.npm \
     && npm config set fetch-retry-mintimeout 15000 \
     && npm config set fetch-retry-maxtimeout 180000 \
     && npm config set fetch-timeout 600000 \
-    && (npm ci --no-audit --no-fund --include=dev || npm install --no-audit --no-fund --include=dev)
+    && (npm ci --no-audit --no-fund --include=dev || npm install --no-audit --no-fund --include=dev) \
+    && test -f node_modules/exceljs/package.json
+
+# Если после смены зависимостей образ всё ещё без новых пакетов: docker compose build --no-cache gg-frontend
 
 # Кэш вне /gg: bind-mount ./frontend:/gg скрывает всё под /gg из образа, иначе entrypoint не видит кэш
 RUN cp -a node_modules /opt/_node_modules_cache
