@@ -25,7 +25,7 @@ type GuildSubmenuItem = { pathSuffix: string; label: string; query?: Record<stri
 const guildSubmenuItems: GuildSubmenuItem[] = [
   { pathSuffix: '/posts', label: 'Журнал гильдии' },
   { pathSuffix: '/settings', label: 'Информация' },
-  { pathSuffix: '/info', label: 'Состав', query: { tab: 'roster' } },
+  { pathSuffix: '/roster', label: 'Состав' },
   { pathSuffix: '/raids', label: 'Рейды|Группы|КП' },
   { pathSuffix: '/applications', label: 'Заявки и приглашения' },
   { pathSuffix: '/calendar', label: 'Календарь событий' },
@@ -60,20 +60,6 @@ function isGuildSubmenuActive(guildId: number, item: GuildSubmenuItem): boolean 
     }
   }
   return true;
-}
-
-function isRosterInfoNavItem(item: GuildSubmenuItem): boolean {
-  return item.pathSuffix === '/info' && item.query?.tab === 'roster';
-}
-
-/** Пункт «Состав» — только если в гильдии включён показ состава всем. */
-function guildSubmenuItemsForGuild(guild: UserGuildItem): GuildSubmenuItem[] {
-  return guildSubmenuItems.filter((item) => {
-    if (isRosterInfoNavItem(item)) {
-      return guild.show_roster_to_all === true;
-    }
-    return true;
-  });
 }
 
 const adminJournal = useAdminJournalStore();
@@ -267,7 +253,7 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
                 class="ml-2 mt-1 flex flex-col gap-0.5 border-l border-[var(--sidebar-border)] pl-2"
               >
                 <RouterLink
-                  v-for="item in guildSubmenuItemsForGuild(guild)"
+                  v-for="item in guildSubmenuItems"
                   :key="item.pathSuffix + (item.query ? JSON.stringify(item.query) : '')"
                   v-show="item.pathSuffix !== '/roles' || guild.can_access_roles"
                   :to="guildItemLocation(guild.id, item)"

@@ -60,6 +60,7 @@ class GetUserGuildPermissionSlugsAction
                 'meniat-izieniat-polzovateliu-rol',
                 'izmeniat-prava-roli',
                 'udaliat-rol',
+                'iskliucenie-polzovatelia-iz-gildii',
             ]);
         }
 

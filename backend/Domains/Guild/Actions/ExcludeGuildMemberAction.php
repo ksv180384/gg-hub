@@ -53,6 +53,8 @@ final class ExcludeGuildMemberAction
             $excluderCharacterName = $excluderMember->character->name;
         }
 
+        // Участники кроме исключающего; исключённый пользователь добавляется явно — иначе при совпадении
+        // user_id исключающего и исключённого (разные персонажи одного аккаунта) личное оповещение не создаётся.
         $recipientUserIds = $guild->members()
             ->with('character')
             ->get()
@@ -61,8 +63,13 @@ final class ExcludeGuildMemberAction
             ->unique()
             ->values()
             ->reject(fn ($userId) => (int) $userId === (int) $excludedBy->id)
-            ->values()
-            ->all();
+            ->values();
+
+        if ($excludedUserId > 0) {
+            $recipientUserIds->push($excludedUserId);
+        }
+
+        $recipientUserIds = $recipientUserIds->unique()->values()->all();
 
         $member->delete();
 

@@ -24,8 +24,10 @@ const props = withDefaults(
     spinDisabled?: boolean;
     /** false — не показывать кнопку «Крутить» (только просмотр / синхронный розыгрыш с сервера). */
     showSpinButton?: boolean;
+    /** true — не показывать обратный отсчёт под колесом (его выводит родитель). */
+    hideInlineCountdown?: boolean;
   }>(),
-  { size: 400, remoteSpin: false, spinDisabled: false, showSpinButton: true }
+  { size: 400, remoteSpin: false, spinDisabled: false, showSpinButton: true, hideInlineCountdown: false }
 );
 
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -39,6 +41,8 @@ const emit = defineEmits<{
   (e: 'result', value: string | null): void;
   /** Длительность вращения (мс) для сервера при синхронном режиме. */
   (e: 'spin-request', durationMs: number): void;
+  /** Начало вращения (локально, с сервера или сразу после нажатия «Крутить» в remote-режиме). */
+  (e: 'spin-start'): void;
 }>();
 
 const { angle, result, isSpinning, spinCountdownSeconds, spin, spinFromServer } = useSpinWheel(
@@ -55,11 +59,16 @@ defineExpose({
 function onSpinClick() {
   if (props.spinDisabled || isSpinning.value) return;
   if (props.remoteSpin) {
+    emit('spin-start');
     emit('spin-request', props.duration ?? 4000);
     return;
   }
   spin();
 }
+
+watch(isSpinning, (spinning) => {
+  if (spinning) emit('spin-start');
+});
 
 watch(result, (v) => emit('result', v));
 
@@ -208,7 +217,7 @@ function drawPointer(ctx: CanvasRenderingContext2D) {
     </div>
 
     <div
-      v-if="spinCountdownSeconds !== null"
+      v-if="!hideInlineCountdown && spinCountdownSeconds !== null"
       class="min-h-[1.75rem] text-center text-xl font-semibold tabular-nums tracking-tight text-foreground"
       aria-live="polite"
       role="status"

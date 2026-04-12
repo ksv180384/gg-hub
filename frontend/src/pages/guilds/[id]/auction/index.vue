@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, shallowRef } from 'vue';
+import { ref, computed, watch, shallowRef, unref } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   Card,
@@ -278,6 +278,10 @@ function onSpinWheelResult(value: string | null) {
   }
 }
 
+function onSpinWheelStart() {
+  wheelSpinResult.value = null;
+}
+
 watch(wheelOptions, (opts) => {
   if (opts.length === 0 || (opts.length === 1 && opts[0] === 'Добавьте участников')) {
     wheelSpinResult.value = null;
@@ -307,6 +311,13 @@ function clampWheelSpinSecondsField() {
 }
 
 const spinWheelRef = shallowRef<GuildAuctionSpinWheelExpose | null>(null);
+
+/** Обратный отсчёт вращения: для строки с длительностью вместо подсказки «Допустимо 2–60 с.». */
+const wheelSpinCountdownSeconds = computed(() => {
+  const w = spinWheelRef.value;
+  if (!w?.spinCountdownSeconds) return null;
+  return unref(w.spinCountdownSeconds);
+});
 
 const {
   socketConfigured,
@@ -374,15 +385,9 @@ const {
                     class="flex w-full min-w-0 justify-center sm:w-auto sm:max-w-full sm:justify-end"
                   >
                     <div
-                      class="auction-wheel-winner-burst relative inline-flex max-w-full min-w-0 flex-nowrap items-center gap-2 overflow-hidden rounded-lg border border-amber-700/45 px-3 py-1.5 shadow-md sm:text-left"
+                      class="auction-wheel-winner-burst relative inline-flex max-w-full min-w-0 flex-nowrap items-center overflow-hidden rounded-lg border border-amber-700/45 px-3 py-1.5 shadow-md sm:text-left"
                       role="status"
                     >
-                      <span
-                        class="relative z-10 shrink-0 text-[0.65rem] font-bold uppercase tracking-wider text-amber-950"
-                      >
-                        Победитель
-                      </span>
-                      <span class="relative z-10 shrink-0 text-amber-950/55">·</span>
                       <span
                         class="relative z-10 min-w-0 truncate text-base font-bold leading-none text-amber-950 sm:text-lg"
                       >
@@ -450,7 +455,15 @@ const {
                   @blur="clampWheelSpinSecondsField"
                 />
               </div>
-              <p class="max-w-md text-center text-xs text-muted-foreground sm:text-left">
+              <p
+                v-if="wheelSpinCountdownSeconds !== null"
+                class="max-w-md text-center text-sm font-semibold tabular-nums text-foreground sm:text-left"
+                aria-live="polite"
+                role="status"
+              >
+                Осталось {{ wheelSpinCountdownSeconds }}&nbsp;с
+              </p>
+              <p v-else class="max-w-md text-center text-xs text-muted-foreground sm:text-left">
                 Допустимо {{ WHEEL_SPIN_SEC_MIN }}–{{ WHEEL_SPIN_SEC_MAX }} с.
               </p>
             </div>
@@ -463,7 +476,9 @@ const {
                 :remote-spin="remoteSpin"
                 :show-spin-button="canManageRoulette"
                 :spin-disabled="wheelEntries.length === 0"
+                :hide-inline-countdown="canManageRoulette"
                 @result="onSpinWheelResult"
+                @spin-start="onSpinWheelStart"
                 @spin-request="requestSpin"
               />
             </div>

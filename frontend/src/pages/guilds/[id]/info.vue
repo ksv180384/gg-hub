@@ -21,6 +21,8 @@ const rosterLoading = ref(false);
 const rosterFetched = ref(false);
 const rosterErrorStatus = ref<number | null>(null);
 
+const activeTab = ref<TabId>('about');
+
 function avatarFallback(name: string): string {
   if (!name?.trim()) return '?';
   const parts = name.trim().split(/\s+/);
@@ -28,7 +30,7 @@ function avatarFallback(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-/** Состав на странице информации — только если в настройках включено «Показывать состав всем». */
+/** Вкладка состава — только при настройке «Показывать состав гильдии всем пользователям». */
 const showRosterSection = computed(() => guild.value?.show_roster_to_all ?? false);
 
 const rosterNeedsLogin = computed(
@@ -66,8 +68,6 @@ const visibleTabs = computed(() => {
   }
   return all;
 });
-
-const activeTab = ref<TabId>('about');
 
 function setTab(id: TabId) {
   if (id === 'roster' && !showRosterSection.value) return;
@@ -293,7 +293,7 @@ function goToApplication() {
               </CardContent>
             </Card>
 
-            <!-- Вкладка: Состав гильдии -->
+            <!-- Вкладка: Состав гильдии (публичный просмотр при show_roster_to_all) -->
             <Card
               v-show="activeTab === 'roster' && showRosterSection"
               class="mb-6 border-0 shadow-none"

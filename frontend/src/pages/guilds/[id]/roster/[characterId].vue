@@ -40,9 +40,8 @@ function avatarFallback(name: string): string {
 
 function backToRoster() {
   router.push({
-    name: 'guild-info',
+    name: 'guild-roster',
     params: { id: String(guildId.value) },
-    query: { tab: 'roster' },
   });
 }
 
@@ -238,7 +237,14 @@ watch([guildId, characterId], () => loadData());
       @update:open="(v) => { if (!v) closeExcludeDialog(); }"
     >
       <template #description>
-        <p>Вы уверены, что хотите исключить этого участника из гильдии? Отменить действие будет нельзя.</p>
+        <p v-if="member && guild">
+          Исключить персонажа
+          <span class="font-medium text-foreground">{{ member.name }}</span>
+          из гильдии
+          <span class="font-medium text-foreground">«{{ guild.name }}»</span>?
+          Это действие нельзя отменить.
+        </p>
+        <p v-else>Исключить этого участника из гильдии? Это действие нельзя отменить.</p>
         <p v-if="excludeError" class="mt-2 text-sm text-destructive">{{ excludeError }}</p>
       </template>
     </ConfirmDialog>

@@ -1,5 +1,15 @@
 import type { SpinWheelServerParams } from '@/shared/lib/spinWheelTypes';
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue';
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  ref,
+  shallowRef,
+  watch,
+  type Ref,
+  type ShallowRef,
+} from 'vue';
 import { io, type Socket } from 'socket.io-client';
 
 export type GuildAuctionWheelEntry =
@@ -8,6 +18,8 @@ export type GuildAuctionWheelEntry =
 
 export type GuildAuctionSpinWheelExpose = {
   spinFromServer: (p: SpinWheelServerParams) => void;
+  spinCountdownSeconds: Ref<number | null>;
+  isSpinning: Ref<boolean>;
 };
 
 function normalizeEntries(raw: unknown): GuildAuctionWheelEntry[] {
