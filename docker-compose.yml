@@ -35,8 +35,11 @@ services:
             - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
             - NODE_ENV=${NODE_ENV}
             - VITE_SSR_API_ORIGIN=${VITE_SSR_API_ORIGIN:-http://gg-nginx:81}
+            # Прокси Vite dev → socket_server (браузер ходит на тот же origin, /socket.io)
+            - VITE_SOCKET_DEV_PROXY_TARGET=${VITE_SOCKET_DEV_PROXY_TARGET:-http://socket-server-nodejs:3007}
         depends_on:
             - gg-nginx
+            - socket-server-nodejs
         networks:
             - gg
 
@@ -108,8 +111,11 @@ services:
         restart: unless-stopped
         volumes:
             - ./socket_server:/var/www/socket_server
-        #      - ./_docker/nodejs/entrypoint.sh:/var/www/chat-vue.local/entrypoint.sh
-        command: npm run dev
+            # Свой node_modules в контейнере (Linux): иначе с хоста подтягиваются .bin без +x → nodemon: Permission denied
+            - socket_server_node_modules:/var/www/socket_server/node_modules
+        environment:
+            NODE_ENV: development
+        command: sh -c "npm install && npm run dev"
         ports:
             - "3007:3007"
         networks:
@@ -140,6 +146,7 @@ services:
 
 volumes:
     frontend_node_modules:
+    socket_server_node_modules:
 
 networks:
     gg:

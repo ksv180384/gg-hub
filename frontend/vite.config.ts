@@ -73,7 +73,14 @@ export default defineConfig(({ mode }) => {
                     secure: false,
                     // logLevel: 'debug'
                 },
-            }
+                /** Socket.IO: в Docker задайте VITE_SOCKET_DEV_PROXY_TARGET=http://socket-server-nodejs:3007 */
+                '/socket.io': {
+                    target:
+                        process.env.VITE_SOCKET_DEV_PROXY_TARGET || 'http://127.0.0.1:3007',
+                    changeOrigin: true,
+                    ws: true,
+                },
+            },
         },
         plugins: [
             injectHomeSeoPlugin(mode),

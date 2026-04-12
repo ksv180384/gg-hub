@@ -2,7 +2,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Card, CardHeader, CardTitle, CardContent, Button } from '@/shared/ui';
-import { eventHistoryApi, type EventHistoryItem } from '@/shared/api/eventHistoryApi';
+import {
+  eventHistoryApi,
+  type EventHistoryItem,
+  type EventHistoryParticipantDto,
+} from '@/shared/api/eventHistoryApi';
 
 const route = useRoute();
 const router = useRouter();
@@ -18,6 +22,13 @@ const item = ref<EventHistoryItem | null>(null);
 const lightboxOpen = ref(false);
 const lightboxUrl = ref<string | null>(null);
 const lightboxTitle = ref<string | null>(null);
+
+const exportParticipantsLoading = ref(false);
+const exportParticipantsError = ref('');
+
+function isExternalEventParticipant(p: EventHistoryParticipantDto): boolean {
+  return p.character_id == null;
+}
 
 function formatDateTime(iso: string | null): string {
   if (!iso) return '';
@@ -60,6 +71,28 @@ function closeLightbox() {
   lightboxTitle.value = null;
 }
 
+async function exportParticipantsXlsx() {
+  const current = item.value;
+  const list = current?.participants;
+  if (!current || !list?.length) return;
+  exportParticipantsLoading.value = true;
+  exportParticipantsError.value = '';
+  try {
+    const { exportEventParticipantsToXlsx } = await import(
+      '@/shared/lib/eventHistoryParticipantsXlsx'
+    );
+    await exportEventParticipantsToXlsx({
+      eventTitle: current.title,
+      participants: list,
+    });
+  } catch (e: unknown) {
+    exportParticipantsError.value =
+      e instanceof Error ? e.message : 'Не удалось выгрузить участников.';
+  } finally {
+    exportParticipantsLoading.value = false;
+  }
+}
+
 onMounted(loadEvent);
 </script>
 
@@ -96,16 +129,49 @@ onMounted(loadEvent);
               {{ item.description }}
             </p>
 
-            <div v-if="(item.participants?.length ?? 0) > 0" class="space-y-1 text-sm">
+            <div v-if="(item.participants?.length ?? 0) > 0" class="space-y-2 text-sm">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="exportParticipantsLoading"
+                @click="exportParticipantsXlsx"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" x2="12" y1="15" y2="3" />
+                </svg>
+                {{ exportParticipantsLoading ? 'Формируем…' : 'Скачать Excel' }}
+              </Button>
+              <p
+                v-if="exportParticipantsError"
+                class="text-sm text-destructive"
+              >
+                {{ exportParticipantsError }}
+              </p>
               <div class="font-medium">
                 Участники ({{ item.participants?.length }}):
               </div>
-              <ul class="list-disc pl-4 space-y-0.5">
-                <li
-                  v-for="p in item.participants"
-                  :key="p.id"
-                >
-                  {{ p.character?.name || p.external_name }}
+              <ul class="list-disc space-y-0.5 pl-5">
+                <li v-for="p in item.participants" :key="p.id">
+                  <span
+                    :class="
+                      isExternalEventParticipant(p)
+                        ? 'inline-block max-w-full rounded-sm bg-amber-500/10 px-1 py-px text-amber-900 dark:bg-amber-400/[0.12] dark:text-amber-200'
+                        : ''
+                    "
+                  >
+                    {{ p.character?.name || p.external_name }}
+                  </span>
                 </li>
               </ul>
             </div>

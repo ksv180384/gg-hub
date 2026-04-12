@@ -1,5 +1,6 @@
 import fastifyPlugin from 'fastify-plugin';
 import fastifySocketIO from 'fastify-socket.io';
+import { registerAuctionSocketHandlers } from '../auctionSocketHandler.js';
 
 const socketioPlugin = async (fastify, options) => {
     fastify.register(fastifySocketIO);
@@ -7,19 +8,7 @@ const socketioPlugin = async (fastify, options) => {
     fastify.ready(err => {
         if (err) throw err;
 
-        fastify.io.on('connection', socket => {
-            console.log('Новый клиент подключен');
-
-            socket.on('message', msg => {
-                console.log('Сообщение от клиента:', msg);
-                socket.emit('message', `Вы сказали: ${msg}`);
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Клиент отключен');
-            });
-
-        });
+        registerAuctionSocketHandlers(fastify.io, fastify.log);
     });
 };
 

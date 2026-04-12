@@ -112,5 +112,27 @@ class GuildPermissionsSeeder extends Seeder
                 'permission_group_id' => $pollsGroup->id,
             ]
         );
+
+        $auctionGroup = PermissionGroup::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'auction',
+            ],
+            [
+                'name' => 'Аукцион / рулетка',
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'upravlenie-ruletkoi',
+            ],
+            [
+                'name' => 'Управление рулеткой',
+                'description' => 'Добавление участников на колесо и запуск розыгрыша',
+                'permission_group_id' => $auctionGroup->id,
+            ]
+        );
     }
 }

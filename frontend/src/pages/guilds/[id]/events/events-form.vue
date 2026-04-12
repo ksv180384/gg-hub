@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Label } from '@/shared/ui';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Button,
+  Input,
+  Label,
+  Tooltip,
+} from '@/shared/ui';
 import { guildsApi, type GuildRosterMember } from '@/shared/api/guildsApi';
 import {
   eventHistoryApi,
@@ -14,6 +23,7 @@ import {
   type EventHistoryTitleDto,
 } from '@/shared/api/eventHistoryTitlesApi';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
+import { parseParticipantNicknamesFromXlsxFile } from '@/shared/lib/eventHistoryParticipantsXlsxImport';
 
 const route = useRoute();
 const router = useRouter();
@@ -29,6 +39,13 @@ const error = ref('');
 
 const roster = ref<GuildRosterMember[]>([]);
 const loadingRoster = ref(false);
+
+const participantsXlsxInputRef = ref<HTMLInputElement | null>(null);
+const importParticipantsLoading = ref(false);
+const importParticipantsError = ref('');
+
+const participantsExcelImportHint =
+  'Первый столбец — один ник в строке (как при выгрузке). Совпадение с составом гильдии без учёта регистра; остальные в списке ниже с жёлтой подсветкой.';
 
 type Participant = { character_id?: number | null; external_name?: string | null };
 
@@ -116,6 +133,62 @@ function addExternalParticipant() {
 
 function removeParticipant(p: Participant) {
   form.value.participants = form.value.participants.filter((x) => x !== p);
+}
+
+function participantKey(p: Participant): string {
+  if (p.character_id != null) {
+    return `c:${p.character_id}`;
+  }
+  return `e:${(p.external_name ?? '').toLowerCase()}`;
+}
+
+function findRosterMemberByNickname(raw: string): GuildRosterMember | undefined {
+  const q = raw.trim().toLowerCase();
+  if (!q) return undefined;
+  return roster.value.find((m) => m.name.trim().toLowerCase() === q);
+}
+
+function openParticipantsXlsxPicker() {
+  importParticipantsError.value = '';
+  participantsXlsxInputRef.value?.click();
+}
+
+async function onParticipantsXlsxChange(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+
+  importParticipantsLoading.value = true;
+  importParticipantsError.value = '';
+  try {
+    const nicknames = await parseParticipantNicknamesFromXlsxFile(file);
+    if (!nicknames.length) {
+      importParticipantsError.value = 'В файле нет ников в первом столбце.';
+      return;
+    }
+    const existing = new Set(form.value.participants.map(participantKey));
+    let added = 0;
+    for (const nick of nicknames) {
+      const member = findRosterMemberByNickname(nick);
+      const p: Participant = member
+        ? { character_id: member.character_id, external_name: null }
+        : { character_id: null, external_name: nick.trim() };
+      const key = participantKey(p);
+      if (existing.has(key)) continue;
+      existing.add(key);
+      form.value.participants.push(p);
+      added += 1;
+    }
+    if (!added) {
+      importParticipantsError.value = 'Все строки из файла уже есть в списке.';
+    }
+  } catch (e: unknown) {
+    importParticipantsError.value =
+      e instanceof Error ? e.message : 'Не удалось прочитать Excel-файл.';
+  } finally {
+    importParticipantsLoading.value = false;
+  }
 }
 
 function addScreenshotRow() {
@@ -451,18 +524,58 @@ onMounted(async () => {
             <CardContent class="space-y-3">
               <div class="space-y-2">
                 <Label for="external-nick">Добавить стороннего участника</Label>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                   <Input
                     id="external-nick"
                     v-model="form.externalNickname"
                     type="text"
                     placeholder="Ник участника"
-                    class="flex-1"
+                    class="min-w-0 flex-1"
                   />
                   <Button type="button" size="sm" @click="addExternalParticipant">
                     Добавить
                   </Button>
+                  <input
+                    ref="participantsXlsxInputRef"
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    class="sr-only"
+                    @change="onParticipantsXlsxChange"
+                  />
+                  <Tooltip
+                    :content="participantsExcelImportHint"
+                    side="top"
+                    class="max-w-sm text-left"
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      :disabled="importParticipantsLoading || loadingRoster"
+                      class="gap-1.5"
+                      @click="openParticipantsXlsxPicker"
+                    >
+                      {{ importParticipantsLoading ? 'Читаем…' : 'Загрузить из Excel' }}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4" />
+                        <path d="M12 8h.01" />
+                      </svg>
+                    </Button>
+                  </Tooltip>
                 </div>
+                <p v-if="importParticipantsError" class="text-xs text-destructive">
+                  {{ importParticipantsError }}
+                </p>
               </div>
 
               <div class="space-y-2">
@@ -504,7 +617,7 @@ onMounted(async () => {
                   <li
                     v-for="p in externalParticipants"
                     :key="`ext-${p.external_name}`"
-                    class="flex items-center justify-between gap-2 rounded border px-2 py-1"
+                    class="flex items-center justify-between gap-2 rounded border border-amber-500/50 bg-amber-500/15 px-2 py-1 text-amber-950 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100"
                   >
                     <span>{{ p.external_name }}</span>
                     <Button

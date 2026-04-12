@@ -16,7 +16,9 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>();
 
 const model = computed({
   get: () => props.modelValue ?? '',
-  set: (v: string) => emit('update:modelValue', v),
+  /** `type="number"` даёт в v-model число; наружу — всегда string, как в Props. */
+  set: (v: string | number) =>
+    emit('update:modelValue', v === null || v === undefined ? '' : String(v)),
 });
 </script>
 

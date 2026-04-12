@@ -1,6 +1,11 @@
 <script setup lang="ts">
+/**
+ * Canvas-рулетка: `angle` из `useSpinWheel` крутит диск через `rotate()`; стрелка статична сверху.
+ * Подробности траектории и синхронизации — `widgets/spin-wheel/docs/SPIN_WHEEL_ROTATION.md`.
+ */
 import { onMounted, ref, watch } from 'vue';
 import { Button } from '@/shared/ui';
+import type { SpinWheelServerParams } from '@/shared/lib/spinWheelTypes';
 import { useSpinWheel } from '../model/useSpinWheel';
 import { drawWheel, getSoftColors } from '../lib/drawWheel';
 
@@ -10,8 +15,17 @@ const props = withDefaults(
     duration?: number;
     /** Диаметр колеса в пикселях (по умолчанию 400) */
     size?: number;
+    /**
+     * true — кнопка «Крутить» не крутит локально, только событие `spin-request` (ожидается сокет).
+     * false — локальный random spin.
+     */
+    remoteSpin?: boolean;
+    /** Внешнее отключение (например, нет участников на колесе). */
+    spinDisabled?: boolean;
+    /** false — не показывать кнопку «Крутить» (только просмотр / синхронный розыгрыш с сервера). */
+    showSpinButton?: boolean;
   }>(),
-  { size: 400 }
+  { size: 400, remoteSpin: false, spinDisabled: false, showSpinButton: true }
 );
 
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -21,14 +35,37 @@ const segmentColors = ref<string[]>([]);
 /** Tooltip при наведении на сегмент */
 const tooltip = ref({ show: false, text: '', x: 0, y: 0 });
 
-const { angle, result, spin } = useSpinWheel(
+const emit = defineEmits<{
+  (e: 'result', value: string | null): void;
+  /** Длительность вращения (мс) для сервера при синхронном режиме. */
+  (e: 'spin-request', durationMs: number): void;
+}>();
+
+const { angle, result, isSpinning, spinCountdownSeconds, spin, spinFromServer } = useSpinWheel(
   () => props.options,
-  props.duration ?? 4000
+  () => props.duration ?? 4000
 );
+
+defineExpose({
+  spinFromServer: (p: SpinWheelServerParams) => spinFromServer(p),
+  isSpinning,
+  spinCountdownSeconds,
+});
+
+function onSpinClick() {
+  if (props.spinDisabled || isSpinning.value) return;
+  if (props.remoteSpin) {
+    emit('spin-request', props.duration ?? 4000);
+    return;
+  }
+  spin();
+}
+
+watch(result, (v) => emit('result', v));
 
 onMounted(() => {
   if (!canvas.value) return;
-  ctx.value = canvas.value.getContext("2d");
+  ctx.value = canvas.value.getContext('2d', { alpha: true });
   renderWheel();
 });
 
@@ -37,16 +74,39 @@ const CENTER = props.size / 2;
 const POINTER_HEIGHT = 20;
 const CANVAS_HEIGHT = WHEEL_SIZE + POINTER_HEIGHT;
 
+/** Растровый кэш сегментов и текста (без поворота); на каждом кадре анимации — только rotate + drawImage. */
+let wheelCache: HTMLCanvasElement | null = null;
+let wheelCacheCtx: CanvasRenderingContext2D | null = null;
+let wheelCacheDirty = true;
+
+function ensureWheelCacheCanvas() {
+  if (wheelCache && wheelCache.width === WHEEL_SIZE) return;
+  wheelCache = document.createElement('canvas');
+  wheelCache.width = WHEEL_SIZE;
+  wheelCache.height = WHEEL_SIZE;
+  wheelCacheCtx = wheelCache.getContext('2d', { alpha: true });
+}
+
+function rebuildWheelCache() {
+  ensureWheelCacheCanvas();
+  if (!wheelCacheCtx) return;
+  wheelCacheCtx.clearRect(0, 0, WHEEL_SIZE, WHEEL_SIZE);
+  drawWheel(wheelCacheCtx, props.options, segmentColors.value, WHEEL_SIZE);
+  wheelCacheDirty = false;
+}
+
 /** Следим и за длиной, и за содержимым: при 1→1 (плейсхолдер → имя) length не меняется, но колесо нужно перерисовать. */
 watch(
   () => [props.options?.length ?? 0, (props.options ?? []).join('\u0001')] as const,
   ([len]) => {
     segmentColors.value = getSoftColors(len);
+    wheelCacheDirty = true;
     if (ctx.value) renderWheel();
   },
   { immediate: true }
 );
-watch(angle, renderWheel);
+/** sync: отрисовка в том же тике, что и обновление angle из RAF, без отставания на один кадр. */
+watch(angle, renderWheel, { flush: 'sync' });
 
 /** Вычисляет индекс сегмента под курсором (или -1). */
 function getSegmentAt(offsetX: number, offsetY: number): number {
@@ -89,17 +149,20 @@ function onWheelMouseLeave() {
 
 function renderWheel() {
   if (!ctx.value) return;
+  if (wheelCacheDirty) {
+    rebuildWheelCache();
+  }
+  if (!wheelCache) return;
+
   const context = ctx.value;
 
   context.clearRect(0, 0, WHEEL_SIZE, CANVAS_HEIGHT);
   context.save();
   context.translate(0, POINTER_HEIGHT);
   context.translate(CENTER, CENTER);
+  // Положительный angle — по часовой; верх круга после поворота = 270° в логике результата.
   context.rotate((angle.value * Math.PI) / 180);
-  context.translate(-CENTER, -CENTER);
-
-  drawWheel(context, props.options, segmentColors.value, props.size || 400);
-
+  context.drawImage(wheelCache, -CENTER, -CENTER);
   context.restore();
 
   // Стрелка за пределами круга (вверху), остриём вниз
@@ -126,12 +189,12 @@ function drawPointer(ctx: CanvasRenderingContext2D) {
 </script>
 
 <template>
-  <div class="relative inline-block">
+  <div class="relative inline-flex flex-col items-center gap-4">
     <canvas
       ref="canvas"
       :width="WHEEL_SIZE"
       :height="CANVAS_HEIGHT"
-      class="cursor-pointer"
+      class="cursor-pointer shrink-0"
       @mousemove="onWheelMouseMove"
       @mouseleave="onWheelMouseLeave"
     />
@@ -144,20 +207,24 @@ function drawPointer(ctx: CanvasRenderingContext2D) {
       {{ tooltip.text }}
     </div>
 
-    <div class="mt-5 flex w-full justify-center">
+    <div
+      v-if="spinCountdownSeconds !== null"
+      class="min-h-[1.75rem] text-center text-xl font-semibold tabular-nums tracking-tight text-foreground"
+      aria-live="polite"
+      role="status"
+    >
+      {{ spinCountdownSeconds }}&nbsp;с
+    </div>
+
+    <div v-if="showSpinButton" class="flex w-full justify-center">
       <Button
         size="lg"
         class="min-w-[11rem] text-base font-semibold shadow-lg shadow-primary/45 ring-2 ring-primary/55 ring-offset-2 ring-offset-background transition-[box-shadow,filter] hover:brightness-110 hover:shadow-xl hover:shadow-primary/50 hover:ring-primary/80"
-        @click="spin"
+        :disabled="spinDisabled || isSpinning"
+        @click="onSpinClick"
       >
         Крутить
       </Button>
     </div>
-
-    <div v-if="result">Выпало: {{ result }}</div>
   </div>
 </template>
-
-<style scoped>
-
-</style>

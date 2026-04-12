@@ -24,8 +24,9 @@ RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 
+# В dev: exec node — без `npm run` (при SIGTERM от docker stop npm пишет «command failed», хотя это нормальное завершение).
 CMD if [ "$NODE_ENV" = "production" ]; then \
-      npm run build && npm start; \
+      npm run build && exec node server.mjs; \
     else \
-      npm run dev:ssr; \
+      exec node server.mjs --dev; \
     fi
