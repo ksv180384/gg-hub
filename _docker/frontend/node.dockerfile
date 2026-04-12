@@ -4,6 +4,9 @@ FROM node:22-alpine
 WORKDIR /gg
 
 ENV PATH=/gg/node_modules/.bin:$PATH
+# Vite/Rollup: дефолтный heap Node ~512 MiB часто мало. На VPS с ~1 GiB RAM не ставьте 4096 — нет физической памяти,
+# процесс убьёт OOM killer. 768 MiB + swap 1–2 GiB обычно достаточно; иначе собирайте dist в CI и деплойте артефакт.
+ENV NODE_OPTIONS=--max-old-space-size=768
 
 COPY frontend/package.json frontend/package-lock.json ./
 
