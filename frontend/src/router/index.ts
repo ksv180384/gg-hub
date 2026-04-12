@@ -105,25 +105,25 @@ const routes: RouteRecordRaw[] = [
         {
           path: 'guilds/:id/events',
           name: 'guild-events',
-          component: () => import('@/pages/guilds/[id]/events.vue'),
+          component: () => import('@/pages/guilds/[id]/events/events.vue'),
           meta: { requiresAuth: true, title: 'События' },
         },
         {
           path: 'guilds/:id/events/:eventHistoryId',
           name: 'guild-events-show',
-          component: () => import('@/pages/guilds/[id]/events-show.vue'),
+          component: () => import('@/pages/guilds/[id]/events/events-show.vue'),
           meta: { requiresAuth: true, title: 'Событие' },
         },
         {
           path: 'guilds/:id/events/create',
           name: 'guild-events-create',
-          component: () => import('@/pages/guilds/[id]/events-form.vue'),
+          component: () => import('@/pages/guilds/[id]/events/events-form.vue'),
           meta: { requiresAuth: true, title: 'Новое событие' },
         },
         {
           path: 'guilds/:id/events/:eventHistoryId/edit',
           name: 'guild-events-edit',
-          component: () => import('@/pages/guilds/[id]/events-form.vue'),
+          component: () => import('@/pages/guilds/[id]/events/events-form.vue'),
           meta: { requiresAuth: true, title: 'Редактирование события' },
         },
         {
@@ -136,7 +136,7 @@ const routes: RouteRecordRaw[] = [
           path: 'guilds/:id/auction',
           name: 'guild-auction',
           component: () => import('@/pages/guilds/[id]/auction/index.vue'),
-          meta: { requiresAuth: true, title: 'Аукцион' },
+          meta: { requiresAuth: true, title: 'Рулетка' },
         },
         {
           path: 'guilds/:id/roles',

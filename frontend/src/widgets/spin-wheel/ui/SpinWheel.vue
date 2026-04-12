@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
+import { Button } from '@/shared/ui';
 import { useSpinWheel } from '../model/useSpinWheel';
 import { drawWheel, getSoftColors } from '../lib/drawWheel';
 
@@ -36,9 +37,10 @@ const CENTER = props.size / 2;
 const POINTER_HEIGHT = 20;
 const CANVAS_HEIGHT = WHEEL_SIZE + POINTER_HEIGHT;
 
+/** Следим и за длиной, и за содержимым: при 1→1 (плейсхолдер → имя) length не меняется, но колесо нужно перерисовать. */
 watch(
-  () => props.options?.length ?? 0,
-  (len) => {
+  () => [props.options?.length ?? 0, (props.options ?? []).join('\u0001')] as const,
+  ([len]) => {
     segmentColors.value = getSoftColors(len);
     if (ctx.value) renderWheel();
   },
@@ -142,7 +144,15 @@ function drawPointer(ctx: CanvasRenderingContext2D) {
       {{ tooltip.text }}
     </div>
 
-    <button @click="spin">Крутить</button>
+    <div class="mt-5 flex w-full justify-center">
+      <Button
+        size="lg"
+        class="min-w-[11rem] text-base font-semibold shadow-lg shadow-primary/45 ring-2 ring-primary/55 ring-offset-2 ring-offset-background transition-[box-shadow,filter] hover:brightness-110 hover:shadow-xl hover:shadow-primary/50 hover:ring-primary/80"
+        @click="spin"
+      >
+        Крутить
+      </Button>
+    </div>
 
     <div v-if="result">Выпало: {{ result }}</div>
   </div>

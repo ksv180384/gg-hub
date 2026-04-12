@@ -86,7 +86,7 @@ watch(guildId, loadRoster, { immediate: true });
       <div class="shrink-0">
         <Card>
           <CardHeader>
-            <CardTitle>Аукцион гильдии</CardTitle>
+            <CardTitle>Рулетка гильдии</CardTitle>
           </CardHeader>
           <CardContent class="flex flex-col items-center gap-6">
             <p class="text-sm text-muted-foreground text-center">

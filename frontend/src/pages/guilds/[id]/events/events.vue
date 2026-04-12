@@ -110,6 +110,24 @@ function formatDateTime(iso: string | null): string {
   });
 }
 
+function participantsCount(item: EventHistoryItem): number {
+  return item.participants?.length ?? 0;
+}
+
+/** Склонение «N участник(ов)» для подписи в списке. */
+function formatParticipantsLine(item: EventHistoryItem): string {
+  const n = participantsCount(item);
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) {
+    return `${n} участник`;
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return `${n} участника`;
+  }
+  return `${n} участников`;
+}
+
 async function loadEventsPage() {
   items.value = [];
   myPermissionSlugs.value = [];
@@ -170,16 +188,23 @@ watch(guildId, () => {
               class="min-w-0 flex-1 text-left"
               @click="goToShow(item)"
             >
-              <div class="flex flex-col gap-0.5">
+              <div class="flex flex-col gap-0.5 min-w-0">
                 <span class="font-semibold truncate">
                   {{ item.title }}
                 </span>
-                <span
-                  v-if="item.occurred_at"
-                  class="text-xs text-muted-foreground"
+                <div
+                  class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs"
                 >
-                  {{ formatDateTime(item.occurred_at) }}
-                </span>
+                  <span
+                    v-if="item.occurred_at"
+                    class="text-muted-foreground"
+                  >
+                    {{ formatDateTime(item.occurred_at) }}
+                  </span>
+                  <span class="font-semibold text-foreground">
+                    {{ formatParticipantsLine(item) }}
+                  </span>
+                </div>
               </div>
             </button>
             <div class="flex items-center gap-1">

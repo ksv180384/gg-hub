@@ -31,7 +31,7 @@ const guildSubmenuItems: GuildSubmenuItem[] = [
   { pathSuffix: '/calendar', label: 'Календарь событий' },
   { pathSuffix: '/events', label: 'События' },
   { pathSuffix: '/polls', label: 'Голосования' },
-  { pathSuffix: '/auction', label: 'Аукцион' },
+  { pathSuffix: '/auction', label: 'Рулетка' },
   { pathSuffix: '/roles', label: 'Роли членов гильдии' },
 ];
 

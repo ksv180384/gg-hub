@@ -12,10 +12,10 @@ RUN --mount=type=cache,target=/root/.npm \
     && npm config set fetch-retry-mintimeout 15000 \
     && npm config set fetch-retry-maxtimeout 180000 \
     && npm config set fetch-timeout 600000 \
-    && (npm ci --no-audit --no-fund || npm install --no-audit --no-fund)
+    && (npm ci --no-audit --no-fund --include=dev || npm install --no-audit --no-fund --include=dev)
 
-# Сохраняем node_modules из образа — при старте скопируем в volume, если он пуст
-RUN cp -a node_modules /gg/_node_modules_cache
+# Кэш вне /gg: bind-mount ./frontend:/gg скрывает всё под /gg из образа, иначе entrypoint не видит кэш
+RUN cp -a node_modules /opt/_node_modules_cache
 
 COPY frontend/ ./
 

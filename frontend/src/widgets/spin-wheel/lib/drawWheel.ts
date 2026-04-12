@@ -61,12 +61,24 @@ export function drawWheel(
 
         ctx.save();
         ctx.translate(center, center);
-        ctx.rotate(arc * i + arc / 2);
-        ctx.textAlign = "right";
         ctx.fillStyle = "#000";
         ctx.font = `${fontSize}px sans-serif`;
-        const label = truncateText(ctx, options[i], maxTextWidth);
-        ctx.fillText(label, textRadius, fontSize * 0.6);
+        const label = truncateText(
+            ctx,
+            options[i],
+            options.length === 1 ? radius * 1.55 : maxTextWidth
+        );
+        if (options.length === 1) {
+            // При одном сегменте arc/2 = π — радиальная подпись оказывается вверх ногами.
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(label, 0, 0);
+        } else {
+            ctx.rotate(arc * i + arc / 2);
+            ctx.textAlign = "right";
+            ctx.textBaseline = "alphabetic";
+            ctx.fillText(label, textRadius, fontSize * 0.6);
+        }
         ctx.restore();
     }
 }
