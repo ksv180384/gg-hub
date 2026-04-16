@@ -25,9 +25,17 @@ export interface LoginResponse {
   user: User;
 }
 
-/** Ответ сервера: регистрация. */
+/** Ответ сервера: регистрация (user ИЛИ требуется верификация email). */
 export interface RegisterResponse {
-  user: User;
+  user?: User;
+  requires_email_verification?: boolean;
+  message?: string;
+}
+
+/** Ответ сервера: повторная отправка верификации. */
+export interface ResendVerificationResponse {
+  message: string;
+  retry_after?: number;
 }
 
 /** Ответ сервера: данные текущего пользователя (GET /user). */
@@ -116,6 +124,15 @@ export const authApi = {
   async register(payload: RegisterPayload): Promise<RegisterResponse> {
     const res = await http.fetchPost<RegisterResponse>('/register', payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Ошибка регистрации');
+
+    const body = res.data as Record<string, unknown> | null;
+    if (body?.requires_email_verification) {
+      return {
+        requires_email_verification: true,
+        message: (body.message as string) ?? 'Проверьте почту для подтверждения email.',
+      };
+    }
+
     const user = pickUser(res.data);
     if (!user) throw new Error('Сервер не вернул пользователя');
     return { user };
@@ -165,5 +182,23 @@ export const authApi = {
     const user = pickUser(res.data);
     if (!user) throw new Error('Сервер не вернул пользователя');
     return { user };
+  },
+
+  async resendVerification(email: string): Promise<ResendVerificationResponse> {
+    const res = await http.fetchPost<ResendVerificationResponse>(
+      '/email/resend-verification',
+      { email },
+    );
+    if (res.status === 429) {
+      const body = res.data as Record<string, unknown> | null;
+      return {
+        message: (body?.message as string) ?? 'Слишком много попыток. Попробуйте позже.',
+        retry_after: (body?.retry_after as number) ?? undefined,
+      };
+    }
+    throwOnError(res, 'Ошибка отправки');
+    return {
+      message: res.data?.message ?? 'Письмо отправлено.',
+    };
   },
 };

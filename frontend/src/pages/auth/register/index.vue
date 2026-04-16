@@ -23,6 +23,10 @@ const passwordConfirmation = ref('');
 const consentAccepted = ref(false);
 const consentError = ref('');
 
+const emailVerificationSent = ref(false);
+const resendMessage = ref('');
+const resendIsRateLimited = ref(false);
+
 const legalModalType = ref<'privacy' | 'mailing' | null>(null);
 
 const legalModalTitle = computed(() =>
@@ -66,13 +70,31 @@ async function onSubmit(e: Event) {
     return;
   }
   try {
-    await auth.register({
+    const data = await auth.register({
       name: name.value,
       email: email.value,
       password: password.value,
       password_confirmation: passwordConfirmation.value,
     });
+    if (data.requires_email_verification) {
+      emailVerificationSent.value = true;
+      return;
+    }
     await router.push('/');
+  } catch {
+    // ошибка в auth.error
+  }
+}
+
+async function onResend() {
+  resendMessage.value = '';
+  resendIsRateLimited.value = false;
+  try {
+    const result = await auth.resendVerification(email.value);
+    resendMessage.value = result.message;
+    if (result.retry_after) {
+      resendIsRateLimited.value = true;
+    }
   } catch {
     // ошибка в auth.error
   }
@@ -87,6 +109,45 @@ async function onSubmit(e: Event) {
       </RouterLink>
       <div class="flex flex-1 items-center justify-center">
         <div class="w-full max-w-xs space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">
+          <template v-if="emailVerificationSent">
+            <div class="space-y-2 text-center">
+              <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </div>
+              <h1 class="text-2xl font-bold">Подтвердите email</h1>
+              <p class="text-sm text-muted-foreground">
+                Мы отправили письмо на <strong class="text-foreground">{{ email }}</strong>.
+                Перейдите по ссылке в письме, чтобы активировать аккаунт.
+              </p>
+            </div>
+            <Card>
+              <CardContent class="pt-6 space-y-4">
+                <p v-if="resendMessage" class="text-sm" :class="resendIsRateLimited ? 'text-destructive' : 'text-muted-foreground'">
+                  {{ resendMessage }}
+                </p>
+                <p v-if="auth.error" class="text-sm text-destructive">{{ auth.error }}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="w-full"
+                  :disabled="auth.loading"
+                  @click="onResend"
+                >
+                  {{ auth.loading ? 'Отправка...' : 'Отправить письмо повторно' }}
+                </Button>
+                <p class="text-center text-xs text-muted-foreground">
+                  Не нашли письмо? Проверьте папку «Спам».
+                </p>
+              </CardContent>
+            </Card>
+            <p class="text-center text-sm text-muted-foreground">
+              <RouterLink to="/login" class="font-medium text-primary underline-offset-4 hover:underline">
+                Перейти ко входу
+              </RouterLink>
+            </p>
+          </template>
+
+          <template v-else>
           <div class="space-y-2 text-center">
             <h1 class="text-2xl font-bold">Регистрация</h1>
             <p class="text-sm text-muted-foreground">
@@ -175,6 +236,7 @@ async function onSubmit(e: Event) {
               Войти
             </RouterLink>
           </p>
+          </template>
         </div>
       </div>
     </div>

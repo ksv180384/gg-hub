@@ -33,6 +33,13 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'password' => $this->passwordRules(),
+        ], [
+            'name.required' => 'Укажите имя или ник.',
+            'email.required' => 'Укажите email.',
+            'email.email' => 'Введите корректный email-адрес.',
+            'email.unique' => 'Пользователь с таким email уже зарегистрирован.',
+            'password.required' => 'Укажите пароль.',
+            'password.confirmed' => 'Пароли не совпадают.',
         ])->validate();
 
         $user = User::create([

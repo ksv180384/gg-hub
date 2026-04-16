@@ -20,6 +20,9 @@ class ResetUserPassword implements ResetsUserPasswords
     {
         Validator::make($input, [
             'password' => $this->passwordRules(),
+        ], [
+            'password.required' => 'Укажите новый пароль.',
+            'password.confirmed' => 'Пароли не совпадают.',
         ])->validate();
 
         $user->forceFill([

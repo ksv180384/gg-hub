@@ -17,6 +17,8 @@ const socialError = computed(() => {
   return null;
 });
 
+const emailVerified = computed(() => route.query.verified === '1');
+
 watch(
   () => auth.isAuthenticated,
   (isAuth) => {
@@ -57,6 +59,9 @@ async function onSubmit(e: Event) {
           <Card>
             <CardContent class="pt-6">
               <form class="flex flex-col gap-4" @submit="onSubmit">
+                <p v-if="emailVerified" class="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+                  Email успешно подтверждён. Теперь вы можете войти.
+                </p>
                 <p v-if="auth.error || socialError" class="text-sm text-destructive">{{ auth.error || socialError }}</p>
                 <div class="space-y-2">
                   <Label for="email">Email</Label>

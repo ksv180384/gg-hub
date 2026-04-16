@@ -27,6 +27,11 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
                 'max:255',
                 Rule::unique('users')->ignore($user->id),
             ],
+        ], [
+            'name.required' => 'Укажите имя.',
+            'email.required' => 'Укажите email.',
+            'email.email' => 'Введите корректный email-адрес.',
+            'email.unique' => 'Этот email уже используется другим пользователем.',
         ])->validateWithBag('updateProfileInformation');
 
         if ($input['email'] !== $user->email &&

@@ -69,10 +69,27 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     try {
       const data = await authApi.register(payload);
-      user.value = data.user;
+      if (data.requires_email_verification) {
+        user.value = null;
+        return data;
+      }
+      user.value = data.user ?? null;
       return data;
     } catch (e: unknown) {
       error.value = getErrorMessage(e, { fallback: 'Ошибка регистрации' });
+      throw e;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function resendVerification(email: string) {
+    loading.value = true;
+    error.value = null;
+    try {
+      return await authApi.resendVerification(email);
+    } catch (e: unknown) {
+      error.value = getErrorMessage(e, { fallback: 'Ошибка отправки' });
       throw e;
     } finally {
       loading.value = false;
@@ -173,6 +190,7 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUser,
     login,
     register,
+    resendVerification,
     logout,
     forgotPassword,
     resetPassword,
