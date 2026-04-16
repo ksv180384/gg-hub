@@ -11,6 +11,8 @@ const auth = useAuthStore();
 
 const email = ref('');
 const password = ref('');
+const resendMessage = ref<string | null>(null);
+const resendLoading = ref(false);
 
 const socialError = computed(() => {
   if (route.query.error === 'banned') return 'Аккаунт заблокирован. Обратитесь к администратору.';
@@ -18,6 +20,24 @@ const socialError = computed(() => {
 });
 
 const emailVerified = computed(() => route.query.verified === '1');
+
+const needsVerification = computed(() =>
+  !!auth.error && auth.error.includes('подтвердить email'),
+);
+
+async function onResendVerification() {
+  if (!email.value) return;
+  resendLoading.value = true;
+  resendMessage.value = null;
+  try {
+    const result = await auth.resendVerification(email.value);
+    resendMessage.value = result.message;
+  } catch {
+    // ошибка уже в auth.error
+  } finally {
+    resendLoading.value = false;
+  }
+}
 
 watch(
   () => auth.isAuthenticated,
@@ -33,6 +53,7 @@ onMounted(() => {
 
 async function onSubmit(e: Event) {
   e.preventDefault();
+  resendMessage.value = null;
   try {
     await auth.login(email.value, password.value);
     await router.push('/');
@@ -63,6 +84,19 @@ async function onSubmit(e: Event) {
                   Email успешно подтверждён. Теперь вы можете войти.
                 </p>
                 <p v-if="auth.error || socialError" class="text-sm text-destructive">{{ auth.error || socialError }}</p>
+                <div v-if="needsVerification && email" class="space-y-2">
+                  <button
+                    type="button"
+                    class="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    :disabled="resendLoading"
+                    @click="onResendVerification"
+                  >
+                    {{ resendLoading ? 'Отправка...' : 'Отправить письмо повторно' }}
+                  </button>
+                  <p v-if="resendMessage" class="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+                    {{ resendMessage }}
+                  </p>
+                </div>
                 <div class="space-y-2">
                   <Label for="email">Email</Label>
                   <Input id="email" v-model="email" type="email" placeholder="you@example.com" required />
