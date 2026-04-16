@@ -176,6 +176,7 @@ services:
         container_name: gg-roundcube
         volumes:
             - roundcube_data:/var/roundcube/db
+            - ./_docker/roundcube/custom.inc.php:/var/roundcube/config/custom.inc.php:ro
         environment:
             ROUNDCUBEMAIL_DEFAULT_HOST: ssl://mailserver
             ROUNDCUBEMAIL_DEFAULT_PORT: 993
