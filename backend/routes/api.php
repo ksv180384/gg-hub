@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\LandingCtaClickController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\ContextController;
@@ -50,6 +51,8 @@ Route::get('/php-info', function () {
 });
 
 Route::get('/context', [ContextController::class, 'show']);
+
+Route::post('/email/resend-verification', [EmailVerificationController::class, 'resend']);
 
 Route::post('/landing/cta-clicks', [LandingCtaClickController::class, 'store'])
     ->middleware('throttle:60,1');

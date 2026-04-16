@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\VerifyEmailNotification;
 use Domains\Access\Models\Permission;
 use Domains\Access\Models\Role;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
@@ -31,6 +32,7 @@ class User extends Authenticatable
         'banned_at',
         'provider',
         'provider_id',
+        'email_verified_at',
     ];
 
     /**
@@ -55,6 +57,16 @@ class User extends Authenticatable
             'password' => 'hashed',
             'banned_at' => 'datetime',
         ];
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification());
+    }
+
+    public function isEmailRegistered(): bool
+    {
+        return $this->provider === null;
     }
 
     public function isBanned(): bool

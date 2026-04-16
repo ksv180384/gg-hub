@@ -60,6 +60,7 @@ class SocialAuthController extends Controller
                 'provider' => $provider,
                 'provider_id' => $socialUser->getId(),
                 'avatar' => $socialUser->getAvatar(),
+                'email_verified_at' => now(),
             ]);
         }
 

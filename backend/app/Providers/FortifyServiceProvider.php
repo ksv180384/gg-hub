@@ -56,13 +56,25 @@ class FortifyServiceProvider extends ServiceProvider
 
         Event::listen(Attempting::class, function (Attempting $event): void {
             $email = $event->credentials['email'] ?? null;
-            if ($email) {
-                $user = User::where('email', $email)->first();
-                if ($user && $user->isBanned()) {
-                    throw ValidationException::withMessages([
-                        Fortify::username() => ['Аккаунт заблокирован. Обратитесь к администратору.'],
-                    ]);
-                }
+            if (! $email) {
+                return;
+            }
+
+            $user = User::where('email', $email)->first();
+            if (! $user) {
+                return;
+            }
+
+            if ($user->isBanned()) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => ['Аккаунт заблокирован. Обратитесь к администратору.'],
+                ]);
+            }
+
+            if ($user->isEmailRegistered() && ! $user->hasVerifiedEmail()) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => ['Необходимо подтвердить email. Проверьте почту или запросите повторное письмо.'],
+                ]);
             }
         });
     }
