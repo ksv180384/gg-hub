@@ -168,7 +168,9 @@ services:
         cap_add:
             - NET_ADMIN
         networks:
-            - gg
+            gg:
+                aliases:
+                    - mail778.gg-hub.ru
 
     # Webmail (Roundcube)
     roundcube:
@@ -178,9 +180,9 @@ services:
             - roundcube_data:/var/roundcube/db
             - ./_docker/roundcube/custom.inc.php:/var/roundcube/config/custom.inc.php:ro
         environment:
-            ROUNDCUBEMAIL_DEFAULT_HOST: ssl://mailserver
+            ROUNDCUBEMAIL_DEFAULT_HOST: ssl://mail778.gg-hub.ru
             ROUNDCUBEMAIL_DEFAULT_PORT: 993
-            ROUNDCUBEMAIL_SMTP_SERVER: tls://mailserver
+            ROUNDCUBEMAIL_SMTP_SERVER: tls://mail778.gg-hub.ru
             ROUNDCUBEMAIL_SMTP_PORT: 587
             ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE: 25M
             ROUNDCUBEMAIL_DB_TYPE: sqlite
