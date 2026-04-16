@@ -20,7 +20,7 @@ use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Fortify;
-use Laravel\Fortify\Events\Attempting;
+use Illuminate\Auth\Events\Attempting;
 
 class FortifyServiceProvider extends ServiceProvider
 {
