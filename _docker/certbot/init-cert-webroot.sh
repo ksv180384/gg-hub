@@ -7,7 +7,7 @@ set -e
 
 CERT_EMAIL="${CERT_EMAIL:-ksv180384@yandex.ru}"
 # Домен и поддомены через пробел (без wildcard — для wildcard нужен DNS-01)
-CERT_DOMAINS="${CERT_DOMAINS:-gg-hub.ru www.gg-hub.ru}"
+CERT_DOMAINS="${CERT_DOMAINS:-gg-hub.ru www.gg-hub.ru mail778.gg-hub.ru}"
 CERT_NAME="${CERT_NAME:-gg-hub.ru}"
 
 # Собираем флаги -d для каждого домена

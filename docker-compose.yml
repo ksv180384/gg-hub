@@ -92,6 +92,8 @@ services:
 
     phpmyadmin:
         image: phpmyadmin/phpmyadmin
+        profiles:
+            - dev
         links:
             - gg-mariadb:db
         restart: always
@@ -144,9 +146,58 @@ services:
         networks:
             - gg
 
+    # Mail server (Postfix + Dovecot + DKIM + Rspamd)
+    mailserver:
+        image: ghcr.io/docker-mailserver/docker-mailserver:latest
+        container_name: gg-mailserver
+        hostname: mail778.gg-hub.ru
+        env_file: ./_docker/mailserver/mailserver.env
+        ports:
+            - "25:25"
+            - "465:465"
+            - "587:587"
+            - "993:993"
+        volumes:
+            - mailserver_data:/var/mail
+            - mailserver_state:/var/mail-state
+            - mailserver_logs:/var/log/mail
+            - mailserver_config:/tmp/docker-mailserver
+            - ./certbot/conf:/etc/letsencrypt:ro
+            - /etc/localtime:/etc/localtime:ro
+        restart: unless-stopped
+        cap_add:
+            - NET_ADMIN
+        networks:
+            - gg
+
+    # Webmail (Roundcube)
+    roundcube:
+        image: roundcube/roundcubemail:latest
+        container_name: gg-roundcube
+        volumes:
+            - roundcube_data:/var/roundcube/db
+        environment:
+            ROUNDCUBEMAIL_DEFAULT_HOST: ssl://mailserver
+            ROUNDCUBEMAIL_DEFAULT_PORT: 993
+            ROUNDCUBEMAIL_SMTP_SERVER: tls://mailserver
+            ROUNDCUBEMAIL_SMTP_PORT: 587
+            ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE: 25M
+            ROUNDCUBEMAIL_DB_TYPE: sqlite
+            ROUNDCUBEMAIL_SKIN: elastic
+        depends_on:
+            - mailserver
+        restart: unless-stopped
+        networks:
+            - gg
+
 volumes:
     frontend_node_modules:
     socket_server_node_modules:
+    mailserver_data:
+    mailserver_state:
+    mailserver_logs:
+    mailserver_config:
+    roundcube_data:
 
 networks:
     gg:
