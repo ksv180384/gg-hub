@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Tag;
+namespace App\Http\Requests\Guild;
 
-use Domains\Tag\Models\Tag;
-use Domains\Tag\Rules\UniqueTagNameForUser;
+use Domains\Guild\Models\Guild;
+use Domains\Tag\Rules\UniqueTagNameForGuild;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateTagRequest extends FormRequest
+class StoreGuildTagRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -32,23 +32,12 @@ class UpdateTagRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var Tag $tag */
-        $tag = $this->route('tag');
-        $usedByUserId = $tag->used_by_user_id;
+        /** @var Guild $guild */
+        $guild = $this->route('guild');
 
         return [
-            'name' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:20',
-                new UniqueTagNameForUser(
-                    $usedByUserId !== null ? (int) $usedByUserId : null,
-                    (int) $tag->id,
-                ),
-            ],
+            'name' => ['required', 'string', 'max:20', new UniqueTagNameForGuild((int) $guild->id)],
             'slug' => ['nullable', 'string', 'max:255'],
-            'is_hidden' => ['sometimes', 'boolean'],
         ];
     }
 

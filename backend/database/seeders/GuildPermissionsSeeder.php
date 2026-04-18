@@ -134,5 +134,110 @@ class GuildPermissionsSeeder extends Seeder
                 'permission_group_id' => $auctionGroup->id,
             ]
         );
+
+        $rosterGroup = PermissionGroup::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'roster',
+            ],
+            [
+                'name' => 'Состав',
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'izmeniat-tegi-polzovatelei-gildii',
+            ],
+            [
+                'name' => 'Изменять теги пользователей гильдии',
+                'description' => 'Назначение тегов участникам в контексте гильдии (отдельно от личных тегов персонажа)',
+                'permission_group_id' => $rosterGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'dobavliat-teg-gildii',
+            ],
+            [
+                'name' => 'Добавлять тег гильдии',
+                'description' => 'Создание новых тегов, закреплённых за гильдией (без привязки к пользователю)',
+                'permission_group_id' => $rosterGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'udaliat-teg-gildii',
+            ],
+            [
+                'name' => 'Удалять тег гильдии',
+                'description' => 'Удаление тегов, закреплённых за гильдией',
+                'permission_group_id' => $rosterGroup->id,
+            ]
+        );
+
+        // Группа прав на редактирование самой гильдии (название/сервер/описание/устав/форма заявки).
+        $settingsGroup = PermissionGroup::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'settings',
+            ],
+            [
+                'name' => 'Настройки гильдии',
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'redaktirovanie-dannyx-gildii',
+            ],
+            [
+                'name' => 'Редактирование данных гильдии',
+                'description' => 'Изменение названия, локализации, сервера, логотипа, тегов и видимости состава',
+                'permission_group_id' => $settingsGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'redaktirovanie-opisanie-gildii',
+            ],
+            [
+                'name' => 'Редактирование описания гильдии',
+                'description' => 'Изменение текста на вкладке «О гильдии»',
+                'permission_group_id' => $settingsGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'redaktirovanie-ustav-gildii',
+            ],
+            [
+                'name' => 'Редактирование устава гильдии',
+                'description' => 'Изменение текста устава гильдии',
+                'permission_group_id' => $settingsGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'redaktirovat-formu-zaiavki-v-giliudiiu',
+            ],
+            [
+                'name' => 'Редактировать форму заявки в гильдию',
+                'description' => 'Изменение состава дополнительных полей формы заявки и переключение набора',
+                'permission_group_id' => $settingsGroup->id,
+            ]
+        );
     }
 }

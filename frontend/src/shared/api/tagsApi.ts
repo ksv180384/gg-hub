@@ -15,8 +15,10 @@ export interface Tag {
   name: string;
   slug: string;
   is_hidden: boolean;
+  used_by_user_id?: number | null;
+  used_by_guild_id?: number | null;
   created_by_user_id?: number | null;
-  created_by_guild_id?: number | null;
+  used_by?: { id: number; name: string } | null;
   created_by?: { id: number; name: string } | null;
 }
 
@@ -31,10 +33,14 @@ function unwrapData<T>(res: { data: unknown }, fallback: T): T {
 }
 
 export const tagsApi = {
-  /** Список тегов. В админке передать include_hidden=1 для скрытых. */
-  async getTags(includeHidden = false): Promise<Tag[]> {
-    const path = includeHidden ? '/tags?include_hidden=1' : '/tags';
-    const res = await http.fetchGet<TagsListResponse | Tag[]>(path);
+  /** Список тегов. В админке передать include_hidden=1 для скрытых. `guildId` — подмешать теги этой гильдии (участник). */
+  async getTags(includeHidden = false, guildId?: number): Promise<Tag[]> {
+    const res = await http.fetchGet<TagsListResponse | Tag[]>('/tags', {
+      params: {
+        ...(includeHidden ? { include_hidden: 1 } : {}),
+        ...(guildId != null && !Number.isNaN(guildId) ? { guild_id: guildId } : {}),
+      },
+    });
     throwOnError(res, 'Ошибка загрузки тегов');
     const data = res.data;
     if (Array.isArray((data as TagsListResponse)?.data)) {
@@ -49,6 +55,13 @@ export const tagsApi = {
     return unwrapData(res, {} as Tag) as Tag;
   },
 
+  /** Тег гильдии: used_by_guild_id заполнен, used_by_user_id — нет. Право dobavliat-teg-gildii. */
+  async createGuildTag(guildId: number, payload: { name: string; slug?: string }): Promise<Tag> {
+    const res = await http.fetchPost<TagsListResponse | Tag>(`/guilds/${guildId}/tags`, payload);
+    throwOnError(res, 'Ошибка создания тега гильдии');
+    return unwrapData(res, {} as Tag) as Tag;
+  },
+
   async updateTag(id: number, payload: { name?: string; slug?: string; is_hidden?: boolean }): Promise<Tag> {
     const res = await http.fetchPut<TagsListResponse | Tag>(`/tags/${id}`, payload);
     throwOnError(res, 'Ошибка обновления тега');
@@ -58,5 +71,11 @@ export const tagsApi = {
   async deleteTag(id: number): Promise<void> {
     const res = await http.fetchDelete(`/tags/${id}`);
     throwOnError(res, 'Ошибка удаления тега');
+  },
+
+  /** Удаление тега гильдии (used_by_guild_id). Право udaliat-teg-gildii. */
+  async deleteGuildTag(guildId: number, tagId: number): Promise<void> {
+    const res = await http.fetchDelete(`/guilds/${guildId}/tags/${tagId}`);
+    throwOnError(res, 'Ошибка удаления тега гильдии');
   },
 };

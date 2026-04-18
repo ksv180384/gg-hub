@@ -16,8 +16,9 @@ class Tag extends Model
         'name',
         'slug',
         'is_hidden',
+        'used_by_user_id',
+        'used_by_guild_id',
         'created_by_user_id',
-        'created_by_guild_id',
     ];
 
     protected function casts(): array
@@ -49,14 +50,19 @@ class Tag extends Model
         return is_string($name) && $name !== '' && (trim((string) $slug) === '');
     }
 
-    public function createdBy(): BelongsTo
+    public function createdByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
-    public function createdByGuild(): BelongsTo
+    public function usedByUser(): BelongsTo
     {
-        return $this->belongsTo(Guild::class, 'created_by_guild_id');
+        return $this->belongsTo(User::class, 'used_by_user_id');
+    }
+
+    public function usedByGuild(): BelongsTo
+    {
+        return $this->belongsTo(Guild::class, 'used_by_guild_id');
     }
 
     public function characters(): BelongsToMany

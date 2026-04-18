@@ -78,6 +78,13 @@ class Character extends Model
         return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'character_tag');
     }
 
+    /** Теги персонажа в контексте гильдии (pivot character_guild_tag). */
+    public function characterGuildTags(): BelongsToMany
+    {
+        return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'character_guild_tag', 'character_id', 'tag_id')
+            ->withPivot('guild_id');
+    }
+
     public function getResolvedAvatarUrlAttribute(): ?string
     {
         if ($this->use_profile_avatar && $this->user?->avatar) {

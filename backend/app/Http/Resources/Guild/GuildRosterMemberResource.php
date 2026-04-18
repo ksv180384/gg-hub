@@ -31,7 +31,8 @@ class GuildRosterMemberResource extends JsonResource
                     'slug' => $role->slug,
                 ] : null;
             }),
-            'tags' => $character ? TagResource::collection($character->tags) : [],
+            'tags' => $character ? TagResource::collection($character->characterGuildTags) : [],
+            'personal_tags' => $character ? TagResource::collection($character->tags) : [],
         ];
     }
 }

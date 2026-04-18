@@ -7,21 +7,17 @@ use Domains\Tag\Models\Tag;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * Один пользователь не может иметь два тега с тем же названием (без учёта регистра, после trim).
+ * У гильдии не может быть двух тегов с одним названием (used_by_guild_id = эта гильдия).
  */
-final class UniqueTagNameForCreatorUser implements ValidationRule
+final class UniqueTagNameForGuild implements ValidationRule
 {
     public function __construct(
-        private ?int $createdByUserId,
+        private int $usedByGuildId,
         private ?int $ignoreTagId = null,
     ) {}
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if ($this->createdByUserId === null) {
-            return;
-        }
-
         $name = is_string($value) ? trim($value) : '';
         if ($name === '') {
             return;
@@ -30,7 +26,7 @@ final class UniqueTagNameForCreatorUser implements ValidationRule
         $normalized = mb_strtolower($name, 'UTF-8');
 
         $query = Tag::query()
-            ->where('created_by_user_id', $this->createdByUserId)
+            ->where('used_by_guild_id', $this->usedByGuildId)
             ->whereRaw('LOWER(TRIM(name)) = ?', [$normalized]);
 
         if ($this->ignoreTagId !== null) {
@@ -38,7 +34,7 @@ final class UniqueTagNameForCreatorUser implements ValidationRule
         }
 
         if ($query->exists()) {
-            $fail('У вас уже есть тег с таким названием.');
+            $fail('У гильдии уже есть тег с таким названием.');
         }
     }
 }

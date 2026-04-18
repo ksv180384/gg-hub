@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/share
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import { guildsApi, type Guild, type GuildRosterMember } from '@/shared/api/guildsApi';
+import { rosterTagBadgeClass, rosterTagDisplayRows } from '@/shared/lib/rosterTagDisplay';
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 
@@ -366,14 +367,14 @@ function goToApplication() {
                               {{ gc.name_ru ?? gc.name }}
                             </Badge>
                           </div>
-                          <div v-if="member.tags.length > 0" class="flex flex-wrap gap-1">
+                          <div class="flex flex-wrap gap-1">
                             <Badge
-                              v-for="tag in member.tags"
-                              :key="tag.id"
-                              variant="secondary"
-                              class="text-xs"
+                              v-for="row in rosterTagDisplayRows(member)"
+                              :key="row.source + '-' + row.tag.id"
+                              variant="outline"
+                              :class="[rosterTagBadgeClass(row.source, row.tag), 'text-xs']"
                             >
-                              {{ tag.name }}
+                              {{ row.tag.name }}
                             </Badge>
                           </div>
                         </CardContent>

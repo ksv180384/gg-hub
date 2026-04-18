@@ -159,7 +159,7 @@ const tagDeleteLoading = ref(false);
 
 function isMyTag(tag: Tag): boolean {
   const u = authStore.user;
-  return u != null && tag.created_by_user_id != null && Number(tag.created_by_user_id) === u.id;
+  return u != null && tag.used_by_user_id != null && Number(tag.used_by_user_id) === u.id;
 }
 
 function openTagDeleteConfirm(tag: Tag) {

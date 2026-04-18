@@ -7,14 +7,18 @@ use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\App;
 use Illuminate\Validation\Validator;
 
 class UpdateGuildRequest extends FormRequest
 {
     /**
-     * Разрешить: владелец гильдии или пользователь с правом redaktirovat-formu-zaiavki-v-giliudiiu
-     * (редактирование формы заявки и открытие/закрытие набора в гильдию).
+     * Пропускает текущего лидера гильдии (владелец персонажа leader_character_id)
+     * или пользователя с хотя бы одним slug'ом на редактирование гильдии.
+     * Создатель гильдии (owner_id) не имеет особых прав — после смены лидера
+     * бывший лидер теряет доступ к настройкам. Конкретные поля проверяет
+     * {@see \Domains\Guild\Actions\UpdateGuildAction}.
      */
     public function authorize(): bool
     {
@@ -23,13 +27,34 @@ class UpdateGuildRequest extends FormRequest
         if (!$guild || !$user) {
             return false;
         }
-        if ((int) $guild->owner_id === (int) $user->id) {
-            return true;
+        if ($guild->leader_character_id) {
+            $leaderCharacter = Character::query()->find($guild->leader_character_id);
+            if ($leaderCharacter && (int) $leaderCharacter->user_id === (int) $user->id) {
+                return true;
+            }
         }
         $getSlugs = App::make(GetUserGuildPermissionSlugsAction::class);
         $slugs = $getSlugs($user, $guild);
+        $editSlugs = [
+            'redaktirovanie-dannyx-gildii',
+            'redaktirovanie-opisanie-gildii',
+            'redaktirovanie-ustav-gildii',
+            'redaktirovat-formu-zaiavki-v-giliudiiu',
+        ];
 
-        return $slugs->contains('redaktirovat-formu-zaiavki-v-giliudiiu');
+        return $slugs->contains(fn (string $slug): bool => in_array($slug, $editSlugs, true));
+    }
+
+    /**
+     * Возвращает человекочитаемое сообщение вместо дефолтного «This action is unauthorized.».
+     */
+    protected function failedAuthorization(): void
+    {
+        throw new HttpResponseException(
+            response()->json([
+                'message' => 'Недостаточно прав для изменения этой гильдии.',
+            ], 403)
+        );
     }
 
     /**
@@ -75,35 +100,60 @@ class UpdateGuildRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            /** @var \Domains\Guild\Models\Guild $guild */
+            $guild = $this->route('guild');
+
+            if ($this->has('server_id') || $this->has('localization_id')) {
+                $membersCount = GuildMember::query()->where('guild_id', $guild->id)->count();
+                $isOnlyLeader = $membersCount === 1
+                    && $guild->leader_character_id
+                    && GuildMember::query()
+                        ->where('guild_id', $guild->id)
+                        ->where('character_id', $guild->leader_character_id)
+                        ->exists();
+                if (!$isOnlyLeader) {
+                    $message = 'Изменить локализацию или сервер можно только пока в гильдии один участник — Лидер гильдии.';
+                    if ($this->has('server_id')) {
+                        $validator->errors()->add('server_id', $message);
+                    }
+                    if ($this->has('localization_id')) {
+                        $validator->errors()->add('localization_id', $message);
+                    }
+                }
+            }
+
             if (!$this->has('leader_character_id')) {
                 return;
             }
             /** @var \Domains\Guild\Models\Guild $guild */
             $guild = $this->route('guild');
-            $userId = $this->user()?->id;
             $serverId = (int) ($this->input('server_id') ?? $guild->server_id);
             $leaderId = (int) $this->input('leader_character_id');
-            if (!$userId || !$leaderId) {
+            if (!$leaderId) {
                 return;
             }
             $character = Character::query()->find($leaderId);
             if (!$character) {
                 return;
             }
-            if ((int) $character->user_id !== $userId) {
-                $validator->errors()->add('leader_character_id', 'Персонаж должен принадлежать вам.');
+            if (! GuildMember::query()->where('guild_id', $guild->id)->where('character_id', $leaderId)->exists()) {
+                $validator->errors()->add('leader_character_id', 'Лидером может быть только участник этой гильдии.');
+
                 return;
             }
             if ((int) $character->server_id !== $serverId) {
-                $validator->errors()->add('leader_character_id', 'Персонаж должен находиться на том же сервере, что и гильдия.');
-                return;
-            }
-            if (GuildMember::query()->where('character_id', $leaderId)->where('guild_id', '!=', $guild->id)->exists()) {
-                $validator->errors()->add('leader_character_id', 'Этот персонаж уже состоит в другой гильдии. Персонаж может быть только в одной гильдии.');
-                return;
+                // Исключение: лидер не меняется (тот же персонаж), при этом меняется сервер гильдии —
+                // персонаж-лидер будет синхронно перенесён на новый сервер в UpdateGuildAction.
+                $isSameLeader = (int) $guild->leader_character_id === $leaderId;
+                $serverIsChanging = $this->has('server_id');
+                if (!($isSameLeader && $serverIsChanging)) {
+                    $validator->errors()->add('leader_character_id', 'Персонаж должен находиться на том же сервере, что и гильдия.');
+
+                    return;
+                }
             }
             if (Guild::query()->where('leader_character_id', $leaderId)->where('id', '!=', $guild->id)->exists()) {
-                $validator->errors()->add('leader_character_id', 'Этот персонаж уже является лидером другой гильдии. Лидером может быть только персонаж, который не возглавляет другую гильдию.');
+                $validator->errors()->add('leader_character_id', 'Этот персонаж уже является лидером другой гильдии.');
             }
         });
     }

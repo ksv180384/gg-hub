@@ -7,7 +7,7 @@ use Domains\Tag\Models\Tag;
 class CreateTagAction
 {
     /**
-     * @param array{name: string, slug?: string|null, created_by_user_id?: int|null, created_by_guild_id?: int|null} $data
+     * @param array{name: string, slug?: string|null, used_by_user_id?: int|null, used_by_guild_id?: int|null, created_by_user_id?: int|null} $data
      */
     public function __invoke(array $data): Tag
     {

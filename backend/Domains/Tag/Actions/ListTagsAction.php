@@ -14,20 +14,24 @@ class ListTagsAction
     public function __invoke(
         bool $includeHidden = false,
         ?User $user = null,
-        bool $bypassPickerScope = false
+        bool $bypassPickerScope = false,
+        ?int $guildIdForPicker = null,
     ): Collection {
-        $query = Tag::query()->with('createdBy')->orderBy('name');
+        $query = Tag::query()->with(['usedByUser', 'createdByUser'])->orderBy('name');
         if (! $includeHidden) {
             $query->where('is_hidden', false);
         }
         if (! $bypassPickerScope && $user !== null) {
             $userId = $user->id;
-            $query->where(function ($q) use ($userId) {
-                $q->where('created_by_user_id', $userId)
+            $query->where(function ($q) use ($userId, $guildIdForPicker) {
+                $q->where('used_by_user_id', $userId)
                     ->orWhere(function ($q2) {
-                        $q2->whereNull('created_by_user_id')
-                            ->whereNull('created_by_guild_id');
+                        $q2->whereNull('used_by_user_id')
+                            ->whereNull('used_by_guild_id');
                     });
+                if ($guildIdForPicker !== null) {
+                    $q->orWhere('used_by_guild_id', $guildIdForPicker);
+                }
             });
         }
 

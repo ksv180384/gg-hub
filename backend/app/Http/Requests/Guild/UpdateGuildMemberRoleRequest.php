@@ -24,7 +24,9 @@ class UpdateGuildMemberRoleRequest extends FormRequest
             'guild_role_id' => [
                 'required',
                 'integer',
-                Rule::exists('guild_roles', 'id')->where('guild_id', $guildId),
+                Rule::exists('guild_roles', 'id')
+                    ->where('guild_id', $guildId)
+                    ->whereNot('slug', 'leader'),
             ],
         ];
     }

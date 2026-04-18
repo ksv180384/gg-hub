@@ -18,6 +18,12 @@ import {
   Label,
   Badge,
   TagAddCombobox,
+  SelectRoot,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  Tooltip,
 } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import RichTextEditor from '@/shared/ui/rich-text-editor/RichTextEditor.vue';
@@ -27,6 +33,7 @@ import {
   type Guild,
   type GuildApplicationFormFieldDto,
   type CreateGuildApplicationFormFieldPayload,
+  type GuildRosterMember,
 } from '@/shared/api/guildsApi';
 import { gamesApi, type Game, type Server } from '@/shared/api/gamesApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
@@ -49,19 +56,40 @@ const saving = ref(false);
 const error = ref<string | null>(null);
 const fieldErrors = ref<Record<string, string>>({});
 
-const isOwner = computed(
-  () =>
-    guild.value &&
-    authStore.user &&
-    (guild.value as { owner_id?: number }).owner_id === authStore.user!.id
-);
-
 /** Права текущего пользователя в этой гильдии (с сервера GET settings). */
 const myPermissionSlugs = ref<string[]>([]);
+
+/** Смена лидера гильдии (leader_character_id): только текущий лидер гильдии. */
+const canChangeGuildLeader = ref(false);
+const leaderRosterMembers = ref<GuildRosterMember[]>([]);
+const selectedLeaderCharacterId = ref('');
+/** Диалог подтверждения смены лидера: показывается перед запросом на сохранение. */
+const leaderChangeDialogOpen = ref(false);
+
+/**
+ * Можно ли менять локализацию/сервер гильдии.
+ * Разрешено только пока в гильдии один участник и он же — лидер гильдии.
+ * Флаг приходит с GET /guilds/:id/settings.
+ */
+const canChangeLocalizationServer = ref(false);
+
+/** Общий текст подсказки для поля «Локализация» и «Сервер». */
+const LOCALIZATION_SERVER_INFO =
+  'Локализацию и сервер можно изменить только пока в гильдии один участник — Лидер гильдии. ' +
+  'При смене у персонажа-лидера локализация и сервер изменятся автоматически. ' +
+  'Как только в гильдию вступит второй участник, эти поля будут заблокированы.';
 
 const canEditGuildData = computed(() =>
   myPermissionSlugs.value.includes('redaktirovanie-dannyx-gildii')
 );
+
+/**
+ * «Владелец» с точки зрения UI — это тот, кто реально может редактировать данные
+ * гильдии: текущий лидер (он получает все гильдейские slug'и) или пользователь
+ * с правом `redaktirovanie-dannyx-gildii`. Создатель гильдии (owner_id) после
+ * смены лидера теряет эти права и видит страницу в режиме просмотра.
+ */
+const isOwner = computed(() => canEditGuildData.value);
 const canEditCharter = computed(() =>
   myPermissionSlugs.value.includes('redaktirovanie-ustav-gildii')
 );
@@ -79,10 +107,12 @@ const tabs: { id: TabId; label: string }[] = [
   { id: 'application', label: 'Форма заявки' },
 ];
 
-/** Вкладки с учётом прав: «Настройки» только при canEditGuildData, «Форма заявки» только при canEditApplicationForm. */
+/** Вкладки с учётом прав: «Настройки» при редактировании данных или возможности сменить лидера. */
 const visibleTabs = computed(() => {
   return tabs.filter((t) => {
-    if (t.id === 'settings') return canEditGuildData.value;
+    if (t.id === 'settings') {
+      return canEditGuildData.value || canChangeGuildLeader.value;
+    }
     if (t.id === 'application') return canEditApplicationForm.value;
     return true;
   });
@@ -211,14 +241,21 @@ async function loadGuild() {
   try {
     guild.value = await guildsApi.getGuildForSettings(guildId.value);
     myPermissionSlugs.value = guild.value.my_permission_slugs ?? [];
-    const slugs = guild.value.my_permission_slugs ?? [];
-    const canEditData = slugs.includes('redaktirovanie-dannyx-gildii');
-    const canEditForm = slugs.includes('redaktirovat-formu-zaiavki-v-giliudiiu');
-    const visible = tabs.filter((t) => {
-      if (t.id === 'settings') return canEditData;
-      if (t.id === 'application') return canEditForm;
-      return true;
-    });
+    canChangeGuildLeader.value = guild.value.can_change_guild_leader ?? false;
+    canChangeLocalizationServer.value = guild.value.can_change_localization_server ?? false;
+    selectedLeaderCharacterId.value =
+      guild.value.leader_character_id != null ? String(guild.value.leader_character_id) : '';
+    if (canChangeGuildLeader.value) {
+      try {
+        const roster = await guildsApi.getGuildRoster(guildId.value);
+        leaderRosterMembers.value = [...roster].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+      } catch {
+        leaderRosterMembers.value = [];
+      }
+    } else {
+      leaderRosterMembers.value = [];
+    }
+    const visible = visibleTabs.value;
     if (!visible.some((t) => t.id === activeTab.value)) {
       activeTab.value = (visible[0]?.id ?? 'about') as TabId;
     }
@@ -303,14 +340,28 @@ const tagDeleteDialogOpen = ref(false);
 const tagToDelete = ref<Tag | null>(null);
 const tagDeleteLoading = ref(false);
 
-function isMyTag(tag: Tag): boolean {
+function canDeleteGuildTag(tag: Tag): boolean {
+  if (!guild.value) return false;
   const u = authStore.user;
-  return u != null && tag.created_by_user_id != null && Number(tag.created_by_user_id) === u.id;
+  if (u == null) return false;
+  if (tag.used_by_guild_id != null && Number(tag.used_by_guild_id) === guild.value.id) {
+    return myPermissionSlugs.value.includes('udaliat-teg-gildii');
+  }
+  if (!isOwner.value) return false;
+  return tag.used_by_user_id != null && Number(tag.used_by_user_id) === u.id;
 }
 
-function canDeleteGuildTag(tag: Tag): boolean {
-  return isOwner.value && isMyTag(tag);
-}
+const canCreateGuildTag = computed(
+  () => isOwner.value && myPermissionSlugs.value.includes('dobavliat-teg-gildii')
+);
+
+/** Комбобокс тегов: владелец или права на создание/удаление гильдейских тегов. */
+const canOpenGuildTagPicker = computed(
+  () =>
+    isOwner.value ||
+    myPermissionSlugs.value.includes('dobavliat-teg-gildii') ||
+    myPermissionSlugs.value.includes('udaliat-teg-gildii')
+);
 
 function openTagDeleteConfirm(tag: Tag) {
   tagToDelete.value = tag;
@@ -319,13 +370,19 @@ function openTagDeleteConfirm(tag: Tag) {
 
 async function confirmDeleteTagForever() {
   const t = tagToDelete.value;
-  if (!t || tagDeleteLoading.value) return;
+  if (!t || tagDeleteLoading.value || !guild.value) return;
   tagDeleteLoading.value = true;
   try {
-    await tagsApi.deleteTag(t.id);
+    const isThisGuildTag =
+      t.used_by_guild_id != null && Number(t.used_by_guild_id) === guild.value.id;
+    if (isThisGuildTag) {
+      await tagsApi.deleteGuildTag(guildId.value, t.id);
+    } else {
+      await tagsApi.deleteTag(t.id);
+    }
     selectedTagIds.value = selectedTagIds.value.filter((id) => id !== t.id);
     try {
-      allTags.value = await tagsApi.getTags(false);
+      allTags.value = await tagsApi.getTags(false, guildId.value);
     } catch {
       /* ignore */
     }
@@ -336,19 +393,56 @@ async function confirmDeleteTagForever() {
   }
 }
 
+/** В текущих значениях формы действительно меняется лидер по сравнению с гильдией. */
+const isLeaderChanging = computed(() => {
+  if (!guild.value || !canChangeGuildLeader.value) return false;
+  if (!selectedLeaderCharacterId.value) return false;
+  const current = guild.value.leader_character_id ?? null;
+  return Number(selectedLeaderCharacterId.value) !== Number(current);
+});
+
+/** Имя выбранного кандидата в лидеры (для текста подтверждения). */
+const selectedNewLeaderName = computed(() => {
+  const id = Number(selectedLeaderCharacterId.value);
+  return leaderRosterMembers.value.find((m) => m.character_id === id)?.name ?? '';
+});
+
 async function saveSettings() {
+  // При смене лидера — сначала просим подтверждение, действие необратимо
+  // (текущий лидер получает роль «Новичок», права на настройки гильдии теряются).
+  if (isLeaderChanging.value) {
+    leaderChangeDialogOpen.value = true;
+    return;
+  }
+  await performSaveSettings();
+}
+
+async function confirmLeaderChange() {
+  leaderChangeDialogOpen.value = false;
+  await performSaveSettings();
+}
+
+async function performSaveSettings() {
   if (!guild.value) return;
   saving.value = true;
   error.value = null;
   fieldErrors.value = {};
   try {
-    guild.value = await guildsApi.updateGuild(guild.value.id, {
+    const payload: Parameters<typeof guildsApi.updateGuild>[1] = {
       name: name.value.trim(),
-      localization_id: Number(selectedLocalizationId.value),
-      server_id: Number(selectedServerId.value),
       show_roster_to_all: showRosterToAll.value,
       tag_ids: selectedTagIds.value,
-    });
+    };
+    // Локализация/сервер отправляются только когда их разрешено менять
+    // (ровно один участник — Лидер гильдии).
+    if (canChangeLocalizationServer.value) {
+      payload.localization_id = Number(selectedLocalizationId.value);
+      payload.server_id = Number(selectedServerId.value);
+    }
+    if (canChangeGuildLeader.value && selectedLeaderCharacterId.value) {
+      payload.leader_character_id = Number(selectedLeaderCharacterId.value);
+    }
+    guild.value = await guildsApi.updateGuild(guild.value.id, payload);
   } catch (e: unknown) {
     const err = e as Error & { errors?: Record<string, string[]> };
     if (err.errors) {
@@ -557,9 +651,9 @@ async function toggleRecruiting() {
 
 onMounted(async () => {
   loadGames();
-  loadGuild();
+  await loadGuild();
   try {
-    allTags.value = await tagsApi.getTags(false);
+    allTags.value = await tagsApi.getTags(false, guildId.value);
   } catch {
     allTags.value = [];
   }
@@ -651,16 +745,53 @@ onMounted(async () => {
               />
               <span v-else class="text-sm text-muted-foreground">Нет логотипа</span>
             </div>
-            <div class="mt-3 flex w-full max-w-[290px] flex-col items-center gap-1 text-center text-sm">
+            <div class="mt-3 flex w-full max-w-[290px] flex-col items-center gap-3 text-center text-sm">
               <div class="font-medium text-foreground">
                 Лидер: {{ guild.leader?.name ?? '—' }}
+              </div>
+              <!-- Дублирование выбранных тегов (без подписи; выбор — во вкладке «Настройки») -->
+              <div v-if="selectedTagIds.length" class="flex w-full flex-wrap justify-center gap-2 md:justify-start">
+                <Badge
+                  v-for="tag in allTags.filter((t) => selectedTagIds.includes(t.id))"
+                  :key="tag.id"
+                  variant="outline"
+                >
+                  {{ tag.name }}
+                </Badge>
               </div>
               <div class="text-muted-foreground">
                 Участников: {{ guild.members_count ?? 0 }}
               </div>
+              <!-- Сменить лидера — под числом участников -->
               <div
-                v-if="!isOwner"
-                class="mt-2"
+                v-if="canChangeGuildLeader && leaderRosterMembers.length"
+                class="w-full space-y-1.5 text-left"
+              >
+                <Label class="text-xs text-muted-foreground">Сменить лидера</Label>
+                <SelectRoot v-model="selectedLeaderCharacterId">
+                  <SelectTrigger class="w-full">
+                    <SelectValue placeholder="Участник гильдии" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      v-for="m in leaderRosterMembers"
+                      :key="m.character_id"
+                      :value="String(m.character_id)"
+                    >
+                      {{ m.name }}
+                    </SelectItem>
+                  </SelectContent>
+                </SelectRoot>
+                <p class="text-xs text-muted-foreground">
+                  Только участники состава. Сохраните изменения во вкладке «Настройки» справа.
+                </p>
+                <p v-if="fieldErrors.leader_character_id" class="text-xs text-destructive">
+                  {{ fieldErrors.leader_character_id }}
+                </p>
+              </div>
+              <div
+                v-if="!canChangeGuildLeader"
+                class="mt-0"
               >
                 <Button
                   variant="destructive"
@@ -730,8 +861,11 @@ onMounted(async () => {
         <Card v-show="activeTab === 'settings'" class="mb-6">
           <CardHeader>
             <CardTitle>Настройки</CardTitle>
-            <p v-if="!isOwner" class="text-sm text-muted-foreground">
-              Редактировать настройки может только владелец гильдии. Вы можете просматривать информацию.
+            <p v-if="!isOwner && !canChangeGuildLeader" class="text-sm text-muted-foreground">
+              Редактировать настройки может только лидер гильдии или участник с соответствующим правом. Вы можете просматривать информацию.
+            </p>
+            <p v-else-if="!isOwner && canChangeGuildLeader" class="text-sm text-muted-foreground">
+              Вы можете сменить лидера гильдии (слева, под числом участников) и нажать «Сохранить настройки».
             </p>
           </CardHeader>
           <CardContent class="space-y-6">
@@ -742,8 +876,26 @@ onMounted(async () => {
             </div>
 
             <div class="space-y-2">
-              <Label>Локализация *</Label>
-              <SelectRoot v-model="selectedLocalizationId" :disabled="!isOwner || !availableLocalizations.length">
+              <div class="flex items-center gap-1.5">
+                <Label>Локализация *</Label>
+                <Tooltip :content="LOCALIZATION_SERVER_INFO" side="top">
+                  <button
+                    type="button"
+                    aria-label="Подсказка: когда можно менять локализацию"
+                    class="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4" />
+                      <path d="M12 8h.01" />
+                    </svg>
+                  </button>
+                </Tooltip>
+              </div>
+              <SelectRoot
+                v-model="selectedLocalizationId"
+                :disabled="!isOwner || !canChangeLocalizationServer || !availableLocalizations.length"
+              >
                 <SelectTrigger class="w-full">
                   <SelectValue placeholder="Локализация" />
                 </SelectTrigger>
@@ -763,8 +915,26 @@ onMounted(async () => {
             </div>
 
             <div class="space-y-2">
-              <Label>Сервер *</Label>
-              <SelectRoot v-model="selectedServerId" :disabled="!isOwner || !servers.length">
+              <div class="flex items-center gap-1.5">
+                <Label>Сервер *</Label>
+                <Tooltip :content="LOCALIZATION_SERVER_INFO" side="top">
+                  <button
+                    type="button"
+                    aria-label="Подсказка: когда можно менять сервер"
+                    class="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4" />
+                      <path d="M12 8h.01" />
+                    </svg>
+                  </button>
+                </Tooltip>
+              </div>
+              <SelectRoot
+                v-model="selectedServerId"
+                :disabled="!isOwner || !canChangeLocalizationServer || !servers.length"
+              >
                 <SelectTrigger class="w-full">
                   <SelectValue placeholder="Сервер" />
                 </SelectTrigger>
@@ -802,30 +972,43 @@ onMounted(async () => {
                   v-for="tag in allTags.filter((t) => selectedTagIds.includes(t.id))"
                   :key="tag.id"
                 >
-                  <Badge v-if="!isOwner" variant="outline">
+                  <Badge v-if="!canEditGuildData" variant="outline">
                     {{ tag.name }}
                   </Badge>
-                  <button
+                  <Badge
                     v-else
-                    type="button"
-                    class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    @click="toggleTag(tag.id)"
+                    variant="outline"
+                    class="max-w-full gap-0.5 py-0 pl-2 pr-0.5"
                   >
-                    <Badge variant="outline">{{ tag.name }}</Badge>
-                  </button>
+                    <span class="min-w-0 truncate">{{ tag.name }}</span>
+                    <button
+                      type="button"
+                      class="inline-flex shrink-0 rounded-sm p-0.5 text-muted-foreground outline-none hover:bg-destructive/15 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
+                      :title="`Убрать тег «${tag.name}»`"
+                      :aria-label="`Убрать тег «${tag.name}»`"
+                      @click.stop.prevent="toggleTag(tag.id)"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  </Badge>
                 </template>
               </div>
               <TagAddCombobox
                 v-model:all-tags="allTags"
                 v-model:selected-tag-ids="selectedTagIds"
                 input-id="tag-select"
-                :disabled="!isOwner"
+                :disabled="!canOpenGuildTagPicker"
+                :allow-create-tag="canCreateGuildTag"
+                :tag-create-guild-id="guildId"
                 :can-delete-tag="canDeleteGuildTag"
                 @delete-tag="openTagDeleteConfirm"
               />
             </div>
 
-            <Button :disabled="saving || !isOwner" @click="saveSettings">
+            <Button :disabled="saving || (!isOwner && !canChangeGuildLeader)" @click="saveSettings">
               {{ saving ? 'Сохранение…' : 'Сохранить настройки' }}
             </Button>
           </CardContent>
@@ -1214,6 +1397,21 @@ onMounted(async () => {
       confirm-variant="destructive"
       @update:open="(v) => { leaveDialogOpen = v; }"
       @confirm="confirmLeaveGuild"
+    />
+    <ConfirmDialog
+      :open="leaderChangeDialogOpen"
+      title="Сменить лидера гильдии?"
+      :description="
+        selectedNewLeaderName
+          ? `Лидером гильдии станет «${selectedNewLeaderName}». Вы получите роль «Новичок» и потеряете доступ к настройкам гильдии. Действие нельзя отменить — новому лидеру придётся передать роль обратно.`
+          : 'Вы получите роль «Новичок» и потеряете доступ к настройкам гильдии. Действие нельзя отменить — новому лидеру придётся передать роль обратно.'
+      "
+      confirm-label="Сменить лидера"
+      cancel-label="Отмена"
+      :loading="saving"
+      confirm-variant="destructive"
+      @update:open="(v) => { leaderChangeDialogOpen = v; }"
+      @confirm="confirmLeaderChange"
     />
   </div>
 </template>

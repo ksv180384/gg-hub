@@ -65,7 +65,8 @@ const fontSizeOptions = [
 const editor = useEditor({
   content: props.modelValue || '',
   extensions: [
-    StarterKit,
+    // В StarterKit v3 уже есть link и underline — отключаем, ниже подключаем свои с настройками.
+    StarterKit.configure({ link: false, underline: false }),
     Placeholder.configure({ placeholder: props.placeholder }),
     TextStyle,
     FontSize,

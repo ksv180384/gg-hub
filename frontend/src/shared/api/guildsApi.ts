@@ -82,6 +82,13 @@ export interface Guild {
   my_permission_slugs?: string[];
   /** Персонажи текущего пользователя в гильдии (приходит с GET /guilds/:id/settings). */
   my_characters?: { id: number; name: string; avatar_url?: string | null }[];
+  /** Смена leader_character_id: владелец гильдии или текущий лидер (по персонажу). GET /guilds/:id/settings. */
+  can_change_guild_leader?: boolean;
+  /**
+   * Можно ли менять локализацию/сервер гильдии: только если в гильдии один участник
+   * и он же является лидером гильдии. GET /guilds/:id/settings.
+   */
+  can_change_localization_server?: boolean;
 }
 
 /** Дополнительное поле формы заявки гильдии. */
@@ -202,6 +209,7 @@ export interface UpdateGuildPayload {
   logo?: File | null;
   remove_logo?: boolean;
   tag_ids?: number[];
+  leader_character_id?: number;
 }
 
 /** Ответ сервера: список гильдий с пагинацией (GET /guilds). */
@@ -238,7 +246,28 @@ export interface GuildRosterMember {
   avatar_url: string | null;
   game_classes: { id: number; name: string; name_ru?: string; slug: string; image_thumb?: string }[];
   guild_role: { id: number; name: string; slug: string } | null;
-  tags: { id: number; name: string; slug: string }[];
+  /** Теги в контексте гильдии (character_guild_tag). */
+  tags: {
+    id: number;
+    name: string;
+    slug: string;
+    used_by_user_id?: number | null;
+    used_by_guild_id?: number | null;
+    created_by_user_id?: number | null;
+    used_by?: { id: number; name: string } | null;
+    created_by?: { id: number; name: string } | null;
+  }[];
+  /** Личные теги персонажа (character_tag). */
+  personal_tags: {
+    id: number;
+    name: string;
+    slug: string;
+    used_by_user_id?: number | null;
+    used_by_guild_id?: number | null;
+    created_by_user_id?: number | null;
+    used_by?: { id: number; name: string } | null;
+    created_by?: { id: number; name: string } | null;
+  }[];
 }
 
 export const guildsApi = {
@@ -577,23 +606,49 @@ export const guildsApi = {
   async getGuildRosterMember(
     guildId: number,
     characterId: number
-  ): Promise<{ data: GuildRosterMember; can_exclude: boolean; can_change_role: boolean }> {
+  ): Promise<{
+    data: GuildRosterMember;
+    can_exclude: boolean;
+    can_change_role: boolean;
+    can_edit_guild_tags: boolean;
+    can_create_guild_tag: boolean;
+    can_delete_guild_tag: boolean;
+  }> {
     const res = await http.fetchGet<{
       data: GuildRosterMember;
       can_exclude: boolean;
       can_change_role: boolean;
+      can_edit_guild_tags: boolean;
+      can_create_guild_tag: boolean;
+      can_delete_guild_tag: boolean;
     }>(`/guilds/${guildId}/roster/${characterId}`);
     throwOnError(res, 'Ошибка загрузки данных участника');
     const raw = res.data as {
       data?: GuildRosterMember;
       can_exclude?: boolean;
       can_change_role?: boolean;
+      can_edit_guild_tags?: boolean;
+      can_create_guild_tag?: boolean;
+      can_delete_guild_tag?: boolean;
     } | null;
     return {
       data: raw?.data ?? ({} as GuildRosterMember),
       can_exclude: raw?.can_exclude ?? false,
       can_change_role: raw?.can_change_role ?? false,
+      can_edit_guild_tags: raw?.can_edit_guild_tags ?? false,
+      can_create_guild_tag: raw?.can_create_guild_tag ?? false,
+      can_delete_guild_tag: raw?.can_delete_guild_tag ?? false,
     };
+  },
+
+  /**
+   * Теги участника в гильдии (character_guild_tag). Право «Изменять теги пользователей гильдии».
+   */
+  async updateGuildMemberTags(guildId: number, characterId: number, tagIds: number[]): Promise<void> {
+    const res = await http.fetchPut<{ message?: string }>(`/guilds/${guildId}/members/${characterId}/tags`, {
+      tag_ids: tagIds,
+    });
+    throwOnError(res, 'Ошибка сохранения тегов');
   },
 
   /**
@@ -663,6 +718,9 @@ export const guildsApi = {
     if (payload.logo) form.append('logo', payload.logo);
     if (payload.tag_ids !== undefined) {
       payload.tag_ids.forEach((id) => form.append('tag_ids[]', String(id)));
+    }
+    if (payload.leader_character_id !== undefined) {
+      form.append('leader_character_id', String(payload.leader_character_id));
     }
     form.append('_method', 'PUT');
     const res = await http.fetchPost<{ data: Guild } | Guild>(`/guilds/${id}`, form);

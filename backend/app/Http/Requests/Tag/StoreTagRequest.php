@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Tag;
 
-use Domains\Tag\Rules\UniqueTagNameForCreatorUser;
+use Domains\Tag\Rules\UniqueTagNameForUser;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTagRequest extends FormRequest
@@ -34,7 +34,7 @@ class StoreTagRequest extends FormRequest
         $userId = $this->user()?->id;
 
         return [
-            'name' => ['required', 'string', 'max:20', new UniqueTagNameForCreatorUser($userId !== null ? (int) $userId : null)],
+            'name' => ['required', 'string', 'max:20', new UniqueTagNameForUser($userId !== null ? (int) $userId : null)],
             'slug' => ['nullable', 'string', 'max:255'],
         ];
     }

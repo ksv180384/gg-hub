@@ -4,6 +4,11 @@ import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { Card, CardContent, Badge } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import { guildsApi, type Guild, type GuildRosterMember } from '@/shared/api/guildsApi';
+import {
+  rosterTagBadgeClass,
+  rosterTagDisplayRows,
+  sliceRosterTagRowsForDisplay,
+} from '@/shared/lib/rosterTagDisplay';
 
 const route = useRoute();
 const router = useRouter();
@@ -18,6 +23,13 @@ const roster = ref<GuildRosterMember[]>([]);
 const rosterLoading = ref(false);
 const rosterFetched = ref(false);
 const rosterErrorStatus = ref<number | null>(null);
+
+const rosterDisplayItems = computed(() =>
+  roster.value.map((member) => ({
+    member,
+    tagsUi: sliceRosterTagRowsForDisplay(rosterTagDisplayRows(member)),
+  }))
+);
 
 function avatarFallback(name: string): string {
   if (!name?.trim()) return '?';
@@ -125,7 +137,7 @@ watch(guildId, async () => {
             class="grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
             <RouterLink
-              v-for="member in roster"
+              v-for="{ member, tagsUi } in rosterDisplayItems"
               :key="member.character_id"
               :to="{ name: 'guild-roster-member', params: { id: String(guildId), characterId: String(member.character_id) } }"
               class="block transition-opacity hover:opacity-90 focus-visible:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -160,15 +172,22 @@ watch(guildId, async () => {
                       {{ gc.name_ru ?? gc.name }}
                     </Badge>
                   </div>
-                  <div v-if="member.tags.length > 0" class="flex flex-wrap gap-1">
+                  <div class="flex flex-wrap items-center gap-1">
                     <Badge
-                      v-for="tag in member.tags"
-                      :key="tag.id"
-                      variant="secondary"
-                      class="text-xs"
+                      v-for="row in tagsUi.visible"
+                      :key="row.source + '-' + row.tag.id"
+                      variant="outline"
+                      :class="[rosterTagBadgeClass(row.source, row.tag), 'text-xs']"
                     >
-                      {{ tag.name }}
+                      {{ row.tag.name }}
                     </Badge>
+                    <span
+                      v-if="tagsUi.moreCount > 0"
+                      class="text-xs text-muted-foreground"
+                      :title="`Ещё ${tagsUi.moreCount} тегов`"
+                    >
+                      +{{ tagsUi.moreCount }}
+                    </span>
                   </div>
                 </CardContent>
               </Card>

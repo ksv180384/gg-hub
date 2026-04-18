@@ -37,7 +37,13 @@ class CharacterController extends Controller
         $filter = new CharacterFilter($request);
         $characters = Character::query()
             ->where('game_id', $game->id)
-            ->with(['localization', 'server', 'gameClasses', 'tags.createdBy', 'user'])
+            ->with([
+                'localization',
+                'server',
+                'gameClasses',
+                'tags' => fn ($q) => $q->with(['usedByUser', 'createdByUser']),
+                'user',
+            ])
             ->filter($filter)
             ->orderBy('name')
             ->get();

@@ -6,12 +6,18 @@ use App\Filters\GuildFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\GuildFilterRequest;
 use App\Http\Requests\Guild\StoreGuildRequest;
+use App\Http\Requests\Guild\StoreGuildTagRequest;
 use App\Http\Requests\Guild\UpdateGuildMemberRoleRequest;
+use App\Http\Requests\Guild\UpdateGuildRosterMemberTagsRequest;
 use App\Http\Requests\Guild\UpdateGuildRequest;
 use App\Http\Resources\Guild\GuildApplicationFormResource;
 use App\Http\Resources\Guild\GuildResource;
 use App\Http\Resources\Guild\GuildRosterMemberResource;
+use App\Http\Resources\Tag\TagResource;
 use Domains\Guild\Actions\CreateGuildAction;
+use Domains\Tag\Actions\CreateTagAction;
+use Domains\Tag\Actions\DeleteTagAction;
+use Domains\Tag\Models\Tag;
 use Domains\Guild\Actions\ExcludeGuildMemberAction;
 use Domains\Guild\Actions\GetGuildAction;
 use Domains\Guild\Actions\GetGuildRosterAction;
@@ -20,10 +26,14 @@ use Domains\Guild\Actions\GetUserGuildCharactersAction;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Actions\LeaveGuildAction;
 use Domains\Guild\Actions\UpdateGuildAction;
+use Domains\Guild\Actions\SyncGuildRosterMemberTagsAction;
+use Domains\Character\Models\Character;
 use Domains\Guild\Actions\UpdateGuildMemberRoleAction;
 use Domains\Guild\Models\Guild;
+use Domains\Guild\Models\GuildMember;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class GuildController extends Controller
@@ -38,7 +48,10 @@ class GuildController extends Controller
         private UpdateGuildAction $updateGuildAction,
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
         private LeaveGuildAction $leaveGuildAction,
-        private UpdateGuildMemberRoleAction $updateGuildMemberRoleAction
+        private UpdateGuildMemberRoleAction $updateGuildMemberRoleAction,
+        private SyncGuildRosterMemberTagsAction $syncGuildRosterMemberTagsAction,
+        private CreateTagAction $createTagAction,
+        private DeleteTagAction $deleteTagAction
     ) {}
 
     public function index(GuildFilterRequest $request): AnonymousResourceCollection
@@ -96,13 +109,51 @@ class GuildController extends Controller
         $permissionSlugs = ($this->getUserGuildPermissionSlugsAction)($user, $guild);
         $isLeader = $guild->leader_character_id && (int) $guild->leader_character_id === (int) $character;
         $canExclude = $permissionSlugs->contains('iskliucenie-polzovatelia-iz-gildii') && ! $isLeader;
-        $canChangeRole = $permissionSlugs->contains('meniat-izieniat-polzovateliu-rol');
+        $canChangeRole = $permissionSlugs->contains('meniat-izieniat-polzovateliu-rol') && ! $isLeader;
+        $canEditGuildTags = $permissionSlugs->contains('izmeniat-tegi-polzovatelei-gildii');
+        $canCreateGuildTag = $permissionSlugs->contains('dobavliat-teg-gildii');
+        $canDeleteGuildTag = $permissionSlugs->contains('udaliat-teg-gildii');
 
         return response()->json([
             'data' => $result->toArray($request),
             'can_exclude' => $canExclude,
             'can_change_role' => $canChangeRole,
+            'can_edit_guild_tags' => $canEditGuildTags,
+            'can_create_guild_tag' => $canCreateGuildTag,
+            'can_delete_guild_tag' => $canDeleteGuildTag,
         ]);
+    }
+
+    /**
+     * Создать тег гильдии (used_by_guild_id, без used_by_user_id). Право dobavliat-teg-gildii.
+     */
+    public function storeTag(StoreGuildTagRequest $request, Guild $guild): JsonResponse
+    {
+        $data = $request->validated();
+        $tag = ($this->createTagAction)([
+            'name' => $data['name'],
+            'slug' => $data['slug'] ?? null,
+            'used_by_user_id' => null,
+            'used_by_guild_id' => $guild->id,
+            'created_by_user_id' => $request->user()?->id,
+        ]);
+        $tag->load(['usedByUser', 'createdByUser']);
+
+        return (new TagResource($tag))->response()->setStatusCode(201);
+    }
+
+    /**
+     * Удалить тег гильдии (used_by_guild_id = эта гильдия). Право udaliat-teg-gildii.
+     */
+    public function destroyTag(Guild $guild, Tag $tag): JsonResponse|Response
+    {
+        if ($tag->used_by_guild_id === null || (int) $tag->used_by_guild_id !== (int) $guild->id) {
+            return response()->json(['message' => 'Этот тег не относится к данной гильдии.'], 403);
+        }
+
+        ($this->deleteTagAction)($tag);
+
+        return response()->noContent();
     }
 
     /**
@@ -113,6 +164,17 @@ class GuildController extends Controller
         ($this->updateGuildMemberRoleAction)($guild, $character, (int) $request->validated()['guild_role_id']);
 
         return response()->json(['message' => 'Роль участника обновлена.']);
+    }
+
+    /**
+     * Теги участника в контексте гильдии (character_guild_tag). Право izmeniat-tegi-polzovatelei-gildii.
+     */
+    public function updateMemberTags(UpdateGuildRosterMemberTagsRequest $request, Guild $guild, int $character): JsonResponse
+    {
+        $tagIds = $request->validated()['tag_ids'];
+        ($this->syncGuildRosterMemberTagsAction)($guild, $character, $tagIds);
+
+        return response()->json(['message' => 'Теги участника обновлены.']);
     }
 
     /**
@@ -159,7 +221,39 @@ class GuildController extends Controller
                 ->all()
             : [];
 
+        // Сменить лидера может только текущий лидер гильдии (владелец leader_character_id).
+        // Создатель гильдии (owner_id) без статуса лидера особых прав не имеет.
+        $canChangeGuildLeader = false;
+        if ($user && $guild->leader_character_id) {
+            $leaderCharacter = Character::query()->find($guild->leader_character_id);
+            if ($leaderCharacter && (int) $leaderCharacter->user_id === (int) $user->id) {
+                $canChangeGuildLeader = true;
+            }
+        }
+        $data['can_change_guild_leader'] = $canChangeGuildLeader;
+
+        $data['can_change_localization_server'] = $this->computeCanChangeLocalizationServer($guild);
+
         return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Сменить локализацию/сервер гильдии можно только когда в гильдии
+     * ровно один участник — и он же является лидером гильдии.
+     */
+    private function computeCanChangeLocalizationServer(Guild $guild): bool
+    {
+        if (!$guild->leader_character_id) {
+            return false;
+        }
+        $membersCount = (int) ($guild->members_count ?? $guild->members()->count());
+        if ($membersCount !== 1) {
+            return false;
+        }
+        $onlyMember = GuildMember::query()->where('guild_id', $guild->id)->first();
+
+        return $onlyMember !== null
+            && (int) $onlyMember->character_id === (int) $guild->leader_character_id;
     }
 
     public function store(StoreGuildRequest $request): JsonResponse

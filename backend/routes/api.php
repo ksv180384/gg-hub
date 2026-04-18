@@ -116,6 +116,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster']);
     Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember']);
     Route::put('/guilds/{guild}/members/{character}/role', [GuildController::class, 'updateMemberRole'])->middleware('guild.member', 'guild.role.permission:meniat-izieniat-polzovateliu-rol');
+    Route::match(['put', 'patch'], '/guilds/{guild}/members/{character}/tags', [GuildController::class, 'updateMemberTags'])->middleware('guild.member', 'guild.role.permission:izmeniat-tegi-polzovatelei-gildii');
+    Route::post('/guilds/{guild}/tags', [GuildController::class, 'storeTag'])->middleware('guild.member', 'guild.role.permission:dobavliat-teg-gildii');
+    Route::delete('/guilds/{guild}/tags/{tag}', [GuildController::class, 'destroyTag'])->middleware('guild.member', 'guild.role.permission:udaliat-teg-gildii');
     Route::delete('/guilds/{guild}/members/{character}', [GuildController::class, 'excludeMember'])->middleware('guild.member', 'guild.role.permission:iskliucenie-polzovatelia-iz-gildii');
     Route::get('/guilds/{guild}/settings', [GuildController::class, 'settings'])->middleware('guild.member');
     Route::get('/guilds/{guild}/polls', [GuildPollController::class, 'index'])->middleware('guild.member');

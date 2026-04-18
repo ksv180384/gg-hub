@@ -14,6 +14,7 @@ import {
 import { Button, Input, Label } from '@/shared/ui';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
+import { sortTagsForPicker } from '@/shared/lib/tagPickerOrder';
 import { toastError } from '@/shared/lib/toast';
 
 const TAG_CREATE_VALUE_PREFIX = '__create__:';
@@ -30,11 +31,17 @@ const props = withDefaults(
     placeholder?: string;
     /** Показать кнопку удаления у пункта (например, только свои теги). */
     canDeleteTag?: (tag: Tag) => boolean;
+    /** Разрешить создание нового тега из строки поиска и блок «Добавить новый». */
+    allowCreateTag?: boolean;
+    /** Если задан — создание через POST /guilds/:id/tags (тег гильдии). Иначе POST /tags (тег пользователя). */
+    tagCreateGuildId?: number | null;
   }>(),
   {
     disabled: false,
     label: 'Добавить тег',
     placeholder: 'Выберите или введите тег',
+    allowCreateTag: true,
+    tagCreateGuildId: null,
   }
 );
 
@@ -52,13 +59,13 @@ const addingNewTag = ref(false);
 const newTagInputRef = ref<{ focus: (options?: FocusOptions) => void } | null>(null);
 
 const tagsNotSelected = computed(() =>
-  allTags.value.filter((t) => !selectedTagIds.value.includes(t.id))
+  sortTagsForPicker(allTags.value.filter((t) => !selectedTagIds.value.includes(t.id)))
 );
 
 const tagSearchTrimmed = computed(() => tagSearchTerm.value.trim());
 
 const showTagCreateOption = computed(() => {
-  if (props.disabled) return false;
+  if (props.disabled || !props.allowCreateTag) return false;
   const n = tagSearchTrimmed.value;
   if (n.length === 0 || n.length > 20 || creatingTag.value) return false;
   const lower = n.toLowerCase();
@@ -135,7 +142,10 @@ async function createAndAddTagFromQuery(trimName: string): Promise<boolean> {
   if (!name || creatingTag.value || props.disabled) return false;
   creatingTag.value = true;
   try {
-    const tag = await tagsApi.createTag({ name });
+    const tag =
+      props.tagCreateGuildId != null
+        ? await tagsApi.createGuildTag(props.tagCreateGuildId, { name })
+        : await tagsApi.createTag({ name });
     if (!allTags.value.some((t) => t.id === tag.id)) {
       allTags.value = [...allTags.value, tag];
     }
@@ -154,7 +164,7 @@ async function createAndAddTagFromQuery(trimName: string): Promise<boolean> {
 }
 
 async function startAddingNewTag() {
-  if (props.disabled) return;
+  if (props.disabled || !props.allowCreateTag) return;
   addingNewTag.value = true;
   await nextTick();
   await nextTick();
@@ -220,10 +230,12 @@ function onDeleteClick(tag: Tag) {
             side="bottom"
             align="start"
             :side-offset="4"
-            class="z-50 max-h-[min(24rem,var(--radix-combobox-content-available-height))] w-[var(--radix-combobox-anchor-width)] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
+            class="z-50 flex max-h-[min(24rem,var(--radix-combobox-content-available-height))] w-[var(--radix-combobox-anchor-width)] flex-col overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
             @open-auto-focus="(e: Event) => e.preventDefault()"
           >
-            <ComboboxViewport class="max-h-[min(18rem,var(--radix-combobox-content-available-height))] overflow-y-auto p-1">
+            <ComboboxViewport
+              class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1"
+            >
               <ComboboxEmpty class="px-2 py-3 text-center text-sm text-muted-foreground">
                 Ничего не найдено
               </ComboboxEmpty>
@@ -269,59 +281,60 @@ function onDeleteClick(tag: Tag) {
                   </button>
                 </div>
               </div>
-              <div
-                class="border-t border-border p-1"
-                @pointerdown.stop
-                @keydown.stop
-                @keyup.stop
-              >
-                <template v-if="!addingNewTag">
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
-                    @mousedown.prevent
-                    @click="startAddingNewTag"
-                  >
-                    <span class="text-base leading-none">+</span>
-                    Добавить новый
-                  </button>
-                </template>
-                <template v-else>
-                  <div class="flex flex-col gap-2 p-1">
-                    <Input
-                      ref="newTagInputRef"
-                      v-model="newTagName"
-                      placeholder="Название тега"
-                      class="h-8 text-sm"
-                      maxlength="20"
-                      :disabled="creatingTag"
-                      @keydown.enter.prevent="createAndAddTag"
-                    />
-                    <div class="flex gap-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        class="flex-1"
-                        :disabled="!newTagName.trim() || creatingTag"
-                        @click="createAndAddTag"
-                      >
-                        {{ creatingTag ? '…' : 'Создать' }}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        :disabled="creatingTag"
-                        @click="cancelNewTag"
-                      >
-                        Отмена
-                      </Button>
-                    </div>
-                  </div>
-                </template>
-              </div>
             </ComboboxViewport>
+            <div
+              v-if="allowCreateTag"
+              class="shrink-0 border-t border-border bg-popover p-1"
+              @pointerdown.stop
+              @keydown.stop
+              @keyup.stop
+            >
+              <template v-if="!addingNewTag">
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
+                  @mousedown.prevent
+                  @click="startAddingNewTag"
+                >
+                  <span class="text-base leading-none">+</span>
+                  Добавить новый
+                </button>
+              </template>
+              <template v-else>
+                <div class="flex flex-col gap-2 p-1">
+                  <Input
+                    ref="newTagInputRef"
+                    v-model="newTagName"
+                    placeholder="Название тега"
+                    class="h-8 text-sm"
+                    maxlength="20"
+                    :disabled="creatingTag"
+                    @keydown.enter.prevent="createAndAddTag"
+                  />
+                  <div class="flex gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      class="flex-1"
+                      :disabled="!newTagName.trim() || creatingTag"
+                      @click="createAndAddTag"
+                    >
+                      {{ creatingTag ? '…' : 'Создать' }}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      :disabled="creatingTag"
+                      @click="cancelNewTag"
+                    >
+                      Отмена
+                    </Button>
+                  </div>
+                </div>
+              </template>
+            </div>
           </ComboboxContent>
         </ComboboxPortal>
       </ComboboxRoot>

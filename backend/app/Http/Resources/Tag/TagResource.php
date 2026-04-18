@@ -19,11 +19,16 @@ class TagResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'is_hidden' => $this->is_hidden,
+            'used_by_user_id' => $this->used_by_user_id,
+            'used_by_guild_id' => $this->used_by_guild_id,
             'created_by_user_id' => $this->created_by_user_id,
-            'created_by_guild_id' => $this->created_by_guild_id,
-            'created_by' => $this->whenLoaded('createdBy', fn () => $this->createdBy ? [
-                'id' => $this->createdBy->id,
-                'name' => $this->createdBy->name,
+            'used_by' => $this->whenLoaded('usedByUser', fn () => $this->usedByUser ? [
+                'id' => $this->usedByUser->id,
+                'name' => $this->usedByUser->name,
+            ] : null),
+            'created_by' => $this->whenLoaded('createdByUser', fn () => $this->createdByUser ? [
+                'id' => $this->createdByUser->id,
+                'name' => $this->createdByUser->name,
             ] : null),
         ];
     }

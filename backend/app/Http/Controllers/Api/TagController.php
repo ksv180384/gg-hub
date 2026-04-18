@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Domains\Guild\Models\GuildMember;
 use App\Http\Requests\Tag\StoreTagRequest;
 use App\Http\Requests\Tag\UpdateTagRequest;
 use App\Http\Resources\Tag\TagResource;
@@ -37,10 +38,23 @@ class TagController extends Controller
         $adminFullList = $request->boolean('include_hidden')
             && $user
             && in_array(self::PERMISSION_ADMIN, $user->getAllPermissionSlugs(), true);
+        $guildIdForPicker = null;
+        if ($request->filled('guild_id') && $user instanceof User) {
+            $gId = (int) $request->query('guild_id');
+            $isMember = GuildMember::query()
+                ->where('guild_id', $gId)
+                ->whereHas('character', fn ($q) => $q->where('user_id', $user->id))
+                ->exists();
+            if ($isMember) {
+                $guildIdForPicker = $gId;
+            }
+        }
+
         $tags = ($this->listTagsAction)(
             includeHidden: $adminFullList,
             user: $user,
-            bypassPickerScope: $adminFullList
+            bypassPickerScope: $adminFullList,
+            guildIdForPicker: $guildIdForPicker,
         );
 
         return TagResource::collection($tags);
@@ -50,9 +64,11 @@ class TagController extends Controller
     {
         $data = $request->validated();
         $user = $request->user();
+        $data['used_by_user_id'] = $user?->id;
+        $data['used_by_guild_id'] = null;
         $data['created_by_user_id'] = $user?->id;
         $tag = ($this->createTagAction)($data);
-        $tag->load('createdBy');
+        $tag->load(['usedByUser', 'createdByUser']);
         return (new TagResource($tag))->response()->setStatusCode(201);
     }
 
@@ -72,7 +88,7 @@ class TagController extends Controller
             return response()->json(['message' => 'Недостаточно прав для редактирования тега.'], 403);
         }
         ($this->updateTagAction)($tag, $validated);
-        return new TagResource($tag->fresh());
+        return new TagResource($tag->fresh(['usedByUser', 'createdByUser']));
     }
 
     public function destroy(Tag $tag): JsonResponse|Response
@@ -83,8 +99,8 @@ class TagController extends Controller
         }
         $slugs = $user->getAllPermissionSlugs();
         $canAdminDelete = in_array(self::PERMISSION_TAG_DELETE, $slugs, true);
-        $ownsTag = $tag->created_by_user_id !== null
-            && (int) $tag->created_by_user_id === (int) $user->id;
+        $ownsTag = $tag->used_by_user_id !== null
+            && (int) $tag->used_by_user_id === (int) $user->id;
         if (! $canAdminDelete && ! $ownsTag) {
             return response()->json(['message' => 'Недостаточно прав для удаления тега.'], 403);
         }

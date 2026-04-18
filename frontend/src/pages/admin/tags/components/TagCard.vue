@@ -24,7 +24,10 @@ const emit = defineEmits<{
         <CardTitle class="text-base">{{ tag.name }}</CardTitle>
         <p class="mt-1 text-sm text-muted-foreground">Слаг: {{ tag.slug }}</p>
         <p v-if="tag.created_by" class="mt-0.5 text-xs text-muted-foreground">
-          Добавил: {{ tag.created_by.name }}
+          Создал: {{ tag.created_by.name }}
+        </p>
+        <p v-else-if="tag.used_by" class="mt-0.5 text-xs text-muted-foreground">
+          Пользователь: {{ tag.used_by.name }}
         </p>
       </div>
       <div class="flex items-center gap-2">
