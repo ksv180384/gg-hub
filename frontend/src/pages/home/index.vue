@@ -21,6 +21,7 @@ import {
   HOME_PAGE_SEO_KEYWORDS,
   HOME_PAGE_LEAD,
   HOME_HERO_IMAGE_PATH,
+  HOME_FAQ_ITEMS,
   buildHomeCanonicalUrl,
   buildHomeJsonLdGraph,
 } from '@/seo/homePageSeo';
@@ -54,7 +55,7 @@ usePageSeo({
 });
 
 const heroImageAlt =
-  'Платформа gg-hub для гильдий MMORPG: Throne and Liberty, Aion 2, Black Desert — каталог гильдий и инструменты для кланов';
+  'Управление гильдией в MMORPG на платформе gg-hub: Throne and Liberty, Aion 2 — ростер, рейды, календарь событий, заявки и блог гильдии';
 const homeCtaImagePath = '/assets/images/2.webp';
 const homeCtaImageAlt = '';
 
@@ -63,7 +64,6 @@ const games = ref<
 >([
   { name: 'Throne and Liberty', slug: 'throne-and-liberty' },
   { name: 'Aion 2', slug: 'aion-2' },
-  { name: 'Black Desert', slug: 'black-desert' },
 ]);
 
 /** Частицы «маны» для фона средней части лендинга (MMORPG, не hero и не нижний CTA) */
@@ -151,11 +151,11 @@ const stats = [
 ];
 
 const features = [
-  { title: 'Персонажи', desc: 'Создавай персонажей с привязкой к игре, серверу и классу. Теги, изображения, фильтры.' },
-  { title: 'Заявки', desc: 'Кастомные анкеты для вступления. Настраиваемые поля, комментарии офицеров.' },
+  { title: 'Управление гильдией', desc: 'Ростер, роли и права доступа офицеров — полный контроль над составом и структурой гильдии в одном интерфейсе.' },
+  { title: 'Заявки и анкеты', desc: 'Кастомные анкеты для вступления с привязкой персонажей, классов и серверов. Комментарии офицеров и история заявок.' },
   { title: 'Рейды', desc: 'Формируй составы рейдов из участников гильдии с распределением по ролям.' },
-  { title: 'Календарь', desc: 'Разовые, ежедневные, еженедельные, ежемесячные события с записью.' },
-  { title: 'Блог', desc: 'Гильдейские, игровые и общие посты. Единая лента с фильтрацией.' },
+  { title: 'Календарь', desc: 'Разовые, ежедневные, еженедельные, ежемесячные события с записью и напоминаниями.' },
+  { title: 'Блог гильдии', desc: 'Гильдейские, игровые и общие посты. Единая лента с фильтрацией и приоритетами.' },
   { title: 'Голосования', desc: 'Опросы внутри гильдии для принятия коллективных решений.' },
 ];
 
@@ -351,6 +351,7 @@ watch(isDark, () => {
     id="main-content"
     class="landing-page-root overflow-x-hidden text-foreground"
     :style="{ backgroundColor: landingScrollBg }"
+    aria-label="Платформа для управления гильдией в MMORPG"
     aria-labelledby="landing-hero-heading"
   >
     <!-- Hero -->
@@ -387,11 +388,18 @@ watch(isDark, () => {
 
           <h1
             id="landing-hero-heading"
-            class="animate-in fade-in slide-in-from-bottom-3 duration-700 delay-100 fill-mode-backwards text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
+            class="hero-eyebrow animate-in fade-in slide-in-from-bottom-2 duration-700 fill-mode-backwards"
+          >
+            Управление гильдией в MMORPG — gg-hub
+          </h1>
+
+          <p
+            class="hero-slogan animate-in fade-in slide-in-from-bottom-3 duration-700 delay-100 fill-mode-backwards text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
+            aria-hidden="true"
           >
             <span class="hero-gradient-text">Твоя гильдия</span><br />
             <span class="hero-gradient-text-next">Твоя команда</span>
-          </h1>
+          </p>
 
           <p
             class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl fill-mode-backwards text-[#363636] dark:text-white/92 min-h-[8rem] sm:min-h-[7rem]"
@@ -409,6 +417,8 @@ watch(isDark, () => {
             </button>
             <RouterLink
               to="/guilds"
+              title="Перейти к каталогу гильдий и инструментам управления гильдией"
+              aria-label="Найти гильдию — каталог и инструменты управления гильдией"
               class="landing-cta-btn landing-cta-btn--muted landing-cta-btn--muted-hero inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium no-underline transition-[transform,box-shadow,background-color,backdrop-filter] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
             >
               Найти гильдию
@@ -515,6 +525,11 @@ watch(isDark, () => {
             {{ game.name }}
           </RouterLink>
         </div>
+        <p class="mx-auto mt-8 max-w-3xl text-pretty text-center text-base text-muted-foreground leading-relaxed md:text-lg">
+          gg-hub — это управление гильдией в MMORPG без компромиссов. Собираем в одном месте инструменты
+          для управления гильдией: ростер и роли, заявки и анкеты, календарь рейдов, блог и голосования.
+          Платформа работает для сообществ Throne and Liberty и Aion 2.
+        </p>
       </div>
     </section>
 
@@ -621,10 +636,10 @@ watch(isDark, () => {
         :class="show('guild-header') ? 'opacity-100' : 'opacity-0'"
       >
         <h2 id="section-guilds-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
-          Управляй гильдией как профессионал
+          Управление гильдией — все инструменты лидера в одном месте
         </h2>
         <p class="mt-4 text-lg text-muted-foreground">
-          Инструменты, которых не хватает в самой игре и в Discord. Всё для лидеров и офицеров.
+          Полный набор функций для управления гильдией: ростер, заявки, рейды, календарь, блог и голосования. Инструменты, которых не хватает в самой игре и в Discord — всё для лидеров и офицеров.
         </p>
       </div>
 
@@ -687,8 +702,11 @@ watch(isDark, () => {
       >
         <Badge variant="secondary" class="mb-4">Как это работает</Badge>
         <h2 id="section-steps-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
-          Три шага до своей команды
+          Управление гильдией в три шага
         </h2>
+        <p class="mt-4 text-lg text-muted-foreground">
+          От создания профиля до ежедневного управления гильдией — простой путь к своей команде.
+        </p>
       </div>
 
       <div
@@ -777,6 +795,94 @@ watch(isDark, () => {
         </Card>
       </div>
     </section>
+
+    <div
+      :ref="setRef('landing-sep-faq')"
+      class="landing-section-divider container py-10 md:py-12"
+      role="presentation"
+      aria-hidden="true"
+    >
+      <div class="landing-section-divider__inner">
+        <span
+          class="landing-section-divider__arm landing-section-divider__arm--left"
+          :class="show('landing-sep-faq') ? 'landing-section-divider__arm--in' : ''"
+        />
+        <span
+          class="landing-section-divider__gem"
+          :class="show('landing-sep-faq') ? 'landing-section-divider__gem--in' : ''"
+        />
+        <span
+          class="landing-section-divider__arm landing-section-divider__arm--right"
+          :class="show('landing-sep-faq') ? 'landing-section-divider__arm--in' : ''"
+        />
+      </div>
+    </div>
+
+    <!-- FAQ: управление гильдией -->
+    <section
+      class="container py-16 md:py-24"
+      aria-labelledby="section-faq-heading"
+      itemscope
+      itemtype="https://schema.org/FAQPage"
+    >
+      <div
+        :ref="setRef('faq-header')"
+        data-reveal-id="faq-header"
+        class="mx-auto max-w-3xl text-center transition-opacity duration-700"
+        :class="show('faq-header') ? 'opacity-100' : 'opacity-0'"
+      >
+        <h2 id="section-faq-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
+          Частые вопросы про управление гильдией
+        </h2>
+        <p class="mt-4 text-lg text-muted-foreground">
+          Коротко о том, как устроено управление гильдией в gg-hub и для кого подходит платформа.
+        </p>
+      </div>
+
+      <div
+        :ref="setRef('faq-list')"
+        data-reveal-id="faq-list"
+        class="mx-auto mt-10 flex max-w-3xl flex-col gap-3"
+      >
+        <details
+          v-for="(item, i) in HOME_FAQ_ITEMS"
+          :key="item.question"
+          class="landing-faq-item group transition-opacity duration-500"
+          :class="show('faq-list') ? 'opacity-100' : 'opacity-0'"
+          :style="{ transitionDelay: `${i * 80}ms` }"
+          itemscope
+          itemprop="mainEntity"
+          itemtype="https://schema.org/Question"
+        >
+          <summary class="landing-faq-summary">
+            <span class="landing-faq-question" itemprop="name">{{ item.question }}</span>
+            <svg
+              class="landing-faq-chevron"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          <div
+            class="landing-faq-answer"
+            itemscope
+            itemprop="acceptedAnswer"
+            itemtype="https://schema.org/Answer"
+          >
+            <p itemprop="text">{{ item.answer }}</p>
+          </div>
+        </details>
+      </div>
+    </section>
       </div>
     </div>
 
@@ -839,8 +945,8 @@ watch(isDark, () => {
               Готов найти свою команду?
             </h2>
             <p class="landing-cta-lead max-w-2xl px-2 text-base leading-relaxed text-white/95 md:text-lg">
-              Следи за запуском: бесплатная платформа для игроков и гильдий. Развивай сообщество в Throne and Liberty, Aion
-              2, Black Desert.
+              Следи за запуском: бесплатная платформа для игроков и гильдий. Развивай сообщество в Throne and Liberty
+              и Aion 2.
             </p>
             <div class="mt-2 flex flex-wrap justify-center gap-3 sm:gap-4">
               <button
@@ -852,6 +958,8 @@ watch(isDark, () => {
               </button>
               <RouterLink
                 to="/guilds"
+                title="Каталог гильдий MMORPG и инструменты управления гильдией"
+                aria-label="Смотреть гильдии — каталог и инструменты управления гильдией"
                 class="landing-cta-btn landing-cta-btn--muted inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium no-underline transition-[transform,box-shadow,background-color] duration-300 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
               >
                 Смотреть гильдии
@@ -934,6 +1042,48 @@ watch(isDark, () => {
 
 .hero-text-readable {
   text-shadow: 0 1px 2px hsl(0 0% 0% / 0.14), 0 2px 24px hsl(0 0% 0% / 0.12);
+}
+
+/* Эйбрау над слоганом: несёт ключевой запрос, не перетягивает визуал. */
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.9rem;
+  margin: 0;
+  border: 1px solid rgba(201, 165, 74, 0.55);
+  border-radius: 9999px;
+  background: rgba(12, 10, 8, 0.42);
+  backdrop-filter: blur(6px) saturate(1.05);
+  -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  color: #f5e3b4;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 14px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (min-width: 640px) {
+  .hero-eyebrow {
+    font-size: 0.78rem;
+    padding: 0.4rem 1.05rem;
+    letter-spacing: 0.2em;
+  }
+}
+
+@media (min-width: 768px) {
+  .hero-eyebrow {
+    font-size: 0.82rem;
+    letter-spacing: 0.22em;
+  }
 }
 
 /* Лёгкая стеклянная подложка: радиальный градиент, без рамки и кромок */
@@ -1164,6 +1314,107 @@ watch(isDark, () => {
   .landing-mid-fantasy-sigil {
     animation: none;
     opacity: 0.22;
+  }
+}
+
+/* --- FAQ: управление гильдией --- */
+.landing-faq-item {
+  border: 1px solid color-mix(in oklch, var(--primary) 22%, var(--border));
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--card) 96%, transparent);
+  box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+
+.landing-faq-item:hover {
+  border-color: color-mix(in oklch, var(--primary) 42%, var(--border));
+  box-shadow: 0 4px 18px hsl(0 0% 0% / 0.08);
+}
+
+.landing-faq-item[open] {
+  border-color: color-mix(in oklch, var(--primary) 48%, var(--border));
+  box-shadow: 0 6px 22px hsl(0 0% 0% / 0.08);
+}
+
+.landing-faq-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--foreground);
+  transition: color 0.25s ease;
+}
+
+.landing-faq-summary::-webkit-details-marker {
+  display: none;
+}
+
+.landing-faq-summary:hover {
+  color: var(--primary);
+}
+
+.landing-faq-summary:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--primary) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+.landing-faq-question {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 768px) {
+  .landing-faq-question {
+    font-size: 1.0625rem;
+  }
+}
+
+.landing-faq-chevron {
+  flex-shrink: 0;
+  color: color-mix(in oklch, var(--primary) 75%, var(--muted-foreground));
+  transition: transform 0.3s ease;
+}
+
+.landing-faq-item[open] .landing-faq-chevron {
+  transform: rotate(180deg);
+}
+
+.landing-faq-answer {
+  padding: 0 1.25rem 1.1rem;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  animation: landing-faq-answer-in 0.32s ease-out;
+}
+
+.landing-faq-answer p {
+  margin: 0;
+}
+
+@keyframes landing-faq-answer-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-faq-item,
+  .landing-faq-chevron,
+  .landing-faq-answer {
+    transition: none;
+    animation: none;
   }
 }
 
@@ -1695,7 +1946,7 @@ watch(isDark, () => {
  * Градиентный текст + filter на одном элементе ломает background-clip: text в Chromium
  * (видны «прямоугольники» вместо букв). Тень переносим на h1, на span — filter: none.
  */
-.dark .landing-page-root #landing-hero-heading {
+.dark .landing-page-root .hero-slogan {
   filter: drop-shadow(0 2px 18px hsl(0 0% 0% / 0.88)) drop-shadow(0 1px 3px hsl(0 0% 0% / 0.65));
 }
 
