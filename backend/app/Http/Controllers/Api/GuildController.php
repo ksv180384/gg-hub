@@ -60,7 +60,13 @@ class GuildController extends Controller
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 15;
         $filter = new GuildFilter($request);
         $guilds = Guild::query()
-            ->with(['game', 'localization', 'server', 'leader', 'tags'])
+            ->with([
+                'game',
+                'localization',
+                'server',
+                'leader',
+                'tags' => fn ($q) => $q->notHidden(),
+            ])
             ->withCount('members')
             ->filter($filter)
             ->paginate($perPage);
@@ -70,7 +76,13 @@ class GuildController extends Controller
 
     public function show(Guild $guild): JsonResponse
     {
-        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
+        $guild->loadCount('members')->load([
+            'game',
+            'localization',
+            'server',
+            'leader',
+            'tags' => fn ($q) => $q->notHidden(),
+        ]);
         return response()->json(new GuildResource($guild));
     }
 
@@ -210,7 +222,14 @@ class GuildController extends Controller
      */
     public function settings(Request $request, Guild $guild): JsonResponse
     {
-        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags', 'applicationFormFields']);
+        $guild->loadCount('members')->load([
+            'game',
+            'localization',
+            'server',
+            'leader',
+            'tags' => fn ($q) => $q->notHidden(),
+            'applicationFormFields',
+        ]);
         $data = (new GuildResource($guild))->toArray($request);
         $user = $request->user();
         $data['my_permission_slugs'] = $user ? ($this->getUserGuildPermissionSlugsAction)($user, $guild)->all() : [];

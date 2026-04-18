@@ -28,7 +28,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
                 'localization',
                 'server',
                 'gameClasses',
-                'tags' => fn ($q) => $q->with(['usedByUser', 'createdByUser']),
+                'tags' => fn ($q) => $q->notHidden()->with(['usedByUser', 'createdByUser']),
                 'guildMember.guild',
                 'user',
             ])
@@ -44,7 +44,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
                 'localization',
                 'server',
                 'gameClasses',
-                'tags' => fn ($q) => $q->with(['usedByUser', 'createdByUser']),
+                'tags' => fn ($q) => $q->notHidden()->with(['usedByUser', 'createdByUser']),
                 'guildMember.guild',
                 'user',
             ]);
@@ -71,7 +71,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
                 'localization',
                 'server',
                 'gameClasses',
-                'tags' => fn ($q) => $q->with(['usedByUser', 'createdByUser']),
+                'tags' => fn ($q) => $q->notHidden()->with(['usedByUser', 'createdByUser']),
                 'user',
             ])
             ->get();
@@ -87,7 +87,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
                 'localization',
                 'server',
                 'gameClasses',
-                'tags' => fn ($q) => $q->with(['usedByUser', 'createdByUser']),
+                'tags' => fn ($q) => $q->notHidden()->with(['usedByUser', 'createdByUser']),
                 'guildMember.guild',
                 'user',
             ])

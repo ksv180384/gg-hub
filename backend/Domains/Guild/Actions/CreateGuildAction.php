@@ -8,6 +8,7 @@ use Domains\Access\Models\GuildRole;
 use Domains\Game\Models\Server;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
+use Domains\Tag\Models\Tag;
 use Illuminate\Support\Str;
 
 class CreateGuildAction
@@ -54,9 +55,28 @@ class CreateGuildAction
         $tagIds = isset($data['tag_ids']) && is_array($data['tag_ids'])
             ? array_map('intval', $data['tag_ids'])
             : [];
-        $guild->tags()->sync(array_filter($tagIds));
+        $tagIds = array_values(array_unique(array_filter($tagIds)));
+        // При создании гильдии её ещё нет в БД на момент вычисления `used_by_guild_id`,
+        // поэтому допускаются только общие теги (обе ссылки NULL). Личные теги пользователей
+        // и теги других гильдий отсекаются — к новой гильдии их привязывать нельзя.
+        $allowedIds = $tagIds === []
+            ? []
+            : Tag::query()
+                ->whereIn('id', $tagIds)
+                ->whereNull('used_by_user_id')
+                ->whereNull('used_by_guild_id')
+                ->pluck('id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+        $guild->tags()->sync($allowedIds);
 
-        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
+        $guild->loadCount('members')->load([
+            'game',
+            'localization',
+            'server',
+            'leader',
+            'tags' => fn ($q) => $q->notHidden(),
+        ]);
         return $guild;
     }
 }

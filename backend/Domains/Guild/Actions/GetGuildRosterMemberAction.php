@@ -33,8 +33,9 @@ final class GetGuildRosterMemberAction
             ->where('character_id', $characterId)
             ->with([
                 'character.gameClasses',
-                'character.tags' => fn ($q) => $q->with(['usedByUser', 'createdByUser']),
-                'character.characterGuildTags' => fn ($q) => $q->where('character_guild_tag.guild_id', $guild->id)
+                'character.tags' => fn ($q) => $q->notHidden()->with(['usedByUser', 'createdByUser']),
+                'character.characterGuildTags' => fn ($q) => $q->notHidden()
+                    ->where('character_guild_tag.guild_id', $guild->id)
                     ->with(['usedByUser', 'createdByUser']),
                 'guildRole',
             ])

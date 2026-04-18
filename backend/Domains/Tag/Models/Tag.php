@@ -5,6 +5,7 @@ namespace Domains\Tag\Models;
 use App\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -48,6 +49,16 @@ class Tag extends Model
         $slug = $this->slug ?? '';
         $name = $this->name ?? '';
         return is_string($name) && $name !== '' && (trim((string) $slug) === '');
+    }
+
+    /**
+     * Только «видимые» теги: без скрытых админом. Применяется к загрузкам тегов
+     * для публичного отображения (карточки гильдий, состав, страницы персонажей/гильдии,
+     * настройки гильдии). Для админского списка — не использовать.
+     */
+    public function scopeNotHidden(Builder $query): Builder
+    {
+        return $query->where('is_hidden', false);
     }
 
     public function createdByUser(): BelongsTo

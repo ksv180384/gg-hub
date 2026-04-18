@@ -41,7 +41,7 @@ class CharacterController extends Controller
                 'localization',
                 'server',
                 'gameClasses',
-                'tags' => fn ($q) => $q->with(['usedByUser', 'createdByUser']),
+                'tags' => fn ($q) => $q->notHidden()->with(['usedByUser', 'createdByUser']),
                 'user',
             ])
             ->filter($filter)

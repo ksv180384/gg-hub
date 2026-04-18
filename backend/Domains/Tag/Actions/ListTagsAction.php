@@ -24,14 +24,24 @@ class ListTagsAction
         if (! $bypassPickerScope && $user !== null) {
             $userId = $user->id;
             $query->where(function ($q) use ($userId, $guildIdForPicker) {
+                if ($guildIdForPicker !== null) {
+                    // Пикер для гильдии: только общие теги (обе ссылки NULL)
+                    // и теги этой гильдии. Личные теги пользователя сюда не попадают —
+                    // к гильдии их привязывать нельзя.
+                    $q->where(function ($q2) {
+                        $q2->whereNull('used_by_user_id')
+                            ->whereNull('used_by_guild_id');
+                    })->orWhere('used_by_guild_id', $guildIdForPicker);
+
+                    return;
+                }
+
+                // Обычный пикер (персонажи и т.п.): свои личные теги + общие.
                 $q->where('used_by_user_id', $userId)
                     ->orWhere(function ($q2) {
                         $q2->whereNull('used_by_user_id')
                             ->whereNull('used_by_guild_id');
                     });
-                if ($guildIdForPicker !== null) {
-                    $q->orWhere('used_by_guild_id', $guildIdForPicker);
-                }
             });
         }
 

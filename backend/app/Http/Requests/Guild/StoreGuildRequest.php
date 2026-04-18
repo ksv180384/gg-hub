@@ -5,6 +5,7 @@ namespace App\Http\Requests\Guild;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
+use Domains\Tag\Models\Tag;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -51,6 +52,8 @@ class StoreGuildRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            $this->validateAssignableTagIds($validator);
+
             $userId = $this->user()?->id;
             $serverId = (int) $this->input('server_id');
             $leaderId = (int) $this->input('leader_character_id');
@@ -77,5 +80,40 @@ class StoreGuildRequest extends FormRequest
                 $validator->errors()->add('leader_character_id', 'Этот персонаж уже является лидером другой гильдии. Лидером может быть только персонаж, который не возглавляет другую гильдию.');
             }
         });
+    }
+
+    /**
+     * К гильдии разрешено привязывать только общие теги (обе ссылки NULL).
+     * При создании гильдии её ещё нет, поэтому теги конкретной гильдии тоже
+     * допустить нельзя — любые `used_by_user_id` или `used_by_guild_id` запрещены.
+     */
+    private function validateAssignableTagIds(Validator $validator): void
+    {
+        $raw = $this->input('tag_ids');
+        if (!is_array($raw) || $raw === []) {
+            return;
+        }
+        $tagIds = array_values(array_unique(array_filter(array_map('intval', $raw))));
+        if ($tagIds === []) {
+            return;
+        }
+        $invalidIds = Tag::query()
+            ->whereIn('id', $tagIds)
+            ->where(function ($q) {
+                $q->whereNotNull('used_by_user_id')
+                    ->orWhereNotNull('used_by_guild_id');
+            })
+            ->pluck('id')
+            ->all();
+        if ($invalidIds === []) {
+            return;
+        }
+        $validator->errors()->add(
+            'tag_ids',
+            'К гильдии можно привязывать только общие теги или теги этой гильдии. Уберите личные теги.'
+        );
+        foreach ($invalidIds as $id) {
+            $validator->errors()->add('tag_ids.' . array_search($id, $tagIds, true), 'Этот тег нельзя привязать к гильдии.');
+        }
     }
 }

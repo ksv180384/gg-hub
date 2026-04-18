@@ -649,6 +649,33 @@ async function toggleRecruiting() {
   }
 }
 
+/**
+ * Дополняет `allTags` тегами гильдии, которые не попали в пикер (например,
+ * личные теги других пользователей, привязанные к гильдии). Иначе такие теги
+ * есть в `selectedTagIds`, но не рендерятся, и на карточке гильдии их больше,
+ * чем на странице настроек.
+ */
+function mergeGuildTagsIntoAllTags() {
+  const guildTags = guild.value?.tags ?? [];
+  if (!guildTags.length) return;
+  const known = new Set(allTags.value.map((t) => t.id));
+  const extras: Tag[] = guildTags
+    .filter((t) => !known.has(t.id))
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      slug: '',
+      is_hidden: false,
+      used_by_user_id: null,
+      used_by_guild_id: null,
+      created_by_user_id: null,
+      used_by: null,
+    }));
+  if (extras.length) {
+    allTags.value = [...allTags.value, ...extras];
+  }
+}
+
 onMounted(async () => {
   loadGames();
   await loadGuild();
@@ -657,6 +684,7 @@ onMounted(async () => {
   } catch {
     allTags.value = [];
   }
+  mergeGuildTagsIntoAllTags();
 });
 </script>
 

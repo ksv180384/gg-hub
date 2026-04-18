@@ -6,6 +6,7 @@ use Domains\Character\Models\Character;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
+use Domains\Tag\Models\Tag;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\App;
@@ -103,6 +104,8 @@ class UpdateGuildRequest extends FormRequest
             /** @var \Domains\Guild\Models\Guild $guild */
             $guild = $this->route('guild');
 
+            $this->validateAssignableTagIds($validator, $guild);
+
             if ($this->has('server_id') || $this->has('localization_id')) {
                 $membersCount = GuildMember::query()->where('guild_id', $guild->id)->count();
                 $isOnlyLeader = $membersCount === 1
@@ -156,5 +159,55 @@ class UpdateGuildRequest extends FormRequest
                 $validator->errors()->add('leader_character_id', 'Этот персонаж уже является лидером другой гильдии.');
             }
         });
+    }
+
+    /**
+     * Привязывать к гильдии можно только общие теги (обе ссылки NULL)
+     * и теги этой же гильдии (`used_by_guild_id = $guild->id`).
+     * Личные теги (`used_by_user_id IS NOT NULL`) и теги других гильдий отклоняются.
+     *
+     * Проверяются только «новые» идентификаторы — те, которых ещё нет в `guild->tags`.
+     * Уже привязанные легаси-записи (если остались с прошлых версий) не блокируют сохранение,
+     * их снимет {@see \Domains\Guild\Actions\UpdateGuildAction} на следующем `sync()`.
+     */
+    private function validateAssignableTagIds(Validator $validator, Guild $guild): void
+    {
+        if (!$this->has('tag_ids')) {
+            return;
+        }
+        $raw = $this->input('tag_ids');
+        if (!is_array($raw) || $raw === []) {
+            return;
+        }
+        $tagIds = array_values(array_unique(array_filter(array_map('intval', $raw))));
+        if ($tagIds === []) {
+            return;
+        }
+        $currentIds = $guild->tags()->pluck('tags.id')->map(fn ($v) => (int) $v)->all();
+        $newIds = array_values(array_diff($tagIds, $currentIds));
+        if ($newIds === []) {
+            return;
+        }
+        $invalidIds = Tag::query()
+            ->whereIn('id', $newIds)
+            ->where(function ($q) use ($guild) {
+                $q->whereNotNull('used_by_user_id')
+                    ->orWhere(function ($q2) use ($guild) {
+                        $q2->whereNotNull('used_by_guild_id')
+                            ->where('used_by_guild_id', '!=', $guild->id);
+                    });
+            })
+            ->pluck('id')
+            ->all();
+        if ($invalidIds === []) {
+            return;
+        }
+        $validator->errors()->add(
+            'tag_ids',
+            'К гильдии можно привязывать только общие теги или теги этой гильдии. Уберите личные теги и теги других гильдий.'
+        );
+        foreach ($invalidIds as $id) {
+            $validator->errors()->add('tag_ids.' . array_search($id, $tagIds, true), 'Этот тег нельзя привязать к этой гильдии.');
+        }
     }
 }

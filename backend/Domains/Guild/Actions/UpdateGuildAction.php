@@ -10,6 +10,7 @@ use Domains\Game\Models\Server;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
+use Domains\Tag\Models\Tag;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -121,7 +122,34 @@ class UpdateGuildAction
         unset($data['logo'], $data['remove_logo']);
         if (array_key_exists('tag_ids', $data)) {
             $tagIds = is_array($data['tag_ids']) ? array_map('intval', $data['tag_ids']) : [];
-            $guild->tags()->sync(array_filter($tagIds));
+            $tagIds = array_values(array_unique(array_filter($tagIds)));
+            // К гильдии можно привязывать только общие теги (обе ссылки NULL)
+            // и теги этой же гильдии. Всё остальное (личные теги пользователей,
+            // теги чужих гильдий) отсекается на всякий случай и здесь — например,
+            // чтобы «легаси»-привязки, оставшиеся в `selectedTagIds` на фронте,
+            // при следующем сохранении автоматически отцеплялись от гильдии.
+            $allowedIds = $tagIds === []
+                ? []
+                : Tag::query()
+                    ->whereIn('id', $tagIds)
+                    ->whereNull('used_by_user_id')
+                    ->where(function ($q) use ($guild) {
+                        $q->whereNull('used_by_guild_id')
+                            ->orWhere('used_by_guild_id', $guild->id);
+                    })
+                    ->pluck('id')
+                    ->map(fn ($v) => (int) $v)
+                    ->all();
+            // Сохраняем скрытые привязки, которых фронт не видит (пикер и отображение
+            // отдают только `is_hidden = false`). Иначе, если админ временно скрыл тег,
+            // он отцепится от гильдии при ближайшем сохранении настроек.
+            $hiddenAttachedIds = $guild->tags()
+                ->where('is_hidden', true)
+                ->pluck('tags.id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+            $finalIds = array_values(array_unique(array_merge($allowedIds, $hiddenAttachedIds)));
+            $guild->tags()->sync($finalIds);
             unset($data['tag_ids']);
         }
         $logoWasReplaced = $request->hasFile('logo');
@@ -165,7 +193,13 @@ class UpdateGuildAction
         if ($logoWasReplaced) {
             $guild->touch();
         }
-        $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader', 'tags']);
+        $guild->loadCount('members')->load([
+            'game',
+            'localization',
+            'server',
+            'leader',
+            'tags' => fn ($q) => $q->notHidden(),
+        ]);
         return $guild;
     }
 
