@@ -169,7 +169,8 @@ export const charactersApi = {
     if (payload.avatar) form.append('avatar', payload.avatar);
     (payload.game_class_ids ?? []).forEach((id) => form.append('game_class_ids[]', String(id)));
     if (payload.tag_ids !== undefined) {
-      payload.tag_ids.forEach((tagId) => form.append('tag_ids[]', String(tagId)));
+      form.append('character_tags_sync', '1');
+      (payload.tag_ids ?? []).forEach((tagId) => form.append('tag_ids[]', String(tagId)));
     }
     const res = await http.fetchPost<CharacterResponse | Character>(`/characters/${id}`, form);
     throwOnError(res, 'Ошибка обновления персонажа');

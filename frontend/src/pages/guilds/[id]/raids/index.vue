@@ -10,10 +10,6 @@ import {
 } from 'radix-vue';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
   Button,
   Input,
   Label,
@@ -24,6 +20,7 @@ import {
   SelectItem,
   Badge,
 } from '@/shared/ui';
+import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import {
   guildsApi,
@@ -53,6 +50,8 @@ const error = ref<string | null>(null);
 const selectedRaidId = ref<number | null>(null);
 const selectedRaid = ref<RaidItem | null>(null);
 const selectedRaidLoading = ref(false);
+/** Состояние выезжающей панели деталей рейда (drawer справа). */
+const raidSheetOpen = ref(false);
 
 const canFormRaid = computed(
   () => guild.value?.my_permission_slugs?.includes('formirovat-reidy') ?? false
@@ -230,18 +229,151 @@ async function loadRaids() {
   }
 }
 
-/** Участники выбранного рейда. */
-const selectedRaidMembers = computed((): RaidMemberItem[] => {
-  return selectedRaid.value?.members ?? [];
+/** Поиск по имени участника в панели рейда. */
+const memberSearchQuery = ref('');
+
+/**
+ * Кэш загруженных деталей рейдов (для агрегации по дочерним).
+ * Ключ — id рейда, значение — полный RaidItem с members/leader.
+ */
+const raidDetailsMap = ref<Map<number, RaidItem>>(new Map());
+
+/** Лидер с указанием рейда, к которому он относится. */
+interface AggregatedLeader {
+  character_id: number;
+  name: string;
+  raid_id: number;
+  raid_name: string;
+}
+
+/** Участник с указанием рейда, к которому он относится. */
+interface AggregatedMember extends RaidMemberItem {
+  raid_id: number;
+  raid_name: string;
+}
+
+/** Элемент объединённого списка участников: либо лидер рейда, либо обычный участник. */
+interface UnifiedMember {
+  character_id: number;
+  name: string;
+  raid_id: number;
+  raid_name: string;
+  role?: string | null;
+  /** Название рейда, в котором данный персонаж является лидером. Null — обычный участник. */
+  leader_of: string | null;
+}
+
+/** Собрать все id рейда и всех его потомков. */
+function collectDescendantIds(node: RaidItem | null): number[] {
+  if (!node) return [];
+  const out: number[] = [];
+  function walk(r: RaidItem) {
+    out.push(r.id);
+    r.children?.forEach(walk);
+  }
+  walk(node);
+  return out;
+}
+
+/** Лидеры выбранного рейда и всех его дочерних рейдов (в порядке обхода сверху вниз). */
+const aggregatedLeaders = computed((): AggregatedLeader[] => {
+  const root = selectedRaidInTree.value;
+  if (!root) return [];
+  const out: AggregatedLeader[] = [];
+  function walk(r: RaidItem) {
+    const detail = raidDetailsMap.value.get(r.id);
+    const leader = detail?.leader ?? r.leader;
+    if (leader) {
+      out.push({
+        character_id: leader.id,
+        name: leader.name,
+        raid_id: r.id,
+        raid_name: r.name,
+      });
+    }
+    r.children?.forEach(walk);
+  }
+  walk(root);
+  return out;
+});
+
+/** Участники выбранного рейда и всех его дочерних рейдов с пометкой рейда. */
+const aggregatedMembers = computed((): AggregatedMember[] => {
+  const root = selectedRaidInTree.value;
+  if (!root) return [];
+  const out: AggregatedMember[] = [];
+  function walk(r: RaidItem) {
+    const detail = raidDetailsMap.value.get(r.id);
+    detail?.members?.forEach((m) => {
+      out.push({ ...m, raid_id: r.id, raid_name: r.name });
+    });
+    r.children?.forEach(walk);
+  }
+  walk(root);
+  return out;
+});
+
+/**
+ * Общий список: сначала лидеры рейдов (с пометкой «Лидер рейда «X»»), затем
+ * обычные участники. Участник, являющийся лидером своего же рейда, не дублируется.
+ */
+const unifiedMembers = computed((): UnifiedMember[] => {
+  const leaderEntries: UnifiedMember[] = aggregatedLeaders.value.map((l) => ({
+    character_id: l.character_id,
+    name: l.name,
+    raid_id: l.raid_id,
+    raid_name: l.raid_name,
+    role: null,
+    leader_of: l.raid_name,
+  }));
+  const leaderKeys = new Set(
+    leaderEntries.map((l) => `${l.raid_id}:${l.character_id}`)
+  );
+  const memberEntries: UnifiedMember[] = aggregatedMembers.value
+    .filter((m) => !leaderKeys.has(`${m.raid_id}:${m.character_id}`))
+    .map((m) => ({
+      character_id: m.character_id,
+      name: m.name,
+      raid_id: m.raid_id,
+      raid_name: m.raid_name,
+      role: m.role ?? null,
+      leader_of: null,
+    }));
+  return [...leaderEntries, ...memberEntries];
+});
+
+/** Общий список, отфильтрованный по поиску (по имени и названию рейда). */
+const filteredUnifiedMembers = computed((): UnifiedMember[] => {
+  const q = memberSearchQuery.value.trim().toLowerCase();
+  if (!q) return unifiedMembers.value;
+  return unifiedMembers.value.filter(
+    (m) => m.name.toLowerCase().includes(q) || m.raid_name.toLowerCase().includes(q)
+  );
 });
 
 async function selectRaid(raid: RaidItem) {
+  raidSheetOpen.value = true;
   if (selectedRaidId.value === raid.id) return;
   selectedRaidId.value = raid.id;
   selectedRaidLoading.value = true;
   selectedRaid.value = null;
+  memberSearchQuery.value = '';
+  raidDetailsMap.value = new Map();
+
+  const raidInTree = findRaidById(raids.value, raid.id);
+  const allIds = collectDescendantIds(raidInTree);
+  if (allIds.length === 0) allIds.push(raid.id);
+
   try {
-    selectedRaid.value = await guildsApi.getGuildRaid(guildId.value, raid.id);
+    const results = await Promise.allSettled(
+      allIds.map((id) => guildsApi.getGuildRaid(guildId.value, id))
+    );
+    const map = new Map<number, RaidItem>();
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) map.set(r.value.id, r.value);
+    }
+    raidDetailsMap.value = map;
+    selectedRaid.value = map.get(raid.id) ?? null;
   } catch {
     selectedRaid.value = null;
   } finally {
@@ -252,7 +384,20 @@ async function selectRaid(raid: RaidItem) {
 function clearSelectedRaid() {
   selectedRaidId.value = null;
   selectedRaid.value = null;
+  raidDetailsMap.value = new Map();
 }
+
+/** Инициалы для fallback аватара лидера. */
+function leaderInitials(name: string): string {
+  if (!name?.trim()) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+watch(raidSheetOpen, (open) => {
+  if (!open) clearSelectedRaid();
+});
 
 function findRaidById(items: RaidItem[], id: number): RaidItem | null {
   for (const r of items) {
@@ -424,6 +569,7 @@ async function loadRaidPage() {
   selectedRaidId.value = null;
   selectedRaid.value = null;
   selectedRaidLoading.value = false;
+  raidSheetOpen.value = false;
   loading.value = true;
   accessDenied.value = false;
   error.value = null;
@@ -463,7 +609,7 @@ watch(guildId, () => {
       </Button>
     </div>
 
-    <div class="">
+    <div class="relative">
       <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
       <template v-else-if="accessDenied">
         <p class="text-sm text-muted-foreground">
@@ -479,94 +625,184 @@ watch(guildId, () => {
           <template v-if="canFormRaid"> Нажмите «Добавить рейд», чтобы создать первый.</template>
         </p>
       </template>
-      <div v-else class="flex flex-col gap-4 md:flex-row md:items-stretch">
-        <div class="min-w-0 flex-1">
-          <ul class="raid-tree space-y-0" data-parent-id="">
-            <Sortable
-              :key="raidSortableKey"
-              :list="raids"
-              item-key="id"
-              tag="div"
-              class="contents"
-              :options="raidSortableOptions"
-              @start="isDraggingRaid = true"
-              @end="onRaidSortEnd"
-            >
-              <template #item="{ element }">
-                <RaidTreeItem
-                  :raid="element"
-                  :depth="0"
-                  :total-members="raidTotalMembers.get(element.id) ?? 0"
-                  :raid-total-members-map="Object.fromEntries(raidTotalMembers)"
-                  :can-edit="canFormRaid"
-                  :can-delete="canDeleteRaid"
-                  :selected-raid-id="selectedRaidId"
-                  :sortable-options="raidSortableOptions"
-                  :sortable-key="raidSortableKey"
-                  @add-child="(id) => openCreate(id)"
-                  @edit="openEdit"
-                  @delete="openDelete"
-                  @select="selectRaid"
-                  @sort-end="onRaidSortEnd"
-                />
-              </template>
-              <template #footer>
-                <li
-                  v-if="canFormRaid"
-                  class="list-none rounded-lg border-2 border-dashed text-center text-sm transition-all duration-150"
-                  :class="isDraggingRaid
-                    ? 'border-muted-foreground/30 py-3 text-muted-foreground'
-                    : 'min-h-0 border-transparent py-0 text-transparent'"
-                  data-drop-zone="root-end"
-                >
-                  Перетащите сюда для переноса в конец списка (главный уровень)
-                </li>
-              </template>
-            </Sortable>
-          </ul>
-        </div>
-        <aside
-          v-if="selectedRaidId != null"
-          class="w-full shrink-0 rounded-lg border border-border bg-muted/30 md:w-80"
+      <div v-else>
+        <ul class="raid-tree space-y-0" data-parent-id="">
+          <Sortable
+            :key="raidSortableKey"
+            :list="raids"
+            item-key="id"
+            tag="div"
+            class="contents"
+            :options="raidSortableOptions"
+            @start="isDraggingRaid = true"
+            @end="onRaidSortEnd"
+          >
+            <template #item="{ element }">
+              <RaidTreeItem
+                :raid="element"
+                :depth="0"
+                :total-members="raidTotalMembers.get(element.id) ?? 0"
+                :raid-total-members-map="Object.fromEntries(raidTotalMembers)"
+                :can-edit="canFormRaid"
+                :can-delete="canDeleteRaid"
+                :selected-raid-id="selectedRaidId"
+                :sortable-options="raidSortableOptions"
+                :sortable-key="raidSortableKey"
+                @add-child="(id) => openCreate(id)"
+                @edit="openEdit"
+                @delete="openDelete"
+                @select="selectRaid"
+                @sort-end="onRaidSortEnd"
+              />
+            </template>
+            <template #footer>
+              <li
+                v-if="canFormRaid"
+                class="list-none rounded-lg border-2 border-dashed text-center text-sm transition-all duration-150"
+                :class="isDraggingRaid
+                  ? 'border-muted-foreground/30 py-3 text-muted-foreground'
+                  : 'min-h-0 border-transparent py-0 text-transparent'"
+                data-drop-zone="root-end"
+              >
+                Перетащите сюда для переноса в конец списка (главный уровень)
+              </li>
+            </template>
+          </Sortable>
+        </ul>
+      </div>
+
+      <!-- Панель деталей выбранного рейда: наезжает справа, sticky при скролле страницы -->
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        leave-active-class="transition-all duration-150 ease-in"
+        enter-from-class="translate-x-4 opacity-0"
+        enter-to-class="translate-x-0 opacity-100"
+        leave-from-class="translate-x-0 opacity-100"
+        leave-to-class="translate-x-4 opacity-0"
+      >
+        <div
+          v-if="raidSheetOpen"
+          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-72 sm:w-80"
         >
-          <div class="flex flex-col gap-3 p-4">
-            <div class="flex items-center justify-between gap-2 border-b border-border pb-2">
-              <h3 class="font-semibold truncate" :title="selectedRaid?.name">
+          <aside
+            class="pointer-events-auto sticky top-16 flex max-h-[calc(100vh-5rem)] flex-col rounded-lg border border-border bg-background shadow-xl"
+          >
+            <div class="flex items-center justify-between gap-2 border-b border-border p-3">
+              <h3 class="min-w-0 flex-1 truncate text-base font-semibold" :title="selectedRaid?.name">
                 {{ selectedRaid?.name ?? 'Рейд' }}
               </h3>
-              <Button variant="ghost" size="sm" class="h-8 w-8 shrink-0 p-0" aria-label="Закрыть" @click="clearSelectedRaid">
-                ×
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-8 w-8 shrink-0 p-0"
+                aria-label="Закрыть"
+                @click="raidSheetOpen = false"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </Button>
             </div>
-            <p v-if="selectedRaidLoading" class="text-sm text-muted-foreground">Загрузка…</p>
-            <template v-else>
-              <p class="text-sm font-medium text-muted-foreground">Участники рейда</p>
-              <ul v-if="selectedRaidMembers.length > 0" class="space-y-1.5">
-                <li
-                  v-for="m in selectedRaidMembers"
-                  :key="m.character_id"
-                  class="flex items-center gap-2 rounded-md bg-background px-2 py-1.5 text-sm"
-                >
-                  <span class="min-w-0 truncate">{{ m.name }}</span>
-                  <Badge v-if="m.role" variant="outline" class="shrink-0 text-xs">{{ m.role }}</Badge>
-                </li>
-              </ul>
-              <p v-else class="text-sm text-muted-foreground">Нет участников</p>
-              <Button
-                v-if="canFormRaid && !selectedRaidHasChildren"
-                type="button"
-                class="mt-1"
-                @click="openFormRaidModal"
-              >
-                Сформировать рейд
-              </Button>
-              <p v-else-if="canFormRaid && selectedRaidHasChildren" class="mt-1 text-xs text-muted-foreground">
-                Рейд с дочерними рейдами не может иметь участников.
-              </p>
+
+            <p v-if="selectedRaidLoading" class="p-3 text-sm text-muted-foreground">Загрузка…</p>
+
+            <template v-else-if="selectedRaid">
+              <div v-if="canFormRaid && !selectedRaidHasChildren" class="border-b border-border p-3">
+                <Button type="button" class="w-full" @click="openFormRaidModal">
+                  Сформировать рейд
+                </Button>
+              </div>
+
+              <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
+                <div v-if="selectedRaid.description" class="text-sm text-muted-foreground">
+                  <p class="mb-1 text-[11px] font-medium uppercase tracking-wide">Описание</p>
+                  <p class="whitespace-pre-wrap break-words">{{ selectedRaid.description }}</p>
+                </div>
+
+                <div class="flex min-h-0 flex-col">
+                  <div class="mb-2 flex items-center justify-between">
+                    <p class="text-sm font-medium text-muted-foreground">
+                      {{ selectedRaidHasChildren ? 'Все участники' : 'Участники рейда' }}
+                    </p>
+                    <span class="text-xs text-muted-foreground tabular-nums">
+                      {{ unifiedMembers.length }}
+                    </span>
+                  </div>
+                  <Input
+                    v-if="unifiedMembers.length > 0"
+                    v-model="memberSearchQuery"
+                    type="text"
+                    :placeholder="selectedRaidHasChildren ? 'Поиск по имени или рейду…' : 'Поиск по имени…'"
+                    class="mb-2 h-8 text-sm"
+                    autocomplete="off"
+                  />
+                  <ul
+                    v-if="filteredUnifiedMembers.length > 0"
+                    class="max-h-[400px] space-y-1.5 overflow-y-auto pr-1"
+                  >
+                    <li
+                      v-for="m in filteredUnifiedMembers"
+                      :key="`${m.leader_of ? 'L' : 'M'}-${m.raid_id}-${m.character_id}`"
+                      class="flex min-w-0 items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
+                      :class="m.leader_of
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-border/40 bg-muted/30'"
+                    >
+                      <Avatar
+                        v-if="m.leader_of"
+                        :alt="m.name"
+                        :fallback="leaderInitials(m.name)"
+                        class="h-7 w-7 shrink-0 rounded-full"
+                      />
+                      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <div class="flex min-w-0 items-center gap-2">
+                          <svg
+                            v-if="m.leader_of"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="shrink-0 text-primary"
+                          >
+                            <path d="M2 20l3-13 5 4 2-7 2 7 5-4 3 13z" />
+                            <path d="M2 20h18" />
+                          </svg>
+                          <span class="min-w-0 flex-1 truncate font-medium" :title="m.name">{{ m.name }}</span>
+                          <Badge v-if="m.role" variant="outline" class="shrink-0 text-xs">{{ m.role }}</Badge>
+                        </div>
+                        <span
+                          v-if="m.leader_of"
+                          class="min-w-0 truncate text-[11px] text-muted-foreground"
+                          :title="`Лидер рейда «${m.leader_of}»`"
+                        >
+                          Лидер рейда «{{ m.leader_of }}»
+                        </span>
+                        <span
+                          v-else-if="selectedRaidHasChildren"
+                          class="min-w-0 truncate text-[11px] text-muted-foreground"
+                          :title="m.raid_name"
+                        >
+                          {{ m.raid_name }}
+                        </span>
+                      </div>
+                    </li>
+                  </ul>
+                  <p v-else-if="unifiedMembers.length === 0" class="text-sm text-muted-foreground">
+                    Нет участников
+                  </p>
+                  <p v-else class="text-sm text-muted-foreground">Никого не найдено</p>
+                </div>
+              </div>
             </template>
-          </div>
-        </aside>
-      </div>
+          </aside>
+        </div>
+      </Transition>
     </div>
 
     <!-- Модальное окно создания/редактирования рейда -->

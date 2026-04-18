@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { cn } from '@/shared/lib/utils';
 
 interface Props {
@@ -20,10 +20,17 @@ const model = computed({
   set: (v: string | number) =>
     emit('update:modelValue', v === null || v === undefined ? '' : String(v)),
 });
+
+const root = ref<HTMLInputElement | null>(null);
+
+defineExpose({
+  focus: (options?: FocusOptions) => root.value?.focus(options),
+});
 </script>
 
 <template>
   <input
+    ref="root"
     v-model="model"
     :type="type"
     :class="cn(

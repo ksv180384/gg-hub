@@ -32,7 +32,7 @@ final class GetGuildRosterAction
             ->where('guild_id', $guild->id)
             ->with([
                 'character.gameClasses',
-                'character.tags',
+                'character.tags.createdBy',
                 'character.user',
                 'guildRole',
             ])

@@ -1,7 +1,24 @@
 <script setup lang="ts">
-import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'radix-vue';
+import {
+  DialogRoot,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from 'radix-vue';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Badge, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+  Badge,
+  TagAddCombobox,
+} from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import RichTextEditor from '@/shared/ui/rich-text-editor/RichTextEditor.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
@@ -90,11 +107,6 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const allTags = ref<Tag[]>([]);
 const selectedTagIds = ref<number[]>([]);
-const tagToAddFromSelect = ref('');
-const newTagName = ref('');
-const creatingTag = ref(false);
-const createTagError = ref<string | null>(null);
-const addingNewTag = ref(false);
 
 /** Тип дополнительного поля формы заявки. */
 type ApplicationFormFieldType = 'text' | 'textarea' | 'screenshot' | 'select' | 'multiselect';
@@ -287,41 +299,40 @@ function toggleTag(tagId: number) {
   }
 }
 
-const tagsNotSelected = computed(() =>
-  allTags.value.filter((t) => !selectedTagIds.value.includes(t.id))
-);
-function onAddTagFromSelect(value?: string) {
-  const raw = value ?? tagToAddFromSelect.value;
-  const id = raw ? Number(raw) : 0;
-  if (id && !selectedTagIds.value.includes(id)) {
-    selectedTagIds.value = [...selectedTagIds.value, id];
-    tagToAddFromSelect.value = '';
-  }
+const tagDeleteDialogOpen = ref(false);
+const tagToDelete = ref<Tag | null>(null);
+const tagDeleteLoading = ref(false);
+
+function isMyTag(tag: Tag): boolean {
+  const u = authStore.user;
+  return u != null && tag.created_by_user_id != null && Number(tag.created_by_user_id) === u.id;
 }
 
-function cancelNewTag() {
-  addingNewTag.value = false;
-  newTagName.value = '';
-  createTagError.value = null;
+function canDeleteGuildTag(tag: Tag): boolean {
+  return isOwner.value && isMyTag(tag);
 }
 
-async function createAndAddTag() {
-  const name = newTagName.value.trim();
-  if (!name || creatingTag.value) return;
-  creatingTag.value = true;
-  createTagError.value = null;
+function openTagDeleteConfirm(tag: Tag) {
+  tagToDelete.value = tag;
+  tagDeleteDialogOpen.value = true;
+}
+
+async function confirmDeleteTagForever() {
+  const t = tagToDelete.value;
+  if (!t || tagDeleteLoading.value) return;
+  tagDeleteLoading.value = true;
   try {
-    const tag = await tagsApi.createTag({ name });
-    if (!allTags.value.some((t) => t.id === tag.id)) {
-      allTags.value = [...allTags.value, tag];
+    await tagsApi.deleteTag(t.id);
+    selectedTagIds.value = selectedTagIds.value.filter((id) => id !== t.id);
+    try {
+      allTags.value = await tagsApi.getTags(false);
+    } catch {
+      /* ignore */
     }
-    newTagName.value = '';
-    addingNewTag.value = false;
-    tagToAddFromSelect.value = '';
-  } catch (e) {
-    createTagError.value = e instanceof Error ? e.message : 'Не удалось создать тег';
+    tagDeleteDialogOpen.value = false;
+    tagToDelete.value = null;
   } finally {
-    creatingTag.value = false;
+    tagDeleteLoading.value = false;
   }
 }
 
@@ -791,7 +802,7 @@ onMounted(async () => {
                   v-for="tag in allTags.filter((t) => selectedTagIds.includes(t.id))"
                   :key="tag.id"
                 >
-                  <Badge v-if="!isOwner" variant="secondary">
+                  <Badge v-if="!isOwner" variant="outline">
                     {{ tag.name }}
                   </Badge>
                   <button
@@ -800,84 +811,18 @@ onMounted(async () => {
                     class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     @click="toggleTag(tag.id)"
                   >
-                    <Badge variant="secondary">{{ tag.name }}</Badge>
+                    <Badge variant="outline">{{ tag.name }}</Badge>
                   </button>
                 </template>
               </div>
-              <div class="space-y-1">
-                <Label for="tag-select" class="text-muted-foreground">Добавить тег</Label>
-                <SelectRoot
-                  id="tag-select"
-                  v-model="tagToAddFromSelect"
-                  :disabled="!isOwner"
-                  @update:model-value="(v) => onAddTagFromSelect(v)"
-                >
-                  <SelectTrigger class="w-full">
-                    <SelectValue placeholder="Выберите тег" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="tag in tagsNotSelected"
-                      :key="tag.id"
-                      :value="String(tag.id)"
-                    >
-                      {{ tag.name }}
-                    </SelectItem>
-                    <div class="border-t border-border p-1">
-                      <template v-if="!addingNewTag">
-                        <button
-                          type="button"
-                          class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
-                          @mousedown.prevent
-                          @click="addingNewTag = true"
-                        >
-                          <span class="text-base leading-none">+</span>
-                          Добавить новый
-                        </button>
-                      </template>
-                      <template v-else>
-                        <div
-                          class="flex flex-col gap-2 p-1"
-                          @pointerdown.stop
-                        >
-                          <Input
-                            v-model="newTagName"
-                            placeholder="Название тега"
-                            class="h-8 text-sm"
-                            :disabled="creatingTag"
-                            autofocus
-                            @keydown.enter.prevent="createAndAddTag"
-                          />
-                          <div class="flex gap-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              class="flex-1"
-                              :disabled="!newTagName.trim() || creatingTag"
-                              @click="createAndAddTag"
-                            >
-                              {{ creatingTag ? '…' : 'Создать' }}
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              :disabled="creatingTag"
-                              @click="cancelNewTag"
-                            >
-                              Отмена
-                            </Button>
-                          </div>
-                          <p v-if="createTagError" class="text-xs text-destructive">
-                            {{ createTagError }}
-                          </p>
-                        </div>
-                      </template>
-                    </div>
-                  </SelectContent>
-                </SelectRoot>
-              </div>
+              <TagAddCombobox
+                v-model:all-tags="allTags"
+                v-model:selected-tag-ids="selectedTagIds"
+                input-id="tag-select"
+                :disabled="!isOwner"
+                :can-delete-tag="canDeleteGuildTag"
+                @delete-tag="openTagDeleteConfirm"
+              />
             </div>
 
             <Button :disabled="saving || !isOwner" @click="saveSettings">
@@ -1248,6 +1193,17 @@ onMounted(async () => {
         </div>
       </template>
     </div>
+    <ConfirmDialog
+      :open="tagDeleteDialogOpen"
+      :title="tagToDelete ? `Удалить тег «${tagToDelete.name}»?` : 'Удалить тег?'"
+      description="Тег исчезнет из всех персонажей и гильдий. Это действие нельзя отменить."
+      confirm-label="Удалить"
+      cancel-label="Отмена"
+      :loading="tagDeleteLoading"
+      confirm-variant="destructive"
+      @update:open="(v) => { tagDeleteDialogOpen = v; }"
+      @confirm="confirmDeleteTagForever"
+    />
     <ConfirmDialog
       :open="leaveDialogOpen"
       title="Покинуть гильдию?"

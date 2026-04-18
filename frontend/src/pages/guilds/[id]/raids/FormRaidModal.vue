@@ -82,6 +82,7 @@ watch(
 watch(
   () => props.open,
   (isOpen) => {
+    if (typeof document === 'undefined') return;
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -92,6 +93,7 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  if (typeof document === 'undefined') return;
   document.body.style.overflow = '';
 });
 

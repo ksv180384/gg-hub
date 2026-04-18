@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Character;
 
+use Domains\Character\Models\Character;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,6 +12,16 @@ class UpdateCharacterRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->boolean('character_tags_sync')) {
+            $raw = $this->input('tag_ids');
+            $this->merge([
+                'tag_ids' => is_array($raw) ? $raw : [],
+            ]);
+        }
     }
 
     /**
@@ -51,6 +63,41 @@ class UpdateCharacterRequest extends FormRequest
             $rules['game_class_ids.*'] = ['integer', Rule::exists('game_classes', 'id')->where('game_id', $gameId)];
         }
         return $rules;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $characterId = $this->route('character');
+            if (! is_numeric($characterId)) {
+                return;
+            }
+
+            $character = Character::query()
+                ->with('guildMember')
+                ->find((int) $characterId);
+
+            if ($character === null || $character->guildMember === null) {
+                return;
+            }
+
+            $newLocalizationId = (int) $this->input('localization_id');
+            $newServerId = (int) $this->input('server_id');
+
+            if ($newLocalizationId !== (int) $character->localization_id) {
+                $validator->errors()->add(
+                    'localization_id',
+                    'Пока персонаж состоит в гильдии, сменить локализацию нельзя. Сначала выйдите из гильдии.'
+                );
+            }
+
+            if ($newServerId !== (int) $character->server_id) {
+                $validator->errors()->add(
+                    'server_id',
+                    'Пока персонаж состоит в гильдии, сменить сервер нельзя. Сначала выйдите из гильдии.'
+                );
+            }
+        });
     }
 
     /**

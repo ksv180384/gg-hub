@@ -20,6 +20,7 @@ class TagResource extends JsonResource
             'slug' => $this->slug,
             'is_hidden' => $this->is_hidden,
             'created_by_user_id' => $this->created_by_user_id,
+            'created_by_guild_id' => $this->created_by_guild_id,
             'created_by' => $this->whenLoaded('createdBy', fn () => $this->createdBy ? [
                 'id' => $this->createdBy->id,
                 'name' => $this->createdBy->name,

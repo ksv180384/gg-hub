@@ -22,7 +22,10 @@ const error = ref<string | null>(null);
 
 const suggestedSlug = computed(() => slugFromName(name.value));
 const effectiveSlug = computed(() => (slug.value.trim() || suggestedSlug.value));
-const canSubmit = computed(() => name.value.trim().length > 0);
+const canSubmit = computed(() => {
+  const n = name.value.trim();
+  return n.length > 0 && n.length <= 20;
+});
 
 async function submit() {
   if (!canSubmit.value) return;
@@ -52,13 +55,14 @@ async function submit() {
         <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
         <div class="space-y-2">
           <Label for="tag-name">Название *</Label>
-          <Input id="tag-name" v-model="name" placeholder="Например: PvE" />
+          <Input id="tag-name" v-model="name" placeholder="Например: PvE" maxlength="20" />
+          <p class="text-xs text-muted-foreground">Не более 20 символов, пробелы по краям будут убраны.</p>
         </div>
         <div class="space-y-2">
           <Label for="tag-slug">Слаг</Label>
           <Input id="tag-slug" v-model="slug" placeholder="Например: pve" />
           <p class="text-xs text-muted-foreground">
-            Уникальный идентификатор. Если пусто — подставится из названия.
+            Краткий идентификатор; у разных тегов может совпадать. Если пусто — подставится из названия.
           </p>
         </div>
         <div class="flex gap-2 pt-2">

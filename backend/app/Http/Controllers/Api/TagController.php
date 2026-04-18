@@ -33,10 +33,16 @@ class TagController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $includeHidden = $request->boolean('include_hidden')
-            && $request->user()
-            && in_array(self::PERMISSION_ADMIN, $request->user()->getAllPermissionSlugs(), true);
-        $tags = ($this->listTagsAction)($includeHidden);
+        $user = $request->user();
+        $adminFullList = $request->boolean('include_hidden')
+            && $user
+            && in_array(self::PERMISSION_ADMIN, $user->getAllPermissionSlugs(), true);
+        $tags = ($this->listTagsAction)(
+            includeHidden: $adminFullList,
+            user: $user,
+            bypassPickerScope: $adminFullList
+        );
+
         return TagResource::collection($tags);
     }
 
@@ -72,14 +78,18 @@ class TagController extends Controller
     public function destroy(Tag $tag): JsonResponse|Response
     {
         $user = request()->user();
-        if (!$user instanceof User) {
+        if (! $user instanceof User) {
             return response()->json(['message' => 'Необходима авторизация.'], 401);
         }
         $slugs = $user->getAllPermissionSlugs();
-        if (!in_array(self::PERMISSION_TAG_DELETE, $slugs, true)) {
+        $canAdminDelete = in_array(self::PERMISSION_TAG_DELETE, $slugs, true);
+        $ownsTag = $tag->created_by_user_id !== null
+            && (int) $tag->created_by_user_id === (int) $user->id;
+        if (! $canAdminDelete && ! $ownsTag) {
             return response()->json(['message' => 'Недостаточно прав для удаления тега.'], 403);
         }
         ($this->deleteTagAction)($tag);
+
         return response()->noContent();
     }
 }

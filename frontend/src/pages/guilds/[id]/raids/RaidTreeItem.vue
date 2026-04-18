@@ -3,7 +3,6 @@ import { ref, computed, shallowRef } from 'vue';
 import { Sortable } from 'sortablejs-vue3';
 import { Button } from '@/shared/ui';
 import {
-  Badge,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -57,77 +56,109 @@ const canAddChild = computed(() => {
     <div
       role="button"
       tabindex="0"
-      class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/40 cursor-pointer"
+      class="group rounded-lg border px-3 py-2 transition-colors cursor-pointer"
       :class="[
         raid.parent_id ? 'mt-1 border-l-2 border-primary/40' : '',
         isSelected
-          ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
-          : 'border-border/60 bg-card',
+          ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+          : 'border-border/60 bg-card hover:bg-accent/40',
       ]"
       @click="emit('select', raid)"
       @keydown.enter="emit('select', raid)"
       @keydown.space.prevent="emit('select', raid)"
     >
-      <span
-        v-if="canEdit && sortableOptions"
-        class="raid-drag-handle flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted active:cursor-grabbing"
-        aria-hidden="true"
-        @click.stop
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="9" cy="6" r="1.5" />
-          <circle cx="9" cy="12" r="1.5" />
-          <circle cx="9" cy="18" r="1.5" />
-          <circle cx="15" cy="6" r="1.5" />
-          <circle cx="15" cy="12" r="1.5" />
-          <circle cx="15" cy="18" r="1.5" />
-        </svg>
-      </span>
-      <span v-else-if="sortableOptions" class="w-7 shrink-0" />
-      <button
-        v-if="hasChildren"
-        type="button"
-        class="flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-muted"
-        :aria-label="expanded ? 'Свернуть' : 'Развернуть'"
-        @click.stop="expanded = !expanded"
-      >
+      <div class="flex items-center gap-2">
         <span
-          class="text-muted-foreground transition-transform"
-          :class="expanded ? '' : '-rotate-90'"
+          v-if="canEdit && sortableOptions"
+          class="raid-drag-handle flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted active:cursor-grabbing"
+          aria-hidden="true"
+          @click.stop
         >
-          ▼
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="6" r="1.5" />
+            <circle cx="9" cy="12" r="1.5" />
+            <circle cx="9" cy="18" r="1.5" />
+            <circle cx="15" cy="6" r="1.5" />
+            <circle cx="15" cy="12" r="1.5" />
+            <circle cx="15" cy="18" r="1.5" />
+          </svg>
         </span>
-      </button>
-      <span v-else class="w-7 shrink-0" />
-      <span class="min-w-0 flex-1 font-medium">{{ raid.name }}</span>
-      <span v-if="totalMembers != null" class="shrink-0 text-xs text-muted-foreground">
-        ({{ totalMembers }} {{ totalMembers === 1 ? 'участник' : totalMembers > 1 && totalMembers < 5 ? 'участника' : 'участников' }})
-      </span>
-      <Badge v-if="raid.leader" variant="secondary" class="shrink-0 text-xs">
-        Лидер: {{ raid.leader.name }}
-      </Badge>
-      <DropdownMenu v-if="canEdit || canDelete">
-        <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="sm" class="h-8 w-8 shrink-0 p-0" aria-label="Действия" @click.stop>
-            ⋮
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem v-if="canAddChild" @click="emit('add-child', raid.id)">
-            Добавить подрейд
-          </DropdownMenuItem>
-          <DropdownMenuItem v-if="canEdit" @click="emit('edit', raid)">
-            Редактировать
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            v-if="canDelete"
-            class="text-destructive focus:text-destructive"
-            @click="emit('delete', raid)"
+        <span v-else-if="sortableOptions" class="w-7 shrink-0" />
+        <button
+          v-if="hasChildren"
+          type="button"
+          class="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted"
+          :aria-label="expanded ? 'Свернуть' : 'Развернуть'"
+          @click.stop="expanded = !expanded"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="transition-transform"
+            :class="expanded ? '' : '-rotate-90'"
           >
-            Удалить
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <span v-else class="w-7 shrink-0" />
+        <span class="min-w-0 flex-1 truncate font-medium" :title="raid.name">{{ raid.name }}</span>
+        <span
+          v-if="totalMembers != null"
+          class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground tabular-nums"
+          :title="`${totalMembers} ${totalMembers === 1 ? 'участник' : totalMembers > 1 && totalMembers < 5 ? 'участника' : 'участников'}`"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          {{ totalMembers }}
+        </span>
+        <DropdownMenu v-if="canEdit || canDelete">
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="sm" class="h-8 w-8 shrink-0 p-0" aria-label="Действия" @click.stop>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="19" r="1" />
+              </svg>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem v-if="canAddChild" @click="emit('add-child', raid.id)">
+              Добавить подрейд
+            </DropdownMenuItem>
+            <DropdownMenuItem v-if="canEdit" @click="emit('edit', raid)">
+              Редактировать
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              v-if="canDelete"
+              class="text-destructive focus:text-destructive"
+              @click="emit('delete', raid)"
+            >
+              Удалить
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div
+        v-if="raid.leader"
+        class="mt-1 flex min-w-0 items-center gap-1 pl-9 text-xs text-muted-foreground"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+          <path d="M2 20l3-13 5 4 2-7 2 7 5-4 3 13z" />
+          <path d="M2 20h18" />
+        </svg>
+        <span class="truncate" :title="raid.leader.name">Лидер: {{ raid.leader.name }}</span>
+      </div>
     </div>
     <!-- Показываем список дочерних и зону дропа, если рейд может иметь детей или уже имеет (иначе нельзя перетащить рейд «в подрейд») -->
     <Sortable

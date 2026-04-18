@@ -20,3 +20,4 @@ export { default as TimezoneSelect } from './timezone-select/TimezoneSelect.vue'
 export * from './rich-text-editor';
 export * from './tooltip';
 export { default as SiteLogo } from './SiteLogo.vue';
+export { default as TagAddCombobox } from './tag-add-combobox/TagAddCombobox.vue';

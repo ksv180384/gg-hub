@@ -1,8 +1,10 @@
 <?php
 
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -33,5 +35,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(function (QueryException $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $driverCode = $e->errorInfo[1] ?? null;
+            $message = 'Не удалось сохранить данные. Попробуйте ещё раз или обратитесь к администратору.';
+
+            if ($driverCode === 1062) {
+                $message = 'Такая запись уже существует. Измените данные и повторите попытку.';
+            } elseif ($driverCode === 1451 || $driverCode === 1452) {
+                $message = 'Операция невозможна из‑за связанных записей.';
+            }
+
+            return response()->json(['message' => $message], 409);
+        });
     })->create();

@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import {
   Avatar,
+  Badge,
   Button,
   Input,
   Label,
@@ -10,6 +11,7 @@ import {
   SelectRoot,
   SelectTrigger,
   SelectValue,
+  TagAddCombobox,
 } from '@/shared/ui';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import type { Game, GameClass, Localization, Server } from '@/shared/api/gamesApi';
@@ -20,6 +22,8 @@ import {
   type UpdateCharacterPayload,
 } from '@/shared/api/charactersApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
+import { useAuthStore } from '@/stores/auth';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 
 const props = defineProps<{
   gameFull: Game | null;
@@ -33,18 +37,14 @@ const emit = defineEmits<{
   (e: 'cancel'): void;
 }>();
 
+const authStore = useAuthStore();
+
 const name = ref('');
 const localizationId = ref('');
 const serverId = ref('');
 const selectedClassIds = ref<number[]>([]);
 const allTags = ref<Tag[]>([]);
 const selectedTagIds = ref<number[]>([]);
-const tagToAddFromSelect = ref('');
-const newTagName = ref('');
-const creatingTag = ref(false);
-const createTagError = ref<string | null>(null);
-const addingNewTag = ref(false);
-const newTagInputRef = ref<HTMLInputElement | null>(null);
 const avatarFile = ref<File | null>(null);
 const avatarPreview = ref<string | null>(null);
 const removeAvatar = ref(false);
@@ -82,6 +82,11 @@ const canSubmit = computed(
   () => name.value.trim() !== '' && localizationId.value !== '' && serverId.value !== ''
 );
 
+/** Персонаж в гильдии привязан к локализации/серверу гильдии — менять их нельзя. */
+const lockLocalizationAndServer = computed(
+  () => props.editingCharacter != null && props.editingCharacter.guild != null
+);
+
 const avatarDisplayUrl = computed(() => {
   if (avatarPreview.value) return avatarPreview.value;
   if (props.editingCharacter && !removeAvatar.value) {
@@ -90,9 +95,24 @@ const avatarDisplayUrl = computed(() => {
   return null;
 });
 
-const tagsNotSelected = computed(() =>
-  allTags.value.filter((t) => !selectedTagIds.value.includes(t.id))
-);
+/** Текущие теги для чипов: из списка API + уже назначенные персонажу (если их нет в списке из‑за фильтра). */
+const selectedTagsForDisplay = computed((): Tag[] => {
+  const byId = new Map<number, Tag>();
+  for (const t of allTags.value) {
+    byId.set(t.id, t);
+  }
+  const fromCharacter = props.editingCharacter?.tags;
+  if (fromCharacter) {
+    for (const t of fromCharacter) {
+      if (!byId.has(t.id)) {
+        byId.set(t.id, t);
+      }
+    }
+  }
+  return selectedTagIds.value
+    .map((id) => byId.get(id))
+    .filter((t): t is Tag => t !== undefined);
+});
 
 function resetForm(editing: Character | null) {
   if (editing) {
@@ -125,8 +145,41 @@ function resetForm(editing: Character | null) {
   formError.value = '';
 }
 
-function loadTags() {
-  tagsApi.getTags(false).then((list) => { allTags.value = list; }).catch(() => { allTags.value = []; });
+async function loadTags() {
+  try {
+    allTags.value = await tagsApi.getTags(false);
+  } catch {
+    allTags.value = [];
+  }
+}
+
+const tagDeleteDialogOpen = ref(false);
+const tagToDelete = ref<Tag | null>(null);
+const tagDeleteLoading = ref(false);
+
+function isMyTag(tag: Tag): boolean {
+  const u = authStore.user;
+  return u != null && tag.created_by_user_id != null && Number(tag.created_by_user_id) === u.id;
+}
+
+function openTagDeleteConfirm(tag: Tag) {
+  tagToDelete.value = tag;
+  tagDeleteDialogOpen.value = true;
+}
+
+async function confirmDeleteTagForever() {
+  const t = tagToDelete.value;
+  if (!t || tagDeleteLoading.value) return;
+  tagDeleteLoading.value = true;
+  try {
+    await tagsApi.deleteTag(t.id);
+    selectedTagIds.value = selectedTagIds.value.filter((id) => id !== t.id);
+    await loadTags();
+    tagDeleteDialogOpen.value = false;
+    tagToDelete.value = null;
+  } finally {
+    tagDeleteLoading.value = false;
+  }
 }
 
 watch(
@@ -145,6 +198,12 @@ watch(() => props.gameFull, (g) => {
   if (g) loadTags();
 });
 
+watch(isMain, (v) => {
+  if (props.editingCharacter?.is_main && !v) {
+    isMain.value = true;
+  }
+});
+
 function toggleTag(tagId: number) {
   const idx = selectedTagIds.value.indexOf(tagId);
   if (idx >= 0) {
@@ -154,50 +213,8 @@ function toggleTag(tagId: number) {
   }
 }
 
-function onAddTagFromSelect(value?: string) {
-  const raw = value ?? tagToAddFromSelect.value;
-  const id = raw ? Number(raw) : 0;
-  if (id && !selectedTagIds.value.includes(id)) {
-    selectedTagIds.value = [...selectedTagIds.value, id];
-    tagToAddFromSelect.value = '';
-  }
-}
-
-function cancelNewTag() {
-  addingNewTag.value = false;
-  newTagName.value = '';
-  createTagError.value = null;
-}
-
-function startAddingNewTag() {
-  addingNewTag.value = true;
-  createTagError.value = null;
-  nextTick(() => {
-    newTagInputRef.value?.focus();
-  });
-}
-
-async function createAndAddTag() {
-  const trimName = newTagName.value.trim();
-  if (!trimName || creatingTag.value) return;
-  creatingTag.value = true;
-  createTagError.value = null;
-  try {
-    const tag = await tagsApi.createTag({ name: trimName });
-    if (!allTags.value.some((t) => t.id === tag.id)) {
-      allTags.value = [...allTags.value, tag];
-    }
-    newTagName.value = '';
-    addingNewTag.value = false;
-    tagToAddFromSelect.value = '';
-  } catch (e) {
-    createTagError.value = e instanceof Error ? e.message : 'Не удалось создать тег';
-  } finally {
-    creatingTag.value = false;
-  }
-}
-
 watch(localizationId, () => {
+  if (lockLocalizationAndServer.value) return;
   serverId.value = '';
   serverSearch.value = '';
 });
@@ -306,7 +323,11 @@ async function submitForm() {
 
     <div class="space-y-2">
       <Label for="char-loc">Локализация <span class="text-destructive">*</span></Label>
-      <SelectRoot v-model="localizationId" required :disabled="gameLoading">
+      <SelectRoot
+        v-model="localizationId"
+        required
+        :disabled="gameLoading || lockLocalizationAndServer"
+      >
         <SelectTrigger id="char-loc" class="w-full">
           <SelectValue placeholder="Выберите локализацию" />
         </SelectTrigger>
@@ -320,7 +341,11 @@ async function submitForm() {
 
     <div class="space-y-2">
       <Label for="char-server">Сервер <span class="text-destructive">*</span></Label>
-      <SelectRoot v-model="serverId" required :disabled="!localizationId || gameLoading">
+      <SelectRoot
+        v-model="serverId"
+        required
+        :disabled="!localizationId || gameLoading || lockLocalizationAndServer"
+      >
         <SelectTrigger id="char-server" class="w-full">
           <SelectValue placeholder="Выберите сервер" />
         </SelectTrigger>
@@ -343,6 +368,13 @@ async function submitForm() {
           </SelectItem>
         </SelectContent>
       </SelectRoot>
+      <p
+        v-if="lockLocalizationAndServer && editingCharacter?.guild"
+        class="text-xs text-muted-foreground"
+      >
+        Персонаж в гильдии «{{ editingCharacter.guild.name }}» — локализацию и сервер сменить нельзя.
+        Сначала выйдите из гильдии.
+      </p>
     </div>
 
     <div v-if="editingCharacter != null" class="flex items-center gap-2">
@@ -350,9 +382,13 @@ async function submitForm() {
         id="char-is-main"
         v-model="isMain"
         type="checkbox"
-        class="h-4 w-4 rounded border-input"
+        class="h-4 w-4 rounded border-input disabled:cursor-not-allowed disabled:opacity-70"
+        :disabled="editingCharacter.is_main"
       />
-      <Label for="char-is-main" class="cursor-pointer font-normal">
+      <Label
+        for="char-is-main"
+        :class="editingCharacter.is_main ? 'cursor-not-allowed font-normal text-muted-foreground' : 'cursor-pointer font-normal'"
+      >
         Основной персонаж в игре (только один в игре, можно менять)
       </Label>
     </div>
@@ -363,85 +399,27 @@ async function submitForm() {
         Выберите теги для персонажа или добавьте новый — он станет доступен всем.
       </p>
       <div v-if="selectedTagIds.length" class="flex flex-wrap gap-2">
-        <label
-          v-for="tag in allTags.filter((t) => selectedTagIds.includes(t.id))"
+        <button
+          v-for="tag in selectedTagsForDisplay"
           :key="tag.id"
-          class="flex cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
-          :class="{ 'bg-primary text-primary-foreground': selectedTagIds.includes(tag.id) }"
+          type="button"
+          class="inline-flex items-center gap-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          :title="'Убрать тег «' + tag.name + '»'"
+          @click="toggleTag(tag.id)"
         >
-          <input
-            type="checkbox"
-            :checked="true"
-            class="sr-only"
-            @change="toggleTag(tag.id)"
-          >
-          {{ tag.name }}
-        </label>
+          <Badge variant="outline" class="pr-1">
+            {{ tag.name }}
+            <span class="ml-1 text-muted-foreground" aria-hidden="true">×</span>
+          </Badge>
+        </button>
       </div>
-      <div class="space-y-1">
-        <Label for="char-tag-select" class="text-muted-foreground">Добавить тег</Label>
-        <SelectRoot
-          v-model="tagToAddFromSelect"
-          @update:model-value="(v) => onAddTagFromSelect(v)"
-        >
-          <SelectTrigger id="char-tag-select" class="w-full">
-            <SelectValue placeholder="Выберите тег" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem
-              v-for="tag in tagsNotSelected"
-              :key="tag.id"
-              :value="String(tag.id)"
-            >
-              {{ tag.name }}
-            </SelectItem>
-            <div class="border-t border-border p-1">
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
-                @click="startAddingNewTag"
-              >
-                <span class="text-base leading-none">+</span>
-                Добавить новый
-              </button>
-            </div>
-          </SelectContent>
-        </SelectRoot>
-        <div v-if="addingNewTag" class="mt-2 flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-2">
-          <Input
-            ref="newTagInputRef"
-            v-model="newTagName"
-            placeholder="Название тега"
-            class="h-8 text-sm"
-            :disabled="creatingTag"
-            @keydown.enter.prevent="createAndAddTag"
-          />
-          <div class="flex gap-1">
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              class="flex-1"
-              :disabled="!newTagName.trim() || creatingTag"
-              @click="createAndAddTag"
-            >
-              {{ creatingTag ? '…' : 'Создать' }}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              :disabled="creatingTag"
-              @click="cancelNewTag"
-            >
-              Отмена
-            </Button>
-          </div>
-          <p v-if="createTagError" class="text-xs text-destructive">
-            {{ createTagError }}
-          </p>
-        </div>
-      </div>
+      <TagAddCombobox
+        v-model:all-tags="allTags"
+        v-model:selected-tag-ids="selectedTagIds"
+        input-id="char-tag-select"
+        :can-delete-tag="isMyTag"
+        @delete-tag="openTagDeleteConfirm"
+      />
     </div>
 
     <div v-if="gameClasses.length" class="space-y-2">
@@ -543,5 +521,17 @@ async function submitForm() {
         Отмена
       </Button>
     </div>
+
+    <ConfirmDialog
+      :open="tagDeleteDialogOpen"
+      :title="tagToDelete ? `Удалить тег «${tagToDelete.name}»?` : 'Удалить тег?'"
+      description="Тег исчезнет из всех персонажей и гильдий. Это действие нельзя отменить."
+      confirm-label="Удалить"
+      cancel-label="Отмена"
+      :loading="tagDeleteLoading"
+      confirm-variant="destructive"
+      @update:open="(v) => { tagDeleteDialogOpen = v; }"
+      @confirm="confirmDeleteTagForever"
+    />
   </form>
 </template>

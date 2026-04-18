@@ -17,6 +17,7 @@ import { guildsApi } from '@/shared/api/guildsApi';
 import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -181,6 +182,39 @@ function toggleTag(tagId: number) {
   }
 }
 
+const tagDeleteDialogOpen = ref(false);
+const tagToDelete = ref<Tag | null>(null);
+const tagDeleteLoading = ref(false);
+
+function isMyTag(tag: Tag): boolean {
+  const u = authStore.user;
+  return u != null && tag.created_by_user_id != null && Number(tag.created_by_user_id) === u.id;
+}
+
+function openTagDeleteConfirm(tag: Tag) {
+  tagToDelete.value = tag;
+  tagDeleteDialogOpen.value = true;
+}
+
+async function confirmDeleteTagForever() {
+  const t = tagToDelete.value;
+  if (!t || tagDeleteLoading.value) return;
+  tagDeleteLoading.value = true;
+  try {
+    await tagsApi.deleteTag(t.id);
+    selectedTagIds.value = selectedTagIds.value.filter((id) => id !== t.id);
+    try {
+      tags.value = await tagsApi.getTags(false);
+    } catch {
+      /* ignore */
+    }
+    tagDeleteDialogOpen.value = false;
+    tagToDelete.value = null;
+  } finally {
+    tagDeleteLoading.value = false;
+  }
+}
+
 onMounted(async () => {
   if (!authStore.isAuthenticated) {
     router.replace('/login');
@@ -272,20 +306,40 @@ watch(availableLocalizations, (list) => {
 
             <div v-if="tags.length" class="space-y-2">
               <Label>Теги</Label>
-              <div class="flex flex-wrap gap-2">
-                <button
+              <div class="flex flex-wrap items-center gap-2">
+                <div
                   v-for="tag in tags"
                   :key="tag.id"
-                  type="button"
-                  class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  @click="toggleTag(tag.id)"
+                  class="inline-flex items-center gap-0.5"
                 >
-                  <Badge
-                    :variant="selectedTagIds.includes(tag.id) ? 'secondary' : 'outline'"
+                  <button
+                    type="button"
+                    class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    @click="toggleTag(tag.id)"
                   >
-                    {{ tag.name }}
-                  </Badge>
-                </button>
+                    <Badge
+                      :variant="selectedTagIds.includes(tag.id) ? 'outline' : 'secondary'"
+                    >
+                      {{ tag.name }}
+                    </Badge>
+                  </button>
+                  <button
+                    v-if="isMyTag(tag)"
+                    type="button"
+                    class="inline-flex shrink-0 rounded p-1 text-destructive outline-none hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
+                    title="Удалить тег"
+                    aria-label="Удалить тег"
+                    @click.stop.prevent="openTagDeleteConfirm(tag)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      <line x1="10" x2="10" y1="11" y2="17" />
+                      <line x1="14" x2="14" y1="11" y2="17" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -318,5 +372,17 @@ watch(availableLocalizations, (list) => {
         </CardContent>
       </Card>
     </div>
+
+    <ConfirmDialog
+      :open="tagDeleteDialogOpen"
+      :title="tagToDelete ? `Удалить тег «${tagToDelete.name}»?` : 'Удалить тег?'"
+      description="Тег исчезнет из всех персонажей и гильдий. Это действие нельзя отменить."
+      confirm-label="Удалить"
+      cancel-label="Отмена"
+      :loading="tagDeleteLoading"
+      confirm-variant="destructive"
+      @update:open="(v) => { tagDeleteDialogOpen = v; }"
+      @confirm="confirmDeleteTagForever"
+    />
   </div>
 </template>

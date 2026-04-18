@@ -44,7 +44,7 @@ class CreateCharacterAction
             $this->characterRepository->update($character, ['is_main' => true]);
             $character->is_main = true;
         }
-        $character->load(['game', 'localization', 'server', 'gameClasses', 'tags']);
+        $character->load(['game', 'localization', 'server', 'gameClasses', 'tags.createdBy']);
         return $character;
     }
 }

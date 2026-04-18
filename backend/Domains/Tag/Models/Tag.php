@@ -17,6 +17,7 @@ class Tag extends Model
         'slug',
         'is_hidden',
         'created_by_user_id',
+        'created_by_guild_id',
     ];
 
     protected function casts(): array
@@ -29,6 +30,12 @@ class Tag extends Model
     protected static function booted(): void
     {
         static::saving(function (self $model): void {
+            if (is_string($model->name)) {
+                $model->name = trim($model->name);
+            }
+            if (isset($model->slug) && is_string($model->slug)) {
+                $model->slug = trim($model->slug);
+            }
             if ($model->shouldFillSlugFromName()) {
                 $model->slug = Str::slug($model->name);
             }
@@ -45,6 +52,11 @@ class Tag extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function createdByGuild(): BelongsTo
+    {
+        return $this->belongsTo(Guild::class, 'created_by_guild_id');
     }
 
     public function characters(): BelongsToMany

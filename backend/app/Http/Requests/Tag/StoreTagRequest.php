@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tag;
 
+use Domains\Tag\Rules\UniqueTagNameForCreatorUser;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTagRequest extends FormRequest
@@ -11,14 +12,30 @@ class StoreTagRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('name')) {
+            $this->merge([
+                'name' => trim((string) $this->input('name')),
+            ]);
+        }
+        if ($this->has('slug')) {
+            $this->merge([
+                'slug' => trim((string) $this->input('slug')),
+            ]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function rules(): array
     {
+        $userId = $this->user()?->id;
+
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:tags,slug'],
+            'name' => ['required', 'string', 'max:20', new UniqueTagNameForCreatorUser($userId !== null ? (int) $userId : null)],
+            'slug' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -29,8 +46,8 @@ class StoreTagRequest extends FormRequest
     {
         return [
             'name.required' => 'Укажите название тега.',
-            'name.max' => 'Название тега не должно превышать 255 символов.',
-            'slug.unique' => 'Тег с таким слагом уже существует.',
+            'name.max' => 'Название тега не должно превышать 20 символов.',
+            'slug.max' => 'Слаг не должен превышать 255 символов.',
         ];
     }
 }

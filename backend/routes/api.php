@@ -171,6 +171,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/tags', [TagController::class, 'index']);
     Route::post('/tags', [TagController::class, 'store']);
+    Route::delete('/tags/{tag}', [TagController::class, 'destroy']);
 
     Route::middleware(['admin.subdomain', 'permission:admnistrirovanie'])->group(function () {
         Route::get('/admin/landing-cta-clicks/stats', [AdminLandingCtaClickController::class, 'stats']);
@@ -229,6 +230,5 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/games/{game}/localizations/{localization}/servers/merge', [ServerController::class, 'merge'])->middleware('permission:obieediniat-servera');
 
         Route::put('/tags/{tag}', [TagController::class, 'update']);
-        Route::delete('/tags/{tag}', [TagController::class, 'destroy']);
     });
 });

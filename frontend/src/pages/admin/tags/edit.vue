@@ -17,7 +17,10 @@ const submitting = ref(false);
 const error = ref<string | null>(null);
 
 const tagId = computed(() => Number(route.params.id));
-const canSubmit = computed(() => name.value.trim().length > 0);
+const canSubmit = computed(() => {
+  const n = name.value.trim();
+  return n.length > 0 && n.length <= 20;
+});
 
 onMounted(async () => {
   if (!auth.hasPermission(PERMISSION_TAG_EDIT)) {
@@ -82,7 +85,8 @@ async function submit() {
         <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
         <div class="space-y-2">
           <Label for="tag-name">Название *</Label>
-          <Input id="tag-name" v-model="name" placeholder="Название тега" />
+          <Input id="tag-name" v-model="name" placeholder="Название тега" maxlength="20" />
+          <p class="text-xs text-muted-foreground">Не более 20 символов, пробелы по краям будут убраны.</p>
         </div>
         <div class="space-y-2">
           <Label for="tag-slug">Слаг</Label>

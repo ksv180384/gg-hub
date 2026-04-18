@@ -31,7 +31,7 @@ final class GetGuildRosterMemberAction
         $member = GuildMember::query()
             ->where('guild_id', $guild->id)
             ->where('character_id', $characterId)
-            ->with(['character.gameClasses', 'character.tags', 'guildRole'])
+            ->with(['character.gameClasses', 'character.tags.createdBy', 'guildRole'])
             ->first();
 
         if (! $member) {

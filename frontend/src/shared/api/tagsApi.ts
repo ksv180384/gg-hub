@@ -16,6 +16,7 @@ export interface Tag {
   slug: string;
   is_hidden: boolean;
   created_by_user_id?: number | null;
+  created_by_guild_id?: number | null;
   created_by?: { id: number; name: string } | null;
 }
 

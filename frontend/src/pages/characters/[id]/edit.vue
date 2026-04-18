@@ -55,12 +55,6 @@ watch(characterId, (id) => {
 <template>
   <div class="container py-6">
     <div class="mx-auto max-w-xl">
-      <div class="mb-6">
-        <Button variant="ghost" size="sm" class="shrink-0 -ml-2" @click="router.push({ name: 'my-characters' })">
-          ← К списку
-        </Button>
-      </div>
-
       <Card v-if="error" class="border-destructive/50">
       <CardContent class="pt-6">
         <p class="text-sm text-destructive">{{ error }}</p>

@@ -4,6 +4,7 @@ namespace App\Services\Telegram;
 
 use App\Services\Telegram\Exceptions\TelegramBotApiException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class TelegramBotApi
 {
@@ -21,8 +22,20 @@ class TelegramBotApi
                 'text' => $text,
             ]);
 
-            return $response['ok'] ?? false;
+            if ($response->successful() && ($response['ok'] ?? false)) {
+                return true;
+            }
+
+            Log::error('Telegram Bot API sendMessage failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return false;
         } catch (\Throwable $e) {
+            Log::error('Telegram Bot API sendMessage exception', [
+                'message' => $e->getMessage(),
+            ]);
             report(new TelegramBotApiException($e->getMessage()));
 
             return false;
