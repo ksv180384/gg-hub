@@ -27,7 +27,44 @@ const resolve = (p) => path.resolve(__dirname, p);
 const isDev = process.argv.includes('--dev');
 const port = Number(process.env.PORT) || 3008;
 
+/** Гонка HMR full-reload и ssrLoadModule в Vite 7+ даёт «transport was disconnected». */
+function isTransportDisconnectError(e) {
+  const msg = e instanceof Error ? e.message : String(e);
+  return msg.includes('transport was disconnected');
+}
+
+async function ssrLoadEntryServer(vite) {
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await vite.ssrLoadModule('/src/entry-server.ts');
+    } catch (e) {
+      lastErr = e;
+      if (isTransportDisconnectError(e) && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 80 * (attempt + 1)));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+let entryServerLoadPromise = null;
+
+async function getSsrRender(vite) {
+  if (!entryServerLoadPromise) {
+    entryServerLoadPromise = ssrLoadEntryServer(vite).finally(() => {
+      entryServerLoadPromise = null;
+    });
+  }
+  const mod = await entryServerLoadPromise;
+  return mod.render;
+}
+
 async function createDevServer() {
+  /** Читается в vite.config — отключаем vue-devtools на SSR dev, меньше лишних full-reload. */
+  process.env.GG_SSR_DEV_SERVER = '1';
   const { createServer: createViteServer } = await import('vite');
   const app = express();
   /** Один HTTP-сервер для Express и HMR — иначе в middlewareMode WS на :24678, а клиент ходит на :80/:3008. */
@@ -46,7 +83,7 @@ async function createDevServer() {
       const url = req.originalUrl;
       let template = fs.readFileSync(resolve('index.html'), 'utf-8');
       template = await vite.transformIndexHtml(url, template);
-      const { render } = await vite.ssrLoadModule('/src/entry-server.ts');
+      const render = await getSsrRender(vite);
       const result = await render(url, {
         cookie: req.headers.cookie,
         host: req.headers.host,

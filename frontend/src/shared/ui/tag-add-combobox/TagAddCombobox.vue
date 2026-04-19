@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ComponentPublicInstance } from 'vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import {
   ComboboxAnchor,
@@ -57,6 +58,7 @@ const creatingTag = ref(false);
 const newTagName = ref('');
 const addingNewTag = ref(false);
 const newTagInputRef = ref<{ focus: (options?: FocusOptions) => void } | null>(null);
+const tagSearchInputRef = ref<ComponentPublicInstance | null>(null);
 
 const tagsNotSelected = computed(() =>
   sortTagsForPicker(allTags.value.filter((t) => !selectedTagIds.value.includes(t.id)))
@@ -81,6 +83,33 @@ const tagCreateOptionValue = computed(() =>
     : ''
 );
 
+function tagNameMatchesSearch(tag: Tag, term: string): boolean {
+  const q = term.trim().toLowerCase();
+  if (!q) return true;
+  return tag.name.trim().toLowerCase().includes(q);
+}
+
+/**
+ * Только теги для списка: при поиске не рендерим лишние строки — иначе radix скрывает только
+ * ComboboxItem, а обёртка и кнопка «удалить» остаются (пустые полосы).
+ */
+const tagsNotSelectedFiltered = computed(() =>
+  tagsNotSelected.value.filter((t) => tagNameMatchesSearch(t, tagSearchTerm.value))
+);
+
+/** По умолчанию radix-vue фильтрует только по `value` (у нас — id тега), а не по названию. */
+function tagComboFilter(values: string[], term: string): string[] {
+  const q = term.trim().toLowerCase();
+  if (!q) return values;
+  return values.filter((v) => {
+    if (v.startsWith(TAG_CREATE_VALUE_PREFIX)) return true;
+    const id = Number(v);
+    if (!Number.isFinite(id)) return false;
+    const tag = allTags.value.find((t) => t.id === id);
+    return tag ? tagNameMatchesSearch(tag, term) : false;
+  });
+}
+
 function showDelete(tag: Tag): boolean {
   if (props.disabled) return false;
   return props.canDeleteTag?.(tag) ?? false;
@@ -94,12 +123,36 @@ function onTagAnchorPointerDown() {
 }
 
 function focusComboboxInput() {
+  const root = tagSearchInputRef.value?.$el as HTMLElement | undefined;
+  const fromRef =
+    root instanceof HTMLInputElement
+      ? root
+      : root?.querySelector?.('input');
+  if (fromRef instanceof HTMLInputElement) {
+    fromRef.focus({ preventScroll: true });
+    return;
+  }
   const node = document.getElementById(props.inputId);
   const input =
     node instanceof HTMLInputElement ? node : node?.querySelector?.('input');
   if (input instanceof HTMLInputElement) {
-    input.focus();
+    input.focus({ preventScroll: true });
   }
+}
+
+/** После открытия портала/фокуса radix — стабильно возвращаем курсор в поле поиска. */
+function queueFocusComboboxInput() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      focusComboboxInput();
+    });
+  });
+}
+
+/** Кнопка-стрелка иначе забирает фокус с поля ввода. */
+function onTagChevronMouseDown(e: MouseEvent) {
+  if (props.disabled) return;
+  e.preventDefault();
 }
 
 watch(tagComboModel, async (v) => {
@@ -133,8 +186,7 @@ watch(tagPickerOpen, async (open) => {
   }
   if (props.disabled) return;
   await nextTick();
-  await nextTick();
-  focusComboboxInput();
+  queueFocusComboboxInput();
 });
 
 async function createAndAddTagFromQuery(trimName: string): Promise<boolean> {
@@ -201,6 +253,7 @@ function onDeleteClick(tag: Tag) {
         v-model:search-term="tagSearchTerm"
         class="relative w-full"
         :disabled="disabled"
+        :filter-function="tagComboFilter"
         :reset-search-term-on-select="true"
         :reset-search-term-on-blur="true"
       >
@@ -209,6 +262,7 @@ function onDeleteClick(tag: Tag) {
           @pointerdown="onTagAnchorPointerDown"
         >
           <ComboboxInput
+            ref="tagSearchInputRef"
             :id="inputId"
             class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm shadow-none placeholder:text-muted-foreground outline-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             :placeholder="placeholder"
@@ -218,6 +272,7 @@ function onDeleteClick(tag: Tag) {
           <ComboboxTrigger
             class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none"
             aria-label="Открыть список тегов"
+            @mousedown="onTagChevronMouseDown"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m6 9 6 6 6-6" />
@@ -249,7 +304,7 @@ function onDeleteClick(tag: Tag) {
                 «{{ tagSearchTrimmed }}»
               </ComboboxItem>
               <div
-                v-for="tag in tagsNotSelected"
+                v-for="tag in tagsNotSelectedFiltered"
                 :key="tag.id"
                 class="flex w-full min-w-0 items-stretch rounded-sm transition-colors hover:bg-accent hover:text-accent-foreground has-[[data-highlighted]]:bg-accent has-[[data-highlighted]]:text-accent-foreground"
               >

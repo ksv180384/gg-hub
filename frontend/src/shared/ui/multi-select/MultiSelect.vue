@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
@@ -38,6 +38,14 @@ const emit = defineEmits<{
 }>();
 
 const searchQuery = ref('');
+const menuOpen = ref(false);
+const searchInputRef = ref<HTMLInputElement | null>(null);
+
+watch(menuOpen, async (open) => {
+  if (!open) return;
+  await nextTick();
+  searchInputRef.value?.focus({ preventScroll: true });
+});
 
 const filteredOptions = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
@@ -88,7 +96,7 @@ function clearAll() {
 </script>
 
 <template>
-  <DropdownMenuRoot>
+  <DropdownMenuRoot v-model:open="menuOpen">
     <DropdownMenuTrigger as-child>
       <button
         type="button"
@@ -138,6 +146,7 @@ function clearAll() {
       >
         <div class="border-b p-2">
           <input
+            ref="searchInputRef"
             v-model="searchQuery"
             type="text"
             :placeholder="searchPlaceholder"

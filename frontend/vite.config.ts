@@ -86,7 +86,8 @@ export default defineConfig(({ mode }) => {
             injectHomeSeoPlugin(mode),
             tailwindcss(),
             vue(),
-            vueDevTools(),
+            /* На node server.mjs --dev отключаем: меньше full-reload, меньше гонок с ssrLoadModule (Vite 7+). */
+            ...(process.env.GG_SSR_DEV_SERVER === '1' ? [] : [vueDevTools()]),
         ],
         resolve: {
             alias: {
