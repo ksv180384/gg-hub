@@ -265,9 +265,6 @@ function goToApplication() {
 
             <!-- Вкладка: О гильдии -->
             <Card v-show="activeTab === 'about'" class="mb-6 border-0 shadow-none">
-              <CardHeader>
-                <CardTitle>О гильдии</CardTitle>
-              </CardHeader>
               <CardContent>
                 <div
                   v-if="guild.about_text"
@@ -280,9 +277,6 @@ function goToApplication() {
 
             <!-- Вкладка: Устав -->
             <Card v-show="activeTab === 'charter'" class="mb-6 border-0 shadow-none">
-              <CardHeader>
-                <CardTitle>Устав</CardTitle>
-              </CardHeader>
               <CardContent>
                 <p
                   v-if="guild.charter_text"
