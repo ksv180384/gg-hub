@@ -19,19 +19,30 @@ const emit = defineEmits<{
 
 <template>
   <Card>
-    <CardHeader class="flex flex-row items-center justify-between">
-      <div>
-        <CardTitle class="text-base">{{ tag.name }}</CardTitle>
-        <p class="mt-1 text-sm text-muted-foreground">Слаг: {{ tag.slug }}</p>
-        <p v-if="tag.created_by" class="mt-0.5 text-xs text-muted-foreground">
+    <CardHeader class="!flex-row items-center justify-between gap-2 space-y-0 p-3 py-2">
+      <div class="min-w-0 flex-1">
+        <div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0">
+          <CardTitle class="text-sm font-semibold">{{ tag.name }}</CardTitle>
+          <span class="truncate text-xs text-muted-foreground" :title="tag.slug">{{ tag.slug }}</span>
+        </div>
+        <p class="mt-0.5 truncate text-xs text-muted-foreground">
+          <template v-if="tag.used_by_guild_id != null">
+            Гильдия: {{ tag.used_by_guild?.name ?? '—' }}
+          </template>
+          <template v-else-if="tag.used_by_user_id != null">
+            Пользователь: {{ tag.used_by?.name ?? '—' }}
+          </template>
+          <template v-else>Общий тег</template>
+        </p>
+        <p
+          v-if="tag.created_by && tag.used_by_user_id == null"
+          class="mt-0.5 truncate text-xs text-muted-foreground"
+        >
           Создал: {{ tag.created_by.name }}
         </p>
-        <p v-else-if="tag.used_by" class="mt-0.5 text-xs text-muted-foreground">
-          Пользователь: {{ tag.used_by.name }}
-        </p>
       </div>
-      <div class="flex items-center gap-2">
-        <Badge v-if="tag.is_hidden" variant="secondary">Скрыт</Badge>
+      <div class="flex shrink-0 items-center gap-1">
+        <Badge v-if="tag.is_hidden" variant="secondary" class="text-[10px] px-1.5 py-0">Скрыт</Badge>
         <Button
           v-if="canHide"
           variant="ghost"
@@ -72,7 +83,7 @@ const emit = defineEmits<{
           v-if="canDelete"
           variant="ghost"
           size="icon"
-          class="h-9 w-9 shrink-0 min-h-9 min-w-9 touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10"
+          class="h-8 w-8 shrink-0 touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10"
           aria-label="Удалить"
           title="Удалить"
           @click="emit('delete')"

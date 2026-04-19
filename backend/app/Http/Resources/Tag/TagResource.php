@@ -26,6 +26,10 @@ class TagResource extends JsonResource
                 'id' => $this->usedByUser->id,
                 'name' => $this->usedByUser->name,
             ] : null),
+            'used_by_guild' => $this->whenLoaded('usedByGuild', fn () => $this->usedByGuild ? [
+                'id' => $this->usedByGuild->id,
+                'name' => $this->usedByGuild->name,
+            ] : null),
             'created_by' => $this->whenLoaded('createdByUser', fn () => $this->createdByUser ? [
                 'id' => $this->createdByUser->id,
                 'name' => $this->createdByUser->name,

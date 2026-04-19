@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Filters\TagFilter;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Domains\Guild\Models\GuildMember;
 use App\Http\Requests\Tag\StoreTagRequest;
 use App\Http\Requests\Tag\UpdateTagRequest;
 use App\Http\Resources\Tag\TagResource;
@@ -14,13 +14,11 @@ use Domains\Tag\Actions\ListTagsAction;
 use Domains\Tag\Actions\UpdateTagAction;
 use Domains\Tag\Models\Tag;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TagController extends Controller
 {
-    private const PERMISSION_ADMIN = 'admnistrirovanie';
     private const PERMISSION_TAG_EDIT = 'redaktirovat-teg';
     private const PERMISSION_TAG_HIDE = 'skryvat-teg';
     private const PERMISSION_TAG_DELETE = 'udaliat-teg';
@@ -32,30 +30,9 @@ class TagController extends Controller
         private DeleteTagAction $deleteTagAction
     ) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(TagFilter $filter): AnonymousResourceCollection
     {
-        $user = $request->user();
-        $adminFullList = $request->boolean('include_hidden')
-            && $user
-            && in_array(self::PERMISSION_ADMIN, $user->getAllPermissionSlugs(), true);
-        $guildIdForPicker = null;
-        if ($request->filled('guild_id') && $user instanceof User) {
-            $gId = (int) $request->query('guild_id');
-            $isMember = GuildMember::query()
-                ->where('guild_id', $gId)
-                ->whereHas('character', fn ($q) => $q->where('user_id', $user->id))
-                ->exists();
-            if ($isMember) {
-                $guildIdForPicker = $gId;
-            }
-        }
-
-        $tags = ($this->listTagsAction)(
-            includeHidden: $adminFullList,
-            user: $user,
-            bypassPickerScope: $adminFullList,
-            guildIdForPicker: $guildIdForPicker,
-        );
+        $tags = ($this->listTagsAction)($filter);
 
         return TagResource::collection($tags);
     }
@@ -68,7 +45,7 @@ class TagController extends Controller
         $data['used_by_guild_id'] = null;
         $data['created_by_user_id'] = $user?->id;
         $tag = ($this->createTagAction)($data);
-        $tag->load(['usedByUser', 'createdByUser']);
+        $tag->load(['usedByUser', 'createdByUser', 'usedByGuild']);
         return (new TagResource($tag))->response()->setStatusCode(201);
     }
 
@@ -88,7 +65,7 @@ class TagController extends Controller
             return response()->json(['message' => 'Недостаточно прав для редактирования тега.'], 403);
         }
         ($this->updateTagAction)($tag, $validated);
-        return new TagResource($tag->fresh(['usedByUser', 'createdByUser']));
+        return new TagResource($tag->fresh(['usedByUser', 'createdByUser', 'usedByGuild']));
     }
 
     public function destroy(Tag $tag): JsonResponse|Response

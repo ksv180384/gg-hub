@@ -149,7 +149,7 @@ class GuildController extends Controller
             'used_by_guild_id' => $guild->id,
             'created_by_user_id' => $request->user()?->id,
         ]);
-        $tag->load(['usedByUser', 'createdByUser']);
+        $tag->load(['usedByUser', 'createdByUser', 'usedByGuild']);
 
         return (new TagResource($tag))->response()->setStatusCode(201);
     }
