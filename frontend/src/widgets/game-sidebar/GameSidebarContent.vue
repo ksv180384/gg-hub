@@ -170,10 +170,10 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
     <nav class="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
       <template v-if="siteContext.isGameSubdomain">
         <RouterLink
-          to="/journal"
+          to="/"
           :class="cn(
             'rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
-            route.path === '/journal' || route.path.startsWith('/journal/')
+            route.path === '/'
               ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
               : ''
           )"

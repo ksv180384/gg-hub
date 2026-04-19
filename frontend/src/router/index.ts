@@ -32,7 +32,6 @@ const routes: RouteRecordRaw[] = [
       component: MainLayout,
       children: [
         { path: '', name: 'home', component: () => import('@/pages/home/index.vue') },
-        { path: 'journal', name: 'journal', component: () => import('@/pages/journal/index.vue'), meta: { requiresAuth: true, title: 'Журнал' } },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
         {
           path: 'applications',

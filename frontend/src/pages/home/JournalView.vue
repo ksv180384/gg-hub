@@ -33,6 +33,15 @@ watch(() => game.value?.id, () => {
   loadJournal();
 }, { immediate: true });
 
+watch(
+  () => game.value?.name,
+  (name) => {
+    if (typeof document === 'undefined') return;
+    document.title = name ? `Журнал — ${name} — gg-hub` : 'Журнал — gg-hub';
+  },
+  { immediate: true },
+);
+
 function onViewRecorded(postId: number) {
   const p = posts.value.find((x) => x.id === postId);
   if (p) p.views_count = (p.views_count ?? 0) + 1;
