@@ -691,11 +691,6 @@ onMounted(async () => {
 <template>
   <div class="container py-8 md:py-12">
     <div class="mx-auto max-w-4xl">
-      <div class="mb-6 flex items-center gap-4">
-        <Button variant="ghost" size="sm" @click="router.push({ name: 'guilds' })">
-          ← К списку гильдий
-        </Button>
-      </div>
 
       <div v-if="error" class="mb-6 rounded-md bg-destructive/10 p-4 text-destructive">
         {{ error }}
@@ -837,57 +832,57 @@ onMounted(async () => {
           <!-- Правая колонка: табы и контент -->
           <div class="min-w-0 flex-1 order-2 md:order-2">
             <div class="mb-4 flex flex-wrap gap-1 border-b">
-          <button
-            v-for="t in visibleTabs"
-            :key="t.id"
-            type="button"
-            :aria-label="t.label"
-            class="flex items-center justify-center gap-2 rounded-t-md border-b-2 px-3 py-2 text-sm font-medium transition-colors md:justify-start md:px-4"
-            :class="
-              activeTab === t.id
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            "
-            @click="activeTab = t.id"
-          >
-            <!-- Иконки только на мобильной (чёрно-белые, currentColor) -->
-            <span class="flex shrink-0 md:hidden" aria-hidden="true">
-              <!-- Настройки (шестерёнка) -->
-              <svg v-if="t.id === 'settings'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-              </svg>
-              <!-- О гильдии (инфо) -->
-              <svg v-else-if="t.id === 'about'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 16v-4" />
-                <path d="M12 8h.01" />
-              </svg>
-              <!-- Устав (документ) -->
-              <svg v-else-if="t.id === 'charter'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <path d="M14 2v6h6" />
-                <path d="M16 13H8" />
-                <path d="M16 17H8" />
-                <path d="M10 9H8" />
-              </svg>
-              <!-- Форма заявки (клипборд/форма) -->
-              <svg v-else-if="t.id === 'application'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                <path d="M12 11h4" />
-                <path d="M12 16h4" />
-                <path d="M8 11h.01" />
-                <path d="M8 16h.01" />
-              </svg>
-            </span>
-            <span class="hidden md:inline">{{ t.label }}</span>
-          </button>
+              <button
+                v-for="t in visibleTabs"
+                :key="t.id"
+                type="button"
+                :aria-label="t.label"
+                class="flex items-center justify-center gap-2 rounded-t-md border-b-2 px-3 py-2 text-sm font-medium transition-colors md:justify-start md:px-4"
+                :class="
+                  activeTab === t.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                "
+                @click="activeTab = t.id"
+              >
+                <!-- Иконки только на мобильной (чёрно-белые, currentColor) -->
+                <span class="flex shrink-0 md:hidden" aria-hidden="true">
+                  <!-- Настройки (шестерёнка) -->
+                  <svg v-if="t.id === 'settings'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+                  </svg>
+                  <!-- О гильдии (инфо) -->
+                  <svg v-else-if="t.id === 'about'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                  <!-- Устав (документ) -->
+                  <svg v-else-if="t.id === 'charter'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6" />
+                    <path d="M16 13H8" />
+                    <path d="M16 17H8" />
+                    <path d="M10 9H8" />
+                  </svg>
+                  <!-- Форма заявки (клипборд/форма) -->
+                  <svg v-else-if="t.id === 'application'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <path d="M12 11h4" />
+                    <path d="M12 16h4" />
+                    <path d="M8 11h.01" />
+                    <path d="M8 16h.01" />
+                  </svg>
+                </span>
+                <span class="hidden md:inline">{{ t.label }}</span>
+              </button>
             </div>
 
             <!-- Вкладка: Настройки -->
-        <Card v-show="activeTab === 'settings'" class="mb-6">
-          <CardHeader>
+        <Card v-show="activeTab === 'settings'" class="mb-6 border-0 p-0 shadow-none">
+          <CardHeader class="px-2">
             <CardTitle>Настройки</CardTitle>
             <p v-if="!isOwner && !canChangeGuildLeader" class="text-sm text-muted-foreground">
               Редактировать настройки может только лидер гильдии или участник с соответствующим правом. Вы можете просматривать информацию.
@@ -896,7 +891,7 @@ onMounted(async () => {
               Вы можете сменить лидера гильдии (слева, под числом участников) и нажать «Сохранить настройки».
             </p>
           </CardHeader>
-          <CardContent class="space-y-6">
+          <CardContent class="space-y-6 px-2">
             <div class="space-y-2">
               <Label for="settings-name">Название гильдии *</Label>
               <Input id="settings-name" v-model="name" :disabled="!isOwner" />
@@ -1043,11 +1038,11 @@ onMounted(async () => {
         </Card>
 
         <!-- Вкладка: О гильдии -->
-        <Card v-show="activeTab === 'about'" class="mb-6">
-          <CardHeader>
+        <Card v-show="activeTab === 'about'" class="mb-6 border-0 p-0 shadow-none">
+          <CardHeader class="px-2">
             <CardTitle>О гильдии</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-6">
+          <CardContent class="space-y-6 px-2">
             <template v-if="canEditAbout">
               <div class="flex flex-wrap items-center gap-2 border-b border-border pb-2">
                 <Button
@@ -1107,11 +1102,11 @@ onMounted(async () => {
         </Card>
 
         <!-- Вкладка: Устав -->
-        <Card v-show="activeTab === 'charter'" class="mb-6">
-          <CardHeader>
+        <Card v-show="activeTab === 'charter'" class="mb-6 border-0 p-0 shadow-none">
+          <CardHeader class="px-2">
             <CardTitle>Устав</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-4">
+          <CardContent class="space-y-4 px-2">
             <template v-if="canEditCharter">
               <div class="flex flex-wrap items-center gap-2 border-b border-border pb-2">
                 <Button
