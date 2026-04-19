@@ -100,6 +100,11 @@ const canEditApplicationForm = computed(() =>
   myPermissionSlugs.value.includes('redaktirovat-formu-zaiavki-v-giliudiiu')
 );
 
+/** Теги на карточке гильдии (guild_tag): право «Изменять теги гильдии». */
+const canEditGuildTags = computed(() =>
+  myPermissionSlugs.value.includes('izmeniat-tegi-gildii')
+);
+
 const tabs: { id: TabId; label: string }[] = [
   { id: 'settings', label: 'Настройки' },
   { id: 'about', label: 'О гильдии' },
@@ -345,23 +350,21 @@ function canDeleteGuildTag(tag: Tag): boolean {
   const u = authStore.user;
   if (u == null) return false;
   if (tag.used_by_guild_id != null && Number(tag.used_by_guild_id) === guild.value.id) {
-    return myPermissionSlugs.value.includes('udaliat-teg-gildii');
+    return (
+      canEditGuildTags.value && myPermissionSlugs.value.includes('udaliat-teg-gildii')
+    );
   }
   if (!isOwner.value) return false;
   return tag.used_by_user_id != null && Number(tag.used_by_user_id) === u.id;
 }
 
 const canCreateGuildTag = computed(
-  () => isOwner.value && myPermissionSlugs.value.includes('dobavliat-teg-gildii')
+  () =>
+    canEditGuildTags.value && myPermissionSlugs.value.includes('dobavliat-teg-gildii')
 );
 
-/** Комбобокс тегов: владелец или права на создание/удаление гильдейских тегов. */
-const canOpenGuildTagPicker = computed(
-  () =>
-    isOwner.value ||
-    myPermissionSlugs.value.includes('dobavliat-teg-gildii') ||
-    myPermissionSlugs.value.includes('udaliat-teg-gildii')
-);
+/** Редактирование привязки тегов к гильдии — только izmeniat-tegi-gildii. */
+const canOpenGuildTagPicker = computed(() => canEditGuildTags.value);
 
 function openTagDeleteConfirm(tag: Tag) {
   tagToDelete.value = tag;
@@ -431,8 +434,10 @@ async function performSaveSettings() {
     const payload: Parameters<typeof guildsApi.updateGuild>[1] = {
       name: name.value.trim(),
       show_roster_to_all: showRosterToAll.value,
-      tag_ids: selectedTagIds.value,
     };
+    if (canEditGuildTags.value) {
+      payload.tag_ids = selectedTagIds.value;
+    }
     // Локализация/сервер отправляются только когда их разрешено менять
     // (ровно один участник — Лидер гильдии).
     if (canChangeLocalizationServer.value) {
@@ -995,7 +1000,7 @@ onMounted(async () => {
                   v-for="tag in allTags.filter((t) => selectedTagIds.includes(t.id))"
                   :key="tag.id"
                 >
-                  <Badge v-if="!canEditGuildData" variant="outline">
+                  <Badge v-if="!canEditGuildTags" variant="outline">
                     {{ tag.name }}
                   </Badge>
                   <Badge

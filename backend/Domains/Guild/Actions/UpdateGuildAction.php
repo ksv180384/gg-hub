@@ -24,7 +24,7 @@ class UpdateGuildAction
         'localization_id' => 'redaktirovanie-dannyx-gildii',
         'server_id' => 'redaktirovanie-dannyx-gildii',
         'show_roster_to_all' => 'redaktirovanie-dannyx-gildii',
-        'tag_ids' => 'redaktirovanie-dannyx-gildii',
+        'tag_ids' => 'izmeniat-tegi-gildii',
         'about_text' => 'redaktirovanie-opisanie-gildii',
         'charter_text' => 'redaktirovanie-ustav-gildii',
         'is_recruiting' => 'redaktirovat-formu-zaiavki-v-giliudiiu',

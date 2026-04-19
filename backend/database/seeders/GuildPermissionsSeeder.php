@@ -199,7 +199,19 @@ class GuildPermissionsSeeder extends Seeder
             ],
             [
                 'name' => 'Редактирование данных гильдии',
-                'description' => 'Изменение названия, локализации, сервера, логотипа, тегов и видимости состава',
+                'description' => 'Изменение названия, локализации, сервера, логотипа и видимости состава',
+                'permission_group_id' => $settingsGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'izmeniat-tegi-gildii',
+            ],
+            [
+                'name' => 'Изменять теги гильдии',
+                'description' => 'Назначение тегов на карточке гильдии (привязка общих и гильдейских тегов)',
                 'permission_group_id' => $settingsGroup->id,
             ]
         );

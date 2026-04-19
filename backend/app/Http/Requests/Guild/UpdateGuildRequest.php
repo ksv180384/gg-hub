@@ -41,6 +41,7 @@ class UpdateGuildRequest extends FormRequest
             'redaktirovanie-opisanie-gildii',
             'redaktirovanie-ustav-gildii',
             'redaktirovat-formu-zaiavki-v-giliudiiu',
+            'izmeniat-tegi-gildii',
         ];
 
         return $slugs->contains(fn (string $slug): bool => in_array($slug, $editSlugs, true));
