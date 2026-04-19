@@ -87,19 +87,83 @@ function onServersChange(value: (string | number)[]) {
   filterServerIds.value = value.map(Number);
 }
 
+/** Ключ sessionStorage: отдельно для каталога всех игр и для субдомена конкретной игры. */
+function guildsFilterStorageKey(): string {
+  const gid = siteContext.game?.id;
+  if (gid) return `gg:guilds-list-filter:game:${gid}`;
+  return 'gg:guilds-list-filter:global';
+}
+
+type StoredGuildsListFilter = {
+  name: string;
+  gameId: string;
+  localizationIds: number[];
+  serverIds: number[];
+};
+
+function hasGuildsFilterInQuery(q: typeof route.query): boolean {
+  if (typeof q.name === 'string' && q.name.trim() !== '') return true;
+  if (!isGameSubdomain.value && typeof q.game_id === 'string' && q.game_id.trim() !== '') return true;
+  const loc = q.localization_ids;
+  if (Array.isArray(loc) && loc.length > 0) return true;
+  if (typeof loc === 'string' && loc.trim() !== '') return true;
+  const srv = q.server_ids;
+  if (Array.isArray(srv) && srv.length > 0) return true;
+  if (typeof srv === 'string' && srv.trim() !== '') return true;
+  return false;
+}
+
+function persistGuildsFilterToSession() {
+  const payload: StoredGuildsListFilter = {
+    name: filterName.value,
+    gameId: filterGameId.value,
+    localizationIds: [...filterLocalizationIds.value],
+    serverIds: [...filterServerIds.value],
+  };
+  try {
+    sessionStorage.setItem(guildsFilterStorageKey(), JSON.stringify(payload));
+  } catch {
+    // квота или недоступность sessionStorage
+  }
+}
+
+function applyGuildsFilterFromSession() {
+  let raw: string | null = null;
+  try {
+    raw = sessionStorage.getItem(guildsFilterStorageKey());
+  } catch {
+    return;
+  }
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredGuildsListFilter>;
+    filterName.value = typeof parsed.name === 'string' ? parsed.name : '';
+    if (!isGameSubdomain.value) {
+      filterGameId.value =
+        typeof parsed.gameId === 'string' && parsed.gameId !== '' ? parsed.gameId : ALL_GAMES_VALUE;
+    }
+    filterLocalizationIds.value = Array.isArray(parsed.localizationIds)
+      ? parsed.localizationIds.map(Number).filter((id) => !Number.isNaN(id))
+      : [];
+    filterServerIds.value = Array.isArray(parsed.serverIds)
+      ? parsed.serverIds.map(Number).filter((id) => !Number.isNaN(id))
+      : [];
+  } catch {
+    // невалидный JSON
+  }
+}
+
 /** Сбросить все поля фильтра. */
 function resetFilter() {
   filterName.value = '';
   filterGameId.value = ALL_GAMES_VALUE;
   filterLocalizationIds.value = [];
   filterServerIds.value = [];
-}
-
-/** Выбор локализации по умолчанию: ru → eu → первая. */
-function defaultLocalizationId(localizations: Localization[]): number | null {
-  if (!localizations.length) return null;
-  const byCode = (code: string) => localizations.find((l) => l.code?.toLowerCase() === code);
-  return byCode('ru')?.id ?? byCode('eu')?.id ?? localizations[0]?.id ?? null;
+  try {
+    sessionStorage.removeItem(guildsFilterStorageKey());
+  } catch {
+    // ignore
+  }
 }
 
 /** Восстановить фильтр из query. */
@@ -153,10 +217,6 @@ async function loadFilterOptions() {
   try {
     if (isGameSubdomain.value && siteContext.game?.id) {
       gameDetail.value = await gamesApi.getGame(siteContext.game.id);
-      const defId = defaultLocalizationId(filterLocalizations.value);
-      if (defId != null && filterLocalizationIds.value.length === 0) {
-        filterLocalizationIds.value = [defId];
-      }
       // Оставить только локализации/серверы, существующие в этой игре
       const locIds = new Set(filterLocalizations.value.map((l) => l.id));
       filterLocalizationIds.value = filterLocalizationIds.value.filter((id) => locIds.has(id));
@@ -172,10 +232,6 @@ async function loadFilterOptions() {
           : null;
       if (gameId) {
         gameDetail.value = await gamesApi.getGame(gameId);
-        const defId = defaultLocalizationId(filterLocalizations.value);
-        if (defId != null && filterLocalizationIds.value.length === 0) {
-          filterLocalizationIds.value = [defId];
-        }
         // Оставить только локализации/серверы, существующие в выбранной игре
         const locIds = new Set(filterLocalizations.value.map((l) => l.id));
         filterLocalizationIds.value = filterLocalizationIds.value.filter((id) => locIds.has(id));
@@ -248,13 +304,21 @@ async function loadGuilds(showFullLoading = false) {
 }
 
 const filterReady = ref(false);
+/** Не сбрасывать локализации при первой установке game_id из URL или sessionStorage. */
+const suppressGameIdWatch = ref(true);
 
 onMounted(async () => {
-  applyFilterFromQuery();
+  if (hasGuildsFilterInQuery(route.query)) {
+    applyFilterFromQuery();
+  } else {
+    applyGuildsFilterFromSession();
+  }
   await loadFilterOptions();
   await loadGuilds(true);
   loadMemberGuildIds();
   filterReady.value = true;
+  suppressGameIdWatch.value = false;
+  persistGuildsFilterToSession();
 });
 
 let loadGuildsTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -265,6 +329,7 @@ watch(
     if (loadGuildsTimeout) clearTimeout(loadGuildsTimeout);
     loadGuildsTimeout = setTimeout(() => {
       syncFilterToQuery();
+      persistGuildsFilterToSession();
       loadGuilds();
     }, 350);
   },
@@ -276,6 +341,7 @@ watch(() => siteContext.game?.id, () => {
 });
 
 watch(filterGameId, async () => {
+  if (suppressGameIdWatch.value) return;
   filterLocalizationIds.value = [];
   filterServerIds.value = [];
   const gameId =
@@ -285,8 +351,6 @@ watch(filterGameId, async () => {
   if (gameId) {
     try {
       gameDetail.value = await gamesApi.getGame(gameId);
-      const defId = defaultLocalizationId(filterLocalizations.value);
-      if (defId != null) filterLocalizationIds.value = [defId];
     } catch {
       gameDetail.value = null;
     }
