@@ -20,6 +20,22 @@ const guildsLoading = ref(false);
 /** Множество id гильдий с раскрытым подменю (можно держать открытыми несколько). */
 const openGuildIds = ref<Set<number>>(new Set());
 
+const props = withDefaults(
+  defineProps<{
+    /** Встроено в правое мобильное меню шапки (игра / админ). */
+    embedded?: boolean;
+    /** Заголовок раздела выводится снаружи (например, в шапке над общим меню). */
+    suppressEmbeddedHeading?: boolean;
+  }>(),
+  { embedded: false, suppressEmbeddedHeading: false }
+);
+
+const emit = defineEmits<{ navigate: [] }>();
+
+function onMobileNavigate() {
+  if (props.embedded) emit('navigate');
+}
+
 type GuildSubmenuItem = { pathSuffix: string; label: string; query?: Record<string, string> };
 
 const guildSubmenuItems: GuildSubmenuItem[] = [
@@ -154,6 +170,65 @@ function isGuildOpen(guildId: number): boolean {
   return openGuildIds.value.has(guildId);
 }
 
+function topGameLinkClass(active: boolean) {
+  if (props.embedded) {
+    return cn(
+      'rounded-md px-3 py-2 text-base font-medium transition-colors hover:bg-muted/50',
+      active ? 'bg-muted text-foreground' : 'text-muted-foreground'
+    );
+  }
+  return cn(
+    'rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
+    active ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]' : ''
+  );
+}
+
+function guildHeaderBtnClass(guildId: number) {
+  if (props.embedded) {
+    return cn(
+      'flex w-full items-center justify-between gap-1 rounded-md px-3 py-2 text-left text-base font-medium text-foreground transition-colors hover:bg-muted/50',
+      isGuildOpen(guildId) ? 'bg-muted/50' : ''
+    );
+  }
+  return cn(
+    'flex w-full items-center justify-between gap-1 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
+    isGuildOpen(guildId) ? 'bg-[var(--sidebar-accent)]/50' : ''
+  );
+}
+
+function guildSubLinkClass(guildId: number, item: GuildSubmenuItem) {
+  const active = isGuildSubmenuActive(guildId, item);
+  if (props.embedded) {
+    return cn(
+      'block rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50',
+      active ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground'
+    );
+  }
+  return cn(
+    'rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
+    active ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]' : ''
+  );
+}
+
+function adminLinkClass(active: boolean) {
+  if (props.embedded) {
+    return cn(
+      'flex items-center justify-between gap-2 rounded-md px-3 py-2 text-base font-medium transition-colors hover:bg-muted/50',
+      active ? 'bg-muted text-foreground' : 'text-muted-foreground'
+    );
+  }
+  return cn(
+    'flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
+    active ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]' : ''
+  );
+}
+
+function guildSubmenuWrapClass() {
+  return props.embedded
+    ? 'ml-2 mt-1 flex flex-col gap-0.5 border-l border-border pl-2'
+    : 'ml-2 mt-1 flex flex-col gap-0.5 border-l border-[var(--sidebar-border)] pl-2';
+}
+
 onMounted(() => {
   loadUserGuilds();
   loadAdminPendingCount();
@@ -163,42 +238,51 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-[var(--sidebar)] text-[var(--sidebar-foreground)]">
-    <div class="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--sidebar-border)] px-4">
+  <div
+    :class="cn(
+      'flex flex-col',
+      embedded
+        ? 'min-h-0 flex-1 bg-background text-foreground'
+        : 'h-full bg-[var(--sidebar)] text-[var(--sidebar-foreground)]',
+    )"
+  >
+    <div
+      v-if="!embedded"
+      class="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--sidebar-border)] px-4"
+    >
       <span class="font-semibold">{{ sidebarTitle }}</span>
     </div>
-    <nav class="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+    <div
+      v-else-if="!suppressEmbeddedHeading"
+      class="shrink-0 border-b border-border px-1 pb-3"
+    >
+      <span class="text-sm font-semibold">{{ sidebarTitle }}</span>
+    </div>
+    <nav
+      :class="cn(
+        'flex flex-col gap-1',
+        embedded ? 'min-h-0 flex-1 overflow-y-auto px-0 py-1' : 'flex-1 overflow-y-auto p-2',
+      )"
+    >
       <template v-if="siteContext.isGameSubdomain">
         <RouterLink
           to="/"
-          :class="cn(
-            'rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
-            route.path === '/'
-              ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
-              : ''
-          )"
+          :class="topGameLinkClass(route.path === '/')"
+          @click="onMobileNavigate"
         >
           Журнал
         </RouterLink>
         <RouterLink
           to="/characters"
-          :class="cn(
-            'rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
-            route.path === '/characters' || route.path.startsWith('/characters/')
-              ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
-              : ''
-          )"
+          :class="topGameLinkClass(route.path === '/characters' || route.path.startsWith('/characters/'))"
+          @click="onMobileNavigate"
         >
           Персонажи
         </RouterLink>
         <RouterLink
           to="/applications"
-          :class="cn(
-            'rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
-            route.path === '/applications' || route.path.startsWith('/applications/')
-              ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
-              : ''
-          )"
+          :class="topGameLinkClass(route.path === '/applications' || route.path.startsWith('/applications/'))"
+          @click="onMobileNavigate"
         >
           Заявки и приглашения
         </RouterLink>
@@ -210,8 +294,7 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
           <div v-for="guild in userGuilds" :key="guild.id" class="mt-1">
             <button
               type="button"
-              class="flex w-full items-center justify-between gap-1 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]"
-              :class="{ 'bg-[var(--sidebar-accent)]/50': isGuildOpen(guild.id) }"
+              :class="guildHeaderBtnClass(guild.id)"
               :aria-expanded="isGuildOpen(guild.id)"
               @click="toggleGuild(guild.id)"
             >
@@ -250,19 +333,15 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
             >
               <div
                 v-if="isGuildOpen(guild.id)"
-                class="ml-2 mt-1 flex flex-col gap-0.5 border-l border-[var(--sidebar-border)] pl-2"
+                :class="guildSubmenuWrapClass()"
               >
                 <RouterLink
                   v-for="item in guildSubmenuItems"
                   :key="item.pathSuffix + (item.query ? JSON.stringify(item.query) : '')"
                   v-show="item.pathSuffix !== '/roles' || guild.can_access_roles"
                   :to="guildItemLocation(guild.id, item)"
-                  :class="cn(
-                    'rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
-                    isGuildSubmenuActive(guild.id, item)
-                      ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
-                      : ''
-                  )"
+                  :class="guildSubLinkClass(guild.id, item)"
+                  @click="onMobileNavigate"
                 >
                   {{ item.label }}
                 </RouterLink>
@@ -277,12 +356,8 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
           v-for="item in visibleAdminItems"
           :key="item.to"
           :to="item.to"
-          :class="cn(
-            'flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
-            isAdminRoute(item.to)
-              ? 'bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]'
-              : ''
-          )"
+          :class="adminLinkClass(isAdminRoute(item.to))"
+          @click="onMobileNavigate"
         >
           <span>{{ item.label }}</span>
           <span

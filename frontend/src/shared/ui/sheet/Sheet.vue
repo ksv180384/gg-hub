@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useSlots } from 'vue';
+import { useSlots, computed } from 'vue';
 import {
   DialogRoot,
   DialogTrigger,
@@ -25,6 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const open = defineModel<boolean>('open', { default: false });
 const slots = useSlots();
+const hasToolbarStart = computed(() => !!slots['toolbar-start']);
 </script>
 
 <template>
@@ -53,8 +54,23 @@ const slots = useSlots();
         <DialogDescription class="sr-only">
           <slot name="description">Навигация</slot>
         </DialogDescription>
+        <div
+          v-if="hasToolbarStart"
+          class="flex shrink-0 items-center justify-between gap-3 border-b border-border pb-4"
+        >
+          <div class="min-w-0 flex-1 truncate text-lg font-semibold leading-tight">
+            <slot name="toolbar-start" />
+          </div>
+          <DialogClose
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm text-2xl leading-none opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary"
+            aria-label="Закрыть"
+          >
+            <span class="leading-none">×</span>
+          </DialogClose>
+        </div>
         <slot />
         <DialogClose
+          v-if="!hasToolbarStart"
           class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary"
           aria-label="Закрыть"
         >

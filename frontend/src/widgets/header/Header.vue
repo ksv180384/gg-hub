@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, useSlots } from 'vue';
 import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
 import {
@@ -22,6 +22,7 @@ import { useThemeStore } from '@/stores/theme';
 import type { ThemePreference } from '@/stores/theme';
 import { notificationsApi, type NotificationItem } from '@/shared/api/notificationsApi';
 import { guildsApi, type UserPollItem } from '@/shared/api/guildsApi';
+import { PERMISSION_ACCESS_ADMIN, PERMISSION_VIEW_POLLS } from '@/shared/api/authApi';
 import NotificationsDrawer from '@/widgets/header/NotificationsDrawer.vue';
 import PollsDrawer from '@/widgets/header/PollsDrawer.vue';
 
@@ -29,7 +30,27 @@ const route = useRoute();
 const auth = useAuthStore();
 const siteContext = useSiteContextStore();
 const theme = useThemeStore();
+const slots = useSlots();
+const hasMobileMenuSidebar = computed(() => !!slots['mobile-menu-sidebar']);
+
+const showMobileSidebarAdminBlock = computed(
+  () =>
+    siteContext.isAdmin &&
+    (auth.hasPermission(PERMISSION_ACCESS_ADMIN) || auth.hasPermission(PERMISSION_VIEW_POLLS))
+);
+
+/** Заголовок игры/админки в верхней части мобильного меню (над общей навигацией). */
+const mobileSheetContextTitle = computed(() => {
+  if (!hasMobileMenuSidebar.value) return '';
+  if (showMobileSidebarAdminBlock.value) return 'Админ';
+  return siteContext.game?.name ?? 'Игра';
+});
+
 const mobileMenuOpen = ref(false);
+
+function closeMobileMenu() {
+  mobileMenuOpen.value = false;
+}
 const notificationsDrawerOpen = ref(false);
 const notifications = ref<NotificationItem[]>([]);
 const unreadCount = ref(0);
@@ -343,69 +364,35 @@ function isNavActive(itemTo: string): boolean {
               </svg>
             </Button>
           </template>
-          <div class="flex flex-col gap-4 pt-8">
-            <div class="flex items-center gap-2 px-3">
-              <span class="text-sm font-medium text-muted-foreground">Тема</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                  <Button variant="outline" size="sm" class="gap-2">
-                    <span class="relative inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                      <svg v-show="theme.preference === 'light'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute inset-0 m-auto h-4 w-4">
-                        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-                      </svg>
-                      <svg v-show="theme.preference === 'dark'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute inset-0 m-auto h-4 w-4">
-                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-                      </svg>
-                      <svg v-show="theme.preference === 'system'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute inset-0 m-auto h-4 w-4">
-                        <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
-                      </svg>
-                    </span>
-                    {{ themeOptions.find(o => o.value === theme.preference)?.label ?? 'Тема' }}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent class="w-40" align="start">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>Тема</DropdownMenuLabel>
-                    <DropdownMenuItem v-for="opt in themeOptions" :key="opt.value" @select="setTheme(opt.value)">
-                      <span class="mr-2 w-4 text-center">{{ theme.preference === opt.value ? '✓' : '' }}</span>
-                      {{ opt.label }}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          <template v-if="hasMobileMenuSidebar" #toolbar-start>
+            {{ mobileSheetContextTitle }}
+          </template>
+          <div
+            class="flex min-h-0 flex-1 flex-col gap-4"
+            :class="{ 'pt-8': !hasMobileMenuSidebar }"
+          >
+            <div class="flex shrink-0 flex-col">
+              <RouterLink
+                v-for="item in navItems"
+                :key="item.to"
+                :to="item.to"
+                class="rounded-md px-3 py-2 text-base font-medium transition-colors hover:bg-muted/50"
+                :class="
+                  isNavActive(item.to)
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground'
+                "
+                :aria-current="isNavActive(item.to) ? 'page' : undefined"
+                @click="mobileMenuOpen = false"
+              >
+                {{ item.label }}
+              </RouterLink>
             </div>
-            <Separator />
-            <RouterLink
-              v-for="item in navItems"
-              :key="item.to"
-              :to="item.to"
-              class="rounded-lg border-l-2 border-transparent py-2 pl-[calc(0.75rem-2px)] pr-3 text-base font-medium transition-colors hover:bg-muted/50"
-              :class="
-                isNavActive(item.to)
-                  ? 'border-primary/35 text-foreground'
-                  : 'text-muted-foreground'
-              "
-              :aria-current="isNavActive(item.to) ? 'page' : undefined"
-              @click="mobileMenuOpen = false"
-            >
-              {{ item.label }}
-            </RouterLink>
-            <Separator />
-            <template v-if="auth.isAuthenticated">
-              <RouterLink to="/my-posts" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">
-                Мои посты
-              </RouterLink>
-              <RouterLink to="/profile" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">
-                Профиль
-              </RouterLink>
-
-              <button type="button" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent text-left" @click="auth.logout(); mobileMenuOpen = false">
-                Выйти
-              </button>
-
-            </template>
-            <template v-else>
-<!--              <RouterLink to="/login" class="rounded-lg px-3 py-2 text-base font-medium hover:bg-accent" @click="mobileMenuOpen = false">Войти</RouterLink>-->
+            <template v-if="hasMobileMenuSidebar">
+              <Separator class="shrink-0" />
+              <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                <slot name="mobile-menu-sidebar" :close-menu="closeMobileMenu" />
+              </div>
             </template>
           </div>
         </Sheet>
