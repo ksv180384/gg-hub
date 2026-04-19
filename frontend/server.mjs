@@ -88,6 +88,10 @@ async function createDevServer() {
         cookie: req.headers.cookie,
         host: req.headers.host,
       });
+      if (result.redirect) {
+        res.redirect(302, result.redirect);
+        return;
+      }
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
       const html = safeReplace(
         safeReplace(template, '<!--app-html-->', result.html),
@@ -122,6 +126,10 @@ async function createProdServer() {
         cookie: req.headers.cookie,
         host: req.headers.host,
       });
+      if (result.redirect) {
+        res.redirect(302, result.redirect);
+        return;
+      }
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
       const html = safeReplace(
         safeReplace(template, '<!--app-html-->', result.html),

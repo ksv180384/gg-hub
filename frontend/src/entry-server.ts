@@ -20,6 +20,12 @@ export interface SsrRenderOptions {
 export interface SsrRenderResult {
   html: string;
   piniaState: Record<string, unknown>;
+  /**
+   * Если в ходе router.beforeEach произошёл редирект на другой путь — сюда попадает
+   * целевой fullPath. Сервер должен отдать HTTP 302, иначе на клиенте случится
+   * hydration mismatch (SSR нарисовал одну страницу, клиент пытается нарисовать другую по текущему URL).
+   */
+  redirect?: string;
 }
 
 /**
@@ -45,6 +51,13 @@ export async function render(url: string, opts: SsrRenderOptions): Promise<SsrRe
 
     await router.push(url);
     await router.isReady();
+
+    const requestedFullPath = router.resolve(url).fullPath;
+    const resolvedFullPath = router.currentRoute.value.fullPath;
+    if (resolvedFullPath !== requestedFullPath) {
+      setActiveRouter(null);
+      return { html: '', piniaState: {}, redirect: resolvedFullPath };
+    }
 
     const html = await renderToString(app);
     const piniaState = pinia.state.value as Record<string, unknown>;
