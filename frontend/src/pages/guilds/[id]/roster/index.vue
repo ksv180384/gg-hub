@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
-import { Card, CardContent, Badge } from '@/shared/ui';
+import { Card, CardContent, Badge, Input, Button, Label, Select, type SelectOption, MultiSelect, type MultiSelectOption } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import { guildsApi, type Guild, type GuildRosterMember } from '@/shared/api/guildsApi';
 import {
   rosterTagBadgeClass,
   rosterTagDisplayRows,
   sliceRosterTagRowsForDisplay,
+  isRosterCommonTag,
 } from '@/shared/lib/rosterTagDisplay';
 
 const route = useRoute();
@@ -24,12 +25,141 @@ const rosterLoading = ref(false);
 const rosterFetched = ref(false);
 const rosterErrorStatus = ref<number | null>(null);
 
+const filterName = ref('');
+/** '' = все роли */
+const filterGuildRole = ref<string>('');
+const filterTagIds = ref<(string | number)[]>([]);
+
+const exportRosterLoading = ref(false);
+const exportRosterError = ref('');
+
+const guildRoleOptions = computed<SelectOption[]>(() => {
+  const roles = new Map<string, string>(); // slug -> name
+  roster.value.forEach((m) => {
+    const r = m.guild_role;
+    if (!r?.slug) return;
+    if (!roles.has(r.slug)) roles.set(r.slug, r.name);
+  });
+  return Array.from(roles.entries())
+    .sort((a, b) => a[1].localeCompare(b[1], 'ru'))
+    .map(([slug, name]) => ({ value: slug, label: name }));
+});
+
+watch(guildRoleOptions, (opts) => {
+  if (!filterGuildRole.value) return;
+  if (!opts.some((o) => o.value === filterGuildRole.value)) {
+    filterGuildRole.value = '';
+  }
+});
+
+async function exportRosterXlsx() {
+  if (exportRosterLoading.value) return;
+  const g = guild.value;
+  if (!g) return;
+  if (filteredRoster.value.length === 0) return;
+  exportRosterLoading.value = true;
+  exportRosterError.value = '';
+  try {
+    const { exportGuildRosterToXlsx } = await import('@/shared/lib/guildRosterXlsx');
+    await exportGuildRosterToXlsx({
+      guildName: g.name,
+      members: filteredRoster.value,
+    });
+  } catch (e: unknown) {
+    exportRosterError.value = e instanceof Error ? e.message : 'Не удалось выгрузить состав.';
+  } finally {
+    exportRosterLoading.value = false;
+  }
+}
+
+const tagOptions = computed<MultiSelectOption[]>(() => {
+  const map = new Map<number, { label: string; badgeClass?: string; order: 0 | 1 }>();
+  const tagTextClass = (source: 'guild' | 'personal', tag: { used_by_user_id?: number | null; used_by_guild_id?: number | null }) => {
+    if (source === 'guild') return 'text-violet-700 dark:text-violet-300';
+    if (isRosterCommonTag(tag)) return 'text-blue-700 dark:text-blue-300';
+    return '';
+  };
+  roster.value.forEach((m) => {
+    for (const row of rosterTagDisplayRows(m)) {
+      // В селекте нужны только: теги гильдии (фиолетовые) и общие теги (синие).
+      if (row.source === 'guild') {
+        if (!map.has(row.tag.id)) {
+          map.set(row.tag.id, {
+            label: row.tag.name,
+            badgeClass: tagTextClass('guild', row.tag),
+            order: 1,
+          });
+        }
+        continue;
+      }
+      if (isRosterCommonTag(row.tag)) {
+        if (!map.has(row.tag.id)) {
+          map.set(row.tag.id, {
+            label: row.tag.name,
+            badgeClass: tagTextClass('personal', row.tag),
+            order: 0,
+          });
+        }
+      }
+    }
+  });
+  return Array.from(map.entries())
+    .sort((a, b) => {
+      if (a[1].order !== b[1].order) return a[1].order - b[1].order; // общие выше гильдийских
+      return a[1].label.localeCompare(b[1].label, 'ru');
+    })
+    .map(([id, meta]) => ({ value: id, label: meta.label, badgeClass: meta.badgeClass }));
+});
+
+function applyNameFilter(items: GuildRosterMember[], value: string): GuildRosterMember[] {
+  const q = value.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter((m) => m.name.toLowerCase().includes(q));
+}
+
+function applyGuildRoleFilter(items: GuildRosterMember[], roleSlug: string): GuildRosterMember[] {
+  const slug = roleSlug.trim();
+  if (!slug) return items;
+  return items.filter((m) => (m.guild_role?.slug ?? '') === slug);
+}
+
+function applyAllTagIdsFilter(
+  items: GuildRosterMember[],
+  selected: (string | number)[],
+  getMemberTagIds: (m: GuildRosterMember) => number[]
+): GuildRosterMember[] {
+  const selectedIds = selected
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  if (selectedIds.length === 0) return items;
+  return items.filter((m) => {
+    const memberIds = new Set(getMemberTagIds(m));
+    return selectedIds.every((id) => memberIds.has(id));
+  });
+}
+
+const filteredRoster = computed<GuildRosterMember[]>(() => {
+  let items = roster.value;
+  items = applyNameFilter(items, filterName.value);
+  items = applyGuildRoleFilter(items, filterGuildRole.value);
+  items = applyAllTagIdsFilter(items, filterTagIds.value, (m) =>
+    [...(m.tags ?? []), ...(m.personal_tags ?? [])].map((t) => t.id)
+  );
+  return items;
+});
+
 const rosterDisplayItems = computed(() =>
-  roster.value.map((member) => ({
+  filteredRoster.value.map((member) => ({
     member,
     tagsUi: sliceRosterTagRowsForDisplay(rosterTagDisplayRows(member)),
   }))
 );
+
+function resetFilters() {
+  filterName.value = '';
+  filterGuildRole.value = '';
+  filterTagIds.value = [];
+}
 
 function avatarFallback(name: string): string {
   if (!name?.trim()) return '?';
@@ -132,10 +262,118 @@ watch(guildId, async () => {
           <p v-if="roster.length === 0" class="text-sm text-muted-foreground">
             В гильдии пока никого нет.
           </p>
-          <div
-            v-else
-            class="grid grid-cols-1 gap-4 sm:grid-cols-2"
-          >
+          <template v-else>
+            <Card class="mb-5">
+              <CardContent class="p-4">
+                <div class="flex flex-col gap-3">
+                  <div class="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
+                    <div class="grid gap-1.5 md:w-[220px]">
+                      <Label for="roster-filter-name">Имя</Label>
+                      <Input
+                        id="roster-filter-name"
+                        v-model="filterName"
+                        type="text"
+                        placeholder="Например: Alex"
+                        class="h-8"
+                      />
+                    </div>
+                    <div class="grid gap-1.5 md:w-[220px]">
+                      <Label>Роль в гильдии</Label>
+                      <Select
+                        v-model="filterGuildRole"
+                        :options="guildRoleOptions"
+                        placeholder="Все роли"
+                        trigger-class="h-8 w-full"
+                      />
+                    </div>
+                    <div class="grid gap-1.5 md:min-w-[260px] md:flex-1">
+                      <Label>Теги</Label>
+                      <MultiSelect
+                        v-model="filterTagIds"
+                        :options="tagOptions"
+                        placeholder="Любые (общие и гильдии)"
+                        search-placeholder="Поиск тегов..."
+                        trigger-class="h-8 w-full"
+                        display-mode="badges"
+                      />
+                    </div>
+                    <div class="flex gap-2 md:ml-auto">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        class="h-8 w-full md:w-8 md:px-0"
+                        title="Выгрузить в Excel"
+                        aria-label="Выгрузить в Excel"
+                        :disabled="exportRosterLoading || rosterDisplayItems.length === 0"
+                        @click="exportRosterXlsx"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                          width="16"
+                          height="16"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        class="h-8 w-full md:w-8 md:px-0"
+                        title="Сбросить фильтры"
+                        aria-label="Сбросить фильтры"
+                        @click="resetFilters"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                        </svg>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-xs text-muted-foreground">
+                      Показано: {{ rosterDisplayItems.length }} из {{ roster.length }}
+                    </p>
+                  </div>
+                  <p v-if="exportRosterError" class="text-xs text-destructive">
+                    {{ exportRosterError }}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <p v-if="rosterDisplayItems.length === 0" class="text-sm text-muted-foreground">
+              Ничего не найдено по заданным фильтрам.
+            </p>
+
+            <div
+              v-else
+              class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+            >
             <RouterLink
               v-for="{ member, tagsUi } in rosterDisplayItems"
               :key="member.character_id"
@@ -192,7 +430,8 @@ watch(guildId, async () => {
                 </CardContent>
               </Card>
             </RouterLink>
-          </div>
+            </div>
+          </template>
         </template>
       </template>
     </div>

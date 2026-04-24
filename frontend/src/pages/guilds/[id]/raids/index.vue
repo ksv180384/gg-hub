@@ -50,8 +50,7 @@ const error = ref<string | null>(null);
 const selectedRaidId = ref<number | null>(null);
 const selectedRaid = ref<RaidItem | null>(null);
 const selectedRaidLoading = ref(false);
-/** Состояние выезжающей панели деталей рейда (drawer справа). */
-const raidSheetOpen = ref(false);
+// Старую панель деталей рейда убрали: теперь всегда открываем FormRaidModal.
 
 const canFormRaid = computed(
   () => guild.value?.my_permission_slugs?.includes('formirovat-reidy') ?? false
@@ -352,8 +351,11 @@ const filteredUnifiedMembers = computed((): UnifiedMember[] => {
 });
 
 async function selectRaid(raid: RaidItem) {
-  raidSheetOpen.value = true;
-  if (selectedRaidId.value === raid.id) return;
+  // Повторный клик по тому же рейду — просто переоткрываем модалку.
+  if (selectedRaidId.value === raid.id) {
+    formRaidModalOpen.value = true;
+    return;
+  }
   selectedRaidId.value = raid.id;
   selectedRaidLoading.value = true;
   selectedRaid.value = null;
@@ -374,6 +376,8 @@ async function selectRaid(raid: RaidItem) {
     }
     raidDetailsMap.value = map;
     selectedRaid.value = map.get(raid.id) ?? null;
+    // Всегда открываем одно окно: формирование (если есть права) или просмотр (если прав нет).
+    formRaidModalOpen.value = true;
   } catch {
     selectedRaid.value = null;
   } finally {
@@ -395,7 +399,7 @@ function leaderInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-watch(raidSheetOpen, (open) => {
+watch(formRaidModalOpen, (open) => {
   if (!open) clearSelectedRaid();
 });
 
@@ -569,7 +573,7 @@ async function loadRaidPage() {
   selectedRaidId.value = null;
   selectedRaid.value = null;
   selectedRaidLoading.value = false;
-  raidSheetOpen.value = false;
+  formRaidModalOpen.value = false;
   loading.value = true;
   accessDenied.value = false;
   error.value = null;
@@ -671,138 +675,6 @@ watch(guildId, () => {
         </ul>
       </div>
 
-      <!-- Панель деталей выбранного рейда: наезжает справа, sticky при скролле страницы -->
-      <Transition
-        enter-active-class="transition-all duration-200 ease-out"
-        leave-active-class="transition-all duration-150 ease-in"
-        enter-from-class="translate-x-4 opacity-0"
-        enter-to-class="translate-x-0 opacity-100"
-        leave-from-class="translate-x-0 opacity-100"
-        leave-to-class="translate-x-4 opacity-0"
-      >
-        <div
-          v-if="raidSheetOpen"
-          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-72 sm:w-80"
-        >
-          <aside
-            class="pointer-events-auto sticky top-16 flex max-h-[calc(100vh-5rem)] flex-col rounded-lg border border-border bg-background shadow-xl"
-          >
-            <div class="flex items-center justify-between gap-2 border-b border-border p-3">
-              <h3 class="min-w-0 flex-1 truncate text-base font-semibold" :title="selectedRaid?.name">
-                {{ selectedRaid?.name ?? 'Рейд' }}
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                class="h-8 w-8 shrink-0 p-0"
-                aria-label="Закрыть"
-                @click="raidSheetOpen = false"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </Button>
-            </div>
-
-            <p v-if="selectedRaidLoading" class="p-3 text-sm text-muted-foreground">Загрузка…</p>
-
-            <template v-else-if="selectedRaid">
-              <div v-if="canFormRaid && !selectedRaidHasChildren" class="border-b border-border p-3">
-                <Button type="button" class="w-full" @click="openFormRaidModal">
-                  Сформировать рейд
-                </Button>
-              </div>
-
-              <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-                <div v-if="selectedRaid.description" class="text-sm text-muted-foreground">
-                  <p class="mb-1 text-[11px] font-medium uppercase tracking-wide">Описание</p>
-                  <p class="whitespace-pre-wrap break-words">{{ selectedRaid.description }}</p>
-                </div>
-
-                <div class="flex min-h-0 flex-col">
-                  <div class="mb-2 flex items-center justify-between">
-                    <p class="text-sm font-medium text-muted-foreground">
-                      {{ selectedRaidHasChildren ? 'Все участники' : 'Участники рейда' }}
-                    </p>
-                    <span class="text-xs text-muted-foreground tabular-nums">
-                      {{ unifiedMembers.length }}
-                    </span>
-                  </div>
-                  <Input
-                    v-if="unifiedMembers.length > 0"
-                    v-model="memberSearchQuery"
-                    type="text"
-                    :placeholder="selectedRaidHasChildren ? 'Поиск по имени или рейду…' : 'Поиск по имени…'"
-                    class="mb-2 h-8 text-sm"
-                    autocomplete="off"
-                  />
-                  <ul
-                    v-if="filteredUnifiedMembers.length > 0"
-                    class="max-h-[400px] space-y-1.5 overflow-y-auto pr-1"
-                  >
-                    <li
-                      v-for="m in filteredUnifiedMembers"
-                      :key="`${m.leader_of ? 'L' : 'M'}-${m.raid_id}-${m.character_id}`"
-                      class="flex min-w-0 items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
-                      :class="m.leader_of
-                        ? 'border-primary/40 bg-primary/5'
-                        : 'border-border/40 bg-muted/30'"
-                    >
-                      <Avatar
-                        v-if="m.leader_of"
-                        :alt="m.name"
-                        :fallback="leaderInitials(m.name)"
-                        class="h-7 w-7 shrink-0 rounded-full"
-                      />
-                      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <div class="flex min-w-0 items-center gap-2">
-                          <svg
-                            v-if="m.leader_of"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="shrink-0 text-primary"
-                          >
-                            <path d="M2 20l3-13 5 4 2-7 2 7 5-4 3 13z" />
-                            <path d="M2 20h18" />
-                          </svg>
-                          <span class="min-w-0 flex-1 truncate font-medium" :title="m.name">{{ m.name }}</span>
-                          <Badge v-if="m.role" variant="outline" class="shrink-0 text-xs">{{ m.role }}</Badge>
-                        </div>
-                        <span
-                          v-if="m.leader_of"
-                          class="min-w-0 truncate text-[11px] text-muted-foreground"
-                          :title="`Лидер рейда «${m.leader_of}»`"
-                        >
-                          Лидер рейда «{{ m.leader_of }}»
-                        </span>
-                        <span
-                          v-else-if="selectedRaidHasChildren"
-                          class="min-w-0 truncate text-[11px] text-muted-foreground"
-                          :title="m.raid_name"
-                        >
-                          {{ m.raid_name }}
-                        </span>
-                      </div>
-                    </li>
-                  </ul>
-                  <p v-else-if="unifiedMembers.length === 0" class="text-sm text-muted-foreground">
-                    Нет участников
-                  </p>
-                  <p v-else class="text-sm text-muted-foreground">Никого не найдено</p>
-                </div>
-              </div>
-            </template>
-          </aside>
-        </div>
-      </Transition>
     </div>
 
     <!-- Модальное окно создания/редактирования рейда -->
@@ -941,6 +813,7 @@ watch(guildId, () => {
       :party-size="partySize"
       :guild-id="guildId"
       :saving="formRaidSaving"
+      :readonly="!canFormRaid"
       @close="closeFormRaidModal"
       @save="saveFormRaid"
     />

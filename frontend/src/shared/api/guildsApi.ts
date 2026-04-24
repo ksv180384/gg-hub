@@ -288,6 +288,7 @@ export const guildsApi = {
     name?: string;
     localization_ids?: number[];
     server_ids?: number[];
+    is_recruiting?: boolean;
   }): Promise<{ guilds: Guild[]; meta: GuildsListResponse['meta'] }> {
     const query: Record<string, string | number | number[] | undefined> = {};
     if (params?.per_page != null) query.per_page = params.per_page;
@@ -296,6 +297,7 @@ export const guildsApi = {
     if (params?.name != null && params.name.trim() !== '') query.name = params.name.trim();
     if (params?.localization_ids?.length) query.localization_ids = params.localization_ids;
     if (params?.server_ids?.length) query.server_ids = params.server_ids;
+    if (params?.is_recruiting === true) query.is_recruiting = 1;
 
     const res = await http.fetchGet<GuildsListResponse>('/guilds', { params: query });
     throwOnError(res, 'Ошибка загрузки гильдий');

@@ -17,6 +17,7 @@ use Domains\Raid\Actions\UpdateRaidAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class RaidController extends Controller
@@ -93,6 +94,20 @@ class RaidController extends Controller
         }
         $updated = ($this->setRaidCompositionAction)($model, $request->validated()['members']);
         $updated->load(['leader:id,name', 'parent:id,name', 'members:id,name']);
+
+        // Реалтайм-обновление для всех, у кого открыт этот рейд.
+        // Socket server — best-effort: не ломаем основной запрос, если сокеты недоступны.
+        try {
+            $socketUrl = rtrim((string) env('SOCKET_SERVER_URL', 'http://socket-server-nodejs:3007'), '/');
+            Http::timeout(1.5)->post($socketUrl . '/raids/broadcast-updated', [
+                'guildId' => $guild->id,
+                'raidId' => $updated->id,
+                'raid' => (new RaidResource($updated))->resolve(),
+            ]);
+        } catch (\Throwable) {
+            // ignore
+        }
+
         return response()->json(new RaidResource($updated));
     }
 }

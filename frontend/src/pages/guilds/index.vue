@@ -22,12 +22,14 @@ const route = useRoute();
 const router = useRouter();
 
 const ALL_GAMES_VALUE = '__all__';
+const ALL_RECRUITING_VALUE = '__all__';
 
 // Фильтр
 const filterName = ref('');
 const filterGameId = ref(ALL_GAMES_VALUE);
 const filterLocalizationIds = ref<number[]>([]);
 const filterServerIds = ref<number[]>([]);
+const filterRecruiting = ref(ALL_RECRUITING_VALUE);
 
 const guilds = ref<Guild[]>([]);
 const memberGuildIds = ref<Set<number>>(new Set());
@@ -78,6 +80,11 @@ const serverMultiOptions = computed(() =>
   filterServers.value.map((s) => ({ value: s.id, label: s.name }))
 );
 
+const recruitingOptions = computed<SelectOption[]>(() => [
+  { value: ALL_RECRUITING_VALUE, label: 'Любой' },
+  { value: '1', label: 'Открыт' },
+]);
+
 function onLocalizationsChange(value: (string | number)[]) {
   filterLocalizationIds.value = value.map(Number);
   const serverIdSet = new Set(filterServers.value.map((s) => s.id));
@@ -99,6 +106,7 @@ type StoredGuildsListFilter = {
   gameId: string;
   localizationIds: number[];
   serverIds: number[];
+  recruiting: string;
 };
 
 function hasGuildsFilterInQuery(q: typeof route.query): boolean {
@@ -110,6 +118,7 @@ function hasGuildsFilterInQuery(q: typeof route.query): boolean {
   const srv = q.server_ids;
   if (Array.isArray(srv) && srv.length > 0) return true;
   if (typeof srv === 'string' && srv.trim() !== '') return true;
+  if (typeof q.is_recruiting === 'string' && q.is_recruiting.trim() !== '') return true;
   return false;
 }
 
@@ -119,6 +128,7 @@ function persistGuildsFilterToSession() {
     gameId: filterGameId.value,
     localizationIds: [...filterLocalizationIds.value],
     serverIds: [...filterServerIds.value],
+    recruiting: filterRecruiting.value,
   };
   try {
     sessionStorage.setItem(guildsFilterStorageKey(), JSON.stringify(payload));
@@ -148,6 +158,10 @@ function applyGuildsFilterFromSession() {
     filterServerIds.value = Array.isArray(parsed.serverIds)
       ? parsed.serverIds.map(Number).filter((id) => !Number.isNaN(id))
       : [];
+    filterRecruiting.value =
+      typeof parsed.recruiting === 'string' && parsed.recruiting !== ''
+        ? parsed.recruiting
+        : ALL_RECRUITING_VALUE;
   } catch {
     // невалидный JSON
   }
@@ -159,6 +173,7 @@ function resetFilter() {
   filterGameId.value = ALL_GAMES_VALUE;
   filterLocalizationIds.value = [];
   filterServerIds.value = [];
+  filterRecruiting.value = ALL_RECRUITING_VALUE;
   try {
     sessionStorage.removeItem(guildsFilterStorageKey());
   } catch {
@@ -191,6 +206,10 @@ function applyFilterFromQuery() {
       .map((id) => Number(id.trim()))
       .filter((id) => !Number.isNaN(id));
   }
+
+  if (typeof q.is_recruiting === 'string' && q.is_recruiting.trim() !== '') {
+    filterRecruiting.value = q.is_recruiting.trim() === '1' ? '1' : ALL_RECRUITING_VALUE;
+  }
 }
 
 /** Записать текущий фильтр в URL (replace). */
@@ -207,6 +226,9 @@ function syncFilterToQuery() {
   }
   if (filterServerIds.value.length) {
     query.server_ids = filterServerIds.value.join(',');
+  }
+  if (filterRecruiting.value === '1') {
+    query.is_recruiting = '1';
   }
   router.replace({ query: Object.keys(query).length ? query : {} });
 }
@@ -278,6 +300,7 @@ async function loadGuilds(showFullLoading = false) {
       name?: string;
       localization_ids?: number[];
       server_ids?: number[];
+      is_recruiting?: boolean;
     } = { per_page: 50 };
 
     if (isGameSubdomain.value && siteContext.game?.id) {
@@ -291,6 +314,7 @@ async function loadGuilds(showFullLoading = false) {
     if (filterName.value.trim()) params.name = filterName.value.trim();
     if (filterLocalizationIds.value.length) params.localization_ids = [...filterLocalizationIds.value];
     if (filterServerIds.value.length) params.server_ids = [...filterServerIds.value];
+    if (filterRecruiting.value === '1') params.is_recruiting = true;
 
     const { guilds: list } = await guildsApi.getGuilds(params);
     guilds.value = list;
@@ -323,7 +347,7 @@ onMounted(async () => {
 
 let loadGuildsTimeout: ReturnType<typeof setTimeout> | null = null;
 watch(
-  [filterName, filterGameId, filterLocalizationIds, filterServerIds],
+  [filterName, filterGameId, filterLocalizationIds, filterServerIds, filterRecruiting],
   () => {
     if (!filterReady.value) return;
     if (loadGuildsTimeout) clearTimeout(loadGuildsTimeout);
@@ -426,6 +450,16 @@ watch(filterGameId, async () => {
             :disabled="!filterServers.length"
             trigger-class="min-w-[140px]"
             @update:model-value="onServersChange"
+          />
+        </div>
+        <div class="flex min-w-0 flex-col gap-1 sm:min-w-[140px]">
+          <Label for="guild-filter-recruiting" class="text-xs text-muted-foreground">Набор</Label>
+          <Select
+            id="guild-filter-recruiting"
+            v-model="filterRecruiting"
+            :options="recruitingOptions"
+            placeholder="Любой"
+            trigger-class="h-8 text-sm w-full"
           />
         </div>
         <Button

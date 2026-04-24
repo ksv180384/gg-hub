@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, onMounted, onUnmounted } from 'vue';
 import { Button, Input } from '@/shared/ui';
 import type {
   RaidItem,
@@ -7,6 +7,7 @@ import type {
   GuildRosterMember,
   RaidCompositionMemberPayload,
 } from '@/shared/api/guildsApi';
+import { io, type Socket } from 'socket.io-client';
 
 const props = defineProps<{
   open: boolean;
@@ -15,6 +16,8 @@ const props = defineProps<{
   partySize: number;
   guildId: number;
   saving?: boolean;
+  /** Только просмотр (без перетаскивания и сохранения состава). */
+  readonly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -35,6 +38,9 @@ const draggedCharacterId = ref<number | null>(null);
 const dragOverSlotIndex = ref<number | null>(null);
 const dragOverRoster = ref(false);
 const rosterDropZoneRef = ref<HTMLElement | null>(null);
+const socketRef = ref<Socket | null>(null);
+const lastJoined = ref<{ guildId: number; raidId: number } | null>(null);
+const pendingRemoteMembers = ref<MemberSlot[] | null>(null);
 
 /** Сетка 100×100 ячеек. */
 const GRID_COLUMNS = 20;
@@ -75,8 +81,81 @@ watch(
     draggedCharacterId.value = null;
     dragOverSlotIndex.value = null;
     dragOverRoster.value = false;
+    pendingRemoteMembers.value = null;
   },
   { immediate: true }
+);
+
+function connectSocketIfNeeded() {
+  if (import.meta.env.SSR) return;
+  if (socketRef.value) return;
+  const rawEnv = (import.meta.env.VITE_SOCKET_URL as string | undefined)?.trim() ?? '';
+  const syncOff = rawEnv === 'off' || rawEnv === 'false';
+  if (syncOff) return;
+  const explicitUrl = rawEnv;
+  const socketUrlForIo = explicitUrl.length > 0 ? explicitUrl : undefined;
+  socketRef.value = io(socketUrlForIo, {
+    transports: ['websocket', 'polling'],
+    path: '/socket.io',
+    autoConnect: true,
+  });
+
+  socketRef.value.on('raid:updated', (msg: { guildId?: unknown; raidId?: unknown; raid?: unknown }) => {
+    const raidId = Number(msg?.raidId);
+    const guildId = Number(msg?.guildId);
+    if (!Number.isFinite(raidId) || !Number.isFinite(guildId)) return;
+    if (guildId !== props.guildId) return;
+    if (props.raid?.id !== raidId) return;
+    const raid = msg?.raid as RaidItem | null | undefined;
+    if (!raid?.members) return;
+    const nextMembers: MemberSlot[] = raid.members.map((m: RaidMemberItem) => ({
+      character_id: m.character_id,
+      name: m.name,
+      slot_index: m.slot_index ?? null,
+    }));
+    if (draggedCharacterId.value != null) {
+      pendingRemoteMembers.value = nextMembers;
+      return;
+    }
+    members.value = nextMembers;
+  });
+}
+
+function joinRaidRoom() {
+  const s = socketRef.value;
+  const raidId = props.raid?.id ?? null;
+  if (!s?.connected || !props.open) return;
+  if (raidId == null) return;
+  const gid = props.guildId;
+  if (gid <= 0) return;
+  s.emit('raid:join', { guildId: gid, raidId });
+  lastJoined.value = { guildId: gid, raidId };
+}
+
+function leaveRaidRoom() {
+  const s = socketRef.value;
+  const joined = lastJoined.value;
+  if (!s || !joined) return;
+  s.emit('raid:leave', { guildId: joined.guildId, raidId: joined.raidId });
+  lastJoined.value = null;
+}
+
+onMounted(() => {
+  connectSocketIfNeeded();
+});
+
+onUnmounted(() => {
+  leaveRaidRoom();
+  socketRef.value?.disconnect();
+  socketRef.value = null;
+});
+
+watch(
+  () => [props.open, props.guildId, props.raid?.id, socketRef.value?.connected] as const,
+  () => {
+    leaveRaidRoom();
+    joinRaidRoom();
+  }
 );
 
 watch(
@@ -125,6 +204,7 @@ function getMemberByCharacterId(characterId: number): MemberSlot | undefined {
 }
 
 function onDragStart(e: DragEvent, characterId: number) {
+  if (props.readonly) return;
   draggedCharacterId.value = characterId;
   e.dataTransfer!.effectAllowed = 'move';
   e.dataTransfer!.setData('text/plain', String(characterId));
@@ -133,28 +213,37 @@ function onDragStart(e: DragEvent, characterId: number) {
 }
 
 function onDragEnd() {
+  if (props.readonly) return;
   draggedCharacterId.value = null;
   dragOverSlotIndex.value = null;
   dragOverRoster.value = false;
+  if (pendingRemoteMembers.value) {
+    members.value = pendingRemoteMembers.value;
+    pendingRemoteMembers.value = null;
+  }
 }
 
 function onDragOverSlot(e: DragEvent, slotIndex: number) {
+  if (props.readonly) return;
   e.preventDefault();
   e.dataTransfer!.dropEffect = 'move';
   dragOverSlotIndex.value = slotIndex;
 }
 
 function onDragLeaveSlot() {
+  if (props.readonly) return;
   dragOverSlotIndex.value = null;
 }
 
 function onDragOverRoster(e: DragEvent) {
+  if (props.readonly) return;
   e.preventDefault();
   e.dataTransfer!.dropEffect = 'move';
   dragOverRoster.value = true;
 }
 
 function onDragLeaveRoster(e: DragEvent) {
+  if (props.readonly) return;
   const el = rosterDropZoneRef.value;
   const related = e.relatedTarget as Node | null;
   if (el && related && el.contains(related)) return;
@@ -162,6 +251,7 @@ function onDragLeaveRoster(e: DragEvent) {
 }
 
 function onDropRoster(e: DragEvent) {
+  if (props.readonly) return;
   e.preventDefault();
   dragOverRoster.value = false;
   const characterId = draggedCharacterId.value ?? (e.dataTransfer?.getData('text/plain') ? Number(e.dataTransfer.getData('text/plain')) : null);
@@ -177,10 +267,12 @@ function buildPayload(): RaidCompositionMemberPayload[] {
 }
 
 function saveNow() {
+  if (props.readonly) return;
   emit('save', buildPayload());
 }
 
 function onDropSlot(e: DragEvent, slotIndex: number) {
+  if (props.readonly) return;
   e.preventDefault();
   dragOverSlotIndex.value = null;
   const characterId = draggedCharacterId.value ?? (e.dataTransfer?.getData('text/plain') ? Number(e.dataTransfer.getData('text/plain')) : null);
@@ -203,6 +295,7 @@ function onDropSlot(e: DragEvent, slotIndex: number) {
 }
 
 function removeFromRaid(characterId: number) {
+  if (props.readonly) return;
   const idx = members.value.findIndex((m) => m.character_id === characterId);
   if (idx !== -1) {
     members.value.splice(idx, 1);
@@ -229,7 +322,10 @@ function close() {
           <h1 id="form-raid-title" class="text-lg font-semibold truncate">
             {{ raid?.name ?? 'Рейд' }}
           </h1>
-          <p class="text-xs text-muted-foreground">В рейде: {{ members.length }} участников</p>
+          <p class="text-xs text-muted-foreground">
+            В рейде: {{ members.length }} участников
+            <span v-if="readonly" class="ml-2">· Только просмотр</span>
+          </p>
         </div>
         <Button variant="ghost" size="sm" class="h-9 w-9 shrink-0 p-0" aria-label="Закрыть" @click="close">
           ×
@@ -253,6 +349,7 @@ function close() {
                 placeholder="Поиск"
                 class="h-9 pl-8"
                 autocomplete="off"
+                :disabled="readonly"
               />
             </div>
           </div>
@@ -266,14 +363,15 @@ function close() {
           >
             <p class="mb-2 text-xs font-medium text-muted-foreground">
               Состав гильдии
-              <span v-if="dragOverRoster" class="text-primary"> — отпустите, чтобы убрать из рейда</span>
+              <span v-if="!readonly && dragOverRoster" class="text-primary"> — отпустите, чтобы убрать из рейда</span>
             </p>
             <div class="space-y-1.5">
               <div
                 v-for="r in rosterFiltered"
                 :key="r.character_id"
-                draggable="true"
-                class="min-w-0 rounded-lg border bg-card px-2.5 py-2 text-sm cursor-grab active:cursor-grabbing hover:bg-muted/50"
+                :draggable="!readonly"
+                class="min-w-0 rounded-lg border bg-card px-2.5 py-2 text-sm hover:bg-muted/50"
+                :class="readonly ? 'cursor-default opacity-70' : 'cursor-grab active:cursor-grabbing'"
                 @dragstart="onDragStart($event, r.character_id)"
                 @dragend="onDragEnd"
               >
@@ -286,7 +384,12 @@ function close() {
         <!-- Правая часть: сетка ячеек 100×100 -->
         <div class="flex-1 overflow-auto p-4">
           <p class="mb-3 text-sm text-muted-foreground">
-            Перетащите участников в ячейки. Сетка {{ GRID_COLUMNS }} x {{ GRID_ROWS }}.
+            <template v-if="!readonly">
+              Перетащите участников в ячейки. Сетка {{ GRID_COLUMNS }} x {{ GRID_ROWS }}.
+            </template>
+            <template v-else>
+              Просмотр состава рейда. Сетка {{ GRID_COLUMNS }} x {{ GRID_ROWS }}.
+            </template>
           </p>
           <div class="flex flex-nowrap gap-x-1">
             <div
@@ -317,8 +420,9 @@ function close() {
                 <template v-if="memberBySlotIndex.get(slotIndex)">
                   <div class="flex w-full items-center justify-center gap-0.5">
                     <span
-                      draggable="true"
-                      class="min-w-0 flex-1 cursor-grab truncate px-1 font-medium active:cursor-grabbing hover:opacity-90"
+                      :draggable="!readonly"
+                      class="min-w-0 flex-1 truncate px-1 font-medium hover:opacity-90"
+                      :class="readonly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
                       :title="memberBySlotIndex.get(slotIndex)!.name"
                       @dragstart="onDragStart($event, memberBySlotIndex.get(slotIndex)!.character_id)"
                       @dragend="onDragEnd"
@@ -326,6 +430,7 @@ function close() {
                       {{ memberBySlotIndex.get(slotIndex)!.name }}
                     </span>
                     <Button
+                      v-if="!readonly"
                       type="button"
                       variant="ghost"
                       size="sm"

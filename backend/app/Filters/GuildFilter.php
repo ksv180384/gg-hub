@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class GuildFilter extends Filter
 {
+    public const KEYS_TO_BOOL = ['is_recruiting'];
     public const KEYS_TO_INT = ['game_id'];
     public const KEYS_TO_ARRAY = ['localization_ids', 'server_ids'];
 
@@ -60,5 +61,13 @@ class GuildFilter extends Filter
         }
 
         return $this->builder->whereIn('server_id', $ids);
+    }
+
+    /**
+     * Фильтрация по открытому набору в гильдию.
+     */
+    protected function isRecruiting(bool $value): Builder
+    {
+        return $this->builder->where('is_recruiting', $value);
     }
 }

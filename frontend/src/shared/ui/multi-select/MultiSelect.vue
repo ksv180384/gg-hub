@@ -19,6 +19,11 @@ const props = withDefaults(
     searchPlaceholder?: string;
     emptyText?: string;
     triggerClass?: string;
+    /**
+     * 'text' — как было (лейбл +N).
+     * 'badges' — показывать выбранные элементы «чипами» (без Badge), подходит для тегов.
+     */
+    displayMode?: 'text' | 'badges';
     /** Подпись для «Выбрать все» */
     selectAllLabel?: string;
     /** Подпись для «Сбросить» */
@@ -28,6 +33,7 @@ const props = withDefaults(
     placeholder: 'Выберите...',
     searchPlaceholder: 'Поиск...',
     emptyText: 'Ничего не найдено',
+    displayMode: 'text',
     selectAllLabel: 'Выбрать все',
     clearAllLabel: 'Сбросить',
   }
@@ -63,6 +69,11 @@ const triggerLabel = computed(() => {
   if (len === 0) return props.placeholder;
   const first = props.options.find((o) => o.value === props.modelValue[0]);
   return first?.label ?? String(props.modelValue[0]);
+});
+
+const selectedOptions = computed(() => {
+  const set = new Set(props.modelValue);
+  return props.options.filter((o) => set.has(o.value));
 });
 
 function toggle(value: string | number) {
@@ -111,15 +122,39 @@ function clearAll() {
         )"
       >
         <span class="flex min-w-0 items-center gap-1.5">
-          <span class="truncate" :class="{ 'text-muted-foreground': modelValue.length === 0 }">
-            {{ triggerLabel }}
-          </span>
-          <span
-            v-if="modelValue.length > 1"
-            class="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground"
-          >
-            +{{ modelValue.length - 1 }}
-          </span>
+          <template v-if="displayMode === 'badges'">
+            <template v-if="selectedOptions.length === 0">
+              <span class="truncate text-muted-foreground">{{ placeholder }}</span>
+            </template>
+            <template v-else>
+              <span class="flex min-w-0 flex-wrap items-center gap-1">
+                <span
+                  v-for="opt in selectedOptions.slice(0, 3)"
+                  :key="String(opt.value)"
+                  :class="cn('truncate text-xs font-medium', opt.badgeClass)"
+                >
+                  {{ opt.label }}
+                </span>
+                <span
+                  v-if="selectedOptions.length > 3"
+                  class="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground"
+                >
+                  +{{ selectedOptions.length - 3 }}
+                </span>
+              </span>
+            </template>
+          </template>
+          <template v-else>
+            <span class="truncate" :class="{ 'text-muted-foreground': modelValue.length === 0 }">
+              {{ triggerLabel }}
+            </span>
+            <span
+              v-if="modelValue.length > 1"
+              class="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground"
+            >
+              +{{ modelValue.length - 1 }}
+            </span>
+          </template>
         </span>
         <svg
           class="ml-1 h-4 w-4 shrink-0 opacity-50"
@@ -192,7 +227,10 @@ function clearAll() {
               class="h-4 w-4 rounded border-input"
               @change="!opt.disabled && toggle(opt.value)"
             >
-            <span class="truncate">{{ opt.label }}</span>
+            <template v-if="displayMode === 'badges'">
+              <span :class="cn('truncate text-sm font-medium', opt.badgeClass)">{{ opt.label }}</span>
+            </template>
+            <span v-else class="truncate">{{ opt.label }}</span>
           </label>
         </div>
       </DropdownContent>

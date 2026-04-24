@@ -23,6 +23,7 @@ class GuildFilterRequest extends FormRequest
             'localization_ids.*' => ['integer', 'exists:localizations,id'],
             'server_ids' => ['nullable', 'array'],
             'server_ids.*' => ['integer', 'exists:servers,id'],
+            'is_recruiting' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
