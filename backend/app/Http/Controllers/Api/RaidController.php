@@ -60,6 +60,21 @@ class RaidController extends Controller
         ]);
         $raid = ($this->createRaidAction)($data);
         $raid->load('leader:id,name', 'parent:id,name');
+
+        // Реалтайм-обновление дерева рейдов гильдии (best-effort).
+        try {
+            $socketUrl = rtrim((string) env('SOCKET_SERVER_URL', 'http://socket-server-nodejs:3007'), '/');
+            Http::timeout(1.5)->post($socketUrl . '/raids-tree/broadcast-updated', [
+                'guildId' => $guild->id,
+                'payload' => [
+                    'kind' => 'created',
+                    'raidId' => $raid->id,
+                ],
+            ]);
+        } catch (\Throwable) {
+            // ignore
+        }
+
         return (new RaidResource($raid))->response()->setStatusCode(201);
     }
 
@@ -70,6 +85,21 @@ class RaidController extends Controller
             throw new NotFoundHttpException('Рейд не найден.');
         }
         $updated = ($this->updateRaidAction)($model, $request->validated());
+
+        // Реалтайм-обновление дерева рейдов гильдии (best-effort).
+        try {
+            $socketUrl = rtrim((string) env('SOCKET_SERVER_URL', 'http://socket-server-nodejs:3007'), '/');
+            Http::timeout(1.5)->post($socketUrl . '/raids-tree/broadcast-updated', [
+                'guildId' => $guild->id,
+                'payload' => [
+                    'kind' => 'updated',
+                    'raidId' => $updated->id,
+                ],
+            ]);
+        } catch (\Throwable) {
+            // ignore
+        }
+
         return response()->json(new RaidResource($updated));
     }
 
@@ -80,6 +110,21 @@ class RaidController extends Controller
             throw new NotFoundHttpException('Рейд не найден.');
         }
         ($this->deleteRaidAction)($model);
+
+        // Реалтайм-обновление дерева рейдов гильдии (best-effort).
+        try {
+            $socketUrl = rtrim((string) env('SOCKET_SERVER_URL', 'http://socket-server-nodejs:3007'), '/');
+            Http::timeout(1.5)->post($socketUrl . '/raids-tree/broadcast-updated', [
+                'guildId' => $guild->id,
+                'payload' => [
+                    'kind' => 'deleted',
+                    'raidId' => $raid,
+                ],
+            ]);
+        } catch (\Throwable) {
+            // ignore
+        }
+
         return response()->noContent();
     }
 

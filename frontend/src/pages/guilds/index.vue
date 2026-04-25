@@ -30,8 +30,9 @@ const filterGameId = ref(ALL_GAMES_VALUE);
 const filterLocalizationIds = ref<number[]>([]);
 const filterServerIds = ref<number[]>([]);
 const filterRecruiting = ref(ALL_RECRUITING_VALUE);
+const filterTagIds = ref<number[]>([]);
 
-const guilds = ref<Guild[]>([]);
+const allGuilds = ref<Guild[]>([]);
 const memberGuildIds = ref<Set<number>>(new Set());
 const loading = ref(true);
 const refreshing = ref(false);
@@ -80,6 +81,18 @@ const serverMultiOptions = computed(() =>
   filterServers.value.map((s) => ({ value: s.id, label: s.name }))
 );
 
+const tagMultiOptions = computed<{ value: number; label: string }[]>(() => {
+  const map = new Map<number, string>();
+  for (const g of allGuilds.value) {
+    for (const t of g.tags ?? []) {
+      if (!map.has(t.id)) map.set(t.id, t.name);
+    }
+  }
+  return [...map.entries()]
+    .map(([id, name]) => ({ value: id, label: name }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+});
+
 const recruitingOptions = computed<SelectOption[]>(() => [
   { value: ALL_RECRUITING_VALUE, label: 'Любой' },
   { value: '1', label: 'Открыт' },
@@ -93,6 +106,15 @@ function onLocalizationsChange(value: (string | number)[]) {
 function onServersChange(value: (string | number)[]) {
   filterServerIds.value = value.map(Number);
 }
+function onTagsChange(value: (string | number)[]) {
+  filterTagIds.value = value.map(Number);
+}
+
+const visibleGuilds = computed<Guild[]>(() => {
+  if (!filterTagIds.value.length) return allGuilds.value;
+  const selected = new Set(filterTagIds.value);
+  return allGuilds.value.filter((g) => (g.tags ?? []).some((t) => selected.has(t.id)));
+});
 
 /** Ключ sessionStorage: отдельно для каталога всех игр и для субдомена конкретной игры. */
 function guildsFilterStorageKey(): string {
@@ -107,6 +129,7 @@ type StoredGuildsListFilter = {
   localizationIds: number[];
   serverIds: number[];
   recruiting: string;
+  tagIds: number[];
 };
 
 function hasGuildsFilterInQuery(q: typeof route.query): boolean {
@@ -119,6 +142,9 @@ function hasGuildsFilterInQuery(q: typeof route.query): boolean {
   if (Array.isArray(srv) && srv.length > 0) return true;
   if (typeof srv === 'string' && srv.trim() !== '') return true;
   if (typeof q.is_recruiting === 'string' && q.is_recruiting.trim() !== '') return true;
+  const tags = q.tag_ids;
+  if (Array.isArray(tags) && tags.length > 0) return true;
+  if (typeof tags === 'string' && tags.trim() !== '') return true;
   return false;
 }
 
@@ -129,6 +155,7 @@ function persistGuildsFilterToSession() {
     localizationIds: [...filterLocalizationIds.value],
     serverIds: [...filterServerIds.value],
     recruiting: filterRecruiting.value,
+    tagIds: [...filterTagIds.value],
   };
   try {
     sessionStorage.setItem(guildsFilterStorageKey(), JSON.stringify(payload));
@@ -162,6 +189,9 @@ function applyGuildsFilterFromSession() {
       typeof parsed.recruiting === 'string' && parsed.recruiting !== ''
         ? parsed.recruiting
         : ALL_RECRUITING_VALUE;
+    filterTagIds.value = Array.isArray(parsed.tagIds)
+      ? parsed.tagIds.map(Number).filter((id) => !Number.isNaN(id))
+      : [];
   } catch {
     // невалидный JSON
   }
@@ -174,6 +204,7 @@ function resetFilter() {
   filterLocalizationIds.value = [];
   filterServerIds.value = [];
   filterRecruiting.value = ALL_RECRUITING_VALUE;
+  filterTagIds.value = [];
   try {
     sessionStorage.removeItem(guildsFilterStorageKey());
   } catch {
@@ -210,6 +241,15 @@ function applyFilterFromQuery() {
   if (typeof q.is_recruiting === 'string' && q.is_recruiting.trim() !== '') {
     filterRecruiting.value = q.is_recruiting.trim() === '1' ? '1' : ALL_RECRUITING_VALUE;
   }
+
+  if (Array.isArray(q.tag_ids)) {
+    filterTagIds.value = q.tag_ids.map((id) => Number(id)).filter((id) => !Number.isNaN(id));
+  } else if (typeof q.tag_ids === 'string' && q.tag_ids.trim() !== '') {
+    filterTagIds.value = q.tag_ids
+      .split(',')
+      .map((id) => Number(id.trim()))
+      .filter((id) => !Number.isNaN(id));
+  }
 }
 
 /** Записать текущий фильтр в URL (replace). */
@@ -229,6 +269,9 @@ function syncFilterToQuery() {
   }
   if (filterRecruiting.value === '1') {
     query.is_recruiting = '1';
+  }
+  if (filterTagIds.value.length) {
+    query.tag_ids = filterTagIds.value.join(',');
   }
   router.replace({ query: Object.keys(query).length ? query : {} });
 }
@@ -317,7 +360,7 @@ async function loadGuilds(showFullLoading = false) {
     if (filterRecruiting.value === '1') params.is_recruiting = true;
 
     const { guilds: list } = await guildsApi.getGuilds(params);
-    guilds.value = list;
+    allGuilds.value = list;
   } catch (e: unknown) {
     const err = e as Error & { message?: string };
     error.value = err.message ?? 'Не удалось загрузить гильдии';
@@ -356,6 +399,20 @@ watch(
       persistGuildsFilterToSession();
       loadGuilds();
     }, 350);
+  },
+  { deep: true }
+);
+
+let tagsTimeout: ReturnType<typeof setTimeout> | null = null;
+watch(
+  filterTagIds,
+  () => {
+    if (!filterReady.value) return;
+    if (tagsTimeout) clearTimeout(tagsTimeout);
+    tagsTimeout = setTimeout(() => {
+      syncFilterToQuery();
+      persistGuildsFilterToSession();
+    }, 150);
   },
   { deep: true }
 );
@@ -462,6 +519,19 @@ watch(filterGameId, async () => {
             trigger-class="h-8 text-sm w-full"
           />
         </div>
+        <div class="flex flex-col gap-1">
+          <Label class="text-xs text-muted-foreground">Теги</Label>
+          <MultiSelect
+            :model-value="filterTagIds"
+            :options="tagMultiOptions"
+            placeholder="Все"
+            search-placeholder="Поиск тега..."
+            empty-text="Нет тегов"
+            :disabled="!tagMultiOptions.length"
+            trigger-class="min-w-[140px]"
+            @update:model-value="onTagsChange"
+          />
+        </div>
         <Button
           variant="outline"
           size="icon"
@@ -495,14 +565,14 @@ watch(filterGameId, async () => {
         </div>
 
         <div
-          v-if="loading && guilds.length === 0"
+          v-if="loading && visibleGuilds.length === 0"
           class="pt-10"
         >
           <!-- Пустое место при первой загрузке, карточки появятся после -->
         </div>
 
         <div
-          v-else-if="guilds.length === 0"
+          v-else-if="visibleGuilds.length === 0"
           class="rounded-lg border border-dashed p-8 text-center text-muted-foreground"
         >
           По выбранным критериям гильдий не найдено.
@@ -514,7 +584,7 @@ watch(filterGameId, async () => {
           class="grid justify-items-center gap-6 pt-8 sm:grid-cols-2 sm:justify-items-stretch lg:grid-cols-3"
         >
         <GuildCard
-          v-for="(g, i) in guilds"
+          v-for="(g, i) in (visibleGuilds as Guild[])"
           :key="g.id"
           :guild="g"
           list-mode

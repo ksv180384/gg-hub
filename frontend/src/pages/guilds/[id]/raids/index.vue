@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   DialogRoot,
@@ -35,6 +35,7 @@ import {
 import { Sortable } from 'sortablejs-vue3';
 import RaidTreeItem from './RaidTreeItem.vue';
 import FormRaidModal from './FormRaidModal.vue';
+import { io, type Socket } from 'socket.io-client';
 
 const route = useRoute();
 const guildId = computed(() => Number(route.params.id));
@@ -45,6 +46,11 @@ const roster = ref<GuildRosterMember[]>([]);
 const loading = ref(true);
 const accessDenied = ref(false);
 const error = ref<string | null>(null);
+
+// Socket: обновление дерева рейдов гильдии для всех участников.
+const treeSocketRef = ref<Socket | null>(null);
+const lastTreeJoinedGuildId = ref<number | null>(null);
+const treeUpdateTimer = ref<number | null>(null);
 
 /** Выбранный рейд (при клике по рейду загружаются детали с участниками). */
 const selectedRaidId = ref<number | null>(null);
@@ -226,6 +232,66 @@ async function loadRaids() {
   } catch {
     raids.value = [];
   }
+}
+
+function scheduleLoadRaidsFromSocket() {
+  // Мягкая дедупликация событий (перетаскивание/массовые апдейты могут прислать несколько).
+  if (treeUpdateTimer.value != null) return;
+  treeUpdateTimer.value = window.setTimeout(async () => {
+    treeUpdateTimer.value = null;
+    await loadRaids();
+  }, 150);
+}
+
+function connectTreeSocketIfNeeded() {
+  if (import.meta.env.SSR) return;
+  if (treeSocketRef.value) return;
+  const rawEnv = (import.meta.env.VITE_SOCKET_URL as string | undefined)?.trim() ?? '';
+  const syncOff = rawEnv === 'off' || rawEnv === 'false';
+  if (syncOff) return;
+  const explicitUrl = rawEnv;
+  const socketUrlForIo = explicitUrl.length > 0 ? explicitUrl : undefined;
+  treeSocketRef.value = io(socketUrlForIo, {
+    transports: ['websocket', 'polling'],
+    path: '/socket.io',
+    autoConnect: true,
+  });
+
+  treeSocketRef.value.on('connect', () => {
+    joinRaidsTreeRoom();
+  });
+
+  treeSocketRef.value.on('disconnect', () => {
+    lastTreeJoinedGuildId.value = null;
+  });
+
+  treeSocketRef.value.on('raids-tree:updated', (msg: { guildId?: unknown }) => {
+    const gid = Number(msg?.guildId);
+    if (!Number.isFinite(gid) || gid <= 0) return;
+    if (gid !== guildId.value) return;
+    scheduleLoadRaidsFromSocket();
+  });
+}
+
+function joinRaidsTreeRoom() {
+  const s = treeSocketRef.value;
+  if (!s?.connected) return;
+  const gid = guildId.value;
+  if (!Number.isFinite(gid) || gid <= 0) return;
+  if (lastTreeJoinedGuildId.value === gid) return;
+  if (lastTreeJoinedGuildId.value != null) {
+    s.emit('raids-tree:leave', { guildId: lastTreeJoinedGuildId.value });
+  }
+  s.emit('raids-tree:join', { guildId: gid });
+  lastTreeJoinedGuildId.value = gid;
+}
+
+function leaveRaidsTreeRoom() {
+  const s = treeSocketRef.value;
+  const joined = lastTreeJoinedGuildId.value;
+  if (!s || joined == null) return;
+  s.emit('raids-tree:leave', { guildId: joined });
+  lastTreeJoinedGuildId.value = null;
 }
 
 /** Поиск по имени участника в панели рейда. */
@@ -597,6 +663,27 @@ async function loadRaidPage() {
 watch(guildId, () => {
   loadRaidPage();
 }, { immediate: true });
+
+onMounted(() => {
+  connectTreeSocketIfNeeded();
+});
+
+onUnmounted(() => {
+  if (treeUpdateTimer.value != null) {
+    window.clearTimeout(treeUpdateTimer.value);
+    treeUpdateTimer.value = null;
+  }
+  leaveRaidsTreeRoom();
+  treeSocketRef.value?.disconnect();
+  treeSocketRef.value = null;
+});
+
+watch(
+  () => guildId.value,
+  () => {
+    joinRaidsTreeRoom();
+  }
+);
 </script>
 
 <template>
