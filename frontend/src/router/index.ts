@@ -23,6 +23,23 @@ declare module 'vue-router' {
 const guestRouteNames = ['login', 'register', 'forgot-password', 'reset-password'] as const;
 
 const routes: RouteRecordRaw[] = [
+    /**
+     * Короткие ссылки:
+     * - /a123 → публичная форма заявки в гильдию (guilds/123/application-form)
+     * - /g123 → публичная страница «О гильдии» (guilds/123/info)
+     */
+    {
+      path: '/a:id(\\d+)',
+      name: 'guild-application-form-short',
+      redirect: (to) => ({ name: 'guild-application-form', params: { id: String(to.params.id) } }),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/g:id(\\d+)',
+      name: 'guild-info-short',
+      redirect: (to) => ({ name: 'guild-info', params: { id: String(to.params.id) } }),
+      meta: { requiresAuth: false },
+    },
     { path: '/login', name: 'login', component: () => import('@/pages/auth/login/index.vue') },
     { path: '/register', name: 'register', component: () => import('@/pages/auth/register/index.vue') },
     { path: '/forgot-password', name: 'forgot-password', component: () => import('@/pages/auth/forgot-password/index.vue') },
@@ -150,7 +167,7 @@ const routes: RouteRecordRaw[] = [
         {
           path: 'guilds/:id/settings',
           name: 'guild-settings',
-          component: () => import('@/pages/guilds/settings/index.vue'),
+          component: () => import('@/pages/guilds/[id]/settings/index.vue'),
           meta: { requiresAuth: true },
         },
         {

@@ -93,6 +93,7 @@ const polls = ref<UserPollItem[]>([]);
 const loadingPolls = ref(false);
 
 const userGuildIds = computed<number[]>(() => auth.user?.guild_ids ?? []);
+const hasUserGuilds = computed(() => userGuildIds.value.length > 0);
 
 let pollRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 function scheduleUserPollsReload() {
@@ -157,6 +158,11 @@ async function loadMoreNotifications() {
 
 async function loadPolls() {
   if (!auth.isAuthenticated) return;
+  if (!hasUserGuilds.value) {
+    polls.value = [];
+    loadingPolls.value = false;
+    return;
+  }
   loadingPolls.value = true;
   polls.value = [];
   try {
@@ -188,6 +194,15 @@ watch(() => [siteContext.game?.id, auth.isAuthenticated], () => {
 
 watch(() => siteContext.pollsRefreshTrigger, (val) => {
   if (val > 0 && auth.isAuthenticated) loadPolls();
+});
+
+watch(hasUserGuilds, (has) => {
+  if (!has) {
+    pollsDrawerOpen.value = false;
+    polls.value = [];
+  } else if (auth.isAuthenticated) {
+    loadPolls();
+  }
 });
 
 watch(notificationsDrawerOpen, (open) => {
@@ -349,7 +364,7 @@ function isNavActive(itemTo: string): boolean {
           </DropdownMenuContent>
         </DropdownMenu>
         <!-- Голосования (только для авторизованных) -->
-        <template v-if="auth.isAuthenticated">
+        <template v-if="auth.isAuthenticated && hasUserGuilds">
           <PollsDrawer
             v-model:open="pollsDrawerOpen"
             :polls="polls"
