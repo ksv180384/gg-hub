@@ -179,8 +179,9 @@ async function savePassword(e: Event) {
           </div>
 
           <div class="space-y-2">
-            <Label for="profile-name">Имя *</Label>
-            <Input id="profile-name" v-model="name" type="text" required maxlength="255" />
+            <Label for="profile-name">Имя</Label>
+            <Input id="profile-name" v-model="name" type="text" maxlength="255" />
+            <p class="text-xs text-muted-foreground">Можно оставить пустым.</p>
           </div>
 
           <div class="space-y-2">

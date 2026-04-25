@@ -17,11 +17,13 @@ class UpdateUserProfileAction
     /**
      * Обновляет профиль пользователя: имя, часовой пояс, при необходимости — аватар.
      *
-     * @param  array{name: string, timezone?: string|null}  $data
+     * @param  array{name?: string, timezone?: string|null}  $data
      */
     public function __invoke(User $user, array $data, ?UploadedFile $avatarFile = null): User
     {
-        $user->name = $data['name'];
+        if (array_key_exists('name', $data)) {
+            $user->name = trim((string) ($data['name'] ?? ''));
+        }
 
         if (array_key_exists('timezone', $data)) {
             $user->timezone = $data['timezone'] ?? 'UTC';

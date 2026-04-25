@@ -52,7 +52,7 @@ export interface MessageResponse {
 
 /** Тело запроса: регистрация. */
 export interface RegisterPayload {
-  name: string;
+  name?: string;
   email: string;
   password: string;
   password_confirmation: string;
@@ -75,7 +75,7 @@ export interface UpdatePasswordPayload {
 
 /** Тело запроса: обновление профиля (имя, часовой пояс, аватар). */
 export interface UpdateProfilePayload {
-  name: string;
+  name?: string;
   timezone?: string;
   avatar?: File | null;
 }
@@ -190,7 +190,7 @@ export const authApi = {
 
   async updateProfile(payload: UpdateProfilePayload): Promise<{ user: User }> {
     const form = new FormData();
-    form.append('name', payload.name);
+    form.append('name', payload.name ?? '');
     if (payload.timezone !== undefined) form.append('timezone', payload.timezone ?? 'UTC');
     if (payload.avatar) {
       form.append('avatar', payload.avatar, payload.avatar.name || 'avatar.jpg');

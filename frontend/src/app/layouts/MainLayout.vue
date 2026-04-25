@@ -61,6 +61,12 @@ const showSidebar = computed(
         <div class="text-center text-sm leading-relaxed text-[#4a4a4a] md:justify-self-start md:text-left">
           <p class="font-medium">Платформа для развития игровых сообществ</p>
           <p class="mt-1 text-[#5c5c5c]">© 2026 GG-HUB</p>
+          <p class="mt-1 text-[#5c5c5c]">
+            Email:
+            <a class="underline-offset-4 hover:underline" href="mailto:support@gg-hub.ru">
+              support@gg-hub.ru
+            </a>
+          </p>
         </div>
         <div class="hidden md:block" aria-hidden="true" />
       </div>

@@ -19,12 +19,12 @@ class CreateNewUser implements CreatesNewUsers
     /**
      * Validate and create a newly registered user.
      *
-     * @param  array<string, string>  $input
+     * @param  array<string, mixed>  $input
      */
     public function create(array $input): User
     {
         Validator::make($input, [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'required',
                 'string',
@@ -34,7 +34,6 @@ class CreateNewUser implements CreatesNewUsers
             ],
             'password' => $this->passwordRules(),
         ], [
-            'name.required' => 'Укажите имя или ник.',
             'email.required' => 'Укажите email.',
             'email.email' => 'Введите корректный email-адрес.',
             'email.unique' => 'Пользователь с таким email уже зарегистрирован.',
@@ -42,10 +41,13 @@ class CreateNewUser implements CreatesNewUsers
             'password.confirmed' => 'Пароли не совпадают.',
         ])->validate();
 
+        $email = (string) ($input['email'] ?? '');
+        $name = trim((string) ($input['name'] ?? ''));
+
         $user = User::create([
-            'name' => $input['name'],
-            'email' => Str::lower($input['email']),
-            'password' => Hash::make($input['password']),
+            'name' => Str::limit($name, 255, ''),
+            'email' => Str::lower($email),
+            'password' => Hash::make((string) ($input['password'] ?? '')),
         ]);
 
         $defaultRole = Role::where('slug', self::DEFAULT_ROLE_SLUG)->first();

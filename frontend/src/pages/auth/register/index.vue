@@ -16,7 +16,6 @@ import { useAuthStore } from '@/stores/auth';
 const router = useRouter();
 const auth = useAuthStore();
 
-const name = ref('');
 const email = ref('');
 const password = ref('');
 const passwordConfirmation = ref('');
@@ -27,15 +26,17 @@ const emailVerificationSent = ref(false);
 const resendMessage = ref('');
 const resendIsRateLimited = ref(false);
 
-const legalModalType = ref<'privacy' | 'mailing' | null>(null);
+const legalModalType = ref<'privacy' | 'mailing' | 'beta' | null>(null);
 
 const legalModalTitle = computed(() =>
   legalModalType.value === 'privacy'
     ? 'Согласие на обработку персональных данных'
-    : 'Условия почтовых рассылок'
+    : legalModalType.value === 'mailing'
+      ? 'Условия почтовых рассылок'
+      : 'Бета-версия сервиса'
 );
 
-function openLegalModal(type: 'privacy' | 'mailing') {
+function openLegalModal(type: 'privacy' | 'mailing' | 'beta') {
   legalModalType.value = type;
 }
 
@@ -71,7 +72,6 @@ async function onSubmit(e: Event) {
   }
   try {
     const data = await auth.register({
-      name: name.value,
       email: email.value,
       password: password.value,
       password_confirmation: passwordConfirmation.value,
@@ -159,10 +159,6 @@ async function onResend() {
               <form class="flex flex-col gap-4" @submit="onSubmit">
                 <p v-if="auth.error" class="text-sm text-destructive">{{ auth.error }}</p>
                 <div class="space-y-2">
-                  <Label for="name">Имя или ник <span class="text-destructive" aria-hidden="true">*</span></Label>
-                  <Input id="name" v-model="name" type="text" placeholder="PlayerName" required />
-                </div>
-                <div class="space-y-2">
                   <Label for="email">Email <span class="text-destructive" aria-hidden="true">*</span></Label>
                   <Input id="email" v-model="email" type="email" placeholder="you@example.com" required />
                 </div>
@@ -210,6 +206,14 @@ async function onResend() {
                         @click="openLegalModal('mailing')"
                       >
                         условия почтовых рассылок
+                      </button>
+                      , а также принимаю
+                      <button
+                        type="button"
+                        class="inline text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm px-0.5"
+                        @click="openLegalModal('beta')"
+                      >
+                        условия тестового режима
                       </button>
                       .
                     </label>
@@ -372,6 +376,39 @@ async function onResend() {
               Настоящее согласие может быть отозвано путём направления письменного заявления Оператору по реквизитам,
               размещённым на сайте, либо запроса на адрес электронной почты службы поддержки, указанный в разделе
               «Контакты».
+            </p>
+          </div>
+          <div
+            v-else-if="legalModalType === 'beta'"
+            class="mt-4 max-h-[min(60vh,24rem)] overflow-y-auto text-sm text-muted-foreground space-y-3"
+          >
+            <p>
+              GG Hub сейчас работает в <strong>тестовом режиме (бета)</strong>. Это значит, что мы активно улучшаем
+              функции, интерфейс и стабильность сервиса.
+            </p>
+            <p>
+              В целом всё должно работать нормально, но иногда могут встречаться небольшие ошибки или временные
+              ограничения.
+            </p>
+            <p>
+              <strong>Что важно знать:</strong>
+            </p>
+            <ul class="list-disc space-y-2 pl-5">
+              <li>
+                некоторые действия могут не сохраниться с первого раза (например, форма отправилась, но данные не успели
+                записаться);
+              </li>
+              <li>
+                в редких случаях часть данных может быть изменена или очищена при обновлениях (например, во время
+                технических работ);
+              </li>
+              <li>
+                мы можем временно отключать отдельные разделы для улучшений.
+              </li>
+            </ul>
+            <p>
+              Мы стараемся делать обновления максимально аккуратно. Если что-то пошло не так — напишите в поддержку:
+              <strong>support@gg-hub.ru</strong>, мы поможем.
             </p>
           </div>
         </DialogContent>
