@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   DialogRoot,
@@ -102,6 +102,7 @@ const formDescription = ref('');
 const formLeaderId = ref<string>('__none__');
 /** Поиск в списке лидеров (фильтр по имени). */
 const leaderSearchQuery = ref('');
+const raidNameInputRef = ref<{ focus: (options?: FocusOptions) => void } | null>(null);
 const formSubmitting = ref(false);
 const formError = ref<string | null>(null);
 
@@ -224,6 +225,12 @@ async function confirmDelete() {
 function closeRaidModal() {
   modalOpen.value = false;
 }
+
+watch(modalOpen, async (isOpen) => {
+  if (!isOpen) return;
+  await nextTick();
+  raidNameInputRef.value?.focus({ preventScroll: true });
+});
 
 async function loadRaids() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
@@ -769,10 +776,10 @@ watch(
       <ClientOnly>
       <DialogPortal>
         <DialogOverlay
-          class="fixed inset-0 z-[3] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 cursor-pointer"
+          class="fixed inset-0 z-[60] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 cursor-pointer"
         />
         <DialogContent
-          class="fixed left-1/2 top-1/2 z-[4] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 focus:outline-none max-h-[90vh] overflow-y-auto"
+          class="fixed left-1/2 top-1/2 z-[61] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 focus:outline-none max-h-[90vh] overflow-y-auto"
           :aria-describedby="undefined"
           @pointer-down-outside="closeRaidModal"
         >
@@ -793,6 +800,7 @@ watch(
               <Label for="raid-name">Название <span class="text-destructive">*</span></Label>
               <Input
                 id="raid-name"
+                ref="raidNameInputRef"
                 v-model="formName"
                 type="text"
                 placeholder="Например: Основная группа"
