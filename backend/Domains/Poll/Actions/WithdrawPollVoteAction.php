@@ -2,6 +2,7 @@
 
 namespace Domains\Poll\Actions;
 
+use App\Services\GuildPollSocketBroadcaster;
 use Domains\Character\Models\Character;
 use Domains\Poll\Models\Poll;
 use Domains\Poll\Models\PollVote;
@@ -10,7 +11,8 @@ use Illuminate\Validation\ValidationException;
 class WithdrawPollVoteAction
 {
     public function __construct(
-        private CloseExpiredPollAction $closeExpiredPollAction
+        private CloseExpiredPollAction $closeExpiredPollAction,
+        private GuildPollSocketBroadcaster $broadcaster
     ) {}
 
     /**
@@ -41,9 +43,13 @@ class WithdrawPollVoteAction
             ->whereHas('character', fn ($q) => $q->where('user_id', $character->user_id))
             ->pluck('character_id');
 
-        PollVote::query()
+        $deleted = PollVote::query()
             ->where('poll_id', $poll->id)
             ->whereIn('character_id', $userCharacterIds)
             ->delete();
+
+        if ($deleted > 0) {
+            $this->broadcaster->broadcastChanged($poll);
+        }
     }
 }

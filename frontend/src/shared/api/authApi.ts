@@ -18,6 +18,8 @@ export interface User {
   permissions?: string[];
   /** Роли (isAdmin по slug === 'admin'). */
   roles?: { id: number; name: string; slug: string }[];
+  /** ID гильдий, в которых состоит пользователь (через персонажей). */
+  guild_ids?: number[];
 }
 
 /** Ответ сервера: логин / регистрация (возвращает user). */
@@ -89,6 +91,20 @@ export const PERMISSION_VIEW_POLLS = 'prosmatirivat-golosovaniia';
 /** Удаление голосований в админке. */
 export const PERMISSION_DELETE_POLL = 'udaliat-golosovanie';
 
+function pickGuildIds(raw: unknown): number[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: number[] = [];
+  const seen = new Set<number>();
+  for (const x of raw) {
+    const n = Number(x);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    if (seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+  }
+  return out.length > 0 ? out : [];
+}
+
 function pickUser(data: unknown): User | null {
   if (!data || typeof data !== 'object') return null;
   const d = data as Record<string, unknown>;
@@ -97,6 +113,7 @@ function pickUser(data: unknown): User | null {
     const u = candidate as Record<string, unknown>;
     const permissions = Array.isArray(u.permissions) ? (u.permissions as string[]) : undefined;
     const roles = Array.isArray(u.roles) ? (u.roles as { id: number; name: string; slug: string }[]) : undefined;
+    const guildIds = pickGuildIds(u.guild_ids);
     return {
       id: u.id as number,
       name: (u.name as string) ?? '',
@@ -105,6 +122,7 @@ function pickUser(data: unknown): User | null {
       timezone: typeof u.timezone === 'string' ? u.timezone : undefined,
       permissions,
       roles,
+      ...(guildIds !== undefined ? { guild_ids: guildIds } : {}),
     };
   }
   return null;

@@ -2,6 +2,7 @@
 
 namespace Domains\Poll\Actions;
 
+use App\Services\GuildPollSocketBroadcaster;
 use Domains\Character\Models\Character;
 use Domains\Poll\Models\Poll;
 use Domains\Poll\Models\PollVote;
@@ -10,7 +11,8 @@ use Illuminate\Validation\ValidationException;
 class VotePollAction
 {
     public function __construct(
-        private CloseExpiredPollAction $closeExpiredPollAction
+        private CloseExpiredPollAction $closeExpiredPollAction,
+        private GuildPollSocketBroadcaster $broadcaster
     ) {}
 
     /**
@@ -57,5 +59,7 @@ class VotePollAction
             'option_id' => $optionId,
             'character_id' => $characterId,
         ]);
+
+        $this->broadcaster->broadcastChanged($poll);
     }
 }

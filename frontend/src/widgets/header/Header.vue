@@ -23,6 +23,8 @@ import type { ThemePreference } from '@/stores/theme';
 import { notificationsApi, type NotificationItem } from '@/shared/api/notificationsApi';
 import { guildsApi, type UserPollItem } from '@/shared/api/guildsApi';
 import { PERMISSION_ACCESS_ADMIN, PERMISSION_VIEW_POLLS } from '@/shared/api/authApi';
+import { useNotificationsSocket } from '@/shared/lib/useNotificationsSocket';
+import { useGuildPollsSocket } from '@/shared/lib/useGuildPollsSocket';
 import NotificationsDrawer from '@/widgets/header/NotificationsDrawer.vue';
 import PollsDrawer from '@/widgets/header/PollsDrawer.vue';
 
@@ -60,10 +62,65 @@ const notificationsHasMore = ref(false);
 const notificationsPage = ref(1);
 const expandedId = ref<number | null>(null);
 const deletingNotificationId = ref<number | null>(null);
+const bulkDeletingNotifications = ref(false);
+
+const currentUserId = computed(() => auth.user?.id ?? null);
+
+useNotificationsSocket({
+  userId: currentUserId,
+  onCreated: ({ notification, unreadCount: count }) => {
+    if (notifications.value.some((n) => n.id === notification.id)) return;
+    notifications.value = [notification, ...notifications.value];
+    unreadCount.value = count;
+  },
+  onDeleted: ({ ids, unreadCount: count }) => {
+    if (ids.length === 0) return;
+    const removed = new Set(ids);
+    notifications.value = notifications.value.filter((n) => !removed.has(n.id));
+    unreadCount.value = count;
+  },
+  onRead: ({ id, readAt, unreadCount: count }) => {
+    const idx = notifications.value.findIndex((n) => n.id === id);
+    if (idx !== -1 && !notifications.value[idx].read_at) {
+      notifications.value[idx] = { ...notifications.value[idx], read_at: readAt };
+    }
+    unreadCount.value = count;
+  },
+});
 
 const pollsDrawerOpen = ref(false);
 const polls = ref<UserPollItem[]>([]);
 const loadingPolls = ref(false);
+
+const userGuildIds = computed<number[]>(() => auth.user?.guild_ids ?? []);
+
+let pollRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleUserPollsReload() {
+  if (!auth.isAuthenticated) return;
+  if (pollRefreshTimer !== null) return;
+  pollRefreshTimer = setTimeout(() => {
+    pollRefreshTimer = null;
+    if (auth.isAuthenticated) void loadPolls();
+  }, 150);
+}
+
+useGuildPollsSocket({
+  guildIds: userGuildIds,
+  onChanged: ({ guildId, pollId }) => {
+    const gid = Number(guildId);
+    const pid = Number(pollId);
+    if (!Number.isFinite(gid) || gid <= 0) return;
+    if (!Number.isFinite(pid) || pid <= 0) return;
+    scheduleUserPollsReload();
+  },
+  onDeleted: ({ guildId, pollId }) => {
+    const gid = Number(guildId);
+    const pid = Number(pollId);
+    if (!Number.isFinite(gid) || gid <= 0) return;
+    if (!Number.isFinite(pid) || pid <= 0) return;
+    polls.value = polls.value.filter((p) => !(p.guild_id === gid && p.id === pid));
+  },
+});
 
 async function loadNotifications() {
   if (!auth.isAuthenticated) return;
@@ -175,6 +232,23 @@ async function deleteNotification(id: number) {
     // ignore
   } finally {
     deletingNotificationId.value = null;
+  }
+}
+
+async function deleteNotificationsMany(ids: number[]) {
+  if (bulkDeletingNotifications.value) return;
+  const clean = ids.filter((id) => Number.isFinite(id) && id > 0);
+  if (clean.length === 0) return;
+  bulkDeletingNotifications.value = true;
+  try {
+    const removed = await notificationsApi.deleteMany(clean);
+    const removedSet = new Set(removed.length > 0 ? removed : clean);
+    notifications.value = notifications.value.filter((x) => !removedSet.has(x.id));
+    unreadCount.value = notifications.value.filter((x) => !x.read_at).length;
+  } catch {
+    // ignore
+  } finally {
+    bulkDeletingNotifications.value = false;
   }
 }
 
@@ -295,12 +369,14 @@ function isNavActive(itemTo: string): boolean {
             :has-more="notificationsHasMore"
             :expanded-id="expandedId"
             :deleting-id="deletingNotificationId"
+            :bulk-deleting="bulkDeletingNotifications"
             :timezone="auth.user?.timezone"
             @load="loadNotifications"
             @load-more="loadMoreNotifications"
             @notification-click="onNotificationClick"
             @notification-mouse-enter="onNotificationMouseEnter"
             @delete="deleteNotification"
+            @delete-many="deleteNotificationsMany"
           />
         </template>
         <!-- Тема: dropdown в стиле shadcn -->

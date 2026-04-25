@@ -31,6 +31,7 @@ class UserResource extends JsonResource
             'timezone' => $this->timezone ?? 'UTC',
             'banned_at' => $this->banned_at?->toIso8601String(),
             'permissions' => $this->getAllPermissionSlugs(),
+            'guild_ids' => $this->guildIds(),
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->map(fn ($r) => [
                 'id' => $r->id,
                 'name' => $r->name,

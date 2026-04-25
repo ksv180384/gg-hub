@@ -67,4 +67,23 @@ export const notificationsApi = {
       throw new Error(d?.message ?? 'Ошибка удаления');
     }
   },
+
+  async deleteMany(ids: number[]): Promise<number[]> {
+    const clean = ids
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    if (clean.length === 0) return [];
+    const res = await http.fetchDeleteWithBody<{
+      data?: { deleted_ids?: number[] };
+    }>('/notifications', { ids: clean });
+    if (res.status >= 400) {
+      const d = res.data as { message?: string } | null;
+      throw new Error(d?.message ?? 'Ошибка массового удаления');
+    }
+    const raw = res.data?.data?.deleted_ids;
+    if (!Array.isArray(raw)) return clean;
+    return raw
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+  },
 };

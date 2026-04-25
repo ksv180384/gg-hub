@@ -88,6 +88,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::delete('/notifications', [NotificationController::class, 'destroyMany']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
     Route::get('/guilds/{guild}/events', [EventController::class, 'index'])->middleware('guild.member');

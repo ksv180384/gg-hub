@@ -33,10 +33,15 @@ import {
   type CreateGuildPollPayload,
   type UpdateGuildPollPayload,
 } from '@/shared/api/guildsApi';
+import { useGuildPollsSocket } from '@/shared/lib/useGuildPollsSocket';
 
 const route = useRoute();
 const siteContext = useSiteContextStore();
 const guildId = computed(() => Number(route.params.id));
+const guildIdsForSocket = computed<number[]>(() => {
+  const id = Number(route.params.id);
+  return Number.isFinite(id) && id > 0 ? [id] : [];
+});
 
 const guild = ref<Guild | null>(null);
 const polls = ref<GuildPollItem[]>([]);
@@ -379,6 +384,34 @@ watch(
   },
   { deep: true, immediate: true }
 );
+
+async function refetchPollFromSocket(pollId: number) {
+  const gid = guildId.value;
+  if (!Number.isFinite(gid) || gid <= 0) return;
+  try {
+    const updated = await guildsApi.getGuildPoll(gid, pollId);
+    const idx = polls.value.findIndex((p) => p.id === pollId);
+    if (idx !== -1) {
+      polls.value[idx] = updated;
+    } else {
+      polls.value = [updated, ...polls.value];
+    }
+  } catch {
+    // ignore
+  }
+}
+
+useGuildPollsSocket({
+  guildIds: guildIdsForSocket,
+  onChanged: ({ guildId: gid, pollId }) => {
+    if (gid !== guildId.value) return;
+    refetchPollFromSocket(pollId);
+  },
+  onDeleted: ({ guildId: gid, pollId }) => {
+    if (gid !== guildId.value) return;
+    polls.value = polls.value.filter((p) => p.id !== pollId);
+  },
+});
 </script>
 
 <template>

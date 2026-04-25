@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Notification\BulkDeleteNotificationsAction;
 use App\Actions\Notification\DeleteNotificationAction;
 use App\Actions\Notification\ListNotificationsAction;
 use App\Actions\Notification\MarkNotificationReadAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Notification\BulkDeleteNotificationsRequest;
 use App\Http\Resources\Notification\NotificationResource;
 use App\Models\Notification;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +18,8 @@ class NotificationController extends Controller
     public function __construct(
         private ListNotificationsAction $listNotificationsAction,
         private MarkNotificationReadAction $markNotificationReadAction,
-        private DeleteNotificationAction $deleteNotificationAction
+        private DeleteNotificationAction $deleteNotificationAction,
+        private BulkDeleteNotificationsAction $bulkDeleteNotificationsAction
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -44,5 +47,17 @@ class NotificationController extends Controller
     {
         ($this->deleteNotificationAction)($request->user(), $notification);
         return response()->json(null, 204);
+    }
+
+    public function destroyMany(BulkDeleteNotificationsRequest $request): JsonResponse
+    {
+        $deletedIds = ($this->bulkDeleteNotificationsAction)(
+            $request->user(),
+            $request->notificationIds()
+        );
+
+        return response()->json([
+            'data' => ['deleted_ids' => $deletedIds],
+        ]);
     }
 }

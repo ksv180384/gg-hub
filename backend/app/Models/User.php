@@ -98,6 +98,26 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(\Domains\Character\Models\Character::class);
     }
 
+    /**
+     * ID гильдий, в которых пользователь состоит через любого из своих персонажей.
+     *
+     * @return array<int, int>
+     */
+    public function guildIds(): array
+    {
+        return \Domains\Guild\Models\GuildMember::query()
+            ->whereIn('character_id', function ($q) {
+                $q->select('id')
+                    ->from('characters')
+                    ->where('user_id', $this->id);
+            })
+            ->distinct()
+            ->pluck('guild_id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+    }
+
     public function notifications(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Models\Notification::class);

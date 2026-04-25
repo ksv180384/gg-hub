@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { RouterLink } from 'vue-router';
-import { Badge, RelativeTime, Sheet } from '@/shared/ui';
+import { Badge, Button, RelativeTime, Sheet } from '@/shared/ui';
 import type { NotificationItem } from '@/shared/api/notificationsApi';
 
 function getNotificationLinkText(link: string | null | undefined): string {
@@ -25,6 +25,7 @@ interface Props {
   hasMore: boolean;
   expandedId: number | null;
   deletingId: number | null;
+  bulkDeleting: boolean;
   timezone?: string | null;
 }
 
@@ -39,6 +40,7 @@ const emit = defineEmits<{
   (e: 'notification-click', n: NotificationItem): void;
   (e: 'notification-mouse-enter', n: NotificationItem): void;
   (e: 'delete', id: number): void;
+  (e: 'delete-many', ids: number[]): void;
 }>();
 
 const open = computed({
@@ -54,6 +56,81 @@ const badgeText = computed(() => {
   return String(props.unreadCount);
 });
 
+/** Режим выбора: показываем чекбоксы и нижнюю панель с действиями. */
+const selectionMode = ref(false);
+const selectedIds = ref<Set<number>>(new Set());
+
+function toggleSelected(id: number) {
+  const next = new Set(selectedIds.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  selectedIds.value = next;
+}
+
+function isSelected(id: number): boolean {
+  return selectedIds.value.has(id);
+}
+
+const selectedCount = computed(() => selectedIds.value.size);
+
+const allSelected = computed(
+  () =>
+    props.notifications.length > 0 &&
+    props.notifications.every((n) => selectedIds.value.has(n.id))
+);
+
+function toggleSelectAll() {
+  if (allSelected.value) {
+    selectedIds.value = new Set();
+    return;
+  }
+  selectedIds.value = new Set(props.notifications.map((n) => n.id));
+}
+
+function enterSelectionMode(initialId?: number) {
+  selectionMode.value = true;
+  if (initialId) {
+    const next = new Set(selectedIds.value);
+    next.add(initialId);
+    selectedIds.value = next;
+  }
+}
+
+function exitSelectionMode() {
+  selectionMode.value = false;
+  selectedIds.value = new Set();
+}
+
+function onConfirmBulkDelete() {
+  if (selectedCount.value === 0) return;
+  emit('delete-many', Array.from(selectedIds.value));
+}
+
+watch(
+  () => props.notifications,
+  (items) => {
+    if (selectedIds.value.size === 0) return;
+    const existing = new Set(items.map((n) => n.id));
+    const filtered = new Set<number>();
+    selectedIds.value.forEach((id) => {
+      if (existing.has(id)) filtered.add(id);
+    });
+    if (filtered.size !== selectedIds.value.size) {
+      selectedIds.value = filtered;
+    }
+    if (selectionMode.value && filtered.size === 0 && items.length === 0) {
+      selectionMode.value = false;
+    }
+  }
+);
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) exitSelectionMode();
+  }
+);
+
 function onScroll(e: Event) {
   const el = e.target as HTMLElement;
   if (!el || !props.hasMore || props.loadingMore || props.loading) return;
@@ -61,6 +138,19 @@ function onScroll(e: Event) {
   if (el.scrollHeight - el.scrollTop - el.clientHeight < threshold) {
     emit('load-more');
   }
+}
+
+function onItemClick(n: NotificationItem) {
+  if (selectionMode.value) {
+    toggleSelected(n.id);
+    return;
+  }
+  emit('notification-click', n);
+}
+
+function onItemMouseEnter(n: NotificationItem) {
+  if (selectionMode.value) return;
+  emit('notification-mouse-enter', n);
 }
 </script>
 
@@ -99,6 +189,66 @@ function onScroll(e: Event) {
     <template #title>Оповещения</template>
     <div class="flex min-h-0 flex-1 flex-col">
       <div
+        v-if="notifications.length > 0 || selectionMode"
+        class="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 pb-2 pr-10"
+      >
+        <template v-if="selectionMode">
+          <label
+            class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-sm text-muted-foreground"
+          >
+            <input
+              type="checkbox"
+              class="h-4 w-4 shrink-0 cursor-pointer accent-primary"
+              :checked="allSelected"
+              :disabled="notifications.length === 0"
+              @change="toggleSelectAll"
+            />
+            <span class="truncate">
+              Выбрано: {{ selectedCount }}
+            </span>
+          </label>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="h-8 px-2 text-xs"
+            :disabled="bulkDeleting"
+            @click="exitSelectionMode"
+          >
+            Отмена
+          </Button>
+        </template>
+        <template v-else>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-8 w-8 shrink-0"
+            :disabled="notifications.length === 0"
+            aria-label="Выбрать оповещения"
+            title="Выбрать оповещения"
+            @click="enterSelectionMode()"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="h-4 w-4"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <path d="m8 12 3 3 5-6" />
+            </svg>
+          </Button>
+          <span class="truncate text-xs text-muted-foreground">
+            Всего: {{ notifications.length }}
+          </span>
+        </template>
+      </div>
+      <div
         ref="notificationsListRef"
         class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pt-2"
         @scroll="onScroll"
@@ -117,19 +267,29 @@ function onScroll(e: Event) {
             :key="n.id"
             role="button"
             tabindex="0"
-            class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+            class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
             :class="[
-              { 'bg-muted/50': expandedId === n.id },
+              { 'bg-muted/50': expandedId === n.id && !selectionMode },
               !n.read_at && 'bg-primary/10',
+              selectionMode && isSelected(n.id) && 'bg-accent',
             ]"
-            @click="emit('notification-click', n)"
-            @keydown.enter.prevent="emit('notification-click', n)"
-            @keydown.space.prevent="emit('notification-click', n)"
-            @mouseenter="emit('notification-mouse-enter', n)"
+            @click="onItemClick(n)"
+            @keydown.enter.prevent="onItemClick(n)"
+            @keydown.space.prevent="onItemClick(n)"
+            @mouseenter="onItemMouseEnter(n)"
           >
+            <input
+              v-if="selectionMode"
+              type="checkbox"
+              class="h-4 w-4 shrink-0 cursor-pointer accent-primary"
+              :checked="isSelected(n.id)"
+              :aria-label="`Выбрать оповещение ${n.id}`"
+              @click.stop="toggleSelected(n.id)"
+              @change.stop
+            />
             <div class="min-w-0 flex-1">
               <span class="block break-words">
-                {{ expandedId === n.id ? n.message : truncateMessage(n.message, 60) }}
+                {{ expandedId === n.id && !selectionMode ? n.message : truncateMessage(n.message, 60) }}
               </span>
               <span
                 v-if="n.created_at"
@@ -143,7 +303,7 @@ function onScroll(e: Event) {
                 />
               </span>
               <RouterLink
-                v-if="n.link"
+                v-if="n.link && !selectionMode"
                 :to="n.link"
                 class="mt-1.5 inline-block text-xs font-medium text-primary underline hover:no-underline"
                 @click="emit('update:open', false)"
@@ -152,6 +312,7 @@ function onScroll(e: Event) {
               </RouterLink>
             </div>
             <button
+              v-if="!selectionMode"
               type="button"
               class="shrink-0 rounded p-1 opacity-70 hover:opacity-100 hover:bg-destructive/20 disabled:pointer-events-none"
               aria-label="Удалить"
@@ -211,6 +372,37 @@ function onScroll(e: Event) {
             <span class="text-sm text-muted-foreground">Загрузка…</span>
           </div>
         </template>
+      </div>
+      <div
+        v-if="selectionMode"
+        class="flex shrink-0 items-center justify-between gap-2 border-t border-border/60 pt-3"
+      >
+        <span class="text-xs text-muted-foreground">
+          {{ selectedCount > 0 ? `Удалить ${selectedCount}?` : 'Выберите оповещения' }}
+        </span>
+        <Button
+          variant="destructive"
+          size="sm"
+          class="h-8 px-3"
+          :disabled="selectedCount === 0 || bulkDeleting"
+          @click="onConfirmBulkDelete"
+        >
+          <svg
+            v-if="bulkDeleting"
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            class="mr-1.5 h-3.5 w-3.5 animate-spin"
+          >
+            <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+          </svg>
+          Удалить выбранные
+        </Button>
       </div>
     </div>
   </Sheet>
