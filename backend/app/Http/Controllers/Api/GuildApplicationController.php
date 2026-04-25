@@ -281,6 +281,7 @@ class GuildApplicationController extends Controller
             'votes as dislikes_count' => fn ($q) => $q->where('vote', -1),
         ]);
         $application->setAttribute('my_vote', $value);
+        $application->loadMissing(['character.gameClasses', 'guild.applicationFormFields']);
 
         return response()->json(new GuildApplicationResource($application));
     }
@@ -304,6 +305,7 @@ class GuildApplicationController extends Controller
             'votes as dislikes_count' => fn ($q) => $q->where('vote', -1),
         ]);
         $application->setAttribute('my_vote', null);
+        $application->loadMissing(['character.gameClasses', 'guild.applicationFormFields']);
 
         return response()->json(new GuildApplicationResource($application));
     }
