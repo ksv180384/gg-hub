@@ -5,6 +5,7 @@
 import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 import type { PermissionGroupDto } from '@/shared/api/accessApi';
+import type { GameClass } from '@/shared/api/gamesApi';
 
 export interface GuildGame {
   id: number;
@@ -133,7 +134,8 @@ export interface GuildApplicationItem {
   character?: {
     id: number;
     name: string;
-    game_classes?: { id: number; name: string }[];
+    /** Классы персонажа (для отображения в карточке заявки). */
+    game_classes?: GameClass[];
   };
   form_data: Record<number, string>;
   /** Соответствие id поля формы → название (для отображения вместо «Поле 1», «Поле 2»). */
@@ -337,13 +339,20 @@ export const guildsApi = {
   /** Список заявок в гильдию (GET /guilds/:id/applications). Только для участников с правом просмотра заявок. */
   async getGuildApplications(
     guildId: number,
-    params?: { page?: number; per_page?: number }
+    params?: {
+      page?: number;
+      per_page?: number;
+      status?: GuildApplicationItem['status'];
+      character_name?: string;
+    }
   ): Promise<{ applications: GuildApplicationItem[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }> {
     const page = params?.page ?? 1;
     const perPage = params?.per_page ?? 20;
+    const status = params?.status;
+    const characterName = params?.character_name?.trim();
     const res = await http.fetchGet<{ data: GuildApplicationItem[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }>(
       `/guilds/${guildId}/applications`,
-      { params: { page, per_page: perPage } }
+      { params: { page, per_page: perPage, ...(status ? { status } : {}), ...(characterName ? { character_name: characterName } : {}) } }
     );
     throwOnError(res, 'Ошибка загрузки заявок');
     const data = res.data as { data?: GuildApplicationItem[]; meta?: { current_page: number; last_page: number; per_page: number; total: number } } | null;

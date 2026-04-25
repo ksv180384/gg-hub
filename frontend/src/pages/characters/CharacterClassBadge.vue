@@ -16,6 +16,6 @@ defineProps<{
       :title="gameClass.name_ru || gameClass.name"
       class="h-6 w-6 shrink-0 rounded object-cover"
     />
-    <span>{{ gameClass.name_ru || gameClass.name }}</span>
+    <span class="font-medium text-foreground">{{ gameClass.name_ru || gameClass.name }}</span>
   </span>
 </template>

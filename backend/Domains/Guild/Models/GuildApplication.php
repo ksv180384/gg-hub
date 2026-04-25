@@ -2,6 +2,7 @@
 
 namespace Domains\Guild\Models;
 
+use App\Core\Traits\HasFilter;
 use Domains\Character\Models\Character;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GuildApplication extends Model
 {
+    use HasFilter;
+
     protected $fillable = [
         'guild_id',
         'character_id',

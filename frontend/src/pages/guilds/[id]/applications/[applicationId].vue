@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
+import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -38,11 +39,7 @@ function onEscape(e: KeyboardEvent) {
 }
 
 const characterName = computed(() => application.value?.character?.name ?? '—');
-const characterGameClasses = computed(() => {
-  const classes = application.value?.character?.game_classes;
-  if (!classes?.length) return null;
-  return classes.map((c) => c.name).join(', ');
-});
+const characterGameClasses = computed(() => application.value?.character?.game_classes ?? []);
 const statusLabel = computed(() => {
   const s = application.value?.status;
   if (s === 'pending') return 'На рассмотрении';
@@ -181,11 +178,42 @@ async function setVote(vote: 'like' | 'dislike') {
 
     <template v-else-if="application">
       <Card class="max-w-2xl mx-auto">
-        <CardHeader class="flex flex-row items-end justify-between gap-4 flex-wrap">
-          <div>
-            <CardTitle class="text-xl">
-              {{ isInvitation ? 'Приглашение: ' : 'Заявка: ' }}{{ characterName }}
-            </CardTitle>
+        <CardHeader class="flex flex-row items-start justify-between gap-4 flex-wrap">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="shrink-0"
+                aria-label="К списку заявок"
+                @click="router.push({ name: 'guild-applications', params: { id: String(guildId) } })"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </Button>
+              <CardTitle class="text-xl min-w-0 truncate">
+                {{ isInvitation ? 'Приглашение: ' : 'Заявка: ' }}{{ characterName }}
+              </CardTitle>
+            </div>
+            <div v-if="characterGameClasses.length" class="mt-1 flex flex-wrap gap-2">
+              <CharacterClassBadge
+                v-for="gc in characterGameClasses"
+                :key="gc.id"
+                :game-class="gc"
+              />
+            </div>
             <p v-if="isInvitation && inviterName" class="mt-0.5 text-sm text-muted-foreground">
               Приглашение отправил(а): {{ inviterName }}
             </p>
@@ -199,13 +227,6 @@ async function setVote(vote: 'like' | 'dislike') {
               </template>
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            @click="router.push({ name: 'guild-applications', params: { id: String(guildId) } })"
-          >
-            К списку заявок
-          </Button>
         </CardHeader>
         <CardContent class="space-y-6">
           <p v-if="error" class="text-sm text-destructive">{{ error }}</p>

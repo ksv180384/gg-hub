@@ -3,13 +3,19 @@
 namespace Domains\Guild\Actions;
 
 use App\Models\User;
+use App\Core\Filters\Filter;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplicationVote;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ListGuildApplicationsAction
 {
-    public function __invoke(Guild $guild, int $perPage = 20, ?User $user = null): LengthAwarePaginator
+    public function __invoke(
+        Guild $guild,
+        int $perPage = 20,
+        ?User $user = null,
+        ?Filter $filter = null
+    ): LengthAwarePaginator
     {
         $query = $guild->applications()
             ->with(['character', 'invitedByCharacter', 'revokedByCharacter'])
@@ -19,6 +25,10 @@ class ListGuildApplicationsAction
             ])
             ->orderByDesc('created_at')
         ;
+
+        if ($filter) {
+            $query->filter($filter);
+        }
 
         if ($user) {
             $query->addSelect([

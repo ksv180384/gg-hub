@@ -11,6 +11,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\SendGuildInvitationRequest;
 use App\Http\Requests\Guild\SubmitGuildApplicationRequest;
 use App\Http\Requests\Guild\VoteGuildApplicationRequest;
+use App\Http\Requests\Guild\GuildApplicationFilterRequest;
+use App\Filters\GuildApplicationFilter;
 use App\Http\Resources\Guild\GuildApplicationResource;
 use Domains\Guild\Actions\ApproveGuildApplicationAction;
 use Domains\Guild\Actions\CreateGuildInvitationAction;
@@ -45,11 +47,12 @@ class GuildApplicationController extends Controller
     /**
      * Список заявок в гильдию. Доступно участникам с правом «Просмотр заявок в гильдию».
      */
-    public function index(Request $request, Guild $guild): JsonResponse
+    public function index(GuildApplicationFilterRequest $request, Guild $guild): JsonResponse
     {
         $perPage = (int) $request->input('per_page', 20);
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
-        $paginator = ($this->listAction)($guild, $perPage, $request->user());
+        $filter = new GuildApplicationFilter($request);
+        $paginator = ($this->listAction)($guild, $perPage, $request->user(), $filter);
 
         return response()->json([
             'data' => GuildApplicationResource::collection($paginator->items()),
