@@ -16,6 +16,7 @@ import {
 import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
+import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import CharacterClassBadge from './CharacterClassBadge.vue';
 
@@ -25,6 +26,7 @@ const siteContext = useSiteContextStore();
 const game = computed(() => siteContext.game);
 
 const characters = ref<Character[]>([]);
+const allTags = ref<Tag[]>([]);
 const loading = ref(false);
 const refreshing = ref(false);
 const error = ref<string | null>(null);
@@ -34,6 +36,7 @@ const filterName = ref('');
 const filterLocalizationIds = ref<number[]>([]);
 const filterServerIds = ref<number[]>([]);
 const filterGameClassIds = ref<number[]>([]);
+const filterCommonTagIds = ref<number[]>([]);
 
 // Данные для фильтра
 const gameDetail = ref<Game | null>(null);
@@ -79,6 +82,17 @@ const gameClassMultiOptions = computed(() =>
   }))
 );
 
+const commonTags = computed((): Tag[] =>
+  (allTags.value ?? [])
+    .filter((t) => !t.is_hidden)
+    .filter((t) => (t.used_by_user_id == null) && (t.used_by_guild_id == null))
+    .sort((a, b) => a.name.localeCompare(b.name))
+);
+
+const commonTagMultiOptions = computed(() =>
+  commonTags.value.map((t) => ({ value: t.id, label: t.name }))
+);
+
 function onLocalizationsChange(value: (string | number)[]) {
   filterLocalizationIds.value = value.map(Number);
   const serverIdSet = new Set(filterServers.value.map((s) => s.id));
@@ -92,11 +106,16 @@ function onGameClassesChange(value: (string | number)[]) {
   filterGameClassIds.value = value.map(Number);
 }
 
+function onCommonTagsChange(value: (string | number)[]) {
+  filterCommonTagIds.value = value.map(Number);
+}
+
 function resetFilter() {
   filterName.value = '';
   filterLocalizationIds.value = [];
   filterServerIds.value = [];
   filterGameClassIds.value = [];
+  filterCommonTagIds.value = [];
 }
 
 function applyFilterFromQuery() {
@@ -126,6 +145,15 @@ function applyFilterFromQuery() {
       .map((id) => Number(id.trim()))
       .filter((id) => !Number.isNaN(id));
   }
+
+  if (Array.isArray(q.common_tag_ids)) {
+    filterCommonTagIds.value = q.common_tag_ids.map((id) => Number(id)).filter((id) => !Number.isNaN(id));
+  } else if (typeof q.common_tag_ids === 'string' && q.common_tag_ids.trim() !== '') {
+    filterCommonTagIds.value = q.common_tag_ids
+      .split(',')
+      .map((id) => Number(id.trim()))
+      .filter((id) => !Number.isNaN(id));
+  }
 }
 
 function syncFilterToQuery() {
@@ -139,6 +167,9 @@ function syncFilterToQuery() {
   }
   if (filterGameClassIds.value.length) {
     query.game_class_ids = filterGameClassIds.value.join(',');
+  }
+  if (filterCommonTagIds.value.length) {
+    query.common_tag_ids = filterCommonTagIds.value.join(',');
   }
   router.replace({ query: Object.keys(query).length ? query : {} });
 }
@@ -160,6 +191,17 @@ async function loadFilterOptions() {
     gameDetail.value = null;
   } finally {
     loadingFilterOptions.value = false;
+  }
+}
+
+async function loadTags() {
+  try {
+    allTags.value = await tagsApi.getTags(false);
+    const allowedCommonIds = new Set(commonTags.value.map((t) => t.id));
+    filterCommonTagIds.value = filterCommonTagIds.value.filter((id) => allowedCommonIds.has(id));
+  } catch {
+    allTags.value = [];
+    filterCommonTagIds.value = [];
   }
 }
 
@@ -193,18 +235,31 @@ async function loadCharacters(showFullLoading = false) {
   }
 }
 
+const visibleCharacters = computed(() => {
+  if (!filterCommonTagIds.value.length) return characters.value;
+  const required = new Set(filterCommonTagIds.value);
+  return characters.value.filter((c) => {
+    const ids = new Set((c.tags ?? []).map((t) => t.id));
+    for (const id of required) {
+      if (!ids.has(id)) return false;
+    }
+    return true;
+  });
+});
+
 const filterReady = ref(false);
 
 onMounted(async () => {
   applyFilterFromQuery();
   await loadFilterOptions();
+  await loadTags();
   await loadCharacters(true);
   filterReady.value = true;
 });
 
 let loadCharactersTimeout: ReturnType<typeof setTimeout> | null = null;
 watch(
-  [filterName, filterLocalizationIds, filterServerIds, filterGameClassIds],
+  [filterName, filterLocalizationIds, filterServerIds, filterGameClassIds, filterCommonTagIds],
   () => {
     if (!filterReady.value) return;
     if (loadCharactersTimeout) clearTimeout(loadCharactersTimeout);
@@ -288,6 +343,19 @@ watch(
             @update:model-value="onGameClassesChange"
           />
         </div>
+        <div class="flex flex-col gap-1">
+          <Label class="text-xs text-muted-foreground">Общие теги</Label>
+          <MultiSelect
+            :model-value="filterCommonTagIds"
+            :options="commonTagMultiOptions"
+            placeholder="Все"
+            search-placeholder="Поиск тега..."
+            empty-text="Нет общих тегов"
+            :disabled="!commonTags.length"
+            trigger-class="min-w-[160px]"
+            @update:model-value="onCommonTagsChange"
+          />
+        </div>
         <Button
           variant="outline"
           size="icon"
@@ -324,12 +392,12 @@ watch(
           </CardHeader>
           <CardContent>
             <p v-if="loading && characters.length === 0" class="text-sm text-muted-foreground">Загрузка…</p>
-            <p v-else-if="characters.length === 0" class="text-sm text-muted-foreground">
+            <p v-else-if="visibleCharacters.length === 0" class="text-sm text-muted-foreground">
               По выбранным критериям персонажей не найдено.
             </p>
             <ul v-else class="space-y-3">
               <li
-                v-for="c in characters"
+                v-for="c in visibleCharacters"
                 :key="c.id"
                 class="flex flex-wrap items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 sm:gap-4 cursor-pointer"
                 @click="router.push({ name: 'game-character-show', params: { id: c.id } })"
