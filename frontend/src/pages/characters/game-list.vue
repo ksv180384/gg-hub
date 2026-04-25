@@ -386,58 +386,51 @@ watch(
           <span class="text-xs text-muted-foreground">Загрузка…</span>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Список персонажей</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p v-if="loading && characters.length === 0" class="text-sm text-muted-foreground">Загрузка…</p>
-            <p v-else-if="visibleCharacters.length === 0" class="text-sm text-muted-foreground">
-              По выбранным критериям персонажей не найдено.
-            </p>
-            <ul v-else class="space-y-3">
-              <li
-                v-for="c in visibleCharacters"
-                :key="c.id"
-                class="flex flex-wrap items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 sm:gap-4 cursor-pointer"
-                @click="router.push({ name: 'game-character-show', params: { id: c.id } })"
-              >
-                <Avatar
-                  :src="c.avatar_url ?? undefined"
-                  :alt="c.name"
-                  :fallback="c.name.slice(0, 2).toUpperCase()"
-                  class="h-12 w-12 shrink-0"
+        <p v-if="loading && characters.length === 0" class="text-sm text-muted-foreground">Загрузка…</p>
+        <p v-else-if="visibleCharacters.length === 0" class="text-sm text-muted-foreground">
+          По выбранным критериям персонажей не найдено.
+        </p>
+        <ul v-else class="space-y-3">
+          <li
+            v-for="c in visibleCharacters"
+            :key="c.id"
+            class="flex flex-wrap items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 sm:gap-4 cursor-pointer"
+            @click="router.push({ name: 'game-character-show', params: { id: c.id } })"
+          >
+            <Avatar
+              :src="c.avatar_url ?? undefined"
+              :alt="c.name"
+              :fallback="c.name.slice(0, 2).toUpperCase()"
+              class="h-12 w-12 shrink-0"
+            />
+            <div class="min-w-0 flex-1">
+              <p class="font-medium">{{ c.name }}</p>
+              <p class="text-sm text-muted-foreground">
+                <span v-if="c.localization?.name">{{ c.localization.name }}</span>
+                <template v-if="c.localization?.name && c.server?.name"> · </template>
+                <span v-if="c.server?.name">{{ c.server.name }}</span>
+                <template v-if="!c.localization?.name && !c.server?.name">—</template>
+              </p>
+              <div v-if="c.game_classes?.length" class="mt-1 flex flex-wrap items-center gap-1.5">
+                <CharacterClassBadge
+                  v-for="gc in c.game_classes"
+                  :key="gc.id"
+                  :game-class="gc"
                 />
-                <div class="min-w-0 flex-1">
-                  <p class="font-medium">{{ c.name }}</p>
-                  <p class="text-sm text-muted-foreground">
-                    <span v-if="c.localization?.name">{{ c.localization.name }}</span>
-                    <template v-if="c.localization?.name && c.server?.name"> · </template>
-                    <span v-if="c.server?.name">{{ c.server.name }}</span>
-                    <template v-if="!c.localization?.name && !c.server?.name">—</template>
-                  </p>
-                <div v-if="c.game_classes?.length" class="mt-1 flex flex-wrap items-center gap-1.5">
-                  <CharacterClassBadge
-                    v-for="gc in c.game_classes"
-                    :key="gc.id"
-                    :game-class="gc"
-                  />
-                </div>
-                <div v-if="c.tags?.length" class="mt-1 flex flex-wrap items-center gap-1">
-                  <Badge
-                    v-for="tag in c.tags"
-                    :key="tag.id"
-                    variant="outline"
-                    class="text-xs font-normal"
-                  >
-                    {{ tag.name }}
-                  </Badge>
-                </div>
               </div>
-            </li>
-            </ul>
-          </CardContent>
-        </Card>
+              <div v-if="c.tags?.length" class="mt-1 flex flex-wrap items-center gap-1">
+                <Badge
+                  v-for="tag in c.tags"
+                  :key="tag.id"
+                  variant="outline"
+                  class="text-xs font-normal"
+                >
+                  {{ tag.name }}
+                </Badge>
+              </div>
+            </div>
+          </li>
+        </ul>
       </div>
     </template>
   </div>
