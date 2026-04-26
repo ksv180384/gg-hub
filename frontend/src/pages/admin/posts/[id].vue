@@ -33,38 +33,44 @@ const canModerate = computed(
     canPublishReject.value &&
     (isPendingGlobal.value || (hasGuild.value && isPendingInGuild.value))
 );
-const isPublished = computed(
-  () =>
-    post.value?.status_global === 'published' ||
-    post.value?.status_guild === 'published'
-);
-/** В общем журнале статус «Опубликован» — тогда показываем кнопки «Скрыть» и «Заблокировать» */
+/** Опубликован в общем журнале */
 const isPublishedInGlobal = computed(() => post.value?.status_global === 'published');
+/** Опубликован в журнале гильдии */
+const isPublishedInGuild = computed(() => post.value?.status_guild === 'published');
 const isBlocked = computed(
   () => post.value?.status_global === 'blocked' || post.value?.status_guild === 'blocked'
 );
-const isBlockedForGlobal = computed(() => post.value?.status_global === 'blocked');
 
+/** Блокировка/скрытие: общее право сайта blokirovat-posty; доступно для опубликованного поста в «Общие» и/или в гильдии */
 const canBlock = computed(
   () =>
-    // canBlockPosts.value &&
-    // !!post.value &&
-    isPublishedInGlobal.value //&&
-    // !isBlockedForGlobal.value
+    canBlockPosts.value &&
+    !!post.value &&
+    (isPublishedInGlobal.value || isPublishedInGuild.value) &&
+    !isBlocked.value
 );
 
 const canHide = computed(
   () =>
-    // canBlockPosts.value &&
-    // !!post.value &&
-    isPublishedInGlobal.value// &&
-    // !isBlocked.value
+    canBlockPosts.value &&
+    !!post.value &&
+    (isPublishedInGlobal.value || isPublishedInGuild.value) &&
+    !isBlocked.value
 );
 
-/** Показывать «Разблокировать» только если пост заблокирован в общем журнале; при блокировке только в гильдии разблокировка — в гильдии */
+/** Разблокировка через админку при blocked в любом из разделов (общий и/или гильдия) */
 const canUnblock = computed(
-  () => canBlockPosts.value && !!post.value && isBlockedForGlobal.value
+  () => canBlockPosts.value && !!post.value && isBlocked.value
 );
+
+/** Вернуть в журнал после «Скрыть» или «Разблокировать» (только hidden → published, с учётом видимости) */
+const canShowHidden = computed(() => {
+  const p = post.value;
+  if (!p || !canBlockPosts.value || isBlocked.value) return false;
+  const globalOk = p.status_global === 'hidden' && p.is_visible_global === true;
+  const guildOk = p.status_guild === 'hidden' && p.is_visible_guild === true;
+  return globalOk || guildOk;
+});
 
 function redirectToJournal() {
   router.replace({ name: 'admin-journal' });
@@ -161,6 +167,20 @@ async function unblock() {
   }
 }
 
+async function showPostAgain() {
+  if (!postId.value) return;
+  submitting.value = true;
+  error.value = null;
+  try {
+    post.value = await postsApi.unhideAdminPost(postId.value);
+    await adminJournal.refreshPendingCount();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось вернуть пост в журнал';
+  } finally {
+    submitting.value = false;
+  }
+}
+
 function goToUser(userId: number) {
   router.push({ name: 'admin-users-show', params: { id: String(userId) } });
 }
@@ -193,7 +213,7 @@ onMounted(loadPost);
           />
 
           <div
-            v-if="canModerate || canBlock || canHide || canUnblock"
+            v-if="canModerate || canBlock || canHide || canUnblock || canShowHidden"
             class="flex flex-wrap items-center justify-end gap-3 pt-2"
           >
 <!--            <span v-if="canModerate" class="text-xs text-muted-foreground">-->
@@ -230,6 +250,15 @@ onMounted(loadPost);
               @click="unblock"
             >
               {{ submitting ? 'Обработка…' : 'Разблокировать' }}
+            </Button>
+            <Button
+              v-if="canShowHidden"
+              variant="default"
+              size="sm"
+              :disabled="submitting"
+              @click="showPostAgain"
+            >
+              {{ submitting ? 'Обработка…' : 'Показать' }}
             </Button>
             <Button
               v-if="canBlock"

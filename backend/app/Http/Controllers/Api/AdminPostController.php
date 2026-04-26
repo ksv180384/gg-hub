@@ -13,6 +13,7 @@ use App\Actions\Notification\CreatePostGuildPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGuildRejectedNotificationAction;
 use Domains\Post\Actions\BlockPostAction;
 use Domains\Post\Actions\HidePostAction;
+use Domains\Post\Actions\ShowHiddenPostAdminAction;
 use Domains\Post\Actions\UnblockPostAction;
 use Domains\Post\Actions\PublishGlobalPostAction;
 use Domains\Post\Actions\PublishGuildPostAction;
@@ -38,6 +39,7 @@ class AdminPostController extends Controller
         private RejectGlobalPostAction $rejectGlobalPostAction,
         private BlockPostAction $blockPostAction,
         private HidePostAction $hidePostAction,
+        private ShowHiddenPostAdminAction $showHiddenPostAdminAction,
         private UnblockPostAction $unblockPostAction,
         private CreatePostGuildPublishedNotificationAction $createPostGuildPublishedNotificationAction,
         private CreatePostGuildRejectedNotificationAction $createPostGuildRejectedNotificationAction,
@@ -66,7 +68,14 @@ class AdminPostController extends Controller
 
         $filter = $request->query('filter');
         if ($filter === 'pending_global') {
-            $query->where('status_global', PostStatus::Pending->value);
+            $query
+                ->where('status_global', PostStatus::Pending->value)
+                // Вкладка «Ожидают» — только модерация общего журнала.
+                // Посты, ожидающие публикации в гильдии (status_guild = pending), сюда не попадают.
+                ->where(function ($q) {
+                    $q->whereNull('status_guild')
+                        ->orWhere('status_guild', '!=', PostStatus::Pending->value);
+                });
         }
 
         $scope = $request->query('scope');
@@ -100,6 +109,10 @@ class AdminPostController extends Controller
 
         $pendingGlobalCount = Post::query()
             ->where('status_global', PostStatus::Pending->value)
+            ->where(function ($q) {
+                $q->whereNull('status_guild')
+                    ->orWhere('status_guild', '!=', PostStatus::Pending->value);
+            })
             ->count();
 
         $guildsWithPosts = [];
@@ -140,6 +153,10 @@ class AdminPostController extends Controller
     {
         $count = Post::query()
             ->where('status_global', PostStatus::Pending->value)
+            ->where(function ($q) {
+                $q->whereNull('status_guild')
+                    ->orWhere('status_guild', '!=', PostStatus::Pending->value);
+            })
             ->count();
 
         return response()->json(['count' => $count]);
@@ -252,6 +269,17 @@ class AdminPostController extends Controller
     {
         $post = ($this->hidePostAction)($post);
         ($this->createPostHiddenNotificationAction)($post);
+        $post->loadMissing(['character', 'character.user', 'user']);
+
+        return response()->json(new PostResource($post));
+    }
+
+    /**
+     * Показать пост снова: hidden → published там, где включена видимость (после «Скрыть» или «Разблокировать»).
+     */
+    public function unhide(Post $post): JsonResponse
+    {
+        $post = ($this->showHiddenPostAdminAction)($post);
         $post->loadMissing(['character', 'character.user', 'user']);
 
         return response()->json(new PostResource($post));

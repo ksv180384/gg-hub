@@ -10,7 +10,7 @@ import {
   type Ref,
   type ShallowRef,
 } from 'vue';
-import { io, type Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 export type GuildAuctionWheelEntry =
   | { kind: 'guild'; character_id: number }
@@ -86,47 +86,54 @@ export function useGuildAuctionWheelSocket(options: {
     });
   }
 
+  async function loadIo() {
+    const mod = await import('socket.io-client');
+    return mod.io;
+  }
+
   onMounted(() => {
     if (!configured || import.meta.env.SSR) return;
 
-    const s = io(socketUrlForIo, {
-      transports: ['websocket', 'polling'],
-      path: '/socket.io',
-      autoConnect: true,
-    });
-    socketRef.value = s;
+    void loadIo().then((io) => {
+      const s = io(socketUrlForIo, {
+        transports: ['websocket', 'polling'],
+        path: '/socket.io',
+        autoConnect: true,
+      });
+      socketRef.value = s;
 
-    s.on('connect', () => {
-      connected.value = true;
-      connectError.value = null;
-      hasServerState.value = false;
-      const gid = options.guildId.value;
-      if (gid > 0) {
-        s.emit('auction:join', { guildId: gid });
-      }
-    });
+      s.on('connect', () => {
+        connected.value = true;
+        connectError.value = null;
+        hasServerState.value = false;
+        const gid = options.guildId.value;
+        if (gid > 0) {
+          s.emit('auction:join', { guildId: gid });
+        }
+      });
 
-    s.on('connect_error', (err: Error) => {
-      connected.value = false;
-      hasServerState.value = false;
-      connectError.value = err?.message || 'Ошибка подключения';
-    });
+      s.on('connect_error', (err: Error) => {
+        connected.value = false;
+        hasServerState.value = false;
+        connectError.value = err?.message || 'Ошибка подключения';
+      });
 
-    s.on('disconnect', () => {
-      connected.value = false;
-      hasServerState.value = false;
-    });
+      s.on('disconnect', () => {
+        connected.value = false;
+        hasServerState.value = false;
+      });
 
-    s.on('auction:state', (msg: { entries?: unknown }) => {
-      applyRemoteEntries(msg?.entries);
-    });
+      s.on('auction:state', (msg: { entries?: unknown }) => {
+        applyRemoteEntries(msg?.entries);
+      });
 
-    s.on('auction:entries', (msg: { entries?: unknown }) => {
-      applyRemoteEntries(msg?.entries);
-    });
+      s.on('auction:entries', (msg: { entries?: unknown }) => {
+        applyRemoteEntries(msg?.entries);
+      });
 
-    s.on('auction:spin', (payload: SpinWheelServerParams) => {
-      options.spinWheelRef.value?.spinFromServer(payload);
+      s.on('auction:spin', (payload: SpinWheelServerParams) => {
+        options.spinWheelRef.value?.spinFromServer(payload);
+      });
     });
   });
 

@@ -199,6 +199,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/posts/{post}/reject', [AdminPostController::class, 'reject'])->middleware('permission:publikovat-post');
         Route::post('/admin/posts/{post}/block', [AdminPostController::class, 'block'])->middleware('permission:blokirovat-posty');
         Route::post('/admin/posts/{post}/hide', [AdminPostController::class, 'hide'])->middleware('permission:blokirovat-posty');
+        Route::post('/admin/posts/{post}/unhide', [AdminPostController::class, 'unhide'])->middleware('permission:blokirovat-posty');
         Route::post('/admin/posts/{post}/unblock', [AdminPostController::class, 'unblock'])->middleware('permission:blokirovat-posty');
         Route::get('/admin/polls', [AdminPollController::class, 'index'])->middleware('permission:admnistrirovanie,prosmatirivat-golosovaniia');
         Route::delete('/admin/polls/{poll}', [AdminPollController::class, 'destroy'])->middleware('permission:udaliat-golosovanie');

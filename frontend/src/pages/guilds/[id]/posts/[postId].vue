@@ -75,8 +75,9 @@ async function loadData() {
     guild.value = await guildsApi.getGuildForSettings(guildId.value);
     post.value = await postsApi.getGuildPost(guildId.value, postId.value);
 
-    // Не показываем пост по гильдейской ссылке, если он не опубликован в гильдии.
-    if (post.value?.status_guild !== 'published') {
+    // Не показываем неопубликованные посты обычным участникам.
+    // Модератор с правом publikovat-post может просматривать pending/draft/hidden/blocked и т.д.
+    if (post.value?.status_guild !== 'published' && !canModeratePosts.value) {
       redirectToGuildPosts();
       return;
     }

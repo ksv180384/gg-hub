@@ -9,7 +9,7 @@
  * клиент применяет их к локальному состоянию списка/счётчика непрочитанных.
  */
 
-import { io, type Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import {
   onMounted,
   onUnmounted,
@@ -57,6 +57,11 @@ export function useNotificationsSocket(options: UseNotificationsSocketOptions) {
   const socketRef = shallowRef<Socket | null>(null);
   const { configured, url } = readSocketUrl();
 
+  async function loadIo() {
+    const mod = await import('socket.io-client');
+    return mod.io;
+  }
+
   function join(userId: number) {
     const s = socketRef.value;
     if (!s?.connected || userId <= 0) return;
@@ -72,31 +77,33 @@ export function useNotificationsSocket(options: UseNotificationsSocketOptions) {
   onMounted(() => {
     if (!configured || import.meta.env.SSR) return;
 
-    const s = io(url, {
-      transports: ['websocket', 'polling'],
-      path: '/socket.io',
-      autoConnect: true,
-    });
-    socketRef.value = s;
+    void loadIo().then((io) => {
+      const s = io(url, {
+        transports: ['websocket', 'polling'],
+        path: '/socket.io',
+        autoConnect: true,
+      });
+      socketRef.value = s;
 
-    s.on('connect', () => {
-      const id = options.userId.value ?? 0;
-      if (id > 0) join(id);
-    });
+      s.on('connect', () => {
+        const id = options.userId.value ?? 0;
+        if (id > 0) join(id);
+      });
 
-    s.on('notification:created', (event: NotificationCreatedEvent) => {
-      if (!event || event.userId !== options.userId.value) return;
-      options.onCreated?.(event);
-    });
+      s.on('notification:created', (event: NotificationCreatedEvent) => {
+        if (!event || event.userId !== options.userId.value) return;
+        options.onCreated?.(event);
+      });
 
-    s.on('notification:deleted', (event: NotificationDeletedEvent) => {
-      if (!event || event.userId !== options.userId.value) return;
-      options.onDeleted?.(event);
-    });
+      s.on('notification:deleted', (event: NotificationDeletedEvent) => {
+        if (!event || event.userId !== options.userId.value) return;
+        options.onDeleted?.(event);
+      });
 
-    s.on('notification:read', (event: NotificationReadEvent) => {
-      if (!event || event.userId !== options.userId.value) return;
-      options.onRead?.(event);
+      s.on('notification:read', (event: NotificationReadEvent) => {
+        if (!event || event.userId !== options.userId.value) return;
+        options.onRead?.(event);
+      });
     });
   });
 

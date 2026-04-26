@@ -353,6 +353,20 @@ export const postsApi = {
   },
 
   /**
+   * Показать пост снова (hidden → published по флагам видимости).
+   * Бэкенд: POST /admin/posts/{post}/unhide
+   */
+  async unhideAdminPost(postId: number): Promise<Post> {
+    const res = await http.fetchPost<PostResponse | { data: Post } | Post>(`/admin/posts/${postId}/unhide`, {});
+    throwOnError(res, 'Ошибка восстановления поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
+  /**
    * Разблокировать пост (админ): в разделах со статусом blocked выставить hidden.
    * Бэкенд: POST /admin/posts/{post}/unblock
    */

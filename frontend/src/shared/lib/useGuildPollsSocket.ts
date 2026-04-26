@@ -9,7 +9,7 @@
  * (guildId + pollId), клиент подтягивает актуальные данные через REST.
  */
 
-import { io, type Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import {
   onMounted,
   onUnmounted,
@@ -67,6 +67,11 @@ export function useGuildPollsSocket(options: UseGuildPollsSocketOptions) {
   const joinedIds = shallowRef<number[]>([]);
   const { configured, url } = readSocketUrl();
 
+  async function loadIo() {
+    const mod = await import('socket.io-client');
+    return mod.io;
+  }
+
   function join(guildId: number) {
     const s = socketRef.value;
     if (!s?.connected || guildId <= 0) return;
@@ -94,37 +99,39 @@ export function useGuildPollsSocket(options: UseGuildPollsSocketOptions) {
   onMounted(() => {
     if (!configured || import.meta.env.SSR) return;
 
-    const s = io(url, {
-      transports: ['websocket', 'polling'],
-      path: '/socket.io',
-      autoConnect: true,
-    });
-    socketRef.value = s;
+    void loadIo().then((io) => {
+      const s = io(url, {
+        transports: ['websocket', 'polling'],
+        path: '/socket.io',
+        autoConnect: true,
+      });
+      socketRef.value = s;
 
-    s.on('connect', () => {
-      const ids = normalizeIds(options.guildIds.value);
-      joinedIds.value = [];
-      syncRooms(ids);
-    });
+      s.on('connect', () => {
+        const ids = normalizeIds(options.guildIds.value);
+        joinedIds.value = [];
+        syncRooms(ids);
+      });
 
-    s.on('guild-poll:changed', (event: GuildPollChangedEvent) => {
-      if (!event) return;
-      const gid = Number(event.guildId);
-      const pid = Number(event.pollId);
-      if (!Number.isFinite(gid) || gid <= 0) return;
-      if (!Number.isFinite(pid) || pid <= 0) return;
-      if (!joinedIds.value.includes(gid)) return;
-      options.onChanged?.({ guildId: gid, pollId: pid });
-    });
+      s.on('guild-poll:changed', (event: GuildPollChangedEvent) => {
+        if (!event) return;
+        const gid = Number(event.guildId);
+        const pid = Number(event.pollId);
+        if (!Number.isFinite(gid) || gid <= 0) return;
+        if (!Number.isFinite(pid) || pid <= 0) return;
+        if (!joinedIds.value.includes(gid)) return;
+        options.onChanged?.({ guildId: gid, pollId: pid });
+      });
 
-    s.on('guild-poll:deleted', (event: GuildPollDeletedEvent) => {
-      if (!event) return;
-      const gid = Number(event.guildId);
-      const pid = Number(event.pollId);
-      if (!Number.isFinite(gid) || gid <= 0) return;
-      if (!Number.isFinite(pid) || pid <= 0) return;
-      if (!joinedIds.value.includes(gid)) return;
-      options.onDeleted?.({ guildId: gid, pollId: pid });
+      s.on('guild-poll:deleted', (event: GuildPollDeletedEvent) => {
+        if (!event) return;
+        const gid = Number(event.guildId);
+        const pid = Number(event.pollId);
+        if (!Number.isFinite(gid) || gid <= 0) return;
+        if (!Number.isFinite(pid) || pid <= 0) return;
+        if (!joinedIds.value.includes(gid)) return;
+        options.onDeleted?.({ guildId: gid, pollId: pid });
+      });
     });
   });
 

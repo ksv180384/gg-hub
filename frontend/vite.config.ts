@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { splitVendorChunkPlugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vueDevTools from 'vite-plugin-vue-devtools';
 import tailwindcss from '@tailwindcss/vite';
@@ -88,6 +89,8 @@ export default defineConfig(({ mode }) => {
             vue(),
             /* На node server.mjs --dev отключаем: меньше full-reload, меньше гонок с ssrLoadModule (Vite 7+). */
             ...(process.env.GG_SSR_DEV_SERVER === '1' ? [] : [vueDevTools()]),
+            // Разбиваем vendor-чанк, чтобы главная не тянула весь node_modules одной пачкой.
+            ...(ssrBuild ? [] : [splitVendorChunkPlugin()]),
         ],
         resolve: {
             alias: {
@@ -123,9 +126,39 @@ export default defineConfig(({ mode }) => {
                 : {
                       output: {
                           manualChunks(id) {
-                              if (id.includes('node_modules')) {
-                                  return 'vendor';
+                              if (!id.includes('node_modules')) return;
+
+                              // Базовые фреймворк-зависимости всегда нужны.
+                              if (
+                                  id.includes('/vue/') ||
+                                  id.includes('/@vue/') ||
+                                  id.includes('/vue-router/') ||
+                                  id.includes('/pinia/')
+                              ) {
+                                  return 'vue';
                               }
+
+                              // UI (на главной может встречаться, но лучше отдельным чанком).
+                              if (id.includes('/radix-vue/') || id.includes('/radix-ui/')) {
+                                  return 'radix';
+                              }
+
+                              // Редактор (должен приезжать только на страницах создания/редактирования постов).
+                              if (id.includes('/@tiptap/')) {
+                                  return 'tiptap';
+                              }
+
+                              // Сокеты не нужны для лендинга.
+                              if (id.includes('/socket.io-client/')) {
+                                  return 'socket';
+                              }
+
+                              // Excel импортится динамически, но держим отдельным чанком на всякий случай.
+                              if (id.includes('/exceljs/')) {
+                                  return 'exceljs';
+                              }
+
+                              // Остальное пусть решает дефолтный splitting Vite/Rollup (через splitVendorChunkPlugin).
                           },
                       },
                   },

@@ -72,7 +72,7 @@ class AccessSeeder extends Seeder
             ['slug' => 'blokirovat-posty'],
             [
                 'name' => 'Блокировать посты',
-                'description' => 'Блокировка опубликованных постов в админке',
+                'description' => 'Блокировка и скрытие опубликованных постов в админке (общий журнал и журналы гильдий)',
                 'permission_group_id' => $adminGroup->id,
             ]
         );
