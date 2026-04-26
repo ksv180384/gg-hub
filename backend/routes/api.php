@@ -74,6 +74,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/user/guilds', [UserController::class, 'guilds']);
     Route::get('/user/polls', [UserController::class, 'polls']);
+    Route::get('/user/guild-calendar-events', [UserController::class, 'guildCalendarEvents']);
     Route::get('/user/applications', [UserController::class, 'applications']);
     Route::get('/user/posts', [PostController::class, 'index']);
     Route::post('/user/posts', [PostController::class, 'store'])->middleware('ensure.not.banned');
@@ -98,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds/{guild}/events', [EventController::class, 'store'])->middleware('guild.member', 'guild.role.permission:dobavliat-sobytie-kalendar');
     Route::match(['put', 'patch'], '/guilds/{guild}/events/{event}', [EventController::class, 'update'])->middleware('guild.member', 'guild.role.permission:redaktirovat-sobytie-kalendar');
     Route::delete('/guilds/{guild}/events/{event}', [EventController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-sobytie-kalendar');
+    Route::post('/guilds/{guild}/events/{event}/decline', [EventController::class, 'decline'])->middleware('guild.member');
 
     Route::get('/guilds/{guild}/event-history', [EventHistoryController::class, 'index'])->middleware('guild.member');
     Route::get('/guilds/{guild}/event-history/{eventHistory}', [EventHistoryController::class, 'show'])->middleware('guild.member');

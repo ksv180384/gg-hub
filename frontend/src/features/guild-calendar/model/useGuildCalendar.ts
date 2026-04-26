@@ -5,6 +5,7 @@ import { eventsApi, type GuildEvent } from '@/shared/api/eventsApi';
 import { guildsApi } from '@/shared/api/guildsApi';
 import { charactersApi } from '@/shared/api/charactersApi';
 import type { CalendarEvent } from '@/shared/ui';
+import { useGuildEventsSocket } from '@/shared/lib/useGuildEventsSocket';
 
 export function useGuildCalendar() {
   const route = useRoute();
@@ -54,6 +55,27 @@ export function useGuildCalendar() {
       events.value = [];
     } finally {
       loading.value = false;
+    }
+  }
+
+  async function refreshEvent(eventId: number) {
+    if (!guildId.value || !Number.isFinite(eventId) || eventId <= 0) return;
+    try {
+      const fresh = await eventsApi.get(guildId.value, eventId);
+      const idx = events.value.findIndex((e) => e.id === fresh.id);
+      if (idx !== -1) {
+        events.value = [
+          ...events.value.slice(0, idx),
+          { ...events.value[idx], ...fresh },
+          ...events.value.slice(idx + 1),
+        ];
+      } else {
+        // если событие вне текущего диапазона, оставляем как есть
+      }
+      if (editingEvent.value?.id === fresh.id) editingEvent.value = fresh;
+      if (viewEvent.value?.id === fresh.id) viewEvent.value = fresh;
+    } catch {
+      // ignore
     }
   }
 
@@ -256,6 +278,13 @@ export function useGuildCalendar() {
   function handleClickEvent(event: CalendarEvent) {
     openEvent(event);
   }
+
+  useGuildEventsSocket({
+    guildId,
+    onChanged: ({ eventId }) => {
+      void refreshEvent(eventId);
+    },
+  });
 
   function deleteFromEditForm() {
     const ev = editingEvent.value;

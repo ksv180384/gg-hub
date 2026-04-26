@@ -102,6 +102,7 @@ watch(
         type="button"
         class="relative flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
         aria-label="Голосования"
+        title="Голосования"
       >
         <Badge
           v-if="badgeText"

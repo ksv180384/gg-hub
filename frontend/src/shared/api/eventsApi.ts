@@ -18,6 +18,8 @@ export interface GuildEvent {
   recurrence: EventRecurrence | null;
   recurrence_ends_at: string | null;
   creator?: { id: number; name: string };
+  declined_characters?: { id: number; name: string }[];
+  my_declined?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -71,5 +73,14 @@ export const eventsApi = {
     if (res.status >= 400) {
       throwOnError(res, 'Не удалось удалить событие.');
     }
+  },
+
+  async decline(guildId: number, eventId: number, payload?: { character_id?: number | null }): Promise<GuildEvent> {
+    const res = await http.fetchPost<GuildEvent>(
+      `/guilds/${guildId}/events/${eventId}/decline`,
+      (payload ?? {}) as Record<string, unknown>
+    );
+    throwOnError(res, 'Не удалось отправить ответ.');
+    return res.data!;
   },
 };

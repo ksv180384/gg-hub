@@ -12,7 +12,7 @@ class GetEventAction
         return Event::query()
             ->where('guild_id', $guild->id)
             ->where('id', $eventId)
-            ->with('creator:id,name')
+            ->with(['creator:id,name', 'participants.character:id,name,user_id'])
             ->first();
     }
 }

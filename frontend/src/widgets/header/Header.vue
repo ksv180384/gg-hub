@@ -27,6 +27,7 @@ import { useNotificationsSocket } from '@/shared/lib/useNotificationsSocket';
 import { useGuildPollsSocket } from '@/shared/lib/useGuildPollsSocket';
 import NotificationsDrawer from '@/widgets/header/NotificationsDrawer.vue';
 import PollsDrawer from '@/widgets/header/PollsDrawer.vue';
+import TodaysEventsDrawer from '@/widgets/header/TodaysEventsDrawer.vue';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -339,7 +340,7 @@ function isNavActive(itemTo: string): boolean {
       <div class="flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none">
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Тема оформления">
+            <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Тема оформления" title="Тема оформления">
               <span class="relative inline-flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center">
                 <svg v-show="theme.preference === 'light'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute inset-0 m-auto h-[1.125rem] w-[1.125rem]">
                   <circle cx="12" cy="12" r="4"/>
@@ -372,6 +373,10 @@ function isNavActive(itemTo: string): boolean {
             :unvoted-count="unvotedPollsCount"
             @poll-updated="onPollUpdated"
           />
+        </template>
+        <!-- События сегодня (только для авторизованных) -->
+        <template v-if="auth.isAuthenticated && hasUserGuilds">
+          <TodaysEventsDrawer />
         </template>
         <!-- Оповещения (только для авторизованных) -->
         <template v-if="auth.isAuthenticated">
@@ -449,7 +454,7 @@ function isNavActive(itemTo: string): boolean {
 
         <Sheet v-model:open="mobileMenuOpen" side="right" class="md:hidden">
           <template #trigger>
-            <Button variant="ghost" size="icon" aria-label="Открыть меню" class="md:hidden">
+            <Button variant="ghost" size="icon" aria-label="Открыть меню" title="Меню" class="md:hidden">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>
               </svg>

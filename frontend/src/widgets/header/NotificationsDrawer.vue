@@ -161,6 +161,7 @@ function onItemMouseEnter(n: NotificationItem) {
         type="button"
         class="relative flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
         aria-label="Оповещения"
+        title="Оповещения"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

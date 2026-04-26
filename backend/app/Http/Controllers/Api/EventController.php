@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Event\DeclineEventRequest;
 use App\Http\Requests\Event\StoreEventRequest;
 use App\Http\Requests\Event\UpdateEventRequest;
 use App\Http\Resources\Event\EventResource;
 use Domains\Event\Actions\CreateEventAction;
 use Domains\Event\Actions\DeleteEventAction;
+use Domains\Event\Actions\DeclineEventAction;
 use Domains\Event\Actions\GetEventAction;
 use Domains\Event\Actions\ListGuildEventsAction;
 use Domains\Event\Actions\UpdateEventAction;
@@ -25,7 +27,8 @@ class EventController extends Controller
         private GetEventAction $getEventAction,
         private CreateEventAction $createEventAction,
         private UpdateEventAction $updateEventAction,
-        private DeleteEventAction $deleteEventAction
+        private DeleteEventAction $deleteEventAction,
+        private DeclineEventAction $declineEventAction
     ) {}
 
     /**
@@ -91,5 +94,21 @@ class EventController extends Controller
         ($this->deleteEventAction)($model);
 
         return response()->noContent();
+    }
+
+    /**
+     * Отметить, что текущий пользователь не сможет участвовать в событии.
+     */
+    public function decline(DeclineEventRequest $request, Guild $guild, int $event): JsonResponse
+    {
+        $model = ($this->getEventAction)($guild, $event);
+        if ($model === null) {
+            throw new NotFoundHttpException('Событие не найдено.');
+        }
+
+        $characterId = $request->validated('character_id');
+        $updated = ($this->declineEventAction)($request->user(), $model, $characterId ? (int) $characterId : null);
+
+        return response()->json(new EventResource($updated));
     }
 }

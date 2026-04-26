@@ -39,13 +39,22 @@ const emit = defineEmits<{
           :key="ev.id"
           class="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
         >
-          <button
-            type="button"
-            class="min-w-0 flex-1 truncate text-left font-medium hover:underline"
-            @click="emit('open', { id: ev.id, title: ev.title, starts_at: ev.starts_at, ends_at: ev.ends_at })"
-          >
-            {{ ev.title }}
-          </button>
+          <div class="min-w-0 flex-1">
+            <button
+              type="button"
+              class="block w-full truncate text-left font-medium hover:underline"
+              @click="emit('open', { id: ev.id, title: ev.title, starts_at: ev.starts_at, ends_at: ev.ends_at })"
+            >
+              {{ ev.title }}
+            </button>
+            <p
+              v-if="ev.declined_characters?.length"
+              class="mt-0.5 truncate text-xs text-muted-foreground"
+              :title="`Не смогут: ${ev.declined_characters.map((c) => c.name).join(', ')}`"
+            >
+              Не смогут: {{ ev.declined_characters.map((c) => c.name).join(', ') }}
+            </p>
+          </div>
           <Button
             v-if="canDeleteEvent"
             variant="ghost"

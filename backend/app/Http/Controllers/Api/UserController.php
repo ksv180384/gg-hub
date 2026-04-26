@@ -6,14 +6,17 @@ use App\Actions\User\GetCurrentUserAction;
 use App\Actions\User\UpdateUserProfileAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\UpdateProfileRequest;
+use App\Http\Resources\Event\UserGuildCalendarEventResource;
 use App\Http\Resources\Poll\UserPollResource;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\Guild\GuildApplicationResource;
+use Domains\Event\Actions\ListUserGuildCalendarEventsAction;
 use Domains\Guild\Actions\GetUserGuildsForGameAction;
 use Domains\Guild\Actions\ListUserGuildApplicationsAction;
 use Domains\Poll\Actions\ListUserPollsAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class UserController extends Controller
 {
@@ -22,7 +25,8 @@ class UserController extends Controller
         private UpdateUserProfileAction $updateUserProfileAction,
         private GetUserGuildsForGameAction $getUserGuildsForGameAction,
         private ListUserGuildApplicationsAction $listUserGuildApplicationsAction,
-        private ListUserPollsAction $listUserPollsAction
+        private ListUserPollsAction $listUserPollsAction,
+        private ListUserGuildCalendarEventsAction $listUserGuildCalendarEventsAction
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -71,6 +75,30 @@ class UserController extends Controller
         $polls = ($this->listUserPollsAction)($user, $gameId);
 
         return UserPollResource::collection($polls)->response();
+    }
+
+    /**
+     * События календаря пользователя по всем его гильдиям за период.
+     * Query: from (Y-m-d), to (Y-m-d). Если не переданы — используется «сегодня» в timezone пользователя.
+     */
+    public function guildCalendarEvents(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $tz = $user?->timezone ?: 'UTC';
+        $today = Carbon::now($tz)->toDateString();
+
+        $from = $request->query('from');
+        $to = $request->query('to');
+        $from = is_string($from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ? $from : $today;
+        $to = is_string($to) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) ? $to : $from;
+
+        $events = ($this->listUserGuildCalendarEventsAction)($user, [
+            'from' => $from,
+            'to' => $to,
+        ]);
+
+        return UserGuildCalendarEventResource::collection($events)->response();
     }
 
     /**

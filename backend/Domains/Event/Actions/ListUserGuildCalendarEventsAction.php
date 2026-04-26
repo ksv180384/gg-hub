@@ -2,23 +2,33 @@
 
 namespace Domains\Event\Actions;
 
+use App\Models\User;
 use Domains\Event\Models\Event;
-use Domains\Guild\Models\Guild;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
-class ListGuildEventsAction
+class ListUserGuildCalendarEventsAction
 {
     /**
-     * События гильдии за период (пересечение с [from, to] по starts_at/ends_at).
+     * События календаря по всем гильдиям пользователя за период.
      *
      * @param  array{from?: string, to?: string}  $params  from, to — даты в Y-m-d
      */
-    public function __invoke(Guild $guild, array $params = []): Collection|LengthAwarePaginator
+    public function __invoke(User $user, array $params = []): Collection|LengthAwarePaginator
     {
+        $guildIds = $user->guildIds();
+        if (count($guildIds) === 0) {
+            return new Collection([]);
+        }
+
         $query = Event::query()
-            ->where('guild_id', $guild->id)
-            ->with(['creator:id,name', 'participants.character:id,name,user_id'])
+            ->whereIn('guild_id', $guildIds)
+            ->with([
+                'creator:id,name',
+                'guild:id,game_id,name',
+                'guild.game:id,name',
+                'participants.character:id,name,user_id',
+            ])
             ->orderBy('starts_at');
 
         $from = $params['from'] ?? null;
@@ -41,3 +51,4 @@ class ListGuildEventsAction
         return $query->get();
     }
 }
+

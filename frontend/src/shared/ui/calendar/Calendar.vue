@@ -28,6 +28,18 @@ function toDateKey(d: Date): string {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+/** Дата календарного дня из ISO (без сдвига из‑за UTC при `new Date('YYYY-MM-DD')`). */
+function parseIsoCalendarDate(iso: string): Date | null {
+  const day = iso.slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) return null;
+  return new Date(y, mo, d);
+}
+
 const props = withDefaults(
   defineProps<{
     modelValue?: Date;
@@ -56,6 +68,20 @@ function startOfMonth(d: Date) {
 
 function endOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
+
+/** Первая и последняя дата, попадающие в отрисованную сетку (включая дни прошлого/следующего месяца). */
+function visibleGridRange(anchor: Date): { from: Date; to: Date } {
+  const monthStart = startOfMonth(anchor);
+  const monthEnd = endOfMonth(anchor);
+  const padding = (monthStart.getDay() + 6) % 7;
+  const from = new Date(monthStart);
+  from.setDate(from.getDate() - padding);
+  const daysInMonth = monthEnd.getDate();
+  const totalLeadingAndMonth = padding + daysInMonth;
+  const trailing = totalLeadingAndMonth % 7 === 0 ? 0 : 7 - (totalLeadingAndMonth % 7);
+  const to = new Date(anchor.getFullYear(), anchor.getMonth(), daysInMonth + trailing);
+  return { from, to };
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -140,10 +166,11 @@ const eventsByDay = computed(() => {
   for (const ev of props.events) {
     const start = ev.starts_at.slice(0, 10);
     const end = ev.ends_at ? ev.ends_at.slice(0, 10) : start;
-    const startD = new Date(start);
-    const endD = new Date(end);
+    const startD = parseIsoCalendarDate(start);
+    const endD = parseIsoCalendarDate(end);
+    if (!startD || !endD) continue;
     for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
-      const key = toDateKey(new Date(d));
+      const key = toDateKey(d);
       if (!map[key]) map[key] = [];
       map[key].push(ev);
     }
@@ -159,9 +186,8 @@ function getEventsForCell(cell: DayCell): CalendarEvent[] {
 watch(
   viewDate,
   () => {
-    const start = startOfMonth(viewDate.value);
-    const end = endOfMonth(viewDate.value);
-    emit('view-range', start, end);
+    const { from, to } = visibleGridRange(viewDate.value);
+    emit('view-range', from, to);
   },
   { immediate: true }
 );

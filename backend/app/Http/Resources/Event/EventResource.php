@@ -14,6 +14,8 @@ class EventResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $user = $request->user();
+
         return [
             'id' => $this->id,
             'guild_id' => $this->guild_id,
@@ -28,6 +30,24 @@ class EventResource extends JsonResource
                 'id' => $this->creator->id,
                 'name' => $this->creator->name,
             ]),
+            'declined_characters' => $this->whenLoaded('participants', function () {
+                return $this->participants
+                    ->map(fn ($p) => $p->relationLoaded('character') && $p->character ? [
+                        'id' => $p->character->id,
+                        'name' => $p->character->name,
+                    ] : null)
+                    ->filter()
+                    ->values()
+                    ->all();
+            }),
+            'my_declined' => $this->whenLoaded('participants', function () use ($user) {
+                if (!$user) return false;
+                return $this->participants->contains(function ($p) use ($user) {
+                    return $p->relationLoaded('character')
+                        && $p->character
+                        && (int) $p->character->user_id === (int) $user->id;
+                });
+            }),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
