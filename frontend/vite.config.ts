@@ -2,7 +2,6 @@ import path from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig, loadEnv, type Plugin } from 'vite';
-import { splitVendorChunkPlugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vueDevTools from 'vite-plugin-vue-devtools';
 import tailwindcss from '@tailwindcss/vite';
@@ -89,8 +88,6 @@ export default defineConfig(({ mode }) => {
             vue(),
             /* На node server.mjs --dev отключаем: меньше full-reload, меньше гонок с ssrLoadModule (Vite 7+). */
             ...(process.env.GG_SSR_DEV_SERVER === '1' ? [] : [vueDevTools()]),
-            // Разбиваем vendor-чанк, чтобы главная не тянула весь node_modules одной пачкой.
-            ...(ssrBuild ? [] : [splitVendorChunkPlugin()]),
         ],
         resolve: {
             alias: {
@@ -158,7 +155,7 @@ export default defineConfig(({ mode }) => {
                                   return 'exceljs';
                               }
 
-                              // Остальное пусть решает дефолтный splitting Vite/Rollup (через splitVendorChunkPlugin).
+                              // Остальное — отдельные чанки по решению Rollup.
                           },
                       },
                   },
