@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, onBeforeUnmount, ref } from 'vue';
+import { watch, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -39,6 +39,12 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>();
+
+const rootEl = ref<HTMLElement | null>(null);
+const toolbarEl = ref<HTMLElement | null>(null);
+const toolbarPlaceholderHeight = ref(0);
+const isToolbarFloating = ref(false);
+const toolbarFloatingStyle = ref<Record<string, string>>({});
 
 const linkUrl = ref('');
 const imageUrl = ref('');
@@ -231,13 +237,63 @@ function setFontSize(size: string) {
   }
 }
 
+const HEADER_OFFSET_PX = 56; // высота хедера (h-14)
+let raf = 0;
+function updateToolbarFloating() {
+  if (raf) cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => {
+    const root = rootEl.value;
+    const toolbar = toolbarEl.value;
+    if (!root || !toolbar) return;
+
+    const rootRect = root.getBoundingClientRect();
+    const toolbarH = toolbar.offsetHeight || 0;
+
+    // Включаем floating, когда верх редактора доехал до хедера,
+    // и выключаем перед концом редактора, чтобы тулбар не "висел" на пустом месте.
+    const shouldFloat =
+      rootRect.top <= HEADER_OFFSET_PX &&
+      rootRect.bottom - toolbarH > HEADER_OFFSET_PX;
+
+    if (!shouldFloat) {
+      isToolbarFloating.value = false;
+      toolbarFloatingStyle.value = {};
+      toolbarPlaceholderHeight.value = 0;
+      return;
+    }
+
+    isToolbarFloating.value = true;
+    toolbarPlaceholderHeight.value = toolbarH;
+    toolbarFloatingStyle.value = {
+      position: 'fixed',
+      top: `${HEADER_OFFSET_PX}px`,
+      left: `${rootRect.left}px`,
+      width: `${rootRect.width}px`,
+    };
+  });
+}
+
+function onAnyScrollOrResize() {
+  updateToolbarFloating();
+}
+
+onMounted(() => {
+  updateToolbarFloating();
+  window.addEventListener('scroll', onAnyScrollOrResize, true);
+  window.addEventListener('resize', onAnyScrollOrResize, { passive: true } as AddEventListenerOptions);
+});
+
 onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onAnyScrollOrResize, true);
+  window.removeEventListener('resize', onAnyScrollOrResize as EventListener);
+  if (raf) cancelAnimationFrame(raf);
   editor.value?.destroy();
 });
 </script>
 
 <template>
   <div
+    ref="rootEl"
     :class="
       cn(
         'rounded-md border border-input bg-background text-sm shadow-sm focus-within:ring-1 focus-within:ring-ring',
@@ -247,9 +303,17 @@ onBeforeUnmount(() => {
     "
   >
 <TooltipProvider>
+    <div v-if="isToolbarFloating" :style="{ height: `${toolbarPlaceholderHeight}px` }" />
     <div
       v-if="editor"
-      class="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/30 px-1 py-1"
+      ref="toolbarEl"
+      :style="toolbarFloatingStyle"
+      :class="cn(
+        'z-30 flex flex-wrap items-center gap-0.5 border-b border-border px-1 py-1',
+        isToolbarFloating
+          ? 'bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'
+          : 'bg-muted/30'
+      )"
     >
       <!-- Размер шрифта -->
       <SelectRoot
@@ -435,7 +499,23 @@ onBeforeUnmount(() => {
           :disabled="disabled"
           @click="openImageDialog"
         >
-          <span class="text-xs">🖼</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-4 w-4"
+            aria-hidden="true"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="m21 15-3.5-3.5a2 2 0 0 0-2.8 0L7 19" />
+          </svg>
         </Button>
       </Tooltip>
       <Tooltip content="Вставить видео (YouTube, VK)" side="bottom">
@@ -447,7 +527,22 @@ onBeforeUnmount(() => {
           :disabled="disabled"
           @click="openVideoDialog"
         >
-          <span class="text-xs">▶</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="m22 8-6 4 6 4V8Z" />
+            <rect x="2" y="6" width="14" height="12" rx="2" />
+          </svg>
         </Button>
       </Tooltip>
 
