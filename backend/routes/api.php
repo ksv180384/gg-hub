@@ -63,6 +63,8 @@ Route::get('/games', [GameController::class, 'index']);
 Route::get('/games/{game}', [GameController::class, 'show']);
 /** Публичный справочник классов игры (фильтры, формы персонажей; не только админский субдомен). */
 Route::get('/games/{game}/game-classes', [GameClassController::class, 'index']);
+/** Общий журнал игры (публичная лента «Общие»). */
+Route::get('/games/{game}/journal-posts', [GlobalJournalController::class, 'index']);
 Route::get('/games/{game}/localizations/{localization}/servers', [ServerController::class, 'index']);
 Route::get('/guilds', [GuildController::class, 'index']);
 Route::get('/guilds/{guild}', [GuildController::class, 'show']);
@@ -84,7 +86,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/user/posts', [PostController::class, 'store'])->middleware('ensure.not.banned');
     Route::get('/user/posts/{post}', [PostController::class, 'show']);
     Route::match(['put', 'patch'], '/user/posts/{post}', [PostController::class, 'update'])->middleware('ensure.not.banned');
-    Route::get('/games/{game}/journal-posts', [GlobalJournalController::class, 'index']);
 
     Route::post('/posts/{post}/comments', [GlobalPostCommentController::class, 'store'])->middleware('ensure.not.banned');
     Route::match(['put', 'patch'], '/posts/{post}/comments/{comment}', [GlobalPostCommentController::class, 'update'])->middleware('ensure.not.banned');
