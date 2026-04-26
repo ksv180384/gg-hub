@@ -26,7 +26,8 @@ async function bootstrap() {
   const w = window as unknown as { __INITIAL_PINIA__?: Record<string, unknown> };
   const hasSsrState = w.__INITIAL_PINIA__ != null && typeof w.__INITIAL_PINIA__ === 'object';
   if (hasSsrState) {
-    pinia.state.value = JSON.parse(JSON.stringify(w.__INITIAL_PINIA__)) as typeof pinia.state.value;
+    // SSR стейт уже сериализован в HTML как plain object — не делаем дорогое deep-clone на старте.
+    pinia.state.value = w.__INITIAL_PINIA__ as typeof pinia.state.value;
     setHydrating(true);
   }
 

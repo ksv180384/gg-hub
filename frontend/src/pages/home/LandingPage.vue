@@ -1,14 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useThemeStore } from '@/stores/theme';
-import {
-  DialogRoot,
-  DialogPortal,
-  DialogOverlay,
-  DialogContent,
-  DialogTitle,
-} from 'radix-vue';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/shared/ui';
 import { RouterLink } from 'vue-router';
@@ -258,6 +251,7 @@ const themeStore = useThemeStore();
 const { isDark } = storeToRefs(themeStore);
 
 const devModalOpen = ref(false);
+const LandingDevModal = defineAsyncComponent(() => import('./LandingDevModal.vue'));
 
 function openLandingCtaModal(button: LandingCtaButton) {
   devModalOpen.value = true;
@@ -388,13 +382,13 @@ watch(isDark, () => {
 
           <h1
             id="landing-hero-heading"
-            class="hero-eyebrow animate-in fade-in slide-in-from-bottom-2 duration-700 fill-mode-backwards"
+            class="hero-eyebrow"
           >
             Управление гильдией в MMORPG — gg-hub
           </h1>
 
           <p
-            class="hero-slogan animate-in fade-in slide-in-from-bottom-3 duration-700 delay-100 fill-mode-backwards text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
+            class="hero-slogan text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
             aria-hidden="true"
           >
             <span class="hero-gradient-text">Твоя гильдия</span><br />
@@ -402,12 +396,12 @@ watch(isDark, () => {
           </p>
 
           <p
-            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl fill-mode-backwards text-[#363636] dark:text-white/92 min-h-[8rem] sm:min-h-[7rem]"
+            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl text-[#363636] dark:text-white/92 min-h-[8rem] sm:min-h-[7rem]"
           >
             {{ HOME_PAGE_LEAD }}
           </p>
 
-          <div class="flex flex-wrap justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 fill-mode-backwards">
+          <div class="flex flex-wrap justify-center gap-3 sm:gap-4">
             <button
               type="button"
               class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
@@ -970,39 +964,14 @@ watch(isDark, () => {
       </div>
     </section>
 
-    <DialogRoot :open="devModalOpen" @update:open="(v: boolean) => { if (!v) closeLandingCtaModal(); }">
-      <ClientOnly>
-      <DialogPortal>
-        <DialogOverlay
-          class="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-        />
-        <DialogContent
-          class="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 pt-14 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:max-w-lg"
-          :aria-describedby="'landing-dev-modal-desc'"
-        >
-          <button
-            type="button"
-            class="absolute right-4 top-4 z-10 rounded-sm p-1.5 text-muted-foreground opacity-80 ring-offset-background transition-opacity hover:opacity-100 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Закрыть"
-            @click="closeLandingCtaModal"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
-            </svg>
-          </button>
-          <DialogTitle class="text-lg font-semibold pr-10">Сайт в разработке</DialogTitle>
-          <p id="landing-dev-modal-desc" class="mt-4 text-sm text-muted-foreground leading-relaxed">
-            Мы активно работаем над платформой. Регистрация и часть функций появятся позже; каталог гильдий и разделы сайта
-            уже можно открывать. Спасибо за интерес к gg-hub.
-          </p>
-          <div class="mt-6 flex justify-end">
-            <Button type="button" @click="closeLandingCtaModal">Понятно</Button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-      </ClientOnly>
-    </DialogRoot>
+    <ClientOnly>
+      <LandingDevModal
+        v-if="devModalOpen"
+        :open="devModalOpen"
+        @close="closeLandingCtaModal"
+        @update:open="(v: boolean) => { if (!v) closeLandingCtaModal(); }"
+      />
+    </ClientOnly>
   </div>
 </template>
 
@@ -1120,16 +1089,16 @@ watch(isDark, () => {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: gradient-shift 4s ease-in-out infinite;
+  animation: none;
   filter: drop-shadow(0 2px 10px hsl(0 0% 0% / 0.35)) drop-shadow(0 1px 2px hsl(0 0% 0% / 0.25));
 }
 
 .hero-gradient-text{
-  animation: gradient-shift 2s ease-in-out infinite;
+  animation: none;
 }
 
 .hero-gradient-text-next{
-  animation: gradient-shift 4s ease-in-out infinite;
+  animation: none;
 }
 
 @keyframes gradient-shift {

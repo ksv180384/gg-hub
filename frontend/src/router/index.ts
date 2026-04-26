@@ -440,8 +440,41 @@ export function createRouterInstance(history: RouterHistory) {
     if (!queryOnlyChange) {
       routeLoading.setLoading(true);
     }
-    await siteContext.fetchContext();
-    await auth.fetchUser();
+
+    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+    const requiredPermission = to.meta.permission as string | undefined;
+
+    // Для главной и прочих публичных страниц не блокируем навигацию запросом пользователя.
+    // Контекст сайта нужен всегда (определяет mode/subdomain/game).
+    if (typeof window !== 'undefined') {
+      const host = window.location.host;
+      const isOnAdminSubdomain = host.startsWith('admin.');
+      const shouldFetchUserNow = requiresAuth || !!requiredPermission || isOnAdminSubdomain;
+
+      if (shouldFetchUserNow) {
+        await Promise.all([siteContext.fetchContext(), auth.fetchUser()]);
+      } else {
+        await siteContext.fetchContext();
+        const runIdle =
+          (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => void })
+            .requestIdleCallback;
+        const schedule = (cb: () => void) => {
+          if (runIdle) return runIdle(cb, { timeout: 2500 });
+          return window.setTimeout(cb, 0);
+        };
+        schedule(() => {
+          if (!auth.loading && !auth.user) {
+            void auth.fetchUser();
+          }
+        });
+      }
+    } else {
+      // SSR: в процессе рендера лучше иметь консистентные данные для protected routes.
+      await siteContext.fetchContext();
+      if (requiresAuth || !!requiredPermission) {
+        await auth.fetchUser();
+      }
+    }
 
     // Админ-субдомен доступен пользователям с правом «Администрирование» или «Просматривать голосования».
     if (typeof window !== 'undefined') {
@@ -462,11 +495,9 @@ export function createRouterInstance(history: RouterHistory) {
         return { path: '/', replace: true };
       }
     }
-    const requiredPermission = to.meta.permission as string | undefined;
     if (requiredPermission && auth.isAuthenticated && !auth.hasPermission(requiredPermission)) {
       return { path: '/', replace: true };
     }
-    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
     if (requiresAuth && !auth.isAuthenticated) {
       return { path: '/login', query: { redirect: to.fullPath }, replace: true };
     }
