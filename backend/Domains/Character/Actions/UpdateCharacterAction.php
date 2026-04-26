@@ -53,7 +53,7 @@ class UpdateCharacterAction
             $avatarDir = $this->characterAvatarService->storeAvatar($avatar, $character->id);
             $character = $this->characterRepository->update($character, ['avatar' => $avatarDir]);
         }
-        $character->load(['game', 'localization', 'server', 'gameClasses', 'tags.createdBy']);
+        $character->load(['game', 'localization', 'server', 'gameClasses', 'tags.createdByUser']);
         return $character;
     }
 }
