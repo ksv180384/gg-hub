@@ -276,11 +276,11 @@ async function loadMyCharactersInGuild() {
   if (!guildId.value || myCharactersInGuild.value.length) return;
   loadingMyCharacters.value = true;
   try {
-    const [guild, roster] = await Promise.all([
+    const [guild, rosterRes] = await Promise.all([
       guildsApi.getGuild(guildId.value),
       guildsApi.getGuildRoster(guildId.value),
     ]);
-    const rosterIds = new Set(roster.map((r) => r.character_id));
+    const rosterIds = new Set(rosterRes.members.map((r) => r.character_id));
     const allChars = await charactersApi.getCharacters(guild.game_id);
     myCharactersInGuild.value = allChars
       .filter((c) => rosterIds.has(c.id))

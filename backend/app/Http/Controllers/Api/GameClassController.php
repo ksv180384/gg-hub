@@ -8,6 +8,7 @@ use App\Actions\GameClass\UpdateGameClassAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GameClass\StoreGameClassRequest;
 use App\Http\Requests\GameClass\UpdateGameClassRequest;
+use App\Http\Resources\Game\GameClassCatalogResource;
 use App\Http\Resources\Game\GameClassResource;
 use App\Models\Game;
 use App\Models\GameClass;
@@ -26,7 +27,8 @@ class GameClassController extends Controller
     public function index(Game $game): AnonymousResourceCollection
     {
         $classes = $game->gameClasses()->orderBy('name')->get();
-        return GameClassResource::collection($classes);
+
+        return GameClassCatalogResource::collection($classes);
     }
 
     public function store(StoreGameClassRequest $request, Game $game): JsonResponse

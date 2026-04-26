@@ -42,6 +42,19 @@ final class GetGuildRosterAction
             ->orderBy('joined_at')
             ->get();
 
-        return GuildRosterMemberResource::collection($members);
+        $guildRoles = $guild->roles()
+            ->orderByDesc('priority')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug']);
+
+        return GuildRosterMemberResource::collection($members)->additional([
+            'meta' => [
+                'guild_roles' => $guildRoles->map(static fn ($role) => [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'slug' => $role->slug,
+                ])->values()->all(),
+            ],
+        ]);
     }
 }

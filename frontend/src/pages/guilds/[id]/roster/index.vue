@@ -3,7 +3,9 @@ import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { Card, CardContent, Badge, Input, Button, Label, Select, type SelectOption, MultiSelect, type MultiSelectOption } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
-import { guildsApi, type Guild, type GuildRosterMember } from '@/shared/api/guildsApi';
+import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
+import { guildsApi, type Guild, type GuildRosterMember, type GuildRosterRoleSummary } from '@/shared/api/guildsApi';
+import { gamesApi, type GameClass, type GameClassCatalogItem } from '@/shared/api/gamesApi';
 import {
   rosterTagBadgeClass,
   rosterTagDisplayRows,
@@ -21,6 +23,8 @@ const guildLoading = ref(true);
 const guildError = ref<string | null>(null);
 
 const roster = ref<GuildRosterMember[]>([]);
+/** Роли гильдии с API состава (meta.guild_roles), не только у текущих участников. */
+const guildRosterRoles = ref<GuildRosterRoleSummary[]>([]);
 const rosterLoading = ref(false);
 const rosterFetched = ref(false);
 const rosterErrorStatus = ref<number | null>(null);
@@ -28,13 +32,24 @@ const rosterErrorStatus = ref<number | null>(null);
 const filterName = ref('');
 /** '' = все роли */
 const filterGuildRole = ref<string>('');
+const filterGameClassIds = ref<(string | number)[]>([]);
 const filterTagIds = ref<(string | number)[]>([]);
+
+/** Справочник классов игры (GET /games/:id/game-classes). */
+const gameClassesCatalog = ref<GameClassCatalogItem[]>([]);
 
 const exportRosterLoading = ref(false);
 const exportRosterError = ref('');
 
 const guildRoleOptions = computed<SelectOption[]>(() => {
-  const roles = new Map<string, string>(); // slug -> name
+  const fromMeta = guildRosterRoles.value;
+  if (fromMeta.length > 0) {
+    return [...fromMeta]
+      .filter((r) => r.slug)
+      .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+      .map((r) => ({ value: r.slug, label: r.name }));
+  }
+  const roles = new Map<string, string>();
   roster.value.forEach((m) => {
     const r = m.guild_role;
     if (!r?.slug) return;
@@ -50,6 +65,42 @@ watch(guildRoleOptions, (opts) => {
   if (!opts.some((o) => o.value === filterGuildRole.value)) {
     filterGuildRole.value = '';
   }
+});
+
+const gameClassOptions = computed<MultiSelectOption[]>(() => {
+  const catalog = gameClassesCatalog.value;
+  if (catalog.length > 0) {
+    return [...catalog]
+      .sort((a, b) => (a.name_ru ?? a.name).localeCompare(b.name_ru ?? b.name, 'ru'))
+      .map((gc) => ({
+        value: gc.id,
+        label: (gc.name_ru ?? gc.name).trim() || String(gc.id),
+        imageUrl: gc.image_thumb,
+      }));
+  }
+  const map = new Map<number, { label: string; imageUrl?: string | null }>();
+  roster.value.forEach((m) => {
+    for (const gc of m.game_classes ?? []) {
+      if (!map.has(gc.id)) {
+        map.set(gc.id, {
+          label: (gc.name_ru ?? gc.name).trim() || String(gc.id),
+          imageUrl: gc.image_thumb ?? undefined,
+        });
+      }
+    }
+  });
+  return Array.from(map.entries())
+    .sort((a, b) => a[1].label.localeCompare(b[1].label, 'ru'))
+    .map(([id, meta]) => ({
+      value: id,
+      label: meta.label,
+      imageUrl: meta.imageUrl ?? null,
+    }));
+});
+
+watch(gameClassOptions, (opts) => {
+  const valid = new Set(opts.map((o) => o.value));
+  filterGameClassIds.value = filterGameClassIds.value.filter((v) => valid.has(v));
 });
 
 async function exportRosterXlsx() {
@@ -123,6 +174,18 @@ function applyGuildRoleFilter(items: GuildRosterMember[], roleSlug: string): Gui
   return items.filter((m) => (m.guild_role?.slug ?? '') === slug);
 }
 
+/** Показ персонажей, у которых есть хотя бы один из выбранных классов. */
+function applyGameClassAnyFilter(
+  items: GuildRosterMember[],
+  selected: (string | number)[],
+): GuildRosterMember[] {
+  const selectedIds = new Set(
+    selected.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0),
+  );
+  if (selectedIds.size === 0) return items;
+  return items.filter((m) => (m.game_classes ?? []).some((gc) => selectedIds.has(gc.id)));
+}
+
 function applyAllTagIdsFilter(
   items: GuildRosterMember[],
   selected: (string | number)[],
@@ -142,6 +205,7 @@ const filteredRoster = computed<GuildRosterMember[]>(() => {
   let items = roster.value;
   items = applyNameFilter(items, filterName.value);
   items = applyGuildRoleFilter(items, filterGuildRole.value);
+  items = applyGameClassAnyFilter(items, filterGameClassIds.value);
   items = applyAllTagIdsFilter(items, filterTagIds.value, (m) =>
     [...(m.tags ?? []), ...(m.personal_tags ?? [])].map((t) => t.id)
   );
@@ -158,6 +222,7 @@ const rosterDisplayItems = computed(() =>
 function resetFilters() {
   filterName.value = '';
   filterGuildRole.value = '';
+  filterGameClassIds.value = [];
   filterTagIds.value = [];
 }
 
@@ -166,6 +231,18 @@ function avatarFallback(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
+}
+
+function rosterMemberGameClass(gc: GuildRosterMember['game_classes'][number]): GameClass {
+  return {
+    id: gc.id,
+    game_id: 0,
+    name: gc.name,
+    name_ru: gc.name_ru ?? null,
+    slug: gc.slug,
+    image: gc.image ?? null,
+    image_thumb: gc.image_thumb ?? null,
+  };
 }
 
 const rosterNeedsLogin = computed(
@@ -183,8 +260,11 @@ async function loadRoster() {
   rosterLoading.value = true;
   rosterErrorStatus.value = null;
   roster.value = [];
+  guildRosterRoles.value = [];
   try {
-    roster.value = await guildsApi.getGuildRoster(guildId.value);
+    const { members, guild_roles } = await guildsApi.getGuildRoster(guildId.value);
+    roster.value = members;
+    guildRosterRoles.value = guild_roles;
   } catch (e: unknown) {
     const err = e as { status?: number };
     rosterErrorStatus.value = err.status ?? -1;
@@ -194,12 +274,26 @@ async function loadRoster() {
   }
 }
 
+async function loadGameClassesCatalog() {
+  const g = guild.value;
+  if (!g?.game_id) {
+    gameClassesCatalog.value = [];
+    return;
+  }
+  try {
+    gameClassesCatalog.value = await gamesApi.getGameClasses(g.game_id);
+  } catch {
+    gameClassesCatalog.value = [];
+  }
+}
+
 async function loadGuild() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
   guildLoading.value = true;
   guildError.value = null;
   try {
     guild.value = await guildsApi.getGuild(guildId.value);
+    void loadGameClassesCatalog();
   } catch (e: unknown) {
     const err = e as { status?: number };
     if (err.status === 404) {
@@ -213,8 +307,10 @@ async function loadGuild() {
 }
 
 watch(guildId, async () => {
+  gameClassesCatalog.value = [];
   rosterFetched.value = false;
   roster.value = [];
+  guildRosterRoles.value = [];
   rosterErrorStatus.value = null;
   await loadGuild();
   if (guild.value) {
@@ -266,8 +362,8 @@ watch(guildId, async () => {
             <Card class="mb-5">
               <CardContent class="p-4">
                 <div class="flex flex-col gap-3">
-                  <div class="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
-                    <div class="grid gap-1.5 md:w-[220px]">
+                  <div class="flex w-full min-w-0 flex-nowrap items-end gap-2 overflow-x-auto">
+                    <div class="grid w-[7.5rem] shrink-0 gap-1.5 sm:w-36">
                       <Label for="roster-filter-name">Имя</Label>
                       <Input
                         id="roster-filter-name"
@@ -277,7 +373,7 @@ watch(guildId, async () => {
                         class="h-8"
                       />
                     </div>
-                    <div class="grid gap-1.5 md:w-[220px]">
+                    <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
                       <Label>Роль в гильдии</Label>
                       <Select
                         v-model="filterGuildRole"
@@ -286,22 +382,57 @@ watch(guildId, async () => {
                         trigger-class="h-8 w-full"
                       />
                     </div>
-                    <div class="grid gap-1.5 md:min-w-[260px] md:flex-1">
+                    <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
+                      <Label>Классы</Label>
+                      <MultiSelect
+                        v-model="filterGameClassIds"
+                        :options="gameClassOptions"
+                        placeholder="Все классы"
+                        search-placeholder="Поиск классов..."
+                        trigger-class="h-8 w-full min-w-0"
+                        display-mode="badges"
+                      />
+                    </div>
+                    <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
                       <Label>Теги</Label>
                       <MultiSelect
                         v-model="filterTagIds"
                         :options="tagOptions"
                         placeholder="Любые (общие и гильдии)"
                         search-placeholder="Поиск тегов..."
-                        trigger-class="h-8 w-full"
+                        trigger-class="h-8 w-full min-w-0"
                         display-mode="badges"
                       />
                     </div>
-                    <div class="flex gap-2 md:ml-auto">
+                    <div class="flex shrink-0 gap-2">
                       <Button
                         type="button"
                         variant="secondary"
-                        class="h-8 w-full md:w-8 md:px-0"
+                        class="h-8 w-8 cursor-pointer px-0"
+                        title="Сбросить фильтры"
+                        aria-label="Сбросить фильтры"
+                        @click="resetFilters"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M18 6 6 18" />
+                          <path d="M6 6 18 18" />
+                        </svg>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        class="h-8 w-8 cursor-pointer px-0 disabled:cursor-not-allowed"
                         title="Выгрузить в Excel"
                         aria-label="Выгрузить в Excel"
                         :disabled="exportRosterLoading || rosterDisplayItems.length === 0"
@@ -322,33 +453,6 @@ watch(guildId, async () => {
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                           <polyline points="7 10 12 15 17 10" />
                           <line x1="12" x2="12" y1="15" y2="3" />
-                        </svg>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        class="h-8 w-full md:w-8 md:px-0"
-                        title="Сбросить фильтры"
-                        aria-label="Сбросить фильтры"
-                        @click="resetFilters"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M3 6h18" />
-                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                          <path d="M10 11v6" />
-                          <path d="M14 11v6" />
                         </svg>
                       </Button>
                     </div>
@@ -382,33 +486,35 @@ watch(guildId, async () => {
             >
               <Card class="h-full overflow-hidden">
                 <CardContent class="flex flex-col items-start gap-3 p-4">
-                  <div class="flex w-full items-center gap-3">
+                  <div class="flex w-full items-start gap-3">
                     <Avatar
                       :src="member.avatar_url ?? undefined"
                       :alt="member.name"
                       :fallback="avatarFallback(member.name)"
                       class="h-12 w-12 shrink-0 md:h-14 md:w-14"
                     />
-                    <div class="min-w-0 flex-1">
-                      <p class="truncate font-medium">{{ member.name }}</p>
-                      <Badge
-                        v-if="member.guild_role"
-                        variant="secondary"
-                        class="mt-1 text-xs"
+                    <div class="flex min-w-0 flex-1 flex-col gap-1">
+                      <div class="flex min-w-0 items-center gap-2">
+                        <p class="min-w-0 truncate text-lg font-medium">{{ member.name }}</p>
+                        <Badge
+                          v-if="member.guild_role"
+                          variant="secondary"
+                          class="shrink-0 text-xs"
+                        >
+                          {{ member.guild_role.name }}
+                        </Badge>
+                      </div>
+                      <div
+                        v-if="member.game_classes.length > 0"
+                        class="flex flex-wrap items-center gap-2"
                       >
-                        {{ member.guild_role.name }}
-                      </Badge>
+                        <CharacterClassBadge
+                          v-for="gc in member.game_classes"
+                          :key="gc.id"
+                          :game-class="rosterMemberGameClass(gc)"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div v-if="member.game_classes.length > 0" class="flex flex-wrap gap-1">
-                    <Badge
-                      v-for="gc in member.game_classes"
-                      :key="gc.id"
-                      variant="outline"
-                      class="text-xs"
-                    >
-                      {{ gc.name_ru ?? gc.name }}
-                    </Badge>
                   </div>
                   <div class="flex flex-wrap items-center gap-1">
                     <Badge

@@ -107,7 +107,7 @@ async function loadRoster() {
   if (!guildId.value) return;
   loadingRoster.value = true;
   try {
-    roster.value = await guildsApi.getGuildRoster(guildId.value);
+    roster.value = (await guildsApi.getGuildRoster(guildId.value)).members;
   } catch {
     roster.value = [];
   } finally {

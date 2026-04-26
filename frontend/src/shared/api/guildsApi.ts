@@ -246,7 +246,14 @@ export interface GuildRosterMember {
   character_id: number;
   name: string;
   avatar_url: string | null;
-  game_classes: { id: number; name: string; name_ru?: string; slug: string; image_thumb?: string }[];
+  game_classes: {
+    id: number;
+    name: string;
+    name_ru?: string;
+    slug: string;
+    image?: string | null;
+    image_thumb?: string | null;
+  }[];
   guild_role: { id: number; name: string; slug: string } | null;
   /** Теги в контексте гильдии (character_guild_tag). */
   tags: {
@@ -270,6 +277,18 @@ export interface GuildRosterMember {
     used_by?: { id: number; name: string } | null;
     created_by?: { id: number; name: string } | null;
   }[];
+}
+
+/** Роли гильдии в meta ответа GET /guilds/:id/roster (полный список для фильтров). */
+export interface GuildRosterRoleSummary {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface GuildRosterResponse {
+  members: GuildRosterMember[];
+  guild_roles: GuildRosterRoleSummary[];
 }
 
 export const guildsApi = {
@@ -603,12 +622,22 @@ export const guildsApi = {
 
   /**
    * Состав гильдии. Доступ: при show_roster_to_all — всем; иначе только участникам (403).
+   * В guild_roles — все роли гильдии (для фильтров), не только назначенные участникам.
    */
-  async getGuildRoster(guildId: number): Promise<GuildRosterMember[]> {
-    const res = await http.fetchGet<{ data: GuildRosterMember[] }>(`/guilds/${guildId}/roster`);
+  async getGuildRoster(guildId: number): Promise<GuildRosterResponse> {
+    const res = await http.fetchGet<{
+      data: GuildRosterMember[];
+      meta?: { guild_roles?: GuildRosterRoleSummary[] };
+    }>(`/guilds/${guildId}/roster`);
     throwOnError(res, 'Ошибка загрузки состава');
-    const raw = res.data as { data?: GuildRosterMember[] } | null;
-    return raw?.data ?? [];
+    const raw = res.data as {
+      data?: GuildRosterMember[];
+      meta?: { guild_roles?: GuildRosterRoleSummary[] };
+    } | null;
+    return {
+      members: raw?.data ?? [],
+      guild_roles: raw?.meta?.guild_roles ?? [],
+    };
   },
 
   /**

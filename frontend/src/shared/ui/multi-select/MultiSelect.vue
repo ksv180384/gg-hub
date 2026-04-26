@@ -131,9 +131,17 @@ function clearAll() {
                 <span
                   v-for="opt in selectedOptions.slice(0, 3)"
                   :key="String(opt.value)"
-                  :class="cn('truncate text-xs font-medium', opt.badgeClass)"
+                  class="flex min-w-0 max-w-full items-center gap-1"
                 >
-                  {{ opt.label }}
+                  <img
+                    v-if="opt.imageUrl"
+                    :src="opt.imageUrl"
+                    alt=""
+                    class="h-4 w-4 shrink-0 rounded object-cover"
+                  >
+                  <span :class="cn('truncate text-xs font-medium', opt.badgeClass)">
+                    {{ opt.label }}
+                  </span>
                 </span>
                 <span
                   v-if="selectedOptions.length > 3"
@@ -224,13 +232,19 @@ function clearAll() {
               type="checkbox"
               :checked="selectedSet.has(opt.value)"
               :disabled="opt.disabled"
-              class="h-4 w-4 rounded border-input"
+              class="h-4 w-4 shrink-0 rounded border-input"
               @change="!opt.disabled && toggle(opt.value)"
             >
+            <img
+              v-if="opt.imageUrl"
+              :src="opt.imageUrl"
+              alt=""
+              class="h-5 w-5 shrink-0 rounded object-cover"
+            >
             <template v-if="displayMode === 'badges'">
-              <span :class="cn('truncate text-sm font-medium', opt.badgeClass)">{{ opt.label }}</span>
+              <span :class="cn('min-w-0 truncate text-sm font-medium', opt.badgeClass)">{{ opt.label }}</span>
             </template>
-            <span v-else class="truncate">{{ opt.label }}</span>
+            <span v-else class="min-w-0 truncate">{{ opt.label }}</span>
           </label>
         </div>
       </DropdownContent>

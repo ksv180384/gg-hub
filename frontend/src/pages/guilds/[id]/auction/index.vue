@@ -220,7 +220,7 @@ async function loadRoster() {
   loading.value = true;
   error.value = null;
   try {
-    roster.value = await guildsApi.getGuildRoster(guildId.value);
+    roster.value = (await guildsApi.getGuildRoster(guildId.value)).members;
   } catch (e: unknown) {
     const err = e as Error & { status?: number };
     if (err.status === 403) {
@@ -644,7 +644,7 @@ const {
                   class="h-9 w-9 shrink-0"
                 />
                 <div class="min-w-0">
-                  <p class="truncate font-medium text-sm">{{ member.name }}</p>
+                  <p class="truncate text-base font-medium">{{ member.name }}</p>
                   <Badge
                     v-if="member.guild_role"
                     variant="secondary"

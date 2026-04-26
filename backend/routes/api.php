@@ -59,6 +59,8 @@ Route::post('/landing/cta-clicks', [LandingCtaClickController::class, 'store'])
 
 Route::get('/games', [GameController::class, 'index']);
 Route::get('/games/{game}', [GameController::class, 'show']);
+/** Публичный справочник классов игры (фильтры, формы персонажей; не только админский субдомен). */
+Route::get('/games/{game}/game-classes', [GameClassController::class, 'index']);
 Route::get('/games/{game}/localizations/{localization}/servers', [ServerController::class, 'index']);
 Route::get('/guilds', [GuildController::class, 'index']);
 Route::get('/guilds/{guild}', [GuildController::class, 'show']);
@@ -220,7 +222,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/games', [GameController::class, 'store'])->middleware('permission:dobavliat-igru');
         Route::post('/games/{game}', [GameController::class, 'update'])->middleware('permission:redaktirovat-igru');
         Route::delete('/games/{game}', [GameController::class, 'destroy'])->middleware('permission:udaliat-igru');
-        Route::get('/games/{game}/game-classes', [GameClassController::class, 'index'])->middleware('permission:redaktirovat-igru');
         Route::post('/games/{game}/game-classes', [GameClassController::class, 'store'])->middleware('permission:redaktirovat-igru');
         Route::match(['put', 'post'], '/game-classes/{game_class}', [GameClassController::class, 'update'])->middleware('permission:redaktirovat-igru');
         Route::delete('/game-classes/{game_class}', [GameClassController::class, 'destroy'])->middleware('permission:redaktirovat-igru');

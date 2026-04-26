@@ -7,4 +7,6 @@ export interface MultiSelectOption {
    * Полностью опционально для обратной совместимости.
    */
   badgeClass?: string;
+  /** Миниатюра слева от подписи (список и чипы на триггере). */
+  imageUrl?: string | null;
 }

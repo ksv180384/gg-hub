@@ -7,7 +7,9 @@ import type { SelectOption } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import Badge from '@/shared/ui/badge/Badge.vue';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
+import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
 import { guildsApi, type Guild, type GuildRosterMember, type GuildRole } from '@/shared/api/guildsApi';
+import type { GameClass } from '@/shared/api/gamesApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 import {
   rosterTagBadgeClass,
@@ -132,6 +134,18 @@ function filterGuildTagsOnly(list: Tag[], gid: number): Tag[] {
   return list
     .filter((t) => t.used_by_guild_id != null && Number(t.used_by_guild_id) === gid)
     .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+}
+
+function rosterMemberGameClass(gc: GuildRosterMember['game_classes'][number]): GameClass {
+  return {
+    id: gc.id,
+    game_id: 0,
+    name: gc.name,
+    name_ru: gc.name_ru ?? null,
+    slug: gc.slug,
+    image: gc.image ?? null,
+    image_thumb: gc.image_thumb ?? null,
+  };
 }
 
 async function loadData() {
@@ -367,23 +381,26 @@ watch([guildId, characterId], () => loadData());
             class="h-16 w-16 shrink-0 md:h-20 md:w-20"
           />
           <div class="min-w-0 flex-1">
-            <CardTitle class="text-xl">{{ member.name }}</CardTitle>
-            <p v-if="isGuildLeaderCharacter" class="mt-1 text-xs text-muted-foreground">
-              Лидер гильдии назначается только в разделе «Настройки» этой гильдии.
-            </p>
-            <div v-if="canChangeRole && roleOptions.length" class="mt-2 flex flex-col gap-2">
-              <template v-if="hasMemberLeaderRoleSlug">
-                <Badge variant="secondary" class="w-fit">{{ member.guild_role!.name }}</Badge>
-                <p class="text-xs text-muted-foreground">
-                  Роль «Лидер» нельзя выбрать в этом списке — лидер задаётся в настройках гильдии. Выберите
-                  другую роль, чтобы снять эту с участника.
-                </p>
-              </template>
-              <div class="flex flex-wrap items-center gap-2">
+            <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <CardTitle class="text-2xl !mb-0 min-w-0 shrink-0">{{ member.name }}</CardTitle>
+              <Badge
+                v-if="
+                  member.guild_role &&
+                  (!canChangeRole || !roleOptions.length || hasMemberLeaderRoleSlug)
+                "
+                variant="secondary"
+                class="shrink-0 text-xs"
+              >
+                {{ member.guild_role.name }}
+              </Badge>
+              <div
+                v-else-if="canChangeRole && roleOptions.length && !hasMemberLeaderRoleSlug"
+                class="flex min-w-0 flex-wrap items-center gap-2"
+              >
                 <Select
                   v-model="selectedRoleId"
                   :options="roleOptions"
-                  :placeholder="hasMemberLeaderRoleSlug ? 'Сменить на другую роль' : 'Роль'"
+                  placeholder="Роль"
                   :disabled="changingRole"
                   trigger-class="w-[180px]"
                   @update:model-value="onRoleChange"
@@ -392,9 +409,27 @@ watch([guildId, characterId], () => loadData());
                 <p v-if="roleError" class="text-xs text-destructive">{{ roleError }}</p>
               </div>
             </div>
-            <Badge v-else-if="member.guild_role" variant="secondary" class="mt-1">
-              {{ member.guild_role.name }}
-            </Badge>
+            <p v-if="isGuildLeaderCharacter" class="mt-1 text-xs text-muted-foreground">
+              Лидер гильдии назначается только в разделе «Настройки» этой гильдии.
+            </p>
+            <template v-if="canChangeRole && roleOptions.length && hasMemberLeaderRoleSlug">
+              <p class="mt-2 text-xs text-muted-foreground">
+                Роль «Лидер» нельзя выбрать в этом списке — лидер задаётся в настройках гильдии. Выберите
+                другую роль, чтобы снять эту с участника.
+              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                <Select
+                  v-model="selectedRoleId"
+                  :options="roleOptions"
+                  placeholder="Сменить на другую роль"
+                  :disabled="changingRole"
+                  trigger-class="w-[180px]"
+                  @update:model-value="onRoleChange"
+                />
+                <span v-if="changingRole" class="text-xs text-muted-foreground">Сохранение…</span>
+                <p v-if="roleError" class="text-xs text-destructive">{{ roleError }}</p>
+              </div>
+            </template>
           </div>
         </div>
         <Button
@@ -411,15 +446,12 @@ watch([guildId, characterId], () => loadData());
       <CardContent class="space-y-4">
         <div v-if="member.game_classes.length > 0">
           <p class="mb-1 text-sm font-medium text-muted-foreground">Классы</p>
-          <div class="flex flex-wrap gap-1">
-            <Badge
+          <div class="flex flex-wrap items-center gap-2">
+            <CharacterClassBadge
               v-for="gc in member.game_classes"
               :key="gc.id"
-              variant="outline"
-              class="text-xs"
-            >
-              {{ gc.name_ru ?? gc.name }}
-            </Badge>
+              :game-class="rosterMemberGameClass(gc)"
+            />
           </div>
         </div>
 

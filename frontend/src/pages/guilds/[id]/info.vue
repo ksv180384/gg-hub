@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
+import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import { guildsApi, type Guild, type GuildRosterMember } from '@/shared/api/guildsApi';
+import type { GameClass } from '@/shared/api/gamesApi';
 import { rosterTagBadgeClass, rosterTagDisplayRows } from '@/shared/lib/rosterTagDisplay';
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
@@ -23,6 +25,18 @@ const rosterFetched = ref(false);
 const rosterErrorStatus = ref<number | null>(null);
 
 const activeTab = ref<TabId>('about');
+
+function rosterMemberGameClass(gc: GuildRosterMember['game_classes'][number]): GameClass {
+  return {
+    id: gc.id,
+    game_id: 0,
+    name: gc.name,
+    name_ru: gc.name_ru ?? null,
+    slug: gc.slug,
+    image: gc.image ?? null,
+    image_thumb: gc.image_thumb ?? null,
+  };
+}
 
 function avatarFallback(name: string): string {
   if (!name?.trim()) return '?';
@@ -48,7 +62,7 @@ async function loadRoster() {
   rosterErrorStatus.value = null;
   roster.value = [];
   try {
-    roster.value = await guildsApi.getGuildRoster(guildId.value);
+    roster.value = (await guildsApi.getGuildRoster(guildId.value)).members;
   } catch (e: unknown) {
     const err = e as { status?: number };
     rosterErrorStatus.value = err.status ?? -1;
@@ -333,33 +347,35 @@ function goToApplication() {
                     >
                       <Card class="h-full overflow-hidden">
                         <CardContent class="flex flex-col items-start gap-3 p-4">
-                          <div class="flex w-full items-center gap-3">
+                          <div class="flex w-full items-start gap-3">
                             <Avatar
                               :src="member.avatar_url ?? undefined"
                               :alt="member.name"
                               :fallback="avatarFallback(member.name)"
                               class="h-12 w-12 shrink-0 md:h-14 md:w-14"
                             />
-                            <div class="min-w-0 flex-1">
-                              <p class="truncate font-medium">{{ member.name }}</p>
-                              <Badge
-                                v-if="member.guild_role"
-                                variant="secondary"
-                                class="mt-1 text-xs"
+                            <div class="flex min-w-0 flex-1 flex-col gap-1">
+                              <div class="flex min-w-0 items-center gap-2">
+                                <p class="min-w-0 truncate text-lg font-medium">{{ member.name }}</p>
+                                <Badge
+                                  v-if="member.guild_role"
+                                  variant="secondary"
+                                  class="shrink-0 text-xs"
+                                >
+                                  {{ member.guild_role.name }}
+                                </Badge>
+                              </div>
+                              <div
+                                v-if="member.game_classes.length > 0"
+                                class="flex flex-wrap items-center gap-2"
                               >
-                                {{ member.guild_role.name }}
-                              </Badge>
+                                <CharacterClassBadge
+                                  v-for="gc in member.game_classes"
+                                  :key="gc.id"
+                                  :game-class="rosterMemberGameClass(gc)"
+                                />
+                              </div>
                             </div>
-                          </div>
-                          <div v-if="member.game_classes.length > 0" class="flex flex-wrap gap-1">
-                            <Badge
-                              v-for="gc in member.game_classes"
-                              :key="gc.id"
-                              variant="outline"
-                              class="text-xs"
-                            >
-                              {{ gc.name_ru ?? gc.name }}
-                            </Badge>
                           </div>
                           <div class="flex flex-wrap gap-1">
                             <Badge

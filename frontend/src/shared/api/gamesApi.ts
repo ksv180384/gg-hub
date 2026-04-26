@@ -25,6 +25,14 @@ export interface GameClass {
   updated_at?: string;
 }
 
+/** GET /games/:id/game-classes — укороченный каталог для фильтров и селектов. */
+export interface GameClassCatalogItem {
+  id: number;
+  name: string;
+  name_ru: string | null;
+  image_thumb: string | null;
+}
+
 export interface Localization {
   id: number;
   code: string;
@@ -158,10 +166,10 @@ export const gamesApi = {
     return unwrapData(res, {} as Game) as Game;
   },
 
-  async getGameClasses(gameId: number): Promise<GameClass[]> {
-    const res = await http.fetchGet<{ data: GameClass[] }>(`/games/${gameId}/game-classes`);
+  async getGameClasses(gameId: number): Promise<GameClassCatalogItem[]> {
+    const res = await http.fetchGet<{ data: GameClassCatalogItem[] }>(`/games/${gameId}/game-classes`);
     throwOnError(res, 'Ошибка загрузки классов');
-    const raw = res.data as { data?: GameClass[] } | null;
+    const raw = res.data as { data?: GameClassCatalogItem[] } | null;
     return raw?.data ?? [];
   },
 

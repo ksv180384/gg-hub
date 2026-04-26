@@ -659,7 +659,7 @@ async function loadRaidPage() {
     return;
   }
   try {
-    roster.value = await guildsApi.getGuildRoster(guildId.value);
+    roster.value = (await guildsApi.getGuildRoster(guildId.value)).members;
   } catch {
     roster.value = [];
   }

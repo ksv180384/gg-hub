@@ -360,8 +360,8 @@ export function useGuildSettingsModel() {
 
       if (canChangeGuildLeader.value) {
         try {
-          const roster = await guildsApi.getGuildRoster(guildId.value);
-          leaderRosterMembers.value = [...roster].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+          const { members: rosterMembers } = await guildsApi.getGuildRoster(guildId.value);
+          leaderRosterMembers.value = [...rosterMembers].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
         } catch {
           leaderRosterMembers.value = [];
         }
