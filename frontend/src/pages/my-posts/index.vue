@@ -91,28 +91,60 @@ onMounted(() => {
         >
           <Card class="overflow-hidden transition-all hover:shadow-md">
             <CardHeader class="pb-2">
-              <div class="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" class="text-xs">
-                  Общие: {{ effectiveStatusLabel(post.is_visible_global, post.status_global_label, 'Не включено') }}
-                </Badge>
-                <Badge variant="outline" class="text-xs">
-                  Гильдия: {{ effectiveStatusLabel(post.is_visible_guild, post.status_guild_label, 'Не включено') }}
-                </Badge>
-                <span class="text-xs text-muted-foreground">
-                  {{ formatDate(post.published_at_global ?? post.published_at_guild ?? post.created_at) }}
-                </span>
-              </div>
-              <CardTitle class="mt-2 text-lg flex items-center justify-between gap-3">
-                <span>{{ post.title || 'Без названия' }}</span>
-                <RouterLink
-                  v-if="!isPostBlocked(post)"
-                  :to="{ name: 'my-posts-edit', params: { id: post.id } }"
+              <div class="flex flex-col gap-1">
+                <div class="flex w-full min-w-0 items-center gap-2">
+                  <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    <Badge variant="outline" class="text-xs">
+                      Общие: {{ effectiveStatusLabel(post.is_visible_global, post.status_global_label, 'Не включено') }}
+                    </Badge>
+                    <Badge variant="outline" class="text-xs">
+                      Гильдия: {{ effectiveStatusLabel(post.is_visible_guild, post.status_guild_label, 'Не включено') }}
+                    </Badge>
+                  </div>
+                  <RouterLink
+                    v-if="!isPostBlocked(post)"
+                    v-slot="{ href, navigate }"
+                    :to="{ name: 'my-posts-edit', params: { id: post.id } }"
+                    custom
+                  >
+                    <a
+                      :href="href"
+                      class="inline-flex shrink-0 items-center gap-2 border-b border-transparent text-sm font-medium text-primary transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      @click="navigate"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="size-4 shrink-0"
+                        aria-hidden="true"
+                      >
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                        <path d="m15 5 4 4" />
+                      </svg>
+                      Редактировать
+                    </a>
+                  </RouterLink>
+                  <span v-else class="shrink-0 text-right text-xs text-muted-foreground">Редактирование недоступно</span>
+                </div>
+                <div
+                  class="text-xs text-muted-foreground"
+                  :title="
+                    'Показываем дату публикации (сначала общую, затем гильдейскую). Если пост не публиковали — дату создания.'
+                  "
                 >
-                  <Button variant="outline" size="xs">
-                    Редактировать
-                  </Button>
-                </RouterLink>
-                <span v-else class="text-xs text-muted-foreground">Редактирование недоступно</span>
+                  <template v-if="post.published_at_global || post.published_at_guild">
+                    Дата публикации: {{ formatDate(post.published_at_global ?? post.published_at_guild) }}
+                  </template>
+                  <template v-else>Дата создания: {{ formatDate(post.created_at) }}</template>
+                </div>
+              </div>
+              <CardTitle class="mt-2 text-lg">
+                {{ post.title || 'Без названия' }}
               </CardTitle>
             </CardHeader>
             <CardContent class="pt-0">
