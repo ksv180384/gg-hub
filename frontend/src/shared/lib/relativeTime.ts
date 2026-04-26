@@ -10,26 +10,18 @@ const HOUR_MS = 60 * MINUTE_MS;
 
 /**
  * Нормализует строку даты из API для парсинга.
- * Сервер (Laravel) отдаёт время в UTC (Z или +00:00), хотя в БД часто записано
- * локальное время. Чтобы «X мин/ч назад» считалось верно, убираем признак UTC
- * и парсим как локальное время (15:39 = 15:39 по времени пользователя).
- * - Z или +00:00 / +0000 / -00:00 (UTC) — убираем и парсим как локальное.
- * - Другие смещения (+03:00 и т.д.) не трогаем.
+ * Правило:
+ * - если сервер прислал ISO со смещением (`Z`, `+03:00`, `+00:00` и т.д.) — уважаем его;
+ * - если смещения нет (часто `YYYY-MM-DD HH:mm:ss`) — считаем, что это UTC, и добавляем `Z`,
+ *   чтобы избежать сдвигов при парсинге в браузере.
  */
 function normalizeDateString(iso: string): string {
   let s = String(iso).trim();
   if (!s) return s;
-  if (/[+-]\d{2}:?\d{2}$/.test(s)) {
-    const utcOffset = /[+-]00:?00$/;
-    if (utcOffset.test(s)) {
-      s = s.replace(utcOffset, '');
-    } else {
-      return s.replace(' ', 'T');
-    }
-  } else {
-    s = s.replace(/(\.\d+)?Z$/i, '');
-  }
-  return s.replace(' ', 'T');
+  const hasOffset = /([+-]\d{2}:?\d{2}|Z)$/i.test(s);
+  s = s.replace(' ', 'T');
+  if (hasOffset) return s;
+  return `${s}Z`;
 }
 
 function parseDate(iso: string | undefined | null): Date | null {
