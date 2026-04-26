@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
+import {
+  PopoverContent,
+  PopoverPortal,
+  PopoverRoot,
+  PopoverTrigger,
+} from 'radix-vue';
 import { Card, CardContent, Badge, Input, Button, Label, Select, type SelectOption, MultiSelect, type MultiSelectOption } from '@/shared/ui';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
+import { cn } from '@/shared/lib/utils';
 import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
 import { guildsApi, type Guild, type GuildRosterMember, type GuildRosterRoleSummary } from '@/shared/api/guildsApi';
 import { gamesApi, type GameClass, type GameClassCatalogItem } from '@/shared/api/gamesApi';
@@ -40,6 +48,15 @@ const gameClassesCatalog = ref<GameClassCatalogItem[]>([]);
 
 const exportRosterLoading = ref(false);
 const exportRosterError = ref('');
+
+const moreRosterFiltersOpen = ref(false);
+
+const rosterExtraFiltersActive = computed(
+  () =>
+    !!filterGuildRole.value ||
+    filterGameClassIds.value.length > 0 ||
+    filterTagIds.value.length > 0,
+);
 
 const guildRoleOptions = computed<SelectOption[]>(() => {
   const fromMeta = guildRosterRoles.value;
@@ -255,6 +272,27 @@ const accessDenied = computed(
     rosterFetched.value && !rosterLoading.value && rosterErrorStatus.value === 403
 );
 
+/** Счётчик N из M в заголовке; в подсказке — полная фраза «Показано: …». */
+const rosterHeadingCount = computed(() => {
+  if (
+    !rosterFetched.value ||
+    rosterLoading.value ||
+    rosterErrorStatus.value !== null ||
+    rosterNeedsLogin.value ||
+    accessDenied.value ||
+    roster.value.length === 0
+  ) {
+    return null;
+  }
+  const shown = rosterDisplayItems.value.length;
+  const total = roster.value.length;
+  return {
+    shown,
+    total,
+    title: `Показано: ${shown} из ${total}`,
+  };
+});
+
 async function loadRoster() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
   rosterLoading.value = true;
@@ -329,8 +367,17 @@ watch(guildId, async () => {
       <div v-if="guildLoading" class="text-muted-foreground">Загрузка…</div>
 
       <template v-else-if="guild">
-        <h1 class="mb-6 text-2xl font-bold md:text-3xl">
-          Состав: {{ guild.name }}
+        <h1
+          class="mb-6 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-2xl font-bold md:text-3xl"
+        >
+          <span>Состав: {{ guild.name }}</span>
+          <span
+            v-if="rosterHeadingCount"
+            :title="rosterHeadingCount.title"
+            class="text-xs font-normal text-muted-foreground"
+          >
+            {{ rosterHeadingCount.shown }} из {{ rosterHeadingCount.total }}
+          </span>
         </h1>
 
         <p v-if="rosterLoading" class="text-sm text-muted-foreground">
@@ -362,7 +409,163 @@ watch(guildId, async () => {
             <Card class="mb-5">
               <CardContent class="p-4">
                 <div class="flex flex-col gap-3">
-                  <div class="flex w-full min-w-0 flex-nowrap items-end gap-2 overflow-x-auto">
+                  <!-- Мобильная панель: имя + дропдаун фильтров + кнопки -->
+                  <div class="flex w-full min-w-0 items-end gap-2 md:hidden">
+                    <div class="grid min-w-0 flex-1 gap-1.5">
+                      <Label for="roster-filter-name-mobile">Имя</Label>
+                      <Input
+                        id="roster-filter-name-mobile"
+                        v-model="filterName"
+                        type="text"
+                        placeholder="Например: Alex"
+                        class="h-8"
+                      />
+                    </div>
+                    <PopoverRoot v-model:open="moreRosterFiltersOpen">
+                      <PopoverTrigger as-child>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          :class="cn(
+                            'relative h-8 w-8 shrink-0 cursor-pointer px-0',
+                            rosterExtraFiltersActive && 'ring-1 ring-primary/60',
+                          )"
+                          title="Роль, классы, теги"
+                          aria-label="Открыть фильтры: роль, классы, теги"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <line x1="4" x2="4" y1="21" y2="14" />
+                            <line x1="4" x2="4" y1="10" y2="3" />
+                            <line x1="12" x2="12" y1="21" y2="12" />
+                            <line x1="12" x2="12" y1="8" y2="3" />
+                            <line x1="20" x2="20" y1="21" y2="16" />
+                            <line x1="20" x2="20" y1="12" y2="3" />
+                            <line x1="2" x2="6" y1="14" y2="14" />
+                            <line x1="10" x2="14" y1="8" y2="8" />
+                            <line x1="18" x2="22" y1="16" y2="16" />
+                          </svg>
+                        </Button>
+                      </PopoverTrigger>
+                      <ClientOnly>
+                        <PopoverPortal>
+                          <PopoverContent
+                            side="bottom"
+                            align="end"
+                            :side-offset="8"
+                            :class="cn(
+                              'z-50 w-[min(calc(100vw-2rem),22rem)] max-h-[min(85vh,32rem)] overflow-y-auto rounded-md border bg-popover p-3 text-popover-foreground shadow-md',
+                              'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+                              'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+                              'data-[side=bottom]:slide-in-from-top-2',
+                            )"
+                          >
+                            <p class="mb-3 text-sm font-medium">Дополнительные фильтры</p>
+                            <div class="flex flex-col gap-3">
+                              <div class="grid gap-1.5">
+                                <Label>Роль в гильдии</Label>
+                                <Select
+                                  v-model="filterGuildRole"
+                                  :options="guildRoleOptions"
+                                  placeholder="Все роли"
+                                  trigger-class="h-8 w-full"
+                                />
+                              </div>
+                              <div class="grid gap-1.5">
+                                <Label>Классы</Label>
+                                <MultiSelect
+                                  v-model="filterGameClassIds"
+                                  :options="gameClassOptions"
+                                  placeholder="Все классы"
+                                  search-placeholder="Поиск классов..."
+                                  trigger-class="h-8 w-full min-w-0"
+                                  display-mode="badges"
+                                />
+                              </div>
+                              <div class="grid gap-1.5">
+                                <Label>Теги</Label>
+                                <MultiSelect
+                                  v-model="filterTagIds"
+                                  :options="tagOptions"
+                                  placeholder="Любые (общие и гильдии)"
+                                  search-placeholder="Поиск тегов..."
+                                  trigger-class="h-8 w-full min-w-0"
+                                  display-mode="badges"
+                                />
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </PopoverPortal>
+                      </ClientOnly>
+                    </PopoverRoot>
+                    <div class="flex shrink-0 gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        class="h-8 w-8 cursor-pointer px-0"
+                        title="Сбросить фильтры"
+                        aria-label="Сбросить фильтры"
+                        @click="resetFilters"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M18 6 6 18" />
+                          <path d="M6 6 18 18" />
+                        </svg>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        class="h-8 w-8 cursor-pointer px-0 disabled:cursor-not-allowed"
+                        title="Выгрузить в Excel"
+                        aria-label="Выгрузить в Excel"
+                        :disabled="exportRosterLoading || rosterDisplayItems.length === 0"
+                        @click="exportRosterXlsx"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                          width="16"
+                          height="16"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <!-- Десктоп: все поля в одной строке -->
+                  <div
+                    class="hidden w-full min-w-0 flex-wrap items-end gap-2 md:flex md:flex-nowrap md:overflow-x-auto"
+                  >
                     <div class="grid w-[7.5rem] shrink-0 gap-1.5 sm:w-36">
                       <Label for="roster-filter-name">Имя</Label>
                       <Input
@@ -458,11 +661,6 @@ watch(guildId, async () => {
                     </div>
                   </div>
 
-                  <div class="flex flex-wrap items-center justify-between gap-2">
-                    <p class="text-xs text-muted-foreground">
-                      Показано: {{ rosterDisplayItems.length }} из {{ roster.length }}
-                    </p>
-                  </div>
                   <p v-if="exportRosterError" class="text-xs text-destructive">
                     {{ exportRosterError }}
                   </p>
