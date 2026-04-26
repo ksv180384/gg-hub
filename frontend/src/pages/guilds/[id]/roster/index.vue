@@ -45,6 +45,8 @@ const filterTagIds = ref<(string | number)[]>([]);
 
 /** Справочник классов игры (GET /games/:id/game-classes). */
 const gameClassesCatalog = ref<GameClassCatalogItem[]>([]);
+/** Лимит выбора классов в фильтре = «Классов у персонажа» в настройках игры. */
+const gameMaxClassesPerCharacter = ref(1);
 
 const exportRosterLoading = ref(false);
 const exportRosterError = ref('');
@@ -191,16 +193,19 @@ function applyGuildRoleFilter(items: GuildRosterMember[], roleSlug: string): Gui
   return items.filter((m) => (m.guild_role?.slug ?? '') === slug);
 }
 
-/** Показ персонажей, у которых есть хотя бы один из выбранных классов. */
-function applyGameClassAnyFilter(
+/** Персонаж должен иметь все выбранные классы (пересечение по полному набору фильтра). */
+function applyGameClassAllFilter(
   items: GuildRosterMember[],
   selected: (string | number)[],
 ): GuildRosterMember[] {
-  const selectedIds = new Set(
-    selected.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0),
-  );
-  if (selectedIds.size === 0) return items;
-  return items.filter((m) => (m.game_classes ?? []).some((gc) => selectedIds.has(gc.id)));
+  const selectedIds = selected
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  if (selectedIds.length === 0) return items;
+  return items.filter((m) => {
+    const memberIds = new Set((m.game_classes ?? []).map((gc) => gc.id));
+    return selectedIds.every((id) => memberIds.has(id));
+  });
 }
 
 function applyAllTagIdsFilter(
@@ -222,7 +227,7 @@ const filteredRoster = computed<GuildRosterMember[]>(() => {
   let items = roster.value;
   items = applyNameFilter(items, filterName.value);
   items = applyGuildRoleFilter(items, filterGuildRole.value);
-  items = applyGameClassAnyFilter(items, filterGameClassIds.value);
+  items = applyGameClassAllFilter(items, filterGameClassIds.value);
   items = applyAllTagIdsFilter(items, filterTagIds.value, (m) =>
     [...(m.tags ?? []), ...(m.personal_tags ?? [])].map((t) => t.id)
   );
@@ -325,6 +330,20 @@ async function loadGameClassesCatalog() {
   }
 }
 
+async function loadGameMaxClassesPerCharacter() {
+  const g = guild.value;
+  if (!g?.game_id) {
+    gameMaxClassesPerCharacter.value = 1;
+    return;
+  }
+  try {
+    const game = await gamesApi.getGame(g.game_id);
+    gameMaxClassesPerCharacter.value = Math.max(1, game.max_classes_per_character ?? 1);
+  } catch {
+    gameMaxClassesPerCharacter.value = 1;
+  }
+}
+
 async function loadGuild() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
   guildLoading.value = true;
@@ -332,6 +351,7 @@ async function loadGuild() {
   try {
     guild.value = await guildsApi.getGuild(guildId.value);
     void loadGameClassesCatalog();
+    void loadGameMaxClassesPerCharacter();
   } catch (e: unknown) {
     const err = e as { status?: number };
     if (err.status === 404) {
@@ -344,8 +364,16 @@ async function loadGuild() {
   }
 }
 
+watch(gameMaxClassesPerCharacter, (max) => {
+  const cap = Math.max(1, max);
+  if (filterGameClassIds.value.length > cap) {
+    filterGameClassIds.value = filterGameClassIds.value.slice(0, cap);
+  }
+});
+
 watch(guildId, async () => {
   gameClassesCatalog.value = [];
+  gameMaxClassesPerCharacter.value = 1;
   rosterFetched.value = false;
   roster.value = [];
   guildRosterRoles.value = [];
@@ -478,7 +506,7 @@ watch(guildId, async () => {
                                   v-model="filterGuildRole"
                                   :options="guildRoleOptions"
                                   placeholder="Все роли"
-                                  trigger-class="h-8 w-full"
+                                  trigger-class="min-h-8 w-full"
                                 />
                               </div>
                               <div class="grid gap-1.5">
@@ -486,9 +514,10 @@ watch(guildId, async () => {
                                 <MultiSelect
                                   v-model="filterGameClassIds"
                                   :options="gameClassOptions"
+                                  :max-selected="gameMaxClassesPerCharacter"
                                   placeholder="Все классы"
                                   search-placeholder="Поиск классов..."
-                                  trigger-class="h-8 w-full min-w-0"
+                                  trigger-class="min-h-8 w-full min-w-0"
                                   display-mode="badges"
                                 />
                               </div>
@@ -499,7 +528,7 @@ watch(guildId, async () => {
                                   :options="tagOptions"
                                   placeholder="Любые (общие и гильдии)"
                                   search-placeholder="Поиск тегов..."
-                                  trigger-class="h-8 w-full min-w-0"
+                                  trigger-class="min-h-8 w-full min-w-0"
                                   display-mode="badges"
                                 />
                               </div>
@@ -582,7 +611,7 @@ watch(guildId, async () => {
                         v-model="filterGuildRole"
                         :options="guildRoleOptions"
                         placeholder="Все роли"
-                        trigger-class="h-8 w-full"
+                        trigger-class="min-h-8 w-full"
                       />
                     </div>
                     <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
@@ -590,9 +619,10 @@ watch(guildId, async () => {
                       <MultiSelect
                         v-model="filterGameClassIds"
                         :options="gameClassOptions"
+                        :max-selected="gameMaxClassesPerCharacter"
                         placeholder="Все классы"
                         search-placeholder="Поиск классов..."
-                        trigger-class="h-8 w-full min-w-0"
+                        trigger-class="min-h-8 w-full min-w-0"
                         display-mode="badges"
                       />
                     </div>
@@ -603,7 +633,7 @@ watch(guildId, async () => {
                         :options="tagOptions"
                         placeholder="Любые (общие и гильдии)"
                         search-placeholder="Поиск тегов..."
-                        trigger-class="h-8 w-full min-w-0"
+                        trigger-class="min-h-8 w-full min-w-0"
                         display-mode="badges"
                       />
                     </div>

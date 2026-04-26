@@ -8,6 +8,7 @@ import {
 } from 'radix-vue';
 import { cn } from '@/shared/lib/utils';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
+import { Tooltip } from '@/shared/ui/tooltip';
 import type { MultiSelectOption } from './types';
 
 const props = withDefaults(
@@ -28,6 +29,8 @@ const props = withDefaults(
     selectAllLabel?: string;
     /** Подпись для «Сбросить» */
     clearAllLabel?: string;
+    /** Максимум выбранных значений (включительно). Без пропа — без ограничения. */
+    maxSelected?: number;
   }>(),
   {
     placeholder: 'Выберите...',
@@ -63,6 +66,17 @@ const filteredOptions = computed(() => {
 
 const selectedSet = computed(() => new Set(props.modelValue));
 
+const maxSelectedLimit = computed(() => {
+  const m = props.maxSelected;
+  if (m == null || Number.isNaN(m)) return null;
+  return Math.max(1, Math.floor(m));
+});
+
+const selectionAtMax = computed(
+  () =>
+    maxSelectedLimit.value != null && props.modelValue.length >= maxSelectedLimit.value,
+);
+
 /** Текст на триггере: 0 — placeholder, 1 — один элемент, 2+ — первый элемент (бейдж +N отдельно). */
 const triggerLabel = computed(() => {
   const len = props.modelValue.length;
@@ -76,21 +90,45 @@ const selectedOptions = computed(() => {
   return props.options.filter((o) => set.has(o.value));
 });
 
+/** Порядок как в modelValue (для триггера: первый выбранный + счётчик остальных). */
+const selectedOptionsInOrder = computed(() => {
+  const map = new Map(props.options.map((o) => [o.value, o]));
+  return props.modelValue
+    .map((v) => map.get(v))
+    .filter((o): o is MultiSelectOption => o != null);
+});
+
+const badgesMoreTooltipText = computed(() =>
+  selectedOptionsInOrder.value
+    .slice(1)
+    .map((o) => o.label)
+    .join('\n'),
+);
+
+const badgesTriggerMultiline = computed(
+  () => props.displayMode === 'badges' && selectedOptions.value.length > 0,
+);
+
 function toggle(value: string | number) {
   const set = new Set(props.modelValue);
   if (set.has(value)) {
     set.delete(value);
   } else {
+    const cap = maxSelectedLimit.value;
+    if (cap != null && set.size >= cap) return;
     set.add(value);
   }
   emit('update:modelValue', Array.from(set));
 }
 
 function selectAllFiltered() {
+  const cap = maxSelectedLimit.value;
   const current = new Set(props.modelValue);
-  filteredOptions.value.forEach((opt) => {
-    if (!opt.disabled) current.add(opt.value);
-  });
+  for (const opt of filteredOptions.value) {
+    if (opt.disabled) continue;
+    if (cap != null && current.size >= cap) break;
+    current.add(opt.value);
+  }
   emit('update:modelValue', Array.from(current));
 }
 
@@ -113,7 +151,10 @@ function clearAll() {
         type="button"
         :disabled="disabled"
         :class="cn(
-          'flex h-8 min-w-[120px] items-center justify-between gap-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-normal shadow-sm transition-colors',
+          'flex min-w-[120px] justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm font-normal shadow-sm transition-colors',
+          badgesTriggerMultiline
+            ? 'min-h-8 h-auto items-start py-1.5'
+            : 'h-8 items-center py-1.5',
           'hover:bg-accent hover:text-accent-foreground',
           'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
           'disabled:pointer-events-none disabled:opacity-50',
@@ -121,35 +162,50 @@ function clearAll() {
           triggerClass
         )"
       >
-        <span class="flex min-w-0 items-center gap-1.5">
+        <span
+          :class="cn(
+            'flex min-w-0 flex-1 gap-1.5',
+            badgesTriggerMultiline ? 'flex-wrap content-center items-center' : 'items-center',
+          )"
+        >
           <template v-if="displayMode === 'badges'">
             <template v-if="selectedOptions.length === 0">
               <span class="truncate text-muted-foreground">{{ placeholder }}</span>
             </template>
             <template v-else>
-              <span class="flex min-w-0 flex-wrap items-center gap-1">
+              <template v-if="selectedOptionsInOrder[0]">
                 <span
-                  v-for="opt in selectedOptions.slice(0, 3)"
-                  :key="String(opt.value)"
-                  class="flex min-w-0 max-w-full items-center gap-1"
+                  class="inline-flex max-w-full min-w-0 shrink items-center gap-1 rounded-md bg-secondary/90 px-1.5 py-0.5"
                 >
                   <img
-                    v-if="opt.imageUrl"
-                    :src="opt.imageUrl"
+                    v-if="selectedOptionsInOrder[0].imageUrl"
+                    :src="selectedOptionsInOrder[0].imageUrl"
                     alt=""
                     class="h-4 w-4 shrink-0 rounded object-cover"
                   >
-                  <span :class="cn('truncate text-xs font-medium', opt.badgeClass)">
-                    {{ opt.label }}
+                  <span
+                    :class="cn(
+                      'min-w-0 truncate text-xs font-medium',
+                      selectedOptionsInOrder.length > 1 ? 'max-w-[10rem]' : 'max-w-[11rem]',
+                      selectedOptionsInOrder[0].badgeClass,
+                    )"
+                  >
+                    {{ selectedOptionsInOrder[0].label }}
                   </span>
                 </span>
-                <span
-                  v-if="selectedOptions.length > 3"
-                  class="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground"
+                <Tooltip
+                  v-if="selectedOptionsInOrder.length > 1"
+                  :content="badgesMoreTooltipText"
+                  side="top"
+                  class="max-w-sm whitespace-pre-line"
                 >
-                  +{{ selectedOptions.length - 3 }}
-                </span>
-              </span>
+                  <span
+                    class="inline-flex shrink-0 cursor-default items-center rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground"
+                  >
+                    +{{ selectedOptionsInOrder.length - 1 }}
+                  </span>
+                </Tooltip>
+              </template>
             </template>
           </template>
           <template v-else>
@@ -165,7 +221,7 @@ function clearAll() {
           </template>
         </span>
         <svg
-          class="ml-1 h-4 w-4 shrink-0 opacity-50"
+          :class="cn('h-4 w-4 shrink-0 opacity-50', badgesTriggerMultiline && 'mt-0.5 self-center')"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -225,15 +281,18 @@ function clearAll() {
             :key="String(opt.value)"
             :class="cn(
               'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent',
-              opt.disabled && 'cursor-not-allowed opacity-50'
+              (opt.disabled || (selectionAtMax && !selectedSet.has(opt.value))) &&
+                'cursor-not-allowed opacity-50',
             )"
           >
             <input
               type="checkbox"
               :checked="selectedSet.has(opt.value)"
-              :disabled="opt.disabled"
+              :disabled="opt.disabled || (selectionAtMax && !selectedSet.has(opt.value))"
               class="h-4 w-4 shrink-0 rounded border-input"
-              @change="!opt.disabled && toggle(opt.value)"
+              @change="
+                !(opt.disabled || (selectionAtMax && !selectedSet.has(opt.value))) && toggle(opt.value)
+              "
             >
             <img
               v-if="opt.imageUrl"
