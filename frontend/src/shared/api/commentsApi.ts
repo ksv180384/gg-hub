@@ -90,6 +90,60 @@ export const commentsApi = {
     throwOnError(res, 'Ошибка удаления комментария');
   },
 
+  // --- Комментарии к общим постам ---
+
+  async getGlobalPostComments(postId: number): Promise<PostComment[]> {
+    const res = await http.fetchGet<{ data: PostComment[] } | PostComment[]>(
+      `/posts/${postId}/comments`
+    );
+    throwOnError(res, 'Ошибка загрузки комментариев');
+    const data = res.data;
+    if (data && typeof data === 'object' && 'data' in data && Array.isArray((data as { data: PostComment[] }).data)) {
+      return (data as { data: PostComment[] }).data;
+    }
+    return Array.isArray(data) ? data : [];
+  },
+
+  async createGlobalPostComment(
+    postId: number,
+    payload: { body: string; character_id: number; parent_id?: number | null }
+  ): Promise<PostComment> {
+    const res = await http.fetchPost<{ data: PostComment } | PostComment>(
+      `/posts/${postId}/comments`,
+      payload as Record<string, unknown>
+    );
+    throwOnError(res, 'Ошибка отправки комментария');
+    const data = res.data;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: PostComment }).data;
+    }
+    return data as PostComment;
+  },
+
+  async updateGlobalPostComment(
+    postId: number,
+    commentId: number,
+    payload: { body: string }
+  ): Promise<PostComment> {
+    const res = await http.fetchPut<{ data: PostComment } | PostComment>(
+      `/posts/${postId}/comments/${commentId}`,
+      payload as Record<string, unknown>
+    );
+    throwOnError(res, 'Ошибка сохранения комментария');
+    const data = res.data;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: PostComment }).data;
+    }
+    return data as PostComment;
+  },
+
+  async deleteGlobalPostComment(postId: number, commentId: number): Promise<void> {
+    const res = await http.fetchDelete<{ message?: string }>(
+      `/posts/${postId}/comments/${commentId}`
+    );
+    throwOnError(res, 'Ошибка удаления комментария');
+  },
+
   // --- Модерация в админке ---
 
   /**

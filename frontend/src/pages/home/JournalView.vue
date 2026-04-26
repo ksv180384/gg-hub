@@ -48,17 +48,17 @@ function onViewRecorded(postId: number) {
 }
 
 function postLink(post: Post) {
-  const guildId = post.guild_id;
-  if (guildId) {
-    return { name: 'guild-post-show' as const, params: { id: String(guildId), postId: String(post.id) } };
-  }
-  return { name: 'my-posts' as const };
+  return { name: 'global-post-show' as const, params: { postId: String(post.id) } };
 }
 
 function onCommentsClick(post: Post) {
-  if (post.guild_id != null) {
-    router.push({ name: 'guild-post-show', params: { id: String(post.guild_id), postId: String(post.id) }, hash: '#comments' });
-  }
+  router.push({ name: 'global-post-show', params: { postId: String(post.id) }, hash: '#comments' });
+}
+
+function onTitleClick(post: Post) {
+  const link = postLink(post);
+  if (!link) return;
+  router.push(link);
 }
 </script>
 
@@ -81,7 +81,7 @@ function onCommentsClick(post: Post) {
           :post="post"
           :guild-id="post.guild_id ?? undefined"
           date-type="global"
-          @title-click="router.push(postLink(post))"
+          @title-click="onTitleClick(post)"
           @comments-click="onCommentsClick(post)"
           @view-recorded="onViewRecorded(post.id)"
         />

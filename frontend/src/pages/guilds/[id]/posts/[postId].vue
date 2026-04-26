@@ -74,6 +74,12 @@ async function loadData() {
     }
     guild.value = await guildsApi.getGuildForSettings(guildId.value);
     post.value = await postsApi.getGuildPost(guildId.value, postId.value);
+
+    // Не показываем пост по гильдейской ссылке, если он не опубликован в гильдии.
+    if (post.value?.status_guild !== 'published') {
+      redirectToGuildPosts();
+      return;
+    }
   } catch (e) {
     const apiError = e as ApiError;
     if (apiError?.status === 403 || apiError?.status === 404) {
@@ -169,7 +175,6 @@ onMounted(() => {
           <PostCardFull
             :post="post"
             date-type="guild"
-            :show-status="canModeratePosts"
             :comments-count="commentsCount ?? post.comments_count"
           />
 

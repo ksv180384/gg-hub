@@ -95,6 +95,20 @@ export const postsApi = {
     return data as Post;
   },
 
+  /**
+   * Один пост общего журнала (публичная страница).
+   * Бэкенд: GET /posts/{post}
+   */
+  async getGlobalPost(postId: number): Promise<Post> {
+    const res = await http.fetchGet<PostResponse | { data: Post } | Post>(`/posts/${postId}`);
+    throwOnError(res, 'Ошибка загрузки поста');
+    const data = res.data as PostResponse | { data?: Post } | Post | null;
+    if (data && typeof data === 'object' && 'data' in data) {
+      return (data as { data: Post }).data;
+    }
+    return data as Post;
+  },
+
   async createPost(payload: CreatePostPayload): Promise<Post> {
     const res = await http.fetchPost<PostResponse | { data: Post } | Post>('/user/posts', payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Ошибка создания поста');

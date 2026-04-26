@@ -8,12 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\StorePostCommentRequest;
 use App\Http\Requests\Post\UpdatePostCommentRequest;
 use App\Http\Resources\Post\PostCommentResource;
-use Domains\Guild\Models\Guild;
-use Domains\Post\Actions\CanViewGuildPostAction;
 use Domains\Post\Actions\CreatePostCommentAction;
 use Domains\Post\Actions\DeletePostCommentAction;
 use Domains\Post\Actions\ListPostCommentsAction;
 use Domains\Post\Actions\UpdatePostCommentAction;
+use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 use Domains\Post\Models\PostComment;
 use Illuminate\Http\JsonResponse;
@@ -21,10 +20,12 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use InvalidArgumentException;
 
-class GuildPostCommentController extends Controller
+/**
+ * Комментарии к посту общего журнала (раздел «Общие»).
+ */
+final class GlobalPostCommentController extends Controller
 {
     public function __construct(
-        private CanViewGuildPostAction $canViewGuildPostAction,
         private ListPostCommentsAction $listPostCommentsAction,
         private CreatePostCommentAction $createPostCommentAction,
         private UpdatePostCommentAction $updatePostCommentAction,
@@ -33,18 +34,25 @@ class GuildPostCommentController extends Controller
         private SendPostOrCommentTelegramNotificationAction $sendPostOrCommentTelegramNotificationAction,
     ) {}
 
-    /**
-     * Список комментариев к посту гильдии.
-     */
-    public function index(Request $request, Guild $guild, Post $post): AnonymousResourceCollection|JsonResponse
+    private function ensureCanViewGlobalPost(Post $post): void
     {
-        if (! ($this->canViewGuildPostAction)($request->user(), $guild, $post)) {
+        if (! $post->is_visible_global) {
             abort(404);
         }
+        if ($post->status_global !== PostStatus::Published->value) {
+            abort(404);
+        }
+        if ($post->published_at_global === null) {
+            abort(404);
+        }
+    }
 
-        if ((int) $post->guild_id !== (int) $guild->id) {
-            abort(404);
-        }
+    /**
+     * Список комментариев к посту общего журнала.
+     */
+    public function index(Request $request, Post $post): AnonymousResourceCollection|JsonResponse
+    {
+        $this->ensureCanViewGlobalPost($post);
 
         $comments = ($this->listPostCommentsAction)($post);
 
@@ -52,17 +60,11 @@ class GuildPostCommentController extends Controller
     }
 
     /**
-     * Создание комментария к посту гильдии.
+     * Создание комментария к посту общего журнала.
      */
-    public function store(StorePostCommentRequest $request, Guild $guild, Post $post): JsonResponse
+    public function store(StorePostCommentRequest $request, Post $post): JsonResponse
     {
-        if (! ($this->canViewGuildPostAction)($request->user(), $guild, $post)) {
-            abort(404);
-        }
-
-        if ((int) $post->guild_id !== (int) $guild->id) {
-            abort(404);
-        }
+        $this->ensureCanViewGlobalPost($post);
 
         try {
             $comment = ($this->createPostCommentAction)(
@@ -87,13 +89,11 @@ class GuildPostCommentController extends Controller
     /**
      * Обновление своего комментария.
      */
-    public function update(UpdatePostCommentRequest $request, Guild $guild, Post $post, PostComment $comment): JsonResponse
+    public function update(UpdatePostCommentRequest $request, Post $post, PostComment $comment): JsonResponse
     {
-        if (! ($this->canViewGuildPostAction)($request->user(), $guild, $post)) {
-            abort(404);
-        }
+        $this->ensureCanViewGlobalPost($post);
 
-        if ((int) $post->guild_id !== (int) $guild->id || (int) $comment->post_id !== (int) $post->id) {
+        if ((int) $comment->post_id !== (int) $post->id) {
             abort(404);
         }
 
@@ -113,13 +113,11 @@ class GuildPostCommentController extends Controller
     /**
      * Удаление своего комментария.
      */
-    public function destroy(Request $request, Guild $guild, Post $post, PostComment $comment): JsonResponse
+    public function destroy(Request $request, Post $post, PostComment $comment): JsonResponse
     {
-        if (! ($this->canViewGuildPostAction)($request->user(), $guild, $post)) {
-            abort(404);
-        }
+        $this->ensureCanViewGlobalPost($post);
 
-        if ((int) $post->guild_id !== (int) $guild->id || (int) $comment->post_id !== (int) $post->id) {
+        if ((int) $comment->post_id !== (int) $post->id) {
             abort(404);
         }
 
@@ -132,3 +130,4 @@ class GuildPostCommentController extends Controller
         return response()->json(['message' => 'Комментарий удалён.']);
     }
 }
+

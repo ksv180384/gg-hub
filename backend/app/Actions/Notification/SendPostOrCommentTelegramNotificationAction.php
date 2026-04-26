@@ -30,6 +30,12 @@ class SendPostOrCommentTelegramNotificationAction
         dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
     }
 
+    public function commentUpdated(Post $post, PostComment $comment): void
+    {
+        $message = 'Отредактирован комментарий к посту: ' . $this->buildCommentUrl($post, $comment);
+        dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
+    }
+
     private function buildPostUrl(Post $post): string
     {
         $base = $this->baseUrlWithGameSubdomain($post);
@@ -43,8 +49,11 @@ class SendPostOrCommentTelegramNotificationAction
     private function buildCommentUrl(Post $post, PostComment $comment): string
     {
         $base = $this->baseUrlWithGameSubdomain($post);
+        if ($post->guild_id) {
+            return $base . '/guilds/' . $post->guild_id . '/posts/' . $post->id . '#comment-' . $comment->id;
+        }
 
-        return $base . '/guilds/' . $post->guild_id . '/posts/' . $post->id . '#comment-' . $comment->id;
+        return $base . '/posts/' . $post->id . '#comment-' . $comment->id;
     }
 
     /**

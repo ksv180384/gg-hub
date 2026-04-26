@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ContextController;
 use App\Http\Controllers\Api\GameClassController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\GlobalJournalController;
+use App\Http\Controllers\Api\GlobalPostController;
+use App\Http\Controllers\Api\GlobalPostCommentController;
 use App\Http\Controllers\Api\GuildApplicationController;
 use App\Http\Controllers\Api\GuildApplicationCommentController;
 use App\Http\Controllers\Api\GuildApplicationFormFieldController;
@@ -65,6 +67,8 @@ Route::get('/games/{game}/localizations/{localization}/servers', [ServerControll
 Route::get('/guilds', [GuildController::class, 'index']);
 Route::get('/guilds/{guild}', [GuildController::class, 'show']);
 Route::get('/guilds/{guild}/application-form', [GuildController::class, 'applicationForm']);
+Route::get('/posts/{post}', [GlobalPostController::class, 'show']);
+Route::get('/posts/{post}/comments', [GlobalPostCommentController::class, 'index']);
 
 Route::get('/user', [UserController::class, 'show']);
 
@@ -81,6 +85,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/user/posts/{post}', [PostController::class, 'show']);
     Route::match(['put', 'patch'], '/user/posts/{post}', [PostController::class, 'update'])->middleware('ensure.not.banned');
     Route::get('/games/{game}/journal-posts', [GlobalJournalController::class, 'index']);
+
+    Route::post('/posts/{post}/comments', [GlobalPostCommentController::class, 'store'])->middleware('ensure.not.banned');
+    Route::match(['put', 'patch'], '/posts/{post}/comments/{comment}', [GlobalPostCommentController::class, 'update'])->middleware('ensure.not.banned');
+    Route::delete('/posts/{post}/comments/{comment}', [GlobalPostCommentController::class, 'destroy']);
     Route::get('/games/{game}/characters', [CharacterController::class, 'indexForGame']);
     Route::get('/games/{game}/characters/{character}', [CharacterController::class, 'showForGame']);
     Route::get('/characters', [CharacterController::class, 'index']);

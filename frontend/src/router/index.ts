@@ -49,6 +49,12 @@ const routes: RouteRecordRaw[] = [
       component: MainLayout,
       children: [
         { path: '', name: 'home', component: () => import('@/pages/home/index.vue') },
+        {
+          path: 'posts/:postId',
+          name: 'global-post-show',
+          component: () => import('@/pages/posts/show.vue'),
+          meta: { requiresAuth: false },
+        },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
         {
           path: 'applications',

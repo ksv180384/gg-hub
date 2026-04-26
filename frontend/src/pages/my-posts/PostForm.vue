@@ -323,11 +323,7 @@ onMounted(() => {
       </Card>
 
       <template v-if="!isBlocked">
-      <Card>
-        <CardHeader>
-          <CardTitle>Содержимое поста</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
+      <div class="space-y-4">
           <div class="space-y-2">
             <Label for="title">Заголовок (необязательно)</Label>
             <Input id="title" v-model="title" placeholder="Например, «Советы по рейдам в пятницу»" />
@@ -394,8 +390,7 @@ onMounted(() => {
               </SelectContent>
             </SelectRoot>
           </div>
-        </CardContent>
-      </Card>
+      </div>
 
       <Card>
         <CardHeader>
