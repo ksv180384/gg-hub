@@ -5,6 +5,8 @@ import App from './App.vue';
 import { createRouterInstance } from './router';
 import { setActiveRouter } from '@/router/activeRouter';
 import { useThemeStore } from '@/stores/theme';
+import { useAuthStore } from '@/stores/auth';
+import { useSiteContextStore } from '@/stores/siteContext';
 import { setupHttpInterceptors } from '@/shared/api/http-interceptors';
 import { setHydrating } from '@/ssr/hydrationFlag';
 import '@/assets/main.css';
@@ -42,6 +44,19 @@ async function bootstrap() {
   }
 
   setHydrating(false);
+
+  // В SSR-гидрации router.beforeEach пропускается (isHydrating=true), поэтому для публичных страниц
+  // нужно догрузить контекст/пользователя вручную после mount.
+  const auth = useAuthStore(pinia);
+  const siteContext = useSiteContextStore(pinia);
+  queueMicrotask(() => {
+    if (!siteContext.loading && !siteContext.data) {
+      void siteContext.fetchContext();
+    }
+    if (!auth.loading && !auth.user) {
+      void auth.fetchUser();
+    }
+  });
 }
 
 void bootstrap();
