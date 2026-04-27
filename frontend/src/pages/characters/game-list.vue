@@ -3,16 +3,15 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Badge,
-  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  Input,
   Label,
   MultiSelect,
   Spinner,
 } from '@/shared/ui';
+import { ResponsiveFiltersToolbar } from '@/widgets/responsive-filters-toolbar';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
@@ -247,6 +246,14 @@ const visibleCharacters = computed(() => {
   });
 });
 
+const gameListExtraFiltersActive = computed(
+  () =>
+    filterLocalizationIds.value.length > 0 ||
+    filterServerIds.value.length > 0 ||
+    filterGameClassIds.value.length > 0 ||
+    filterCommonTagIds.value.length > 0,
+);
+
 const filterReady = ref(false);
 
 onMounted(async () => {
@@ -293,83 +300,133 @@ watch(
         </p>
       </div>
 
-      <!-- Фильтр -->
-      <div class="mb-6 flex flex-wrap items-end gap-3 rounded-lg border bg-muted/30 px-4 py-3">
-        <div class="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[180px]">
-          <Label for="character-filter-name" class="text-xs text-muted-foreground">Имя</Label>
-          <Input
-            id="character-filter-name"
-            v-model="filterName"
-            placeholder="Поиск по имени..."
-            class="h-8 text-sm"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <Label class="text-xs text-muted-foreground">Локализация</Label>
-          <MultiSelect
-            :model-value="filterLocalizationIds"
-            :options="localizationMultiOptions"
-            placeholder="Все"
-            search-placeholder="Поиск локализации..."
-            empty-text="Нет локализаций"
-            :disabled="loadingFilterOptions || !filterLocalizations.length"
-            trigger-class="min-w-[140px]"
-            @update:model-value="onLocalizationsChange"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <Label class="text-xs text-muted-foreground">Сервер</Label>
-          <MultiSelect
-            :model-value="filterServerIds"
-            :options="serverMultiOptions"
-            placeholder="Все"
-            search-placeholder="Поиск сервера..."
-            empty-text="Нет серверов"
-            :disabled="!filterServers.length"
-            trigger-class="min-w-[140px]"
-            @update:model-value="onServersChange"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <Label class="text-xs text-muted-foreground">Класс(ы)</Label>
-          <MultiSelect
-            :model-value="filterGameClassIds"
-            :options="gameClassMultiOptions"
-            placeholder="Все"
-            search-placeholder="Поиск класса..."
-            empty-text="Нет классов"
-            :disabled="loadingFilterOptions || !filterGameClasses.length"
-            trigger-class="min-w-[140px]"
-            @update:model-value="onGameClassesChange"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <Label class="text-xs text-muted-foreground">Общие теги</Label>
-          <MultiSelect
-            :model-value="filterCommonTagIds"
-            :options="commonTagMultiOptions"
-            placeholder="Все"
-            search-placeholder="Поиск тега..."
-            empty-text="Нет общих тегов"
-            :disabled="!commonTags.length"
-            trigger-class="min-w-[160px]"
-            @update:model-value="onCommonTagsChange"
-          />
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          class="h-8 w-8 shrink-0"
-          title="Сбросить фильтр"
-          aria-label="Сбросить фильтр"
-          @click="resetFilter"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-          </svg>
-        </Button>
-      </div>
+      <ResponsiveFiltersToolbar
+        v-model:name="filterName"
+        class="mb-6"
+        :extra-filters-active="gameListExtraFiltersActive"
+        name-placeholder="Поиск по имени..."
+        extra-filters-title="Локализация, сервер, классы, теги"
+        popover-trigger-title="Локализация, сервер, классы, теги"
+        popover-trigger-aria-label="Открыть фильтры: локализация, сервер, классы, теги"
+        reset-button-title="Сбросить фильтр"
+        reset-button-aria-label="Сбросить фильтр"
+        name-mobile-input-id="game-char-filter-name-mobile"
+        name-desktop-input-id="game-char-filter-name-desktop"
+        @reset="resetFilter"
+      >
+        <template #extra-filters>
+          <div class="grid gap-1.5">
+            <Label>Локализация</Label>
+            <MultiSelect
+              :model-value="filterLocalizationIds"
+              :options="localizationMultiOptions"
+              placeholder="Все"
+              search-placeholder="Поиск локализации..."
+              empty-text="Нет локализаций"
+              :disabled="loadingFilterOptions || !filterLocalizations.length"
+              trigger-class="min-h-8 w-full min-w-0"
+              @update:model-value="onLocalizationsChange"
+            />
+          </div>
+          <div class="grid gap-1.5">
+            <Label>Сервер</Label>
+            <MultiSelect
+              :model-value="filterServerIds"
+              :options="serverMultiOptions"
+              placeholder="Все"
+              search-placeholder="Поиск сервера..."
+              empty-text="Нет серверов"
+              :disabled="!filterServers.length"
+              trigger-class="min-h-8 w-full min-w-0"
+              @update:model-value="onServersChange"
+            />
+          </div>
+          <div class="grid gap-1.5">
+            <Label>Классы</Label>
+            <MultiSelect
+              :model-value="filterGameClassIds"
+              :options="gameClassMultiOptions"
+              placeholder="Все классы"
+              search-placeholder="Поиск класса..."
+              empty-text="Нет классов"
+              :disabled="loadingFilterOptions || !filterGameClasses.length"
+              trigger-class="min-h-8 w-full min-w-0"
+              display-mode="badges"
+              @update:model-value="onGameClassesChange"
+            />
+          </div>
+          <div class="grid gap-1.5">
+            <Label>Общие теги</Label>
+            <MultiSelect
+              :model-value="filterCommonTagIds"
+              :options="commonTagMultiOptions"
+              placeholder="Все"
+              search-placeholder="Поиск тега..."
+              empty-text="Нет общих тегов"
+              :disabled="!commonTags.length"
+              trigger-class="min-h-8 w-full min-w-0"
+              display-mode="badges"
+              @update:model-value="onCommonTagsChange"
+            />
+          </div>
+        </template>
+        <template #desktop-filters>
+          <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
+            <Label>Локализация</Label>
+            <MultiSelect
+              :model-value="filterLocalizationIds"
+              :options="localizationMultiOptions"
+              placeholder="Все"
+              search-placeholder="Поиск локализации..."
+              empty-text="Нет локализаций"
+              :disabled="loadingFilterOptions || !filterLocalizations.length"
+              trigger-class="min-h-8 w-full min-w-0"
+              @update:model-value="onLocalizationsChange"
+            />
+          </div>
+          <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
+            <Label>Сервер</Label>
+            <MultiSelect
+              :model-value="filterServerIds"
+              :options="serverMultiOptions"
+              placeholder="Все"
+              search-placeholder="Поиск сервера..."
+              empty-text="Нет серверов"
+              :disabled="!filterServers.length"
+              trigger-class="min-h-8 w-full min-w-0"
+              @update:model-value="onServersChange"
+            />
+          </div>
+          <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
+            <Label>Классы</Label>
+            <MultiSelect
+              :model-value="filterGameClassIds"
+              :options="gameClassMultiOptions"
+              placeholder="Все классы"
+              search-placeholder="Поиск класса..."
+              empty-text="Нет классов"
+              :disabled="loadingFilterOptions || !filterGameClasses.length"
+              trigger-class="min-h-8 w-full min-w-0"
+              display-mode="badges"
+              @update:model-value="onGameClassesChange"
+            />
+          </div>
+          <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
+            <Label>Общие теги</Label>
+            <MultiSelect
+              :model-value="filterCommonTagIds"
+              :options="commonTagMultiOptions"
+              placeholder="Все"
+              search-placeholder="Поиск тега..."
+              empty-text="Нет общих тегов"
+              :disabled="!commonTags.length"
+              trigger-class="min-h-8 w-full min-w-0"
+              display-mode="badges"
+              @update:model-value="onCommonTagsChange"
+            />
+          </div>
+        </template>
+      </ResponsiveFiltersToolbar>
 
       <div v-if="error" class="mb-6 rounded-md bg-destructive/10 p-4 text-destructive">
         {{ error }}
