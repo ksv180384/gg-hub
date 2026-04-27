@@ -130,6 +130,11 @@ async function loadInitialData() {
       isPendingGlobal.value = false;
       isPendingGuild.value = false;
     }
+
+    if (!isEdit.value) {
+      const main = characters.value.find((c) => c.is_main) ?? characters.value[0] ?? null;
+      characterId.value = main?.id ?? null;
+    }
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : 'Не удалось загрузить данные для формы';
   }
@@ -186,6 +191,14 @@ function isBodyEmpty(html: string): boolean {
 
 async function submit() {
   if (isBlocked.value) return;
+  if (title.value.trim() === '') {
+    submitError.value = 'Введите заголовок поста.';
+    return;
+  }
+  if (characterId.value == null) {
+    submitError.value = 'Выберите персонажа.';
+    return;
+  }
   if (isBodyEmpty(body.value)) {
     submitError.value = 'Введите текст поста.';
     return;
@@ -195,7 +208,7 @@ async function submit() {
   submitError.value = null;
   try {
     const payload: CreatePostPayload = {
-      title: title.value.trim() === '' ? null : title.value.trim(),
+      title: title.value.trim(),
       body: body.value,
       character_id: characterId.value,
       guild_id: guildId.value,
@@ -325,8 +338,8 @@ onMounted(() => {
       <template v-if="!isBlocked">
       <div class="space-y-4">
           <div class="space-y-2">
-            <Label for="title">Заголовок (необязательно)</Label>
-            <Input id="title" v-model="title" placeholder="Например, «Советы по рейдам в пятницу»" />
+            <Label for="title">Заголовок *</Label>
+            <Input id="title" v-model="title" required placeholder="Например, «Советы по рейдам в пятницу»" />
           </div>
           <div class="space-y-2">
             <div class="flex flex-wrap items-center gap-2 border-b border-border pb-2">
@@ -371,13 +384,13 @@ onMounted(() => {
             </div>
           </div>
           <div>
-            <Label for="character">Персонаж (от кого пишете)</Label>
+            <Label for="character">Персонаж *</Label>
             <SelectRoot
               :model-value="characterId !== null ? String(characterId) : undefined"
               @update:model-value="(val) => { characterId = val ? Number(val) : null; }"
             >
               <SelectTrigger id="character" class="w-full">
-                <SelectValue placeholder="Без привязки к персонажу" />
+                <SelectValue placeholder="Выберите персонажа" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem

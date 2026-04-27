@@ -58,7 +58,7 @@ export interface AdminPostSuggestItem {
 }
 
 export interface CreatePostPayload {
-  title: string | null;
+  title: string;
   body: string;
   character_id: number | null;
   guild_id: number | null;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Responses\Fortify;
 
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Fortify;
@@ -36,13 +37,7 @@ class RegisterResponse implements RegisterResponseContract
             $user->load('roles', 'directPermissions');
 
             return response()->json([
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'permissions' => $user->getAllPermissionSlugs(),
-                    'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name, 'slug' => $r->slug]),
-                ],
+                'user' => (new UserResource($user))->resolve(),
             ], 201);
         }
 

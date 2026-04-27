@@ -113,8 +113,7 @@ const sidebarTitle = computed(() => {
   return siteContext.game?.name ?? 'Игра';
 });
 
-const isAdminRoute = (path: string) =>
-  route.path === path || route.path.startsWith(path + '/');
+const isAdminRoute = (path: string) => route.path === path || route.path.startsWith(path + '/');
 
 async function loadAdminPendingCount() {
   if (!showAdminBlock.value) return;
@@ -233,7 +232,15 @@ onMounted(() => {
   loadUserGuilds();
   loadAdminPendingCount();
 });
+
 watch(() => siteContext.game?.id, () => loadUserGuilds());
+watch(
+  () => auth.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) loadUserGuilds();
+    else userGuilds.value = [];
+  }
+);
 watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
 </script>
 
@@ -265,11 +272,7 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
       )"
     >
       <template v-if="siteContext.isGameSubdomain">
-        <RouterLink
-          to="/"
-          :class="topGameLinkClass(route.path === '/')"
-          @click="onMobileNavigate"
-        >
+        <RouterLink to="/" :class="topGameLinkClass(route.path === '/')" @click="onMobileNavigate">
           Журнал
         </RouterLink>
         <RouterLink
@@ -331,10 +334,7 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
               leave-from-class="opacity-100 translate-y-0 max-h-[320px]"
               leave-to-class="opacity-0 -translate-y-2 max-h-0"
             >
-              <div
-                v-if="isGuildOpen(guild.id)"
-                :class="guildSubmenuWrapClass()"
-              >
+              <div v-if="isGuildOpen(guild.id)" :class="guildSubmenuWrapClass()">
                 <RouterLink
                   v-for="item in guildSubmenuItems"
                   :key="item.pathSuffix + (item.query ? JSON.stringify(item.query) : '')"

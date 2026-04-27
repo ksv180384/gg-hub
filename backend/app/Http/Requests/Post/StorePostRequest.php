@@ -16,15 +16,23 @@ class StorePostRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $title = $this->input('title');
+        if (\is_string($title)) {
+            $this->merge(['title' => trim($title)]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'title' => ['nullable', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
-            'character_id' => ['nullable', 'integer', 'exists:characters,id'],
+            'character_id' => ['required', 'integer', 'exists:characters,id'],
             'guild_id' => ['nullable', 'integer', 'exists:guilds,id'],
             'game_id' => ['nullable', 'integer', 'exists:games,id'],
 
@@ -96,6 +104,17 @@ class StorePostRequest extends FormRequest
             'game_id' => 'игра',
             'is_visible_global' => 'публикация для всех',
             'is_visible_guild' => 'публикация для гильдии',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'title.required' => 'Введите заголовок поста.',
+            'character_id.required' => 'Выберите персонажа.',
         ];
     }
 }
