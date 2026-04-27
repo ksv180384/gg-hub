@@ -42,6 +42,8 @@ const socketRef = ref<Socket | null>(null);
 const lastJoined = ref<{ guildId: number; raidId: number } | null>(null);
 const pendingRemoteMembers = ref<MemberSlot[] | null>(null);
 
+const rosterPanelOpen = ref(false);
+
 /** Сетка 100×100 ячеек. */
 const GRID_COLUMNS = 20;
 const GRID_ROWS = 50;
@@ -82,6 +84,7 @@ watch(
     dragOverSlotIndex.value = null;
     dragOverRoster.value = false;
     pendingRemoteMembers.value = null;
+    rosterPanelOpen.value = false;
   },
   { immediate: true }
 );
@@ -254,7 +257,9 @@ function onDropRoster(e: DragEvent) {
   if (props.readonly) return;
   e.preventDefault();
   dragOverRoster.value = false;
-  const characterId = draggedCharacterId.value ?? (e.dataTransfer?.getData('text/plain') ? Number(e.dataTransfer.getData('text/plain')) : null);
+  const characterId =
+    draggedCharacterId.value ??
+    (e.dataTransfer?.getData('text/plain') ? Number(e.dataTransfer.getData('text/plain')) : null);
   if (characterId == null || !Number.isInteger(characterId)) return;
   if (getMemberByCharacterId(characterId)) removeFromRaid(characterId);
 }
@@ -275,7 +280,9 @@ function onDropSlot(e: DragEvent, slotIndex: number) {
   if (props.readonly) return;
   e.preventDefault();
   dragOverSlotIndex.value = null;
-  const characterId = draggedCharacterId.value ?? (e.dataTransfer?.getData('text/plain') ? Number(e.dataTransfer.getData('text/plain')) : null);
+  const characterId =
+    draggedCharacterId.value ??
+    (e.dataTransfer?.getData('text/plain') ? Number(e.dataTransfer.getData('text/plain')) : null);
   if (characterId == null || !Number.isInteger(characterId)) return;
   let member = getMemberByCharacterId(characterId);
   if (!member) {
@@ -327,15 +334,38 @@ function close() {
             <span v-if="readonly" class="ml-2">· Только просмотр</span>
           </p>
         </div>
-        <Button variant="ghost" size="sm" class="h-9 w-9 shrink-0 p-0" aria-label="Закрыть" @click="close">
-          ×
-        </Button>
+
+        <div class="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            class="md:hidden"
+            @click="rosterPanelOpen = true"
+          >
+            Состав гильдии
+          </Button>
+          <Button variant="ghost" size="sm" class="h-9 w-9 shrink-0 p-0" aria-label="Закрыть" @click="close">
+            ×
+          </Button>
+        </div>
       </header>
 
       <div class="flex min-h-0 flex-1 overflow-hidden">
         <!-- Левая панель: состав гильдии -->
-        <aside class="flex w-64 shrink-0 flex-col border-r overflow-hidden">
+        <div v-if="rosterPanelOpen" class="fixed inset-0 z-[60] bg-black/50 md:hidden" @click="rosterPanelOpen = false" />
+        <aside
+          class="bg-background flex w-72 max-w-[85vw] shrink-0 flex-col border-r overflow-hidden transition-transform duration-200 ease-out md:static md:w-64 md:max-w-none md:translate-x-0"
+          :class="rosterPanelOpen ? 'fixed inset-y-0 left-0 z-[61] translate-x-0' : 'fixed inset-y-0 left-0 z-[61] -translate-x-full md:translate-x-0 md:static'"
+        >
           <div class="shrink-0 border-b p-2">
+            <div class="flex items-center justify-between gap-2 pb-2 md:hidden">
+              <p class="text-sm font-medium">Состав гильдии</p>
+              <Button type="button" variant="ghost" size="sm" class="h-9 w-9 p-0" aria-label="Закрыть" @click="rosterPanelOpen = false">
+                ×
+              </Button>
+            </div>
+
             <div class="relative">
               <span class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -361,7 +391,7 @@ function close() {
             @dragleave="onDragLeaveRoster"
             @drop="onDropRoster"
           >
-            <p class="mb-2 text-xs font-medium text-muted-foreground">
+            <p class="mb-2 text-xs font-medium text-muted-foreground hidden md:block">
               Состав гильдии
               <span v-if="!readonly && dragOverRoster" class="text-primary"> — отпустите, чтобы убрать из рейда</span>
             </p>
@@ -381,7 +411,7 @@ function close() {
           </div>
         </aside>
 
-        <!-- Правая часть: сетка ячеек 100×100 -->
+        <!-- Правая часть: сетка -->
         <div class="flex-1 overflow-auto p-4">
           <p class="mb-3 text-sm text-muted-foreground">
             <template v-if="!readonly">

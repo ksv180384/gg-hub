@@ -34,7 +34,7 @@ import {
 } from '@/shared/api/guildsApi';
 import { Sortable } from 'sortablejs-vue3';
 import RaidTreeItem from './RaidTreeItem.vue';
-import FormRaidModal from './FormRaidModal.vue';
+import { RaidCompositionModal } from '@/widgets/raid-composition-modal';
 import { io, type Socket } from 'socket.io-client';
 
 const route = useRoute();
@@ -56,7 +56,7 @@ const treeUpdateTimer = ref<number | null>(null);
 const selectedRaidId = ref<number | null>(null);
 const selectedRaid = ref<RaidItem | null>(null);
 const selectedRaidLoading = ref(false);
-// Старую панель деталей рейда убрали: теперь всегда открываем FormRaidModal.
+// Старую панель деталей рейда убрали: теперь всегда открываем RaidCompositionModal.
 
 const canFormRaid = computed(
   () => guild.value?.my_permission_slugs?.includes('formirovat-reidy') ?? false
@@ -901,7 +901,7 @@ watch(
       @confirm="confirmDelete"
     />
 
-    <FormRaidModal
+    <RaidCompositionModal
       :open="formRaidModalOpen"
       :raid="selectedRaid"
       :roster="roster"
