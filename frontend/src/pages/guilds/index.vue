@@ -579,7 +579,7 @@ watch(filterGameId, async () => {
               />
             </div>
           </template>
-          <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
+          <div class="grid w-32 shrink-0 gap-1.5 sm:w-36">
             <Label>Локализация</Label>
             <MultiSelect
               :model-value="filterLocalizationIds"
@@ -605,7 +605,7 @@ watch(filterGameId, async () => {
               @update:model-value="onServersChange"
             />
           </div>
-          <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
+          <div class="grid w-28 shrink-0 gap-1.5 sm:w-32">
             <Label for="guild-filter-recruiting">Набор</Label>
             <Select
               id="guild-filter-recruiting"

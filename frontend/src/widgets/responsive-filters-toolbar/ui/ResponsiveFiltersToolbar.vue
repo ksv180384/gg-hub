@@ -156,7 +156,7 @@ const moreFiltersOpen = ref(false);
 
         <!-- Десктоп: имя + слот + кнопки -->
         <div
-          class="hidden w-full min-w-0 flex-wrap items-end gap-2 md:flex md:flex-nowrap md:overflow-x-auto"
+          class="hidden w-full min-w-0 flex-wrap items-end gap-x-2 gap-y-3 md:flex"
         >
           <div class="grid w-[7.5rem] shrink-0 gap-1.5 sm:w-36">
             <Label :for="nameDesktopInputId">{{ nameLabel }}</Label>
