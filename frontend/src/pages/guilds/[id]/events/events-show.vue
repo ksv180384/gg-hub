@@ -99,12 +99,33 @@ onMounted(loadEvent);
 <template>
   <div class="container py-6 space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <h1 class="text-xl font-semibold">
-        Событие гильдии
-      </h1>
-      <Button variant="outline" size="sm" @click="goBack">
-        Назад к списку
-      </Button>
+      <div class="flex items-center gap-2 min-w-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-9 w-9 p-0 shrink-0"
+          aria-label="Назад к списку"
+          @click="goBack"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </Button>
+        <h1 class="text-xl font-semibold truncate">
+          Событие гильдии
+        </h1>
+      </div>
     </div>
 
     <Card>
