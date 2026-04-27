@@ -56,12 +56,17 @@ const showSidebar = computed(() => siteContext.isGameSubdomain || siteContext.is
       <div
         class="container grid grid-cols-1 items-center gap-8 py-10 md:grid-cols-[1fr_auto_1fr] md:gap-6 md:py-12"
       >
-        <div class="text-center text-sm leading-relaxed text-[#4a4a4a] md:justify-self-start md:text-left">
+        <div
+          class="text-center text-sm leading-relaxed text-foreground md:justify-self-start md:text-left"
+        >
           <p class="font-medium">Платформа для развития игровых сообществ</p>
-          <p class="mt-1 text-[#5c5c5c]">© 2026 GG-HUB</p>
-          <p class="mt-1 text-[#5c5c5c]">
+          <p class="mt-1 text-muted-foreground">© 2026 GG-HUB</p>
+          <p class="mt-1 text-muted-foreground">
             Email:
-            <a class="underline-offset-4 hover:underline" href="mailto:support@gg-hub.ru">
+            <a
+              class="text-foreground underline-offset-4 hover:underline"
+              href="mailto:support@gg-hub.ru"
+            >
               support@gg-hub.ru
             </a>
           </p>
@@ -72,11 +77,10 @@ const showSidebar = computed(() => siteContext.isGameSubdomain || siteContext.is
   </div>
 </template>
 
-<style scoped>
-/* --- Футер лендинга --- */
+<style>
+/* Глобально: html.dark + класс футера без data-v, чтобы тёмный фон точно перекрывал светлый. */
 .landing-home-footer {
-  --landing-footer-bg: #ebe9e6;
-  background-color: var(--landing-footer-bg);
+  background-color: #ebe9e6;
   background-image:
     radial-gradient(ellipse 140% 100% at 50% -20%, rgba(255, 255, 255, 0.85) 0%, transparent 50%),
     repeating-linear-gradient(
@@ -87,5 +91,19 @@ const showSidebar = computed(() => siteContext.isGameSubdomain || siteContext.is
       rgba(0, 0, 0, 0.018) 4px
     ),
     linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, transparent 45%);
+}
+
+html.dark .landing-home-footer {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(ellipse 140% 100% at 50% -20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.04) 3px,
+      rgba(255, 255, 255, 0.04) 4px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 45%);
 }
 </style>
