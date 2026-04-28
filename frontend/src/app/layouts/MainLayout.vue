@@ -14,7 +14,8 @@ const routeLoading = useRouteLoadingStore();
 
 // Боковое меню доступно на игровом субдомене (Персонажи, Гильдия) и на админ-субдомене (Управление),
 // но показывается только для авторизованных пользователей (включая мобильную версию).
-const showSidebar = computed(() => auth.isAuthenticated && (siteContext.isGameSubdomain || siteContext.isAdmin));
+const sidebarAvailable = computed(() => siteContext.isGameSubdomain || siteContext.isAdmin);
+const showSidebar = computed(() => auth.isAuthenticated && sidebarAvailable.value);
 </script>
 
 <template>
@@ -25,7 +26,13 @@ const showSidebar = computed(() => auth.isAuthenticated && (siteContext.isGameSu
       </template>
     </Header>
     <div class="flex flex-1">
-      <GameSidebar v-if="showSidebar" />
+      <!--
+        Резервируем место под сайдбар на desktop всегда, когда он потенциально доступен.
+        Иначе при догрузке auth/user сайдбар появляется и даёт большой CLS (main/body сдвигаются).
+      -->
+      <div v-if="sidebarAvailable" class="hidden md:block w-56 shrink-0">
+        <GameSidebar v-if="showSidebar" />
+      </div>
       <main class="relative flex-1 min-w-0">
         <Transition
           enter-active-class="ease-out duration-200"

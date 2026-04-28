@@ -136,7 +136,7 @@ useVideoPlaybackTracking(previewContainerRef, {
     <div
       v-if="isPreviewHtml"
       ref="previewContainerRef"
-      class="px-4 pb-3 prose prose-sm max-w-none text-md dark:prose-invert [&_p]:my-1.5 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_a]:text-blue-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
+      class="px-4 pb-3 prose prose-sm max-w-none text-md dark:prose-invert [&_p]:my-1.5 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_a]:text-blue-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:[content-visibility:auto] [&_img]:[contain-intrinsic-size:320px_200px] [&_iframe]:max-w-full"
       v-html="displayBody()"
     />
     <p v-else class="px-4 pb-3 text-sm text-muted-foreground leading-relaxed line-clamp-3">

@@ -178,12 +178,14 @@ function onItemMouseEnter(n: NotificationItem) {
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
         </svg>
+        <!-- Резервируем место под бейдж, чтобы его появление не давало CLS -->
         <Badge
-          v-if="badgeText"
           variant="destructive"
-          class="absolute -right-1 -top-1 flex max-w-[10px] items-center justify-center bg-red-50 text-[10px] text-red-700 hover:text-red-200 dark:bg-red-950 dark:text-red-300"
+          class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center bg-red-50 px-1 text-[10px] leading-none text-red-700 dark:bg-red-950 dark:text-red-300"
+          :class="badgeText ? 'opacity-100' : 'opacity-0 pointer-events-none'"
+          aria-hidden="true"
         >
-          {{ badgeText }}
+          {{ badgeText || '0' }}
         </Badge>
       </button>
     </template>

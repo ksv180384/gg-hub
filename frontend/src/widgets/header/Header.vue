@@ -306,7 +306,7 @@ function isNavActive(itemTo: string): boolean {
 <template>
   <header class="sticky top-0 z-20 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
     <div
-      class="flex h-14 items-center gap-2 px-4 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-4 md:px-6"
+      class="flex h-14 items-center gap-2 px-4 md:grid md:grid-cols-[auto_1fr_auto] md:items-center md:gap-4 md:px-6"
     >
       <div class="flex min-w-0 shrink-0 items-center gap-2">
         <RouterLink to="/" class="group flex shrink-0 items-center gap-2 font-semibold">
@@ -318,7 +318,7 @@ function isNavActive(itemTo: string): boolean {
       </div>
 
       <nav
-        class="hidden items-center justify-center gap-1 md:flex"
+        class="hidden min-w-0 items-center justify-center gap-1 md:flex"
         aria-label="Основная навигация"
       >
         <RouterLink
@@ -337,7 +337,7 @@ function isNavActive(itemTo: string): boolean {
         </RouterLink>
       </nav>
 
-      <div class="flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none">
+      <div class="flex min-w-0 items-center justify-end gap-2 md:flex-none">
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Тема оформления" title="Тема оформления">

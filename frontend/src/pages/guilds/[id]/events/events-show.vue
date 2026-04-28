@@ -201,14 +201,23 @@ onMounted(loadEvent);
             Событие не найдено.
           </p>
         </div>
-        <div
-          v-if="item && (item.screenshots?.length ?? 0) > 0"
-          class="w-full lg:w-80 shrink-0 space-y-2 text-sm"
-        >
+        <div class="w-full lg:w-80 shrink-0 space-y-2 text-sm">
           <div class="font-medium">
             Скриншоты:
           </div>
-          <div class="flex flex-wrap gap-3">
+
+          <div v-if="loading" class="flex flex-wrap gap-3">
+            <div
+              v-for="n in 4"
+              :key="n"
+              class="h-24 w-24 rounded border bg-muted/40"
+            />
+          </div>
+
+          <div
+            v-else-if="item && (item.screenshots?.length ?? 0) > 0"
+            class="flex flex-wrap gap-3"
+          >
             <button
               v-for="s in item.screenshots"
               :key="s.id"
@@ -219,10 +228,18 @@ onMounted(loadEvent);
               <img
                 :src="s.url"
                 :alt="s.title || 'Скриншот'"
-                class="max-h-[320px] max-w-[320px] rounded object-cover"
+                width="96"
+                height="96"
+                loading="lazy"
+                decoding="async"
+                class="h-24 w-24 rounded object-cover"
               >
             </button>
           </div>
+
+          <p v-else class="text-sm text-muted-foreground">
+            Нет скриншотов.
+          </p>
         </div>
       </CardContent>
     </Card>
