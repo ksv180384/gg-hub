@@ -5,11 +5,13 @@ import PostComments from './PostComments.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { postsApi, type Post } from '@/shared/api/postsApi';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 
 const route = useRoute();
 const router = useRouter();
+const siteOrigin = getSiteOrigin();
 
 const guildId = computed(() => Number(route.params.id));
 const postId = computed(() => Number(route.params.postId));
@@ -20,6 +22,87 @@ const commentsCount = ref<number | null>(null);
 const loading = ref(true);
 const submitting = ref(false);
 const error = ref<string | null>(null);
+
+function stripHtmlToText(input: string): string {
+  return input
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildDescription(p: Post, g: Guild | null): string {
+  const raw = (p.preview ?? p.body ?? '').toString();
+  const text = stripHtmlToText(raw);
+  const guildPart = g?.name ? `Пост гильдии ${g.name}.` : 'Пост гильдии.';
+  if (text.length >= 50) return text.slice(0, 170).trim();
+  return text ? `${text} ${guildPart}`.trim() : guildPart;
+}
+
+function buildKeywords(p: Post, g: Guild | null): string {
+  const parts = [
+    p.title ?? '',
+    g?.name ?? '',
+    p.game_name ?? '',
+    p.author_name ?? '',
+    'gg-hub',
+    'гильдия',
+    'журнал',
+    'пост',
+  ]
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const seen: Record<string, true> = {};
+  const unique: string[] = [];
+  for (const part of parts) {
+    if (!seen[part]) {
+      seen[part] = true;
+      unique.push(part);
+    }
+  }
+  return unique.join(', ');
+}
+
+let seoCleanup: null | (() => void) = null;
+function applySeoForPost(p: Post, g: Guild | null) {
+  const titleBase = p.title?.trim() || 'Запись гильдии';
+  const guildSuffix = g?.name ? ` — ${g.name}` : '';
+  const title = `${titleBase}${guildSuffix} — gg-hub`;
+  const canonicalUrl = `${siteOrigin}${route.fullPath}`;
+  const description = buildDescription(p, g);
+  const keywords = buildKeywords(p, g);
+
+  seoCleanup?.();
+  seoCleanup = applyPageSeo({
+    title,
+    description,
+    canonicalUrl,
+    ogType: 'article',
+    keywords,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: titleBase,
+      description,
+      mainEntityOfPage: canonicalUrl,
+      datePublished: p.published_at_guild ?? p.created_at,
+      dateModified: p.updated_at,
+      author: p.author_name ? { '@type': 'Person', name: p.author_name } : undefined,
+    },
+  });
+}
+
+watch(
+  [post, guild],
+  ([p, g]) => {
+    if (p) applySeoForPost(p, g);
+  },
+  { immediate: false }
+);
+
+onUnmounted(() => {
+  seoCleanup?.();
+  seoCleanup = null;
+});
 
 /** Право публиковать/отклонять/блокировать посты в гильдии */
 const canModeratePosts = computed(
@@ -87,7 +170,7 @@ async function loadData() {
       redirectToGuildPosts();
       return;
     }
-    error.value = e instanceof Error ? e.message : 'Не удалось загрузить пост';
+    error.value = e instanceof Error ? e.message : 'Не удалось загрузить запись';
   } finally {
     loading.value = false;
   }
@@ -100,7 +183,7 @@ async function publish() {
   try {
     post.value = await postsApi.publishGuildPost(guildId.value, postId.value);
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось опубликовать пост';
+    error.value = e instanceof Error ? e.message : 'Не удалось опубликовать запись';
   } finally {
     submitting.value = false;
   }
@@ -113,7 +196,7 @@ async function reject() {
   try {
     post.value = await postsApi.rejectGuildPost(guildId.value, postId.value);
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось отклонить пост';
+    error.value = e instanceof Error ? e.message : 'Не удалось отклонить запись';
   } finally {
     submitting.value = false;
   }
@@ -126,7 +209,7 @@ async function block() {
   try {
     post.value = await postsApi.blockGuildPost(guildId.value, postId.value);
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось заблокировать пост';
+    error.value = e instanceof Error ? e.message : 'Не удалось заблокировать запись';
   } finally {
     submitting.value = false;
   }
@@ -139,7 +222,7 @@ async function unblock() {
   try {
     post.value = await postsApi.unblockGuildPost(guildId.value, postId.value);
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось разблокировать пост';
+    error.value = e instanceof Error ? e.message : 'Не удалось разблокировать запись';
   } finally {
     submitting.value = false;
   }
@@ -152,25 +235,70 @@ onMounted(() => {
 
 <template>
   <div class="container py-6 md:py-8">
-    <div class="mx-auto max-w-3xl space-y-4">
-      <div class="flex items-center justify-between gap-3">
-        <h1 class="text-2xl font-bold tracking-tight">
-          Пост гильдии
-        </h1>
-        <Button variant="link" size="sm" @click="router.back()" class="cursor-pointer">
-          Назад
+    <div class="mx-auto max-w-3xl relative">
+      <!-- Desktop: кнопка слева -->
+      <div class="hidden md:block fixed top-[100px] -ml-10 z-30">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-9 w-9 p-0"
+          aria-label="Назад"
+          title="Назад"
+          @click="router.back()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </Button>
       </div>
 
-      <div class="space-y-4">
+      <!-- Mobile: кнопка справа -->
+      <div class="md:hidden fixed top-[100px] right-8 z-30">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-9 w-9 p-0 bg-background shadow-md border border-border"
+          aria-label="Назад"
+          title="Назад"
+          @click="router.back()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </Button>
+      </div>
+
+      <div class="space-y-4 min-w-0">
         <p v-if="loading" class="text-sm text-muted-foreground">
-          Загрузка поста…
+          Загрузка…
         </p>
         <p v-else-if="error" class="text-sm text-destructive">
           {{ error }}
         </p>
         <p v-else-if="!post" class="text-sm text-muted-foreground">
-          Пост не найден.
+          Запись не найдена.
         </p>
         <template v-else>
           <PostCardFull

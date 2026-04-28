@@ -15,11 +15,15 @@ import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 
 const siteContext = useSiteContextStore();
 const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+
+const siteOrigin = getSiteOrigin();
+let cleanupSeo: (() => void) | null = null;
 
 const ALL_GAMES_VALUE = '__all__';
 const ALL_RECRUITING_VALUE = '__all__';
@@ -73,6 +77,35 @@ const gameOptions = computed<SelectOption[]>(() => [
   { value: ALL_GAMES_VALUE, label: 'Все игры' },
   ...games.value.map((g) => ({ value: String(g.id), label: g.name })),
 ]);
+
+watch(
+  () => siteContext.game?.name,
+  (gameNameRaw) => {
+    if (typeof window === 'undefined') return;
+
+    const gameName = gameNameRaw?.trim();
+    const title = gameName ? `Каталог гильдий — ${gameName} — gg-hub` : 'Каталог гильдий — gg-hub';
+    const description = gameName
+      ? `Каталог гильдий по игре ${gameName}: поиск по названию, локализации, серверу и тегам. Найдите гильдию или создайте свою на gg-hub.`
+      : 'Каталог гильдий MMORPG: фильтры по игре, локализации, серверу и тегам. Найдите гильдию или создайте свою на gg-hub.';
+    const keywords = gameName
+      ? `гильдии ${gameName}, каталог гильдий ${gameName}, найти гильдию ${gameName}, ${gameName} кланы, gg-hub`
+      : 'каталог гильдий, гильдии MMORPG, найти гильдию, поиск гильдии, клан MMORPG, gg-hub';
+
+    // Каноник без query-параметров фильтра.
+    const canonicalUrl = `${siteOrigin}/guilds`;
+
+    cleanupSeo?.();
+    cleanupSeo = applyPageSeo({
+      title,
+      description,
+      keywords,
+      canonicalUrl,
+      ogType: 'website',
+    });
+  },
+  { immediate: true },
+);
 
 const localizationMultiOptions = computed(() =>
   filterLocalizations.value.map((l) => ({ value: l.id, label: l.name }))

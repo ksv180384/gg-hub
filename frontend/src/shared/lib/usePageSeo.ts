@@ -8,15 +8,16 @@ export interface PageSeoOptions {
   description: string;
   canonicalUrl: string;
   ogImageUrl?: string;
+  ogType?: 'website' | 'article';
   keywords?: string;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 /**
- * Устанавливает title, meta, canonical и JSON-LD для SPA-страницы.
- * При размонтировании восстанавливает предыдущие значения document.title и meta.
+ * Немедленно применяет SEO к текущей странице и возвращает cleanup-функцию.
+ * Полезно для страниц, где данные (title/description) появляются после загрузки API.
  */
-export function usePageSeo(options: PageSeoOptions) {
+export function applyPageSeo(options: PageSeoOptions): () => void {
   const undo: (() => void)[] = [];
 
   function setMeta(attr: 'name' | 'property', key: string, content: string) {
@@ -79,54 +80,68 @@ export function usePageSeo(options: PageSeoOptions) {
     undo.push(() => script.remove());
   }
 
-  onMounted(() => {
-    const prevTitle = document.title;
-    document.title = options.title;
-    undo.push(() => {
-      document.title = prevTitle;
-    });
-
-    setMeta('name', 'description', options.description);
-    if (options.keywords) {
-      setMeta('name', 'keywords', options.keywords);
-    }
-
-    setMeta('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
-    setMeta('name', 'author', 'gg-hub');
-
-    setMeta('property', 'og:type', 'website');
-    setMeta('property', 'og:locale', 'ru_RU');
-    setMeta('property', 'og:url', options.canonicalUrl);
-    setMeta('property', 'og:title', options.title);
-    setMeta('property', 'og:description', options.description);
-    setMeta('property', 'og:site_name', 'gg-hub');
-    if (options.ogImageUrl) {
-      setMeta('property', 'og:image', options.ogImageUrl);
-      setMeta('property', 'og:image:alt', options.title);
-    }
-
-    setMeta('name', 'twitter:card', options.ogImageUrl ? 'summary_large_image' : 'summary');
-    setMeta('name', 'twitter:title', options.title);
-    setMeta('name', 'twitter:description', options.description);
-    if (options.ogImageUrl) {
-      setMeta('name', 'twitter:image', options.ogImageUrl);
-    }
-
-    setCanonical(options.canonicalUrl);
-
-    if (options.jsonLd) {
-      const graph = Array.isArray(options.jsonLd) ? options.jsonLd : [options.jsonLd];
-      const payload =
-        graph.length > 1 ? { '@context': 'https://schema.org', '@graph': graph } : graph[0]!;
-      setJsonLd(payload as Record<string, unknown>);
-    }
+  const prevTitle = document.title;
+  document.title = options.title;
+  undo.push(() => {
+    document.title = prevTitle;
   });
 
-  onUnmounted(() => {
+  setMeta('name', 'description', options.description);
+  if (options.keywords) {
+    setMeta('name', 'keywords', options.keywords);
+  }
+
+  setMeta('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+  setMeta('name', 'author', 'gg-hub');
+
+  setMeta('property', 'og:type', options.ogType ?? 'website');
+  setMeta('property', 'og:locale', 'ru_RU');
+  setMeta('property', 'og:url', options.canonicalUrl);
+  setMeta('property', 'og:title', options.title);
+  setMeta('property', 'og:description', options.description);
+  setMeta('property', 'og:site_name', 'gg-hub');
+  if (options.ogImageUrl) {
+    setMeta('property', 'og:image', options.ogImageUrl);
+    setMeta('property', 'og:image:alt', options.title);
+  }
+
+  setMeta('name', 'twitter:card', options.ogImageUrl ? 'summary_large_image' : 'summary');
+  setMeta('name', 'twitter:title', options.title);
+  setMeta('name', 'twitter:description', options.description);
+  if (options.ogImageUrl) {
+    setMeta('name', 'twitter:image', options.ogImageUrl);
+  }
+
+  setCanonical(options.canonicalUrl);
+
+  if (options.jsonLd) {
+    const graph = Array.isArray(options.jsonLd) ? options.jsonLd : [options.jsonLd];
+    const payload = graph.length > 1 ? { '@context': 'https://schema.org', '@graph': graph } : graph[0]!;
+    setJsonLd(payload as Record<string, unknown>);
+  }
+
+  return () => {
     while (undo.length) {
       const fn = undo.pop();
       fn?.();
     }
+  };
+}
+
+/**
+ * Устанавливает title, meta, canonical и JSON-LD для SPA-страницы.
+ * При размонтировании восстанавливает предыдущие значения document.title и meta.
+ */
+export function usePageSeo(options: PageSeoOptions) {
+  let cleanup: (() => void) | null = null;
+
+  onMounted(() => {
+    cleanup = applyPageSeo(options);
+  });
+
+  onUnmounted(() => {
+    cleanup?.();
+    cleanup = null;
   });
 }
 

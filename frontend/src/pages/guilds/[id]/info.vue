@@ -8,6 +8,7 @@ import type { GameClass } from '@/shared/api/gamesApi';
 import { rosterTagBadgeClass, rosterTagDisplayRows } from '@/shared/lib/rosterTagDisplay';
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 
 type TabId = 'about' | 'charter' | 'roster';
 
@@ -18,6 +19,9 @@ const guildId = computed(() => Number(route.params.id));
 const guild = ref<Guild | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+
+const siteOrigin = getSiteOrigin();
+let cleanupSeo: (() => void) | null = null;
 
 const roster = ref<GuildRosterMember[]>([]);
 const rosterLoading = ref(false);
@@ -165,6 +169,73 @@ async function loadGuild() {
 watch(guildId, () => {
   loadGuild();
 }, { immediate: true });
+
+function stripHtmlToText(html: string): string {
+  if (!html) return '';
+  // В about_text может быть HTML; делаем безопасный plain-text для description.
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return (div.textContent ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function truncate(text: string, maxLen: number): string {
+  const s = (text ?? '').trim();
+  if (s.length <= maxLen) return s;
+  return `${s.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+}
+
+watch(
+  () => guild.value,
+  (g) => {
+    if (typeof window === 'undefined') return;
+
+    cleanupSeo?.();
+    cleanupSeo = null;
+
+    if (!g) return;
+
+    const gameName = (g.game?.name ?? '').trim();
+    const serverName = (g.server?.name ?? '').trim();
+    const titleBase = gameName ? `${g.name} — гильдия ${gameName}` : `${g.name} — гильдия`;
+    const title = `${titleBase} — gg-hub`;
+
+    const aboutText = g.about_text ? stripHtmlToText(g.about_text) : '';
+    const tagText = (g.tags ?? []).map((t) => t.name).filter(Boolean).slice(0, 8).join(', ');
+    const parts = [
+      aboutText,
+      gameName ? `Игра: ${gameName}.` : '',
+      serverName ? `Сервер: ${serverName}.` : '',
+      tagText ? `Теги: ${tagText}.` : '',
+      'Профиль гильдии на gg-hub.',
+    ].filter(Boolean);
+    const description = truncate(parts.join(' '), 160);
+
+    const keywordsParts = [
+      g.name,
+      gameName ? `гильдия ${gameName}` : 'гильдия',
+      serverName ? `сервер ${serverName}` : '',
+      ...(g.tags ?? []).map((t) => t.name),
+      'каталог гильдий',
+      'gg-hub',
+    ]
+      .map((s) => s?.trim())
+      .filter((s): s is string => !!s);
+    const keywords = [...new Set(keywordsParts)].slice(0, 18).join(', ');
+
+    const canonicalUrl = `${siteOrigin}/guilds/${g.id}/info`;
+    const ogImageUrl = g.logo_url ? storageImageUrl(g.logo_url) : undefined;
+
+    cleanupSeo = applyPageSeo({
+      title,
+      description,
+      keywords,
+      canonicalUrl,
+      ogType: 'website',
+      ogImageUrl,
+    });
+  },
+  { immediate: true },
+);
 
 const logoDisplayUrl = computed(() => {
   return guild.value?.logo_url ? storageImageUrl(guild.value.logo_url) : null;

@@ -19,11 +19,15 @@ import { guildsApi, type GuildApplicationFormData } from '@/shared/api/guildsApi
 import { charactersApi } from '@/shared/api/charactersApi';
 import type { Character } from '@/shared/api/charactersApi';
 import { useAuthStore } from '@/stores/auth';
+import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const guildId = computed(() => Number(route.params.id));
+
+const siteOrigin = getSiteOrigin();
+let cleanupSeo: (() => void) | null = null;
 
 const formData = ref<GuildApplicationFormData | null>(null);
 const characters = ref<Character[]>([]);
@@ -117,6 +121,60 @@ watch(
   (gameId) => {
     if (gameId && auth.isAuthenticated) loadCharacters();
   }
+);
+
+watch(
+  () => [formData.value?.name, formData.value?.game?.name, formData.value?.server?.name, formData.value?.logo_url, formData.value?.logo_card_url] as const,
+  ([guildNameRaw, gameNameRaw, serverNameRaw]) => {
+    if (typeof window === 'undefined') return;
+
+    cleanupSeo?.();
+    cleanupSeo = null;
+
+    const guildName = (guildNameRaw ?? '').trim();
+    if (!guildName) return;
+
+    const gameName = (gameNameRaw ?? '').trim();
+    const serverName = (serverNameRaw ?? '').trim();
+
+    const titleGame = gameName ? ` — ${gameName}` : '';
+    const title = `Заявка в гильдию ${guildName}${titleGame} — gg-hub`;
+
+    const descriptionParts = [
+      `Подать заявку в гильдию «${guildName}» на gg-hub.`,
+      gameName ? `Игра: ${gameName}.` : '',
+      serverName ? `Сервер: ${serverName}.` : '',
+      'Заполните анкету и отправьте заявку руководству гильдии.',
+    ].filter(Boolean);
+    const description = descriptionParts.join(' ');
+
+    const keywordsParts = [
+      `заявка в гильдию ${guildName}`,
+      gameName ? `заявка в гильдию ${gameName}` : '',
+      serverName ? `гильдия ${serverName}` : '',
+      'анкета в гильдию',
+      'вступить в гильдию',
+      'каталог гильдий',
+      'gg-hub',
+    ]
+      .map((s) => s?.trim())
+      .filter((s): s is string => !!s);
+    const keywords = [...new Set(keywordsParts)].join(', ');
+
+    const canonicalUrl = `${siteOrigin}/guilds/${guildId.value}/application-form`;
+    const ogImageUrlRaw = formData.value?.logo_card_url ?? formData.value?.logo_url ?? null;
+    const ogImageUrl = ogImageUrlRaw ? storageImageUrl(ogImageUrlRaw) : undefined;
+
+    cleanupSeo = applyPageSeo({
+      title,
+      description,
+      keywords,
+      canonicalUrl,
+      ogType: 'website',
+      ogImageUrl,
+    });
+  },
+  { immediate: true },
 );
 
 onMounted(async () => {

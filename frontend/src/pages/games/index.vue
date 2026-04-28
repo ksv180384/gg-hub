@@ -3,10 +3,23 @@ import { Card, CardHeader, CardTitle } from '@/shared/ui';
 import { gamesApi, type Game } from '@/shared/api/gamesApi';
 import { getGameSiteUrl } from '@/shared/lib/gameSiteUrl';
 import { ref, onMounted } from 'vue';
+import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 
 const games = ref<Game[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
+
+const siteOrigin = getSiteOrigin();
+
+if (typeof window !== 'undefined') {
+  applyPageSeo({
+    title: 'Игры — gg-hub',
+    description: 'Список поддерживаемых игр на gg-hub. Выберите игру — откроется её сайт с каталогом гильдий, журналом и инструментами сообщества.',
+    keywords: 'игры, поддерживаемые игры, mmorpg, thr0ne and liberty, aion 2, gg-hub',
+    canonicalUrl: `${siteOrigin}/games`,
+    ogType: 'website',
+  });
+}
 
 async function loadGames() {
   loading.value = true;

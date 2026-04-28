@@ -5,6 +5,7 @@ import { Skeleton } from '@/shared/ui';
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSiteContextStore } from '@/stores/siteContext';
+import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 
 const router = useRouter();
 const siteContext = useSiteContextStore();
@@ -12,6 +13,10 @@ const game = computed(() => siteContext.game);
 
 const posts = ref<Post[]>([]);
 const loading = ref(true);
+
+const siteOrigin = getSiteOrigin();
+
+let cleanupSeo: (() => void) | null = null;
 
 async function loadJournal() {
   const g = game.value;
@@ -37,8 +42,27 @@ watch(() => game.value?.id, () => {
 watch(
   () => game.value?.name,
   (name) => {
-    if (typeof document === 'undefined') return;
-    document.title = name ? `Журнал — ${name} — gg-hub` : 'Журнал — gg-hub';
+    if (typeof window === 'undefined') return;
+
+    const gameName = name?.trim();
+    const title = gameName ? `Журнал — ${gameName} — gg-hub` : 'Журнал — gg-hub';
+    const description = gameName
+      ? `Журнал gg-hub: новости, гайды и обновления по игре ${gameName}. Следите за событиями и публикациями сообщества.`
+      : 'Журнал gg-hub: новости, гайды и обновления. Следите за событиями и публикациями сообщества.';
+    const keywords = gameName
+      ? `журнал ${gameName}, новости ${gameName}, гайды ${gameName}, ${gameName} гильдии, gg-hub`
+      : 'журнал, новости, гайды, MMORPG, gg-hub';
+    const canonicalUrl = `${siteOrigin}/`;
+
+    // Обновляем мета при смене игры (или первичной загрузке контекста).
+    cleanupSeo?.();
+    cleanupSeo = applyPageSeo({
+      title,
+      description,
+      canonicalUrl,
+      keywords,
+      ogType: 'website',
+    });
   },
   { immediate: true },
 );
