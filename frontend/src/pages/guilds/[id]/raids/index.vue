@@ -724,7 +724,7 @@ watch(
         </p>
       </template>
       <div v-else>
-        <ul class="raid-tree space-y-0" data-parent-id="">
+        <ul class="raid-tree space-y-2 pt-2" data-parent-id="" aria-label="Дерево рейдов">
           <Sortable
             :key="raidSortableKey"
             :list="raids"
