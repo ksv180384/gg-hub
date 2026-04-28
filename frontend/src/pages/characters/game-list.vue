@@ -41,6 +41,9 @@ const filterCommonTagIds = ref<number[]>([]);
 const gameDetail = ref<Game | null>(null);
 const loadingFilterOptions = ref(false);
 
+/** Лимит выбора классов в фильтре = «Классов у персонажа» в настройках игры. */
+const gameMaxClassesPerCharacter = computed(() => Math.max(1, gameDetail.value?.max_classes_per_character ?? 1));
+
 /** Локализации для фильтра. */
 const filterLocalizations = computed<Localization[]>(() => {
   const list = gameDetail.value?.localizations?.filter((l) => l.is_active !== false) ?? [];
@@ -75,10 +78,13 @@ const serverMultiOptions = computed(() =>
   filterServers.value.map((s) => ({ value: s.id, label: s.name }))
 );
 const gameClassMultiOptions = computed(() =>
-  filterGameClasses.value.map((gc) => ({
-    value: gc.id,
-    label: gc.name_ru ?? gc.name,
-  }))
+  [...filterGameClasses.value]
+    .sort((a, b) => (a.name_ru ?? a.name).localeCompare(b.name_ru ?? b.name, 'ru'))
+    .map((gc) => ({
+      value: gc.id,
+      label: (gc.name_ru ?? gc.name).trim() || String(gc.id),
+      imageUrl: gc.image_thumb,
+    }))
 );
 
 const commonTags = computed((): Tag[] =>
@@ -102,7 +108,7 @@ function onServersChange(value: (string | number)[]) {
 }
 
 function onGameClassesChange(value: (string | number)[]) {
-  filterGameClassIds.value = value.map(Number);
+  filterGameClassIds.value = value.map(Number).slice(0, gameMaxClassesPerCharacter.value);
 }
 
 function onCommonTagsChange(value: (string | number)[]) {
@@ -192,6 +198,13 @@ async function loadFilterOptions() {
     loadingFilterOptions.value = false;
   }
 }
+
+watch(gameMaxClassesPerCharacter, (max) => {
+  const cap = Math.max(1, max);
+  if (filterGameClassIds.value.length > cap) {
+    filterGameClassIds.value = filterGameClassIds.value.slice(0, cap);
+  }
+});
 
 async function loadTags() {
   try {
@@ -346,8 +359,10 @@ watch(
             <MultiSelect
               :model-value="filterGameClassIds"
               :options="gameClassMultiOptions"
+              :max-selected="gameMaxClassesPerCharacter"
+              hide-actions
               placeholder="Все классы"
-              search-placeholder="Поиск класса..."
+              search-placeholder="Поиск классов..."
               empty-text="Нет классов"
               :disabled="loadingFilterOptions || !filterGameClasses.length"
               trigger-class="min-h-8 w-full min-w-0"
@@ -402,8 +417,10 @@ watch(
             <MultiSelect
               :model-value="filterGameClassIds"
               :options="gameClassMultiOptions"
+              :max-selected="gameMaxClassesPerCharacter"
+              hide-actions
               placeholder="Все классы"
-              search-placeholder="Поиск класса..."
+              search-placeholder="Поиск классов..."
               empty-text="Нет классов"
               :disabled="loadingFilterOptions || !filterGameClasses.length"
               trigger-class="min-h-8 w-full min-w-0"

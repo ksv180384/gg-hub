@@ -31,6 +31,8 @@ const props = withDefaults(
     clearAllLabel?: string;
     /** Максимум выбранных значений (включительно). Без пропа — без ограничения. */
     maxSelected?: number;
+    /** Скрыть actions «Выбрать все · Сбросить» в меню. */
+    hideActions?: boolean;
   }>(),
   {
     placeholder: 'Выберите...',
@@ -39,6 +41,7 @@ const props = withDefaults(
     displayMode: 'text',
     selectAllLabel: 'Выбрать все',
     clearAllLabel: 'Сбросить',
+    hideActions: false,
   }
 );
 
@@ -253,7 +256,7 @@ function clearAll() {
             @keydown.stop
           >
         </div>
-        <div class="flex gap-1 border-b px-2 py-1.5 text-xs">
+        <div v-if="!hideActions" class="flex gap-1 border-b px-2 py-1.5 text-xs">
           <button
             type="button"
             class="text-primary hover:underline"

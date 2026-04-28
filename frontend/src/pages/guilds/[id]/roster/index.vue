@@ -452,6 +452,7 @@ watch(guildId, async () => {
                     v-model="filterGameClassIds"
                     :options="gameClassOptions"
                     :max-selected="gameMaxClassesPerCharacter"
+                    hide-actions
                     placeholder="Все классы"
                     search-placeholder="Поиск классов..."
                     trigger-class="min-h-8 w-full min-w-0"
@@ -486,6 +487,7 @@ watch(guildId, async () => {
                     v-model="filterGameClassIds"
                     :options="gameClassOptions"
                     :max-selected="gameMaxClassesPerCharacter"
+                    hide-actions
                     placeholder="Все классы"
                     search-placeholder="Поиск классов..."
                     trigger-class="min-h-8 w-full min-w-0"
