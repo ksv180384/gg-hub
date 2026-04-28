@@ -12,10 +12,9 @@ const auth = useAuthStore();
 const siteContext = useSiteContextStore();
 const routeLoading = useRouteLoadingStore();
 
-// Боковое меню доступно на игровом субдомене (Персонажи, Гильдия) и на админ-субдомене (Управление).
-// На публичных страницах пользователь может догружаться асинхронно, поэтому не привязываем
-// саму “обвязку” сайдбара к isAuthenticated — контент внутри уже сам решает, что показывать.
-const showSidebar = computed(() => siteContext.isGameSubdomain || siteContext.isAdmin);
+// Боковое меню доступно на игровом субдомене (Персонажи, Гильдия) и на админ-субдомене (Управление),
+// но показывается только для авторизованных пользователей (включая мобильную версию).
+const showSidebar = computed(() => auth.isAuthenticated && (siteContext.isGameSubdomain || siteContext.isAdmin));
 </script>
 
 <template>
