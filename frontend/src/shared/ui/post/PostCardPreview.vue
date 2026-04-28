@@ -69,70 +69,82 @@ useVideoPlaybackTracking(previewContainerRef, {
 </script>
 
 <template>
-  <article class="bg-card p-4">
-    <header class="mb-2 flex items-center justify-between gap-3">
-      <div class="flex min-w-0 items-center gap-3">
+  <article
+    class="overflow-hidden bg-accent/30 rounded-[calc(var(--radius)-2px)] border shadow-sm transition-colors hover:bg-accent/30"
+  >
+    <header class="flex items-start justify-between gap-3 p-4 pb-2">
+      <div class="flex min-w-0 items-start gap-3">
         <Avatar
-          class="h-20 w-16"
+          class="h-10 w-10 rounded-full shrink-0"
           :src="avatarUrl || undefined"
           :alt="displayName"
           :fallback="avatarFallback"
         />
         <div class="min-w-0">
-          <p
-            class="truncate text-sm font-medium text-gray-600"
-            :class="{ 'cursor-pointer hover:underline': isAuthorClickable }"
-            @click.stop="isAuthorClickable && props.authorUserId && emit('authorClick', props.authorUserId)"
-          >
-            {{ displayName }}
-          </p>
-          <h3
-            class="truncate text-xl font-bold text-foreground/90 cursor-pointer hover:underline"
-            :title="post.title || 'Без заголовка'"
-            @click.stop="emit('titleClick')"
-          >
-            {{ post.title || 'Без заголовка' }}
-          </h3>
           <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span class="text-xs text-muted-foreground">{{ displayTime }}</span>
+            <button
+              type="button"
+              class="min-w-0 truncate text-sm font-medium text-foreground/80 hover:text-foreground disabled:cursor-default disabled:hover:no-underline"
+              :class="{ 'cursor-pointer hover:underline': isAuthorClickable }"
+              :disabled="!isAuthorClickable"
+              @click.stop="isAuthorClickable && props.authorUserId && emit('authorClick', props.authorUserId)"
+            >
+              {{ displayName }}
+            </button>
+          </div>
+          <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span class="text-xs text-muted-foreground">
+              {{ displayTime }}
+            </span>
             <span
               v-if="showGame && post.game_name"
               class="text-xs text-muted-foreground"
             >
               {{ post.game_name }}
             </span>
-            <template v-if="showStatus">
-              <span
-                v-if="post.status_global"
-                class="text-xs text-muted-foreground"
-                title="Статус в общем журнале"
-              >
-                общие: {{ post.status_global_label ?? post.status_global }}
-              </span>
-              <span
-                v-if="post.status_guild"
-                class="text-xs text-muted-foreground"
-                title="Статус в гильдии"
-              >
-                гильдия: {{ post.status_guild_label ?? post.status_guild }}
-              </span>
-            </template>
+          </div>
+          <div v-if="showStatus" class="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+            <span
+              v-if="post.status_global"
+              class="text-[11px] text-muted-foreground"
+              title="Статус в общем журнале"
+            >
+              общие: {{ post.status_global_label ?? post.status_global }}
+            </span>
+            <span
+              v-if="post.status_guild"
+              class="text-[11px] text-muted-foreground"
+              title="Статус в гильдии"
+            >
+              гильдия: {{ post.status_guild_label ?? post.status_guild }}
+            </span>
           </div>
         </div>
       </div>
     </header>
+
+    <div class="px-4 pb-2">
+      <h3
+        class="text-[18px] leading-snug font-semibold text-foreground/95 cursor-pointer hover:underline line-clamp-2"
+        :title="post.title || 'Без заголовка'"
+        @click.stop="emit('titleClick')"
+      >
+        {{ post.title || 'Без заголовка' }}
+      </h3>
+    </div>
+
     <div
       v-if="isPreviewHtml"
       ref="previewContainerRef"
-      class="prose prose-sm max-w-none text-md dark:prose-invert [&_p]:my-1 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_a]:text-blue-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
+      class="px-4 pb-3 prose prose-sm max-w-none text-md dark:prose-invert [&_p]:my-1.5 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_a]:text-blue-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
       v-html="displayBody()"
     />
-    <p v-else class="text-sm text-muted-foreground line-clamp-2">
+    <p v-else class="px-4 pb-3 text-sm text-muted-foreground leading-relaxed line-clamp-3">
       {{ displayBody() }}
     </p>
     <div
       v-if="post.views_count != null || post.comments_count != null"
-      class="mt-3 flex items-center gap-4 border-t pt-3 text-xs text-muted-foreground"
+      class="flex items-center gap-4 border-t bg-card px-4 py-3 text-xs text-muted-foreground"
     >
       <div
         v-if="post.views_count != null"

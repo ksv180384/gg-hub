@@ -64,8 +64,6 @@ function onTitleClick(post: Post) {
 
 <template>
   <div class="container py-6 space-y-4 max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold tracking-tight">Журнал</h1>
-
     <p v-if="!game?.id" class="text-sm text-muted-foreground">
       Выберите игру для просмотра журнала.
     </p>
