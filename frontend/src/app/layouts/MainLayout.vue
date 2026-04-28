@@ -16,6 +16,9 @@ const routeLoading = useRouteLoadingStore();
 // но показывается только для авторизованных пользователей (включая мобильную версию).
 const sidebarAvailable = computed(() => siteContext.isGameSubdomain || siteContext.isAdmin);
 const showSidebar = computed(() => auth.isAuthenticated && sidebarAvailable.value);
+const reserveSidebarSpace = computed(
+  () => sidebarAvailable.value && (showSidebar.value || auth.loading)
+);
 </script>
 
 <template>
@@ -30,7 +33,7 @@ const showSidebar = computed(() => auth.isAuthenticated && sidebarAvailable.valu
         Резервируем место под сайдбар на desktop всегда, когда он потенциально доступен.
         Иначе при догрузке auth/user сайдбар появляется и даёт большой CLS (main/body сдвигаются).
       -->
-      <div v-if="sidebarAvailable" class="hidden md:block w-56 shrink-0">
+      <div v-if="reserveSidebarSpace" class="hidden md:block w-56 shrink-0">
         <GameSidebar v-if="showSidebar" />
       </div>
       <main class="relative flex-1 min-w-0">

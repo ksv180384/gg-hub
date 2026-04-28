@@ -28,6 +28,7 @@ import { useGuildPollsSocket } from '@/shared/lib/useGuildPollsSocket';
 import NotificationsDrawer from '@/widgets/header/NotificationsDrawer.vue';
 import PollsDrawer from '@/widgets/header/PollsDrawer.vue';
 import TodaysEventsDrawer from '@/widgets/header/TodaysEventsDrawer.vue';
+import { DEFAULT_PRODUCTION_ORIGIN } from '@/seo/homePageSeo';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -293,6 +294,20 @@ const navItems = [
   { to: '/games', label: 'Игры' },
 ];
 
+function getMainSiteOrigin(): string {
+  const fromEnv = import.meta.env.VITE_SITE_URL as string | undefined;
+  if (fromEnv && /^https?:\/\//i.test(fromEnv.trim())) {
+    return fromEnv.trim().replace(/\/$/, '');
+  }
+  if (typeof window === 'undefined') return DEFAULT_PRODUCTION_ORIGIN;
+  const { protocol, hostname } = window.location;
+  const parts = hostname.split('.');
+  const baseHost = parts.length >= 3 ? parts.slice(1).join('.') : hostname;
+  return `${protocol}//${baseHost}`;
+}
+
+const mainSiteHref = computed(() => `${getMainSiteOrigin()}/`);
+
 /** Активный пункт верхнего меню: главная только по точному пути, остальные — раздел и вложенные URL. */
 function isNavActive(itemTo: string): boolean {
   const path = route.path;
@@ -309,9 +324,9 @@ function isNavActive(itemTo: string): boolean {
       class="flex h-14 items-center justify-between gap-2 px-4 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-4 md:px-6"
     >
       <div class="flex min-w-0 shrink-0 items-center gap-2 md:justify-self-start">
-        <RouterLink to="/" class="group flex shrink-0 items-center gap-2 font-semibold">
+        <a :href="mainSiteHref" class="group flex shrink-0 items-center gap-2 font-semibold">
           <SiteLogo :size="36" class="transition-transform group-hover:scale-105" />
-        </RouterLink>
+        </a>
         <div class="shrink-0 md:hidden">
           <slot name="sidebar-trigger" />
         </div>
