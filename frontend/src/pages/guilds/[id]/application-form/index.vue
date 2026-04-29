@@ -39,6 +39,9 @@ const success = ref(false);
 const selectedCharacterId = ref<string>('');
 const fieldValues = ref<Record<number, string>>({});
 
+const isGuest = computed(() => !auth.isAuthenticated);
+const isFormDisabled = computed(() => isGuest.value || submitting.value || success.value);
+
 const characterOptions = computed<SelectOption[]>(() =>
   characters.value.map((c) => ({ value: String(c.id), label: c.name }))
 );
@@ -52,6 +55,7 @@ function isImageUrl(val: unknown): boolean {
 }
 
 const canSubmit = computed(() => {
+  if (!auth.isAuthenticated) return false;
   if (!formData.value || !selectedCharacterId.value) return false;
   for (const field of formData.value.application_form_fields) {
     const raw = (fieldValues.value[field.id] ?? '').trim();
@@ -183,6 +187,10 @@ onMounted(async () => {
 });
 
 async function submit() {
+  if (!auth.isAuthenticated) {
+    error.value = 'Чтобы подать заявку, зарегистрируйтесь или войдите в аккаунт.';
+    return;
+  }
   if (!formData.value || !selectedCharacterId.value || !canSubmit.value || submitting.value) return;
   submitting.value = true;
   error.value = null;
@@ -279,16 +287,6 @@ function onTextareaInput(fieldId: number, e: Event) {
               К списку гильдий
             </Button>
           </template>
-
-          <template v-else-if="!auth.isAuthenticated">
-            <p class="text-muted-foreground">
-              Чтобы подать заявку, войдите в аккаунт.
-            </p>
-<!--            <Button @click="router.push({ name: 'login', query: { redirect: route.fullPath } })">-->
-<!--              Войти-->
-<!--            </Button>-->
-          </template>
-
           <template v-else-if="success">
             <Button variant="outline" @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })">
               К гильдии
@@ -300,6 +298,27 @@ function onTextareaInput(fieldId: number, e: Event) {
             class="space-y-6"
             @submit.prevent="submit"
           >
+            <div
+              v-if="isGuest"
+              class="rounded-lg border bg-muted/30 px-4 py-3 text-sm"
+            >
+              <p class="text-muted-foreground">
+                Поля формы доступны для просмотра. Чтобы подать заявку в гильдию — зарегистрируйтесь на сайте или войдите в аккаунт.
+              </p>
+              <div class="mt-3 flex flex-wrap gap-3">
+                <Button type="button" @click="router.push({ name: 'register', query: { redirect: route.fullPath } })">
+                  Регистрация
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  @click="router.push({ name: 'login', query: { redirect: route.fullPath } })"
+                >
+                  Войти
+                </Button>
+              </div>
+            </div>
+
             <div class="space-y-2">
               <Label for="character">Персонаж *</Label>
               <Select
@@ -307,9 +326,13 @@ function onTextareaInput(fieldId: number, e: Event) {
                 v-model="selectedCharacterId"
                 :options="characterOptions"
                 placeholder="Выберите персонажа"
+                :disabled="isFormDisabled"
                 required
               />
-              <p v-if="characterOptions.length === 0" class="text-xs text-muted-foreground">
+              <p v-if="isGuest" class="text-xs text-muted-foreground">
+                Выбор персонажа доступен после входа в аккаунт.
+              </p>
+              <p v-else-if="characterOptions.length === 0" class="text-xs text-muted-foreground">
                 Нет подходящих персонажей (нужен персонаж той же игры и сервера, не состоящий в гильдии).
                 <router-link
                   :to="{ name: 'my-characters-create' }"
@@ -334,6 +357,7 @@ function onTextareaInput(fieldId: number, e: Event) {
                   :model-value="fieldValues[field.id] ?? ''"
                   :options="field.options.map((o) => ({ value: o, label: o }))"
                   :placeholder="field.required ? 'Выберите вариант' : 'Не выбрано'"
+                  :disabled="isFormDisabled"
                   :required="field.required"
                   trigger-class="w-full"
                   @update:model-value="setFieldValue(field.id, $event)"
@@ -345,6 +369,7 @@ function onTextareaInput(fieldId: number, e: Event) {
                   :model-value="multiselectFieldValue(field.id)"
                   :options="field.options.map((o) => ({ value: o, label: o }))"
                   placeholder="Выберите варианты"
+                  :disabled="isFormDisabled"
                   search-placeholder="Поиск..."
                   empty-text="Нет вариантов"
                   trigger-class="w-full"
@@ -357,6 +382,7 @@ function onTextareaInput(fieldId: number, e: Event) {
                 :value="fieldValues[field.id] ?? ''"
                 class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                 :placeholder="field.required ? 'Обязательное поле' : ''"
+                :disabled="isFormDisabled"
                 :required="field.required"
                 @input="onTextareaInput(field.id, $event)"
               />
@@ -366,6 +392,7 @@ function onTextareaInput(fieldId: number, e: Event) {
                 type="text"
                 :model-value="fieldValues[field.id] ?? ''"
                 :placeholder="field.type === 'screenshot' ? 'Ссылка на скриншот (.jpg, .png и т.д.)' : (field.required ? 'Обязательное поле' : '')"
+                :disabled="isFormDisabled"
                 :required="field.required"
                 @update:model-value="setFieldValue(field.id, $event)"
               />
@@ -380,7 +407,7 @@ function onTextareaInput(fieldId: number, e: Event) {
             <div class="flex flex-wrap gap-3 pt-2">
               <Button
                 type="submit"
-                :disabled="!canSubmit || submitting"
+                :disabled="!canSubmit || submitting || isGuest"
               >
                 <Spinner v-if="submitting" class="mr-2 h-4 w-4" />
                 {{ submitting ? 'Отправка…' : 'Подать заявку' }}

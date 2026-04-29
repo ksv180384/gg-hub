@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { Badge, Button, RelativeTime, Sheet } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import type { NotificationItem } from '@/shared/api/notificationsApi';
 
 function getNotificationLinkText(link: string | null | undefined): string {
@@ -73,6 +74,40 @@ function isSelected(id: number): boolean {
 
 const selectedCount = computed(() => selectedIds.value.size);
 
+const deleteOneDialogOpen = ref(false);
+const pendingDeleteId = ref<number | null>(null);
+
+function requestDeleteOne(id: number) {
+  pendingDeleteId.value = id;
+  deleteOneDialogOpen.value = true;
+}
+
+function confirmDeleteOne() {
+  const id = pendingDeleteId.value;
+  if (!id) return;
+  deleteOneDialogOpen.value = false;
+  pendingDeleteId.value = null;
+  emit('delete', id);
+}
+
+const deleteManyDialogOpen = ref(false);
+const pendingDeleteManyIds = ref<number[]>([]);
+
+function requestDeleteMany(ids: number[]) {
+  const clean = ids.filter((id) => Number.isFinite(id) && id > 0);
+  if (clean.length === 0) return;
+  pendingDeleteManyIds.value = clean;
+  deleteManyDialogOpen.value = true;
+}
+
+function confirmDeleteMany() {
+  const ids = pendingDeleteManyIds.value;
+  if (!ids.length) return;
+  deleteManyDialogOpen.value = false;
+  pendingDeleteManyIds.value = [];
+  emit('delete-many', ids);
+}
+
 const allSelected = computed(
   () =>
     props.notifications.length > 0 &&
@@ -103,7 +138,7 @@ function exitSelectionMode() {
 
 function onConfirmBulkDelete() {
   if (selectedCount.value === 0) return;
-  emit('delete-many', Array.from(selectedIds.value));
+  requestDeleteMany(Array.from(selectedIds.value));
 }
 
 watch(
@@ -320,7 +355,7 @@ function onItemMouseEnter(n: NotificationItem) {
               class="shrink-0 rounded p-1 opacity-70 hover:opacity-100 hover:bg-destructive/20 disabled:pointer-events-none"
               aria-label="Удалить"
               :disabled="deletingId === n.id"
-              @click.stop="emit('delete', n.id)"
+              @click.stop="requestDeleteOne(n.id)"
             >
               <svg
                 v-if="deletingId === n.id"
@@ -409,4 +444,28 @@ function onItemMouseEnter(n: NotificationItem) {
       </div>
     </div>
   </Sheet>
+
+  <ConfirmDialog
+    :open="deleteOneDialogOpen"
+    title="Удалить оповещение?"
+    description="Это действие нельзя отменить."
+    confirm-label="Удалить"
+    cancel-label="Отмена"
+    :loading="pendingDeleteId != null && deletingId === pendingDeleteId"
+    confirm-variant="destructive"
+    @update:open="(v) => { deleteOneDialogOpen = v; if (!v) pendingDeleteId = null; }"
+    @confirm="confirmDeleteOne"
+  />
+
+  <ConfirmDialog
+    :open="deleteManyDialogOpen"
+    :title="`Удалить выбранные оповещения (${pendingDeleteManyIds.length})?`"
+    description="Это действие нельзя отменить."
+    confirm-label="Удалить"
+    cancel-label="Отмена"
+    :loading="bulkDeleting"
+    confirm-variant="destructive"
+    @update:open="(v) => { deleteManyDialogOpen = v; if (!v) pendingDeleteManyIds = []; }"
+    @confirm="confirmDeleteMany"
+  />
 </template>
