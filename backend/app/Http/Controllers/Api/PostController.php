@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\Notification\CreatePostPendingGuildModerationNotificationAction;
-use App\Actions\Notification\SendPostOrCommentTelegramNotificationAction;
+use App\Actions\Notification\SendPostOrCommentNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
@@ -27,7 +27,7 @@ class PostController extends Controller
         private UpdatePostAction $updatePostAction,
         private ApplyPostModerationRulesAction $applyPostModerationRulesAction,
         private CreatePostPendingGuildModerationNotificationAction $createPostPendingGuildModerationNotificationAction,
-        private SendPostOrCommentTelegramNotificationAction $sendPostOrCommentTelegramNotificationAction,
+        private SendPostOrCommentNotificationAction $sendPostOrCommentNotificationAction,
     ) {}
 
     /**
@@ -62,7 +62,7 @@ class PostController extends Controller
 
         $post = ($this->createPostAction)($data);
 
-        $this->sendPostOrCommentTelegramNotificationAction->postCreated($post);
+        $this->sendPostOrCommentNotificationAction->postCreated($post);
 
         if ($result['notify_guild_id'] !== null) {
             $guild = Guild::query()->find($result['notify_guild_id']);
@@ -125,7 +125,7 @@ class PostController extends Controller
         }
 
         $post = ($this->updatePostAction)($post, $data);
-        $this->sendPostOrCommentTelegramNotificationAction->postUpdated($post);
+        $this->sendPostOrCommentNotificationAction->postUpdated($post);
         $post->loadMissing(['character', 'character.user', 'user']);
 
         // Уведомляем модераторов только при новом переводе поста на модерацию (не при каждом сохранении уже ожидающего)

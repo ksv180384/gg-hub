@@ -22,6 +22,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Notifications Log Channel
+    |--------------------------------------------------------------------------
+    |
+    | Канал, в который Action-классы отправляют пользовательские уведомления
+    | (создание/редактирование постов, комментарии, опросы и т.п.). Меняя
+    | значение здесь (или через переменную окружения NOTIFICATIONS_LOG_CHANNEL),
+    | можно одним движением переключить транспорт уведомлений, например с
+    | "notification-hub" обратно на "telegram" или на любой другой канал из
+    | списка "channels" ниже.
+    |
+    */
+
+    'notifications_channel' => env('NOTIFICATIONS_LOG_CHANNEL', 'notification-hub'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Deprecations Log Channel
     |--------------------------------------------------------------------------
     |
@@ -125,6 +141,15 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        'notification-hub' => [
+            'driver' => 'custom',
+            'via' => \App\Logging\NotificationHub\NotificationHubLoggerFactory::class,
+            'level' => env('LOG_LEVEL', 'debug'),
+            'url' => env('NOTIFICATION_HUB_URL', 'https://notification-gg-hub.ru'),
+            'token' => env('NOTIFICATION_HUB_INGRESS_TOKEN', ''),
+            'timeout' => (int) env('NOTIFICATION_HUB_TIMEOUT', 10),
         ],
 
         'telegram' => [

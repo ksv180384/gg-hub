@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Notification\SendGuildApplicationCommentTelegramNotificationAction;
+use App\Actions\Notification\SendGuildApplicationCommentNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\StoreGuildApplicationCommentRequest;
 use App\Http\Requests\Guild\UpdateGuildApplicationCommentRequest;
@@ -20,7 +20,7 @@ class GuildApplicationCommentController extends Controller
     private const MAX_DEPTH = 2;
 
     public function __construct(
-        private SendGuildApplicationCommentTelegramNotificationAction $sendGuildApplicationCommentTelegramNotificationAction
+        private SendGuildApplicationCommentNotificationAction $sendGuildApplicationCommentNotificationAction
     ) {}
 
     public function index(Request $request, Guild $guild, GuildApplication $application): JsonResponse
@@ -100,7 +100,7 @@ class GuildApplicationCommentController extends Controller
             'repliedToComment.user:id,name',
         ]);
         $application->loadMissing('guild.game');
-        $this->sendGuildApplicationCommentTelegramNotificationAction->commentCreated($application, $comment);
+        $this->sendGuildApplicationCommentNotificationAction->commentCreated($application, $comment);
 
         return response()->json(new GuildApplicationCommentResource($comment), 201);
     }

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Notification\SendPollTelegramNotificationAction;
+use App\Actions\Notification\SendPollNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Poll\StorePollRequest;
 use App\Http\Requests\Poll\UpdatePollRequest;
@@ -33,7 +33,7 @@ class GuildPollController extends Controller
         private ListGuildPollsAction $listGuildPollsAction,
         private GetPollAction $getPollAction,
         private CreatePollAction $createPollAction,
-        private SendPollTelegramNotificationAction $sendPollTelegramNotificationAction,
+        private SendPollNotificationAction $sendPollNotificationAction,
         private UpdatePollAction $updatePollAction,
         private DeletePollAction $deletePollAction,
         private ClosePollAction $closePollAction,
@@ -69,7 +69,7 @@ class GuildPollController extends Controller
         ]);
 
         $poll = ($this->createPollAction)($data);
-        $this->sendPollTelegramNotificationAction->pollCreated($poll);
+        $this->sendPollNotificationAction->pollCreated($poll);
 
         return (new PollResource($poll))->response()->setStatusCode(201);
     }

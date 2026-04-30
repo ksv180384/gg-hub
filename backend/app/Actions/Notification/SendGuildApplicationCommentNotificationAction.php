@@ -7,10 +7,11 @@ use Domains\Guild\Models\GuildApplicationComment;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Отправляет уведомление в Telegram о новом комментарии к заявке в гильдию.
- * Выполняется после отправки HTTP-ответа, чтобы не замедлять запрос.
+ * Отправляет уведомление о новом комментарии к заявке в гильдию
+ * через notification-gg-hub. Выполняется после отправки HTTP-ответа,
+ * чтобы не замедлять запрос.
  */
-class SendGuildApplicationCommentTelegramNotificationAction
+class SendGuildApplicationCommentNotificationAction
 {
     public function commentCreated(GuildApplication $application, GuildApplicationComment $comment): void
     {
@@ -18,7 +19,8 @@ class SendGuildApplicationCommentTelegramNotificationAction
         $author = $comment->character?->name ?? $comment->user?->name ?? 'Пользователь';
         $guildName = $application->guild?->name ?? 'Гильдия';
         $message = "Новый комментарий к заявке #{$application->id} в гильдию «{$guildName}» от {$author}: {$url}";
-        dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
+        $channel = (string) config('logging.notifications_channel', 'notification-hub');
+        dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
 
     private function buildApplicationUrl(GuildApplication $application): string

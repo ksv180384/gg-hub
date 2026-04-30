@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\Notification\CreateCommentReplyNotificationAction;
-use App\Actions\Notification\SendPostOrCommentTelegramNotificationAction;
+use App\Actions\Notification\SendPostOrCommentNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\StorePostCommentRequest;
 use App\Http\Requests\Post\UpdatePostCommentRequest;
@@ -31,7 +31,7 @@ final class GlobalPostCommentController extends Controller
         private UpdatePostCommentAction $updatePostCommentAction,
         private DeletePostCommentAction $deletePostCommentAction,
         private CreateCommentReplyNotificationAction $createCommentReplyNotificationAction,
-        private SendPostOrCommentTelegramNotificationAction $sendPostOrCommentTelegramNotificationAction,
+        private SendPostOrCommentNotificationAction $sendPostOrCommentNotificationAction,
     ) {}
 
     private function ensureCanViewGlobalPost(Post $post): void
@@ -79,7 +79,7 @@ final class GlobalPostCommentController extends Controller
         }
 
         ($this->createCommentReplyNotificationAction)($post, $comment);
-        $this->sendPostOrCommentTelegramNotificationAction->commentCreated($post, $comment);
+        $this->sendPostOrCommentNotificationAction->commentCreated($post, $comment);
 
         $comment->load(['character', 'user', 'parent.character', 'repliedToComment.character']);
 
@@ -103,7 +103,7 @@ final class GlobalPostCommentController extends Controller
             return response()->json(['message' => $e->getMessage()], 403);
         }
 
-        $this->sendPostOrCommentTelegramNotificationAction->commentUpdated($post, $comment);
+        $this->sendPostOrCommentNotificationAction->commentUpdated($post, $comment);
 
         $comment->load(['character', 'user', 'parent.character', 'repliedToComment.character']);
 

@@ -7,33 +7,43 @@ use Domains\Post\Models\PostComment;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Отправляет уведомление в Telegram о создании, редактировании поста или комментарии.
- * Выполняется после отправки HTTP-ответа, чтобы не замедлять запрос.
+ * Отправляет уведомление о создании/редактировании поста или комментария
+ * через notification-gg-hub. Выполняется после отправки HTTP-ответа,
+ * чтобы не замедлять запрос.
  */
-class SendPostOrCommentTelegramNotificationAction
+class SendPostOrCommentNotificationAction
 {
     public function postCreated(Post $post): void
     {
         $message = 'Создан пост: ' . $this->buildPostUrl($post);
-        dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
+        $channel = $this->channel();
+        dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
 
     public function postUpdated(Post $post): void
     {
         $message = 'Отредактирован пост: ' . $this->buildPostUrl($post);
-        dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
+        $channel = $this->channel();
+        dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
 
     public function commentCreated(Post $post, PostComment $comment): void
     {
         $message = 'Создан комментарий к посту: ' . $this->buildCommentUrl($post, $comment);
-        dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
+        $channel = $this->channel();
+        dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
 
     public function commentUpdated(Post $post, PostComment $comment): void
     {
         $message = 'Отредактирован комментарий к посту: ' . $this->buildCommentUrl($post, $comment);
-        dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
+        $channel = $this->channel();
+        dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
+    }
+
+    private function channel(): string
+    {
+        return (string) config('logging.notifications_channel', 'notification-hub');
     }
 
     private function buildPostUrl(Post $post): string

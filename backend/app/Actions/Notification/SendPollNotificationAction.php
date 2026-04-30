@@ -6,16 +6,17 @@ use Domains\Poll\Models\Poll;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Отправляет уведомление в Telegram о создании голосования.
+ * Отправляет уведомление о создании голосования через notification-gg-hub.
  * Выполняется после отправки HTTP-ответа, чтобы не замедлять запрос.
  */
-class SendPollTelegramNotificationAction
+class SendPollNotificationAction
 {
     public function pollCreated(Poll $poll): void
     {
         $url = $this->buildPollUrl($poll);
         $message = 'Создано голосование: ' . $poll->title . ' — ' . $url;
-        dispatch(fn () => Log::channel('telegram')->info($message))->afterResponse();
+        $channel = (string) config('logging.notifications_channel', 'notification-hub');
+        dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
 
     private function buildPollUrl(Poll $poll): string
