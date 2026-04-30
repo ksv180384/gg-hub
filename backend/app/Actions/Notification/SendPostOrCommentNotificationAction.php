@@ -31,10 +31,6 @@ class SendPostOrCommentNotificationAction
     {
         $message = 'Создан комментарий к посту: ' . $this->buildCommentUrl($post, $comment);
         $channel = $this->channel();
-        Log::channel('single')->error('Notification send', [
-            'channel' => $channel,
-            'message' => $message,
-        ]);
         dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
 

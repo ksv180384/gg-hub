@@ -28,6 +28,11 @@ class NotificationHubLogger extends AbstractProcessingHandler
         $this->url = rtrim((string) ($config['url'] ?? ''), '/');
         $this->token = (string) ($config['token'] ?? '');
         $this->timeout = (int) ($config['timeout'] ?? 10);
+
+        Log::channel('single')->error('111111111', [
+            'url' => $this->url,
+            'token' => $this->token,
+        ]);
     }
 
     protected function write(LogRecord $record): void
