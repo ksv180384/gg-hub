@@ -131,8 +131,8 @@ function pickUser(data: unknown): User | null {
 export { ROLE_ADMIN_SLUG };
 
 export const authApi = {
-  async login(email: string, password: string): Promise<LoginResponse> {
-    const res = await http.fetchPost<LoginResponse>('/login', { email, password });
+  async login(email: string, password: string, remember = false): Promise<LoginResponse> {
+    const res = await http.fetchPost<LoginResponse>('/login', { email, password, remember });
     throwOnError(res, 'Ошибка входа');
     const user = pickUser(res.data);
     if (!user) throw new Error('Сервер не вернул пользователя');

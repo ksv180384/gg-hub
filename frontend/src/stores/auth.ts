@@ -49,11 +49,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, remember = false) {
     loading.value = true;
     error.value = null;
     try {
-      const data = await authApi.login(email, password);
+      const data = await authApi.login(email, password, remember);
       user.value = data.user;
       return data;
     } catch (e: unknown) {

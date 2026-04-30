@@ -11,6 +11,7 @@ const auth = useAuthStore();
 
 const email = ref('');
 const password = ref('');
+const remember = ref(true);
 const resendMessage = ref<string | null>(null);
 const resendLoading = ref(false);
 
@@ -55,7 +56,7 @@ async function onSubmit(e: Event) {
   e.preventDefault();
   resendMessage.value = null;
   try {
-    await auth.login(email.value, password.value);
+    await auth.login(email.value, password.value, remember.value);
     await router.push('/');
   } catch {
     // ошибка уже в auth.error
@@ -110,6 +111,10 @@ async function onSubmit(e: Event) {
                   </div>
                   <Input id="password" v-model="password" type="password" required />
                 </div>
+                <label class="flex items-center gap-2 text-sm">
+                  <input v-model="remember" type="checkbox" class="h-4 w-4 rounded border-input" />
+                  <span>Запомнить меня</span>
+                </label>
                 <Button type="submit" class="w-full" :disabled="auth.loading">
                   {{ auth.loading ? 'Вход...' : 'Войти' }}
                 </Button>
