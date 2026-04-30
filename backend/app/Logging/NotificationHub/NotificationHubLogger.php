@@ -48,6 +48,9 @@ class NotificationHubLogger extends AbstractProcessingHandler
                 ->post($this->url . '/api/notifications', [
                     'message' => $message,
                 ]);
+            Log::channel('single')->error('Notification send', [
+                'message' => $message,
+            ]);
         } catch (\Throwable $e) {
             Log::channel('single')->error('Notification hub request failed', [
                 'message' => $e->getMessage(),
