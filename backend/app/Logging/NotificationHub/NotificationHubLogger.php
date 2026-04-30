@@ -32,13 +32,6 @@ class NotificationHubLogger extends AbstractProcessingHandler
 
     protected function write(LogRecord $record): void
     {
-        Log::channel('single')->error('000000000', [
-            'w' => 'llll',
-        ]);
-        Log::channel('single')->error('22222222222222', [
-            'url' => $this->url,
-            'token' => $this->token,
-        ]);
         if ($this->url === '' || $this->token === '') {
             return;
         }
@@ -55,9 +48,6 @@ class NotificationHubLogger extends AbstractProcessingHandler
                 ->post($this->url . '/api/notifications', [
                     'message' => $message,
                 ]);
-            Log::channel('single')->error('Notification send', [
-                'message' => $message,
-            ]);
         } catch (\Throwable $e) {
             Log::channel('single')->error('Notification hub request failed', [
                 'message' => $e->getMessage(),

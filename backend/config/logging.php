@@ -146,7 +146,7 @@ return [
         'notification-hub' => [
             'driver' => 'custom',
             'via' => \App\Logging\NotificationHub\NotificationHubLoggerFactory::class,
-            'level' => env('LOG_LEVEL', 'debug'),
+            'level' => env('NOTIFICATION_HUB_LEVEL', 'info'),
             'url' => env('NOTIFICATION_HUB_URL', 'https://notification-gg-hub.ru'),
             'token' => env('NOTIFICATION_HUB_INGRESS_TOKEN', ''),
             'timeout' => (int) env('NOTIFICATION_HUB_TIMEOUT', 10),
