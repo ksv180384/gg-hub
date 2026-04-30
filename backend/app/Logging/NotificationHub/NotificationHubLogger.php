@@ -32,6 +32,10 @@ class NotificationHubLogger extends AbstractProcessingHandler
 
     protected function write(LogRecord $record): void
     {
+        Log::channel('single')->error('Notification send', [
+            'url' => $this->url,
+            'token' => $this->token,
+        ]);
         if ($this->url === '' || $this->token === '') {
             return;
         }
