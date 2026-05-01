@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Card,
@@ -24,6 +25,7 @@ import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const { isAuthenticated } = storeToRefs(auth);
 const guildId = computed(() => Number(route.params.id));
 
 const siteOrigin = getSiteOrigin();
@@ -39,7 +41,7 @@ const success = ref(false);
 const selectedCharacterId = ref<string>('');
 const fieldValues = ref<Record<number, string>>({});
 
-const isGuest = computed(() => !auth.isAuthenticated);
+const isGuest = computed(() => !isAuthenticated.value);
 const isFormDisabled = computed(() => isGuest.value || submitting.value || success.value);
 
 const characterOptions = computed<SelectOption[]>(() =>
@@ -55,7 +57,7 @@ function isImageUrl(val: unknown): boolean {
 }
 
 const canSubmit = computed(() => {
-  if (!auth.isAuthenticated) return false;
+  if (!isAuthenticated.value) return false;
   if (!formData.value || !selectedCharacterId.value) return false;
   for (const field of formData.value.application_form_fields) {
     const raw = (fieldValues.value[field.id] ?? '').trim();
@@ -121,9 +123,14 @@ async function loadCharacters() {
 }
 
 watch(
-  () => formData.value?.game?.id,
-  (gameId) => {
-    if (gameId && auth.isAuthenticated) loadCharacters();
+  () => [formData.value?.game?.id, isAuthenticated.value] as const,
+  ([gameId, authed]) => {
+    if (!authed) {
+      characters.value = [];
+      selectedCharacterId.value = '';
+      return;
+    }
+    if (gameId) void loadCharacters();
   }
 );
 
@@ -183,11 +190,10 @@ watch(
 
 onMounted(async () => {
   await loadForm();
-  if (formData.value && auth.isAuthenticated) await loadCharacters();
 });
 
 async function submit() {
-  if (!auth.isAuthenticated) {
+  if (!isAuthenticated.value) {
     error.value = 'Чтобы подать заявку, зарегистрируйтесь или войдите в аккаунт.';
     return;
   }
@@ -317,6 +323,11 @@ function onTextareaInput(fieldId: number, e: Event) {
                   Войти
                 </Button>
               </div>
+            </div>
+
+            <div v-if="(formData.application_form_description ?? '').trim()" class="space-y-2">
+              <p class="text-sm font-medium text-foreground">Описание</p>
+              <p class="whitespace-pre-wrap text-sm text-muted-foreground">{{ formData.application_form_description }}</p>
             </div>
 
             <div class="space-y-2">

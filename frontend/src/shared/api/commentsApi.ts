@@ -15,6 +15,8 @@ export interface PostComment {
   body: string | null;
   /** Комментарий скрыт модерацией — на фронте показывать «скрыто» */
   is_hidden?: boolean;
+  /** Удалён, но сохранён в дереве из‑за ответов (комментарии к заявке в гильдию). */
+  is_deleted?: boolean;
   author_name: string;
   author_avatar_url: string | null;
   replied_to_author_name: string | null;

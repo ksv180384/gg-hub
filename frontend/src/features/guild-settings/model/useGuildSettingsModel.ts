@@ -179,13 +179,13 @@ export function useGuildSettingsModel() {
   const aboutPreviewMode = ref(false);
   const charterText = ref('');
   const charterPreviewMode = ref(false);
+  const applicationFormDescription = ref('');
 
   // logo
   const logoFile = ref<File | null>(null);
   const logoPreview = ref<string | null>(null);
   const removeLogo = ref(false);
   const dragOver = ref(false);
-  const fileInputRef = ref<HTMLInputElement | null>(null);
 
   // tags
   const allTags = ref<Tag[]>([]);
@@ -335,11 +335,6 @@ export function useGuildSettingsModel() {
     dragOver.value = false;
   }
 
-  function openFilePicker() {
-    if (!isOwner.value) return;
-    fileInputRef.value?.click();
-  }
-
   async function removeLogoAndSave() {
     if (!guild.value) return;
     removeLogo.value = true;
@@ -445,6 +440,7 @@ export function useGuildSettingsModel() {
       selectedServerId.value = String(guild.value.server_id);
       aboutText.value = guild.value.about_text ?? '';
       charterText.value = guild.value.charter_text ?? '';
+      applicationFormDescription.value = guild.value.application_form_description ?? '';
       selectedTagIds.value = (guild.value.tags ?? []).map((t) => t.id);
       applicationFormFields.value = guild.value.application_form_fields ?? [];
       discordWebhookError.value = null;
@@ -551,6 +547,22 @@ export function useGuildSettingsModel() {
       guild.value = await guildsApi.updateGuild(guild.value.id, { charter_text: charterText.value || null });
     } catch (e: unknown) {
       error.value = (e as Error).message ?? 'Не удалось сохранить';
+    } finally {
+      saving.value = false;
+    }
+  }
+
+  async function saveApplicationFormDescription() {
+    if (!guild.value) return;
+    saving.value = true;
+    error.value = null;
+    try {
+      guild.value = await guildsApi.updateGuild(guild.value.id, {
+        application_form_description: applicationFormDescription.value.trim() || null,
+      });
+      applicationFormDescription.value = guild.value.application_form_description ?? '';
+    } catch (e: unknown) {
+      error.value = (e as Error).message ?? 'Не удалось сохранить описание формы';
     } finally {
       saving.value = false;
     }
@@ -813,16 +825,15 @@ export function useGuildSettingsModel() {
     aboutPreviewMode,
     charterText,
     charterPreviewMode,
+    applicationFormDescription,
 
     // logo
     dragOver,
-    fileInputRef,
     logoDisplayUrl,
     onLogoChange,
     onLogoDrop,
     onLogoDragOver,
     onLogoDragLeave,
-    openFilePicker,
     removeLogoAndSave,
 
     // tags
@@ -874,6 +885,7 @@ export function useGuildSettingsModel() {
     saveSettings,
     saveAbout,
     saveCharter,
+    saveApplicationFormDescription,
 
     // recruiting
     isRecruiting,

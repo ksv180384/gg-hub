@@ -31,6 +31,10 @@ class GuildApplicationResource extends JsonResource
                 $this->relationLoaded('guild') && $this->guild->relationLoaded('applicationFormFields'),
                 fn () => $this->guild->applicationFormFields->keyBy('id')->map(fn ($f) => $f->name)->all()
             ),
+            'form_field_types' => $this->when(
+                $this->relationLoaded('guild') && $this->guild->relationLoaded('applicationFormFields'),
+                fn () => $this->guild->applicationFormFields->keyBy('id')->map(fn ($f) => $f->type)->all()
+            ),
             'status' => $this->status,
             'invited_by_character_id' => $this->invited_by_character_id,
             'invited_by_character' => $this->whenLoaded('invitedByCharacter', fn () => [

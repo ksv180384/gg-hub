@@ -179,6 +179,13 @@ async function savePassword(e: Event) {
           </div>
 
           <div class="space-y-2">
+            <Label>Email</Label>
+            <p class="rounded-md border border-input bg-muted/30 px-3 py-2 text-sm break-all">
+              {{ auth.user?.email?.trim() || '—' }}
+            </p>
+          </div>
+
+          <div class="space-y-2">
             <Label for="profile-name">Имя</Label>
             <Input id="profile-name" v-model="name" type="text" maxlength="255" />
             <p class="text-xs text-muted-foreground">Можно оставить пустым.</p>

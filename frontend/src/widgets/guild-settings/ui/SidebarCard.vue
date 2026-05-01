@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import {
   Badge,
   Button,
@@ -12,7 +13,7 @@ import {
 import type { Tag } from '@/shared/api/tagsApi';
 import type { Guild, GuildRosterMember } from '@/shared/api/guildsApi';
 
-defineProps<{
+const props = defineProps<{
   guild: Guild;
   isOwner: boolean;
   canEditGuildData: boolean;
@@ -20,7 +21,6 @@ defineProps<{
 
   // logo
   acceptImages: string;
-  fileInputRef: HTMLInputElement | null;
   dragOver: boolean;
   logoDisplayUrl: string | null;
 
@@ -42,7 +42,6 @@ defineProps<{
 const emit = defineEmits<{
   // logo
   (e: 'logoChange', ev: Event): void;
-  (e: 'openFilePicker'): void;
   (e: 'logoDragOver', ev: DragEvent): void;
   (e: 'logoDragLeave'): void;
   (e: 'logoDrop', ev: DragEvent): void;
@@ -58,6 +57,13 @@ const emit = defineEmits<{
 function selectedTags(allTags: Tag[], selectedIds: number[]) {
   return allTags.filter((t) => selectedIds.includes(t.id));
 }
+
+const logoFileInputRef = ref<HTMLInputElement | null>(null);
+
+function openLogoFilePicker() {
+  if (!props.isOwner) return;
+  logoFileInputRef.value?.click();
+}
 </script>
 
 <template>
@@ -65,7 +71,7 @@ function selectedTags(allTags: Tag[], selectedIds: number[]) {
     <h1 class="mb-3 w-full text-center text-xl font-bold md:text-2xl">{{ guild.name }}</h1>
 
     <input
-      ref="fileInputRef"
+      ref="logoFileInputRef"
       type="file"
       :accept="acceptImages"
       class="sr-only"
@@ -83,9 +89,9 @@ function selectedTags(allTags: Tag[], selectedIds: number[]) {
           ? 'border-primary bg-primary/5'
           : 'border-muted-foreground/30 bg-muted/30 hover:border-muted-foreground/50 hover:bg-muted/50'
       "
-      @click="emit('openFilePicker')"
-      @keydown.enter.prevent="emit('openFilePicker')"
-      @keydown.space.prevent="emit('openFilePicker')"
+      @click="openLogoFilePicker"
+      @keydown.enter.prevent="openLogoFilePicker"
+      @keydown.space.prevent="openLogoFilePicker"
       @dragover.prevent="emit('logoDragOver', $event)"
       @dragleave="emit('logoDragLeave')"
       @drop.prevent="emit('logoDrop', $event)"
@@ -158,9 +164,6 @@ function selectedTags(allTags: Tag[], selectedIds: number[]) {
             </SelectItem>
           </SelectContent>
         </SelectRoot>
-        <p class="text-xs text-muted-foreground">
-          Только участники состава. Сохраните изменения во вкладке «Настройки» справа.
-        </p>
         <p v-if="fieldErrors.leader_character_id" class="text-xs text-destructive">
           {{ fieldErrors.leader_character_id }}
         </p>

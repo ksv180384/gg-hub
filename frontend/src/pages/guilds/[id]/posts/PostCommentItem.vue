@@ -38,6 +38,8 @@ const editTextareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const isHidden = computed(() => props.comment.is_hidden === true);
 
+const isDeletedStub = computed(() => props.comment.is_deleted === true);
+
 function startEdit() {
   editBody.value = props.comment.body ?? '';
   isEditing.value = true;
@@ -220,10 +222,13 @@ watch(showReplyForm, (visible) => {
           <p v-if="isHidden" class="mt-1 text-sm italic text-muted-foreground">
             Комментарий скрыт
           </p>
+          <p v-else-if="isDeletedStub" class="mt-1 text-sm italic text-muted-foreground">
+            Комментарий удален
+          </p>
           <p v-else class="mt-1 whitespace-pre-wrap break-words text-sm">
             {{ comment.body }}
           </p>
-          <div v-if="!isHidden && ((canComment && canReply) || isOwn)" class="mt-1 flex flex-wrap items-center gap-1">
+          <div v-if="!isHidden && !isDeletedStub && ((canComment && canReply) || isOwn)" class="mt-1 flex flex-wrap items-center gap-1">
             <Button
               v-if="canComment && canReply"
               variant="link"

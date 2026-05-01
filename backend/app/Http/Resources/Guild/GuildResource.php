@@ -35,6 +35,7 @@ class GuildResource extends JsonResource
             'leader' => new GuildLeaderNameResource($this->whenLoaded('leader')),
             'members_count' => $this->members_count ?? 0,
             'is_recruiting' => $this->is_recruiting,
+            'application_form_description' => $this->application_form_description,
             'game_id' => $this->game_id,
             'localization_id' => $this->localization_id,
             'server_id' => $this->server_id,

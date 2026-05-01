@@ -24,6 +24,7 @@ class GuildApplicationFormResource extends JsonResource
             'logo_url' => $this->logoUrlWithVersion(GuildLogoService::url($this->logo_path)),
             'logo_card_url' => $this->logoUrlWithVersion(GuildLogoService::urlCard($this->logo_path)),
             'is_recruiting' => $this->is_recruiting,
+            'application_form_description' => $this->application_form_description,
             'game' => $this->whenLoaded('game', fn () => [
                 'id' => $this->game->id,
                 'name' => $this->game->name,

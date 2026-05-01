@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
+import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
 const route = useRoute();
 const router = useRouter();
@@ -15,11 +18,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 
 const characterName = computed(() => application.value?.character?.name ?? '—');
-const characterGameClasses = computed(() => {
-  const classes = application.value?.character?.game_classes;
-  if (!classes?.length) return null;
-  return classes.map((c) => c.name).join(', ');
-});
+const characterGameClasses = computed(() => application.value?.character?.game_classes ?? []);
 const guildName = computed(() => application.value?.guild?.name ?? '—');
 
 const statusLabel = computed(() => {
@@ -39,7 +38,22 @@ const inviterName = computed(() => application.value?.invited_by_character?.name
 const accepting = ref(false);
 const declining = ref(false);
 const withdrawing = ref(false);
+const withdrawDialogOpen = ref(false);
 const actionError = ref<string | null>(null);
+
+const fullSizeImageUrl = ref<string | null>(null);
+
+function openFullSize(url: string) {
+  fullSizeImageUrl.value = url;
+}
+
+function closeFullSize() {
+  fullSizeImageUrl.value = null;
+}
+
+function onEscape(e: KeyboardEvent) {
+  if (e.key === 'Escape') closeFullSize();
+}
 
 async function acceptInvitation() {
   if (!guildId.value || !applicationId.value) return;
@@ -73,13 +87,14 @@ async function declineInvitation() {
   }
 }
 
-async function withdrawApplication() {
+async function confirmWithdrawApplication() {
   if (!guildId.value || !applicationId.value || application.value?.status !== 'pending') return;
   withdrawing.value = true;
   actionError.value = null;
   try {
     const updated = await guildsApi.withdrawGuildApplication(guildId.value, applicationId.value);
     application.value = updated;
+    withdrawDialogOpen.value = false;
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : 'Не удалось отозвать заявку';
   } finally {
@@ -116,6 +131,20 @@ function isImageUrl(val: unknown): boolean {
   return s.length > 0 && /^https?:\/\//i.test(s);
 }
 
+/** Полноэкранный просмотр только для полей типа «скриншот»; если типы не пришли с API — любая http(s)-ссылка. */
+function isScreenshotImageField(fieldId: number | string, value: unknown): boolean {
+  if (!value || !isImageUrl(value)) return false;
+  const types = application.value?.form_field_types;
+  if (!types || Object.keys(types).length === 0) return true;
+  const t = types[fieldId] ?? types[String(fieldId)];
+  return t === 'screenshot';
+}
+
+function onScreenshotThumbClick(fieldId: number | string, value: unknown) {
+  if (!isScreenshotImageField(fieldId, value) || value == null) return;
+  openFullSize(String(value).trim());
+}
+
 onMounted(async () => {
   if (!guildId.value || !applicationId.value) {
     error.value = 'Неверная ссылка.';
@@ -136,6 +165,11 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+  document.addEventListener('keydown', onEscape);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onEscape);
 });
 </script>
 
@@ -156,14 +190,20 @@ onMounted(async () => {
             <CardTitle class="text-xl">
               {{ isInvitation ? 'Приглашение в гильдию' : 'Ваша заявка в гильдию' }}
             </CardTitle>
-            <p class="mt-1 text-sm font-medium text-foreground">
-              Гильдия: {{ guildName }}
+            <p class="mt-1 text-sm text-muted-foreground">
+              Персонаж:
+              <span class="text-lg font-semibold text-foreground sm:text-xl">{{ characterName }}</span>
             </p>
+            <div v-if="characterGameClasses.length" class="mt-1 flex flex-wrap gap-2">
+              <CharacterClassBadge
+                v-for="gc in characterGameClasses"
+                :key="gc.id"
+                :game-class="gc"
+              />
+            </div>
             <p class="mt-0.5 text-sm text-muted-foreground">
-              Персонаж: {{ characterName }}
-              <template v-if="characterGameClasses">
-                · {{ characterGameClasses }}
-              </template>
+              Гильдия:
+              <span class="font-semibold text-foreground">{{ guildName }}</span>
             </p>
             <p v-if="isInvitation" class="mt-0.5 text-sm text-muted-foreground">
               Вас пригласил(а): {{ inviterName }}
@@ -190,13 +230,26 @@ onMounted(async () => {
           </div>
           <div v-else-if="application.status === 'pending'" class="flex flex-wrap gap-2">
             <Button
-              variant="outline"
+              variant="destructive"
               :disabled="withdrawing"
-              @click="withdrawApplication"
+              @click="withdrawDialogOpen = true"
             >
-              {{ withdrawing ? '…' : 'Отозвать заявку' }}
+              Отозвать заявку
             </Button>
           </div>
+
+          <ConfirmDialog
+            v-model:open="withdrawDialogOpen"
+            title="Отозвать заявку?"
+            confirm-label="Отозвать"
+            cancel-label="Отмена"
+            :loading="withdrawing"
+            @confirm="confirmWithdrawApplication"
+          >
+            <template #description>
+              <p>Заявка будет снята с рассмотрения. Восстановить её будет нельзя.</p>
+            </template>
+          </ConfirmDialog>
           <p v-if="actionError" class="text-sm text-destructive">{{ actionError }}</p>
           <div v-if="application.form_data && Object.keys(application.form_data).length > 0" class="space-y-3">
             <h3 class="text-sm font-medium text-muted-foreground">Ответы на вопросы формы</h3>
@@ -213,6 +266,13 @@ onMounted(async () => {
                       :src="value"
                       :alt="getFieldLabel(fieldId)"
                       class="max-w-[320px] w-full rounded border object-cover"
+                      :class="
+                        isScreenshotImageField(fieldId, value)
+                          ? 'cursor-pointer transition-opacity hover:opacity-90'
+                          : ''
+                      "
+                      role="presentation"
+                      @click="onScreenshotThumbClick(fieldId, value)"
                     >
                   </template>
                   <template v-else>{{ formatFormFieldValue(value) }}</template>
@@ -240,6 +300,58 @@ onMounted(async () => {
         </CardContent>
       </Card>
     </template>
+
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition name="lightbox">
+          <div
+            v-if="fullSizeImageUrl"
+            class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-label="Просмотр изображения"
+            @click.self="closeFullSize"
+          >
+            <button
+              type="button"
+              class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
+              aria-label="Закрыть"
+              @click="closeFullSize"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <img
+              :src="fullSizeImageUrl"
+              alt="Изображение в полном размере"
+              class="max-h-[90vh] max-w-full select-none object-contain"
+              @click.stop
+            >
+          </div>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
   </div>
 </template>
+
+<style scoped>
+.lightbox-enter-active,
+.lightbox-leave-active {
+  transition: opacity 0.2s ease;
+}
+.lightbox-enter-from,
+.lightbox-leave-to {
+  opacity: 0;
+}
+.lightbox-enter-active img,
+.lightbox-leave-active img {
+  transition: transform 0.2s ease;
+}
+.lightbox-enter-from img,
+.lightbox-leave-to img {
+  transform: scale(0.95);
+}
+</style>
 

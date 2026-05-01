@@ -6,6 +6,7 @@ import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import NotFoundPage from '@/pages/not-found/index.vue';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
 import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
+import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -375,37 +376,39 @@ async function setVote(vote: 'like' | 'dislike') {
       </Card>
     </template>
 
-    <!-- Lightbox: полноразмерное изображение по клику -->
-    <Teleport to="body">
-      <Transition name="lightbox">
-        <div
-          v-if="fullSizeImageUrl"
-          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
-          aria-modal="true"
-          role="dialog"
-          aria-label="Просмотр изображения"
-          @click.self="closeFullSize"
-        >
-          <button
-            type="button"
-            class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
-            aria-label="Закрыть"
-            @click="closeFullSize"
+    <!-- Lightbox только на клиенте — Teleport + Transition при SSR дают hydration mismatch -->
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition name="lightbox">
+          <div
+            v-if="fullSizeImageUrl"
+            class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-label="Просмотр изображения"
+            @click.self="closeFullSize"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-          <img
-            :src="fullSizeImageUrl"
-            alt="Изображение в полном размере"
-            class="max-h-[90vh] max-w-full select-none object-contain"
-            @click.stop
-          >
-        </div>
-      </Transition>
-    </Teleport>
+            <button
+              type="button"
+              class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
+              aria-label="Закрыть"
+              @click="closeFullSize"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <img
+              :src="fullSizeImageUrl"
+              alt="Изображение в полном размере"
+              class="max-h-[90vh] max-w-full select-none object-contain"
+              @click.stop
+            >
+          </div>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
   </div>
 </template>
 

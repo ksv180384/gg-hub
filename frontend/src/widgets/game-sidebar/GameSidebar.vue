@@ -4,7 +4,7 @@ import GameSidebarContent from './GameSidebarContent.vue';
 
 <template>
   <aside
-    class="hidden md:flex w-56 shrink-0 flex-col border-r bg-[var(--sidebar)] text-[var(--sidebar-foreground)]"
+    class="hidden h-full min-h-0 w-full shrink-0 flex-col border-r bg-[var(--sidebar)] text-[var(--sidebar-foreground)] md:flex"
     aria-label="Боковое меню"
   >
     <GameSidebarContent />

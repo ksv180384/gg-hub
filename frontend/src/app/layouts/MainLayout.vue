@@ -28,15 +28,18 @@ const reserveSidebarSpace = computed(
         <GameSidebarContent embedded suppress-embedded-heading @navigate="closeMenu" />
       </template>
     </Header>
-    <div class="flex flex-1">
+    <div class="flex min-h-0 flex-1 items-stretch">
       <!--
         Резервируем место под сайдбар на desktop всегда, когда он потенциально доступен.
         Иначе при догрузке auth/user сайдбар появляется и даёт большой CLS (main/body сдвигаются).
       -->
-      <div v-if="reserveSidebarSpace" class="hidden md:block w-56 shrink-0">
-        <GameSidebar v-if="showSidebar" />
+      <div
+        v-if="reserveSidebarSpace"
+        class="hidden min-h-0 w-56 shrink-0 md:flex md:flex-col"
+      >
+        <GameSidebar v-if="showSidebar" class="min-h-0 flex-1" />
       </div>
-      <main class="relative flex-1 min-w-0">
+      <main class="relative min-h-0 flex-1 min-w-0">
         <Transition
           enter-active-class="ease-out duration-200"
           enter-from-class="opacity-0"

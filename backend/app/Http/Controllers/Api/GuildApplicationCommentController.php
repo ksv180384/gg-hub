@@ -29,8 +29,14 @@ class GuildApplicationCommentController extends Controller
             return response()->json(['message' => 'Заявка не найдена.'], 404);
         }
 
+        // Корни без удаления или удалённые «заглушки», под которыми остались ответы (ветка сохраняется).
         $comments = $application->comments()
+            ->withTrashed()
             ->whereNull('parent_id')
+            ->where(function ($q): void {
+                $q->whereNull('deleted_at')
+                    ->orWhereHas('children');
+            })
             ->with([
                 'character.user',
                 'user:id,name,avatar',

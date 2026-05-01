@@ -81,9 +81,17 @@ function openApplication(app: GuildApplicationItem) {
                   Персонаж: {{ app.character?.name ?? '—' }}
                 </p>
               </div>
-              <div class="text-right text-xs text-muted-foreground">
-                <p>{{ statusLabel(app.status) }}</p>
-                <p v-if="app.created_at">
+              <div class="text-right text-xs">
+                <p
+                  :class="
+                    app.status === 'pending'
+                      ? 'font-medium text-green-600 dark:text-green-400'
+                      : 'text-muted-foreground'
+                  "
+                >
+                  {{ statusLabel(app.status) }}
+                </p>
+                <p v-if="app.created_at" class="text-muted-foreground">
                   {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
                 </p>
               </div>

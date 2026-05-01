@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Button, Input, Label, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem, Spinner } from '@/shared/ui';
+import { Button, Label, Select, Spinner, type SelectOption } from '@/shared/ui';
+import { ResponsiveFiltersToolbar } from '@/widgets/responsive-filters-toolbar';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import NotFoundPage from '@/pages/not-found/index.vue';
 
@@ -48,6 +49,17 @@ const STATUS_OPTIONS: { value: 'all' | GuildApplicationItem['status']; label: st
   { value: 'revoked', label: statusLabel('revoked') },
   { value: 'withdrawn', label: statusLabel('withdrawn') },
 ];
+
+const statusSelectOptions = computed<SelectOption[]>(() =>
+  STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+);
+
+const applicationsExtraFiltersActive = computed(() => statusFilter.value !== 'all');
+
+function resetApplicationsFilters() {
+  nameFilter.value = '';
+  statusFilter.value = 'all';
+}
 
 async function loadApplications(mode: 'initial' | 'filters' = 'initial') {
   const isInitial = mode === 'initial';
@@ -144,39 +156,62 @@ watch([nameFilter], () => {
       </template>
 
       <template v-else>
-        <div class="mb-4 grid gap-3 sm:grid-cols-2">
-          <div class="space-y-1.5">
-            <Label for="app-filter-name" class="text-xs text-muted-foreground">Имя персонажа</Label>
-            <Input
-              id="app-filter-name"
-              v-model="nameFilter"
-              placeholder="Поиск по имени…"
-            />
+        <ResponsiveFiltersToolbar
+          v-model:name="nameFilter"
+          class="mb-6"
+          name-label="Имя персонажа"
+          name-placeholder="Поиск по имени..."
+          :extra-filters-active="applicationsExtraFiltersActive"
+          extra-filters-title="Статус"
+          popover-trigger-title="Статус"
+          popover-trigger-aria-label="Открыть фильтр: статус"
+          reset-button-title="Сбросить фильтр"
+          reset-button-aria-label="Сбросить фильтр"
+          name-mobile-input-id="guild-app-filter-name-mobile"
+          name-desktop-input-id="guild-app-filter-name-desktop"
+          @reset="resetApplicationsFilters"
+        >
+          <template #extra-filters>
+            <div class="grid gap-1.5">
+              <Label for="guild-app-filter-status-mobile">Статус</Label>
+              <Select
+                id="guild-app-filter-status-mobile"
+                v-model="statusFilter"
+                :options="statusSelectOptions"
+                placeholder="Все статусы"
+                trigger-class="min-h-8 w-full"
+              />
+            </div>
+          </template>
+          <template #desktop-filters>
+            <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
+              <Label for="guild-app-filter-status-desktop">Статус</Label>
+              <Select
+                id="guild-app-filter-status-desktop"
+                v-model="statusFilter"
+                :options="statusSelectOptions"
+                placeholder="Все статусы"
+                trigger-class="min-h-8 w-full"
+              />
+            </div>
+          </template>
+        </ResponsiveFiltersToolbar>
+
+        <div class="relative min-h-[120px]">
+          <div
+            v-if="filtersLoading"
+            class="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-muted/70 px-2 py-0.5"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <Spinner class="h-3 w-3 shrink-0 text-muted-foreground" />
+            <span class="text-xs text-muted-foreground">Загрузка…</span>
           </div>
 
-          <div class="space-y-1.5">
-            <Label for="app-filter-status" class="text-xs text-muted-foreground">Статус</Label>
-            <SelectRoot v-model="statusFilter">
-              <SelectTrigger id="app-filter-status" class="w-full">
-                <SelectValue placeholder="Статус" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </SelectItem>
-              </SelectContent>
-            </SelectRoot>
-          </div>
-        </div>
-
-        <div v-if="filtersLoading" class="flex justify-center py-6">
-          <Spinner class="h-6 w-6" />
-        </div>
-
-        <p v-else-if="applications.length === 0" class="text-muted-foreground">
-          {{ hasActiveFilters ? 'Ничего не найдено по заданным фильтрам.' : 'Заявок пока нет.' }}
-        </p>
-        <ul v-else class="space-y-2">
+          <p v-if="!filtersLoading && applications.length === 0" class="text-muted-foreground">
+            {{ hasActiveFilters ? 'Ничего не найдено по заданным фильтрам.' : 'Заявок пока нет.' }}
+          </p>
+          <ul v-else-if="applications.length > 0" class="space-y-2">
           <li
             v-for="app in applications"
             :key="app.id"
@@ -189,15 +224,26 @@ watch([nameFilter], () => {
           >
             <div class="min-w-0">
               <p class="font-medium">{{ app.character?.name ?? '—' }}</p>
-              <p class="text-sm text-muted-foreground">
-                {{ statusLabel(app.status) }}
+              <p class="text-sm">
+                <span
+                  :class="
+                    app.status === 'pending'
+                      ? 'font-medium text-green-600 dark:text-green-400'
+                      : 'text-muted-foreground'
+                  "
+                >
+                  {{ statusLabel(app.status) }}
+                </span>
                 <template v-if="app.created_at">
-                  · {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
+                  <span class="text-muted-foreground">
+                    · {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
+                  </span>
                 </template>
               </p>
             </div>
           </li>
         </ul>
+        </div>
       </template>
     </div>
 

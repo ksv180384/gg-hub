@@ -87,6 +87,7 @@ class UpdateGuildRequest extends FormRequest
             'is_recruiting' => ['sometimes', 'boolean'],
             'about_text' => ['nullable', 'string'],
             'charter_text' => ['nullable', 'string'],
+            'application_form_description' => ['nullable', 'string', 'max:65535'],
             'logo' => ['nullable', 'image', 'max:5120'],
             'remove_logo' => ['nullable', 'boolean'],
             'leader_character_id' => ['sometimes', 'required', 'integer', 'exists:characters,id'],
@@ -135,6 +136,7 @@ class UpdateGuildRequest extends FormRequest
             'discord_notify_poll_started.boolean' => 'Поле «Запуск нового голосования» должно быть логическим значением.',
             'discord_notify_role_changed.boolean' => 'Поле «Смена роли пользователю» должно быть логическим значением.',
             'discord_notify_post_published.boolean' => 'Поле «Публикация нового поста гильдии» должно быть логическим значением.',
+            'application_form_description.max' => 'Описание формы заявки не должно превышать 65535 символов.',
         ];
     }
 

@@ -26,6 +26,8 @@ class GuildApplicationCommentResource extends JsonResource
             $repliedToAuthorName = $this->parent?->character?->name ?? $this->parent?->user?->name;
         }
 
+        $trashed = $this->trashed();
+
         return [
             'id' => $this->id,
             'post_id' => $this->guild_application_id,
@@ -33,8 +35,10 @@ class GuildApplicationCommentResource extends JsonResource
             'character_id' => $this->character_id,
             'parent_id' => $this->parent_id,
             'replied_to_comment_id' => $this->replied_to_comment_id,
-            'body' => $isHidden ? null : $this->body,
+            'body' => $trashed ? null : ($isHidden ? null : $this->body),
             'is_hidden' => $isHidden,
+            /** Автор удалил комментарий, но ответы сохранены — показываем заглушку вместо текста. */
+            'is_deleted' => $trashed,
             'author_name' => $this->character?->name ?? $this->user?->name ?? 'Пользователь',
             'author_avatar_url' => $avatarUrl,
             'replied_to_author_name' => $repliedToAuthorName,

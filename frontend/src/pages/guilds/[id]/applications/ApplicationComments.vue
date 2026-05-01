@@ -84,20 +84,6 @@ function updateCommentInTree(list: GuildApplicationCommentItem[], commentId: num
   return false;
 }
 
-function removeCommentFromTree(list: GuildApplicationCommentItem[], commentId: number): boolean {
-  const idx = list.findIndex((c) => c.id === commentId);
-  if (idx >= 0) {
-    list.splice(idx, 1);
-    return true;
-  }
-  for (const c of list) {
-    if (c.children?.length && removeCommentFromTree(c.children, commentId)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 function scrollToComment(commentId: number) {
   nextTick(() => {
     const el = document.getElementById(`comment-${commentId}`);
@@ -166,7 +152,7 @@ async function onDeleteComment(commentId: number) {
   error.value = null;
   try {
     await guildsApi.deleteGuildApplicationComment(props.guildId, props.applicationId, commentId);
-    removeCommentFromTree(comments.value, commentId);
+    await loadComments();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось удалить комментарий';
   }

@@ -25,7 +25,6 @@ const emit = defineEmits<{
       <CardTitle class="text-base">События на {{ selectedDateLabel }}</CardTitle>
       <Button
         v-if="canAddEvent"
-        variant="outline"
         size="sm"
         class="mt-2 w-full"
         type="button"

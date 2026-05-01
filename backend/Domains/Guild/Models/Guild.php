@@ -34,6 +34,7 @@ class Guild extends Model
         'owner_id',
         'leader_character_id',
         'is_recruiting',
+        'application_form_description',
         'discord_webhook_url',
         'discord_notify_application_new',
         'discord_notify_member_joined',

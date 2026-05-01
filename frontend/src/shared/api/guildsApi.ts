@@ -70,6 +70,8 @@ export interface Guild {
   leader?: GuildLeader | null;
   members_count?: number;
   is_recruiting: boolean;
+  /** Текст над формой заявки (вкладка «Форма заявки», публичная страница заявки). */
+  application_form_description?: string | null;
   game_id: number;
   localization_id: number;
   server_id: number;
@@ -125,6 +127,7 @@ export interface GuildApplicationFormData {
   logo_url: string | null;
   logo_card_url: string | null;
   is_recruiting: boolean;
+  application_form_description?: string | null;
   game?: { id: number; name: string };
   server?: { id: number; name: string };
   application_form_fields: GuildApplicationFormFieldDto[];
@@ -153,6 +156,8 @@ export interface GuildApplicationItem {
   form_data: Record<number, string>;
   /** Соответствие id поля формы → название (для отображения вместо «Поле 1», «Поле 2»). */
   form_field_labels?: Record<number | string, string>;
+  /** Тип поля формы (например screenshot), когда подгружена гильдия с applicationFormFields. */
+  form_field_types?: Record<number | string, string>;
   status: 'pending' | 'invitation' | 'approved' | 'rejected' | 'revoked' | 'withdrawn';
   /** ID персонажа-участника гильдии, от имени которого отправлено приглашение (для status === 'invitation'). */
   invited_by_character_id?: number | null;
@@ -175,6 +180,8 @@ export interface GuildApplicationCommentItem {
   replied_to_comment_id?: number | null;
   body: string | null;
   is_hidden?: boolean;
+  /** Удалён автором, но оставлен в дереве из‑за дочерних ответов (API заявки гильдии). */
+  is_deleted?: boolean;
   author_name: string;
   author_avatar_url: string | null;
   replied_to_author_name: string | null;
@@ -221,6 +228,7 @@ export interface UpdateGuildPayload {
   is_recruiting?: boolean;
   about_text?: string | null;
   charter_text?: string | null;
+  application_form_description?: string | null;
   logo?: File | null;
   remove_logo?: boolean;
   tag_ids?: number[];
@@ -776,6 +784,9 @@ export const guildsApi = {
     if (payload.is_recruiting !== undefined) form.append('is_recruiting', payload.is_recruiting ? '1' : '0');
     if (payload.about_text !== undefined) form.append('about_text', payload.about_text ?? '');
     if (payload.charter_text !== undefined) form.append('charter_text', payload.charter_text ?? '');
+    if (payload.application_form_description !== undefined) {
+      form.append('application_form_description', payload.application_form_description ?? '');
+    }
     if (payload.remove_logo) form.append('remove_logo', '1');
     if (payload.logo) form.append('logo', payload.logo);
     if (payload.tag_ids !== undefined) {
