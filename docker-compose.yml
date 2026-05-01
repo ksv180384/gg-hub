@@ -130,6 +130,7 @@ services:
             context: .
             dockerfile: ./_docker/certbot/renew.dockerfile
         container_name: certbot
+        restart: unless-stopped
         volumes:
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
@@ -140,7 +141,7 @@ services:
             /bin/sh -c
             'trap exit TERM;
             while :;
-            do certbot renew --deploy-hook "docker exec gg-nginx-container nginx -s reload";
+            do certbot renew --deploy-hook "docker exec gg-nginx-container nginx -s reload" || echo "[certbot] renew failed at $$(date)";
             sleep 12h & wait $${!};
             done;'
         depends_on:
