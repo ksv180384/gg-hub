@@ -34,6 +34,14 @@ class Guild extends Model
         'owner_id',
         'leader_character_id',
         'is_recruiting',
+        'discord_webhook_url',
+        'discord_notify_application_new',
+        'discord_notify_member_joined',
+        'discord_notify_member_left',
+        'discord_notify_event_starting',
+        'discord_notify_poll_started',
+        'discord_notify_role_changed',
+        'discord_notify_post_published',
     ];
 
     protected function casts(): array
@@ -41,6 +49,13 @@ class Guild extends Model
         return [
             'is_recruiting' => 'boolean',
             'show_roster_to_all' => 'boolean',
+            'discord_notify_application_new' => 'boolean',
+            'discord_notify_member_joined' => 'boolean',
+            'discord_notify_member_left' => 'boolean',
+            'discord_notify_event_starting' => 'boolean',
+            'discord_notify_poll_started' => 'boolean',
+            'discord_notify_role_changed' => 'boolean',
+            'discord_notify_post_published' => 'boolean',
         ];
     }
 

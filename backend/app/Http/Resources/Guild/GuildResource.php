@@ -42,7 +42,17 @@ class GuildResource extends JsonResource
             'localization' => new LocalizationGuildEmbedResource($this->whenLoaded('localization')),
             'server' => new ServerGuildEmbedResource($this->whenLoaded('server')),
             'tags' => TagLabelResource::collection($this->whenLoaded('tags')),
-            'application_form_fields' => GuildApplicationFormFieldResource::collection($this->whenLoaded('applicationFormFields')),
+            'application_form_fields' => $this->when(
+                $this->relationLoaded('applicationFormFields'),
+                GuildApplicationFormFieldResource::collection($this->applicationFormFields ?? [])
+            ),
+            'discord_notify_application_new' => (bool) ($this->discord_notify_application_new ?? false),
+            'discord_notify_member_joined' => (bool) ($this->discord_notify_member_joined ?? false),
+            'discord_notify_member_left' => (bool) ($this->discord_notify_member_left ?? false),
+            'discord_notify_event_starting' => (bool) ($this->discord_notify_event_starting ?? false),
+            'discord_notify_poll_started' => (bool) ($this->discord_notify_poll_started ?? false),
+            'discord_notify_role_changed' => (bool) ($this->discord_notify_role_changed ?? false),
+            'discord_notify_post_published' => (bool) ($this->discord_notify_post_published ?? false),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

@@ -3,7 +3,9 @@
 namespace Domains\Guild\Actions;
 
 use App\Actions\Notification\CreateGuildMemberExcludedNotificationAction;
+use App\Actions\Notification\SendGuildDiscordNotificationAction;
 use App\Models\User;
+use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +19,9 @@ use Illuminate\Validation\ValidationException;
 final class ExcludeGuildMemberAction
 {
     public function __construct(
-        private CreateGuildMemberExcludedNotificationAction $createGuildMemberExcludedNotificationAction
+        private CreateGuildMemberExcludedNotificationAction $createGuildMemberExcludedNotificationAction,
+        private SendGuildDiscordNotificationAction $sendGuildDiscordNotificationAction,
+        private GuildLinkBuilder $linkBuilder,
     ) {}
 
     public function __invoke(User $excludedBy, Guild $guild, int $characterId): void
@@ -79,6 +83,14 @@ final class ExcludeGuildMemberAction
             $excludedUserId,
             $recipientUserIds,
             $excluderCharacterName
+        );
+
+        $rosterUrl = $this->linkBuilder->rosterUrl($guild);
+        $message = "Гильдию покинул {$excludedCharacterName} (исключён участником {$excluderCharacterName})\n{$rosterUrl}";
+        ($this->sendGuildDiscordNotificationAction)(
+            $guild,
+            'discord_notify_member_left',
+            $message,
         );
     }
 }

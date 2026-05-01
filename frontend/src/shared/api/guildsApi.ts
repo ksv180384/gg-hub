@@ -90,6 +90,19 @@ export interface Guild {
    * и он же является лидером гильдии. GET /guilds/:id/settings.
    */
   can_change_localization_server?: boolean;
+  /**
+   * URL Discord-вебхука. Потенциально секретное поле — отдаётся только эндпоинтами,
+   * требующими права на редактирование гильдии (GET /guilds/:id/settings и ответ PUT /guilds/:id).
+   * В публичных GET /guilds и GET /guilds/:id поле отсутствует.
+   */
+  discord_webhook_url?: string | null;
+  discord_notify_application_new?: boolean;
+  discord_notify_member_joined?: boolean;
+  discord_notify_member_left?: boolean;
+  discord_notify_event_starting?: boolean;
+  discord_notify_poll_started?: boolean;
+  discord_notify_role_changed?: boolean;
+  discord_notify_post_published?: boolean;
 }
 
 /** Дополнительное поле формы заявки гильдии. */
@@ -212,6 +225,15 @@ export interface UpdateGuildPayload {
   remove_logo?: boolean;
   tag_ids?: number[];
   leader_character_id?: number;
+  /** URL Discord-вебхука (пустая строка/null — стирает значение). */
+  discord_webhook_url?: string | null;
+  discord_notify_application_new?: boolean;
+  discord_notify_member_joined?: boolean;
+  discord_notify_member_left?: boolean;
+  discord_notify_event_starting?: boolean;
+  discord_notify_poll_started?: boolean;
+  discord_notify_role_changed?: boolean;
+  discord_notify_post_published?: boolean;
 }
 
 /** Ответ сервера: список гильдий с пагинацией (GET /guilds). */
@@ -761,6 +783,30 @@ export const guildsApi = {
     }
     if (payload.leader_character_id !== undefined) {
       form.append('leader_character_id', String(payload.leader_character_id));
+    }
+    if (payload.discord_webhook_url !== undefined) {
+      form.append('discord_webhook_url', payload.discord_webhook_url ?? '');
+    }
+    if (payload.discord_notify_application_new !== undefined) {
+      form.append('discord_notify_application_new', payload.discord_notify_application_new ? '1' : '0');
+    }
+    if (payload.discord_notify_member_joined !== undefined) {
+      form.append('discord_notify_member_joined', payload.discord_notify_member_joined ? '1' : '0');
+    }
+    if (payload.discord_notify_member_left !== undefined) {
+      form.append('discord_notify_member_left', payload.discord_notify_member_left ? '1' : '0');
+    }
+    if (payload.discord_notify_event_starting !== undefined) {
+      form.append('discord_notify_event_starting', payload.discord_notify_event_starting ? '1' : '0');
+    }
+    if (payload.discord_notify_poll_started !== undefined) {
+      form.append('discord_notify_poll_started', payload.discord_notify_poll_started ? '1' : '0');
+    }
+    if (payload.discord_notify_role_changed !== undefined) {
+      form.append('discord_notify_role_changed', payload.discord_notify_role_changed ? '1' : '0');
+    }
+    if (payload.discord_notify_post_published !== undefined) {
+      form.append('discord_notify_post_published', payload.discord_notify_post_published ? '1' : '0');
     }
     form.append('_method', 'PUT');
     const res = await http.fetchPost<{ data: Guild } | Guild>(`/guilds/${id}`, form);

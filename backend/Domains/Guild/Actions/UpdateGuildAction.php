@@ -28,6 +28,14 @@ class UpdateGuildAction
         'about_text' => 'redaktirovanie-opisanie-gildii',
         'charter_text' => 'redaktirovanie-ustav-gildii',
         'is_recruiting' => 'redaktirovat-formu-zaiavki-v-giliudiiu',
+        'discord_webhook_url' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_application_new' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_member_joined' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_member_left' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_event_starting' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_poll_started' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_role_changed' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_post_published' => 'redaktirovanie-dannyx-gildii',
     ];
 
     /** Человекочитаемые имена полей гильдии для сообщений об ошибках. */
@@ -40,6 +48,14 @@ class UpdateGuildAction
         'about_text' => 'описание гильдии',
         'charter_text' => 'устав гильдии',
         'is_recruiting' => 'статус набора в гильдию',
+        'discord_webhook_url' => 'URL Discord-вебхука',
+        'discord_notify_application_new' => 'оповещение «Новая заявка вступления в гильдию»',
+        'discord_notify_member_joined' => 'оповещение «Пользователь вступил в гильдию»',
+        'discord_notify_member_left' => 'оповещение «Пользователь покинул гильдию»',
+        'discord_notify_event_starting' => 'оповещение «Начало гильдейского события»',
+        'discord_notify_poll_started' => 'оповещение «Запуск нового голосования»',
+        'discord_notify_role_changed' => 'оповещение «Смена роли пользователю»',
+        'discord_notify_post_published' => 'оповещение «Публикация нового поста гильдии»',
     ];
 
     public function __construct(

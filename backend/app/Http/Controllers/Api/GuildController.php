@@ -253,6 +253,10 @@ class GuildController extends Controller
 
         $data['can_change_localization_server'] = $this->computeCanChangeLocalizationServer($guild);
 
+        // URL Discord-вебхука — потенциально секретный, отдаём только в эндпоинте настроек
+        // (не в публичных show/index). Видимость гарантирована middleware guild.member на роуте.
+        $data['discord_webhook_url'] = $guild->discord_webhook_url;
+
         return response()->json(['data' => $data]);
     }
 
@@ -284,7 +288,11 @@ class GuildController extends Controller
     public function update(UpdateGuildRequest $request, Guild $guild): JsonResponse
     {
         $guild = ($this->updateGuildAction)($guild, $request);
-        return response()->json(new GuildResource($guild));
+        $data = (new GuildResource($guild))->toArray($request);
+        // Возвращаем сохранённый webhook URL только тому, кто только что прошёл проверку
+        // прав на редактирование данных гильдии в UpdateGuildAction.
+        $data['discord_webhook_url'] = $guild->discord_webhook_url;
+        return response()->json(['data' => $data]);
     }
 
     /**

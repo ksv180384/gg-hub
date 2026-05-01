@@ -2,6 +2,8 @@
 
 namespace Domains\Guild\Actions;
 
+use App\Actions\Notification\SendGuildDiscordNotificationAction;
+use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Access\Models\GuildRole;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
@@ -13,6 +15,11 @@ use Illuminate\Validation\ValidationException;
  */
 final class UpdateGuildMemberRoleAction
 {
+    public function __construct(
+        private SendGuildDiscordNotificationAction $sendGuildDiscordNotificationAction,
+        private GuildLinkBuilder $linkBuilder,
+    ) {}
+
     public function __invoke(Guild $guild, int $characterId, int $guildRoleId): void
     {
         $member = GuildMember::query()
@@ -51,5 +58,16 @@ final class UpdateGuildMemberRoleAction
 
         $member->guild_role_id = $guildRoleId;
         $member->save();
+
+        $member->loadMissing('character');
+        $characterName = $member->character?->name ?? 'Участник';
+        $roleName = $role->name;
+        $rosterUrl = $this->linkBuilder->rosterUrl($guild);
+        $message = "У {$characterName} новая роль: {$roleName}\n{$rosterUrl}";
+        ($this->sendGuildDiscordNotificationAction)(
+            $guild,
+            'discord_notify_role_changed',
+            $message,
+        );
     }
 }

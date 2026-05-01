@@ -2,7 +2,9 @@
 
 namespace Domains\Guild\Actions;
 
+use App\Actions\Notification\SendGuildDiscordNotificationAction;
 use App\Models\User;
+use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\GuildMember;
@@ -10,6 +12,11 @@ use Illuminate\Validation\ValidationException;
 
 class ApproveGuildApplicationAction
 {
+    public function __construct(
+        private SendGuildDiscordNotificationAction $sendGuildDiscordNotificationAction,
+        private GuildLinkBuilder $linkBuilder,
+    ) {}
+
     public function __invoke(User $reviewer, Guild $guild, GuildApplication $application): GuildApplication
     {
         if ($application->guild_id !== $guild->id) {
@@ -47,6 +54,15 @@ class ApproveGuildApplicationAction
             'reviewed_at' => now(),
             'reviewed_by' => $reviewer->id,
         ]);
+
+        $characterName = $application->character?->name ?? 'Персонаж';
+        $rosterUrl = $this->linkBuilder->rosterUrl($guild);
+        $message = "В гильдию вступил {$characterName}\n{$rosterUrl}";
+        ($this->sendGuildDiscordNotificationAction)(
+            $guild,
+            'discord_notify_member_joined',
+            $message,
+        );
 
         return $application->fresh();
     }

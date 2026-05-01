@@ -26,6 +26,11 @@ RUN command -v npm
 COPY ./backend /var/www/gg
 #COPY ./_docker/php /var/www/gg/php
 
+# Скрипт запуска контейнера (queue:work + schedule:work + php-fpm).
+# Содержимое смонтируется поверх volume'ом из docker-compose.yml — кладём дефолт сюда тоже, чтобы образ был самодостаточен.
+COPY ./_docker/php/start.sh /usr/local/bin/gg-start.sh
+RUN chmod +x /usr/local/bin/gg-start.sh
+
 RUN chown -R www-data:www-data /var/www/gg
 
 EXPOSE 9000

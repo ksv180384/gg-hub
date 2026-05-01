@@ -3,7 +3,9 @@
 namespace Domains\Guild\Actions;
 
 use App\Actions\Notification\CreateGuildMemberLeftNotificationAction;
+use App\Actions\Notification\SendGuildDiscordNotificationAction;
 use App\Models\User;
+use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Validation\ValidationException;
@@ -11,7 +13,9 @@ use Illuminate\Validation\ValidationException;
 class LeaveGuildAction
 {
     public function __construct(
-        private CreateGuildMemberLeftNotificationAction $createGuildMemberLeftNotificationAction
+        private CreateGuildMemberLeftNotificationAction $createGuildMemberLeftNotificationAction,
+        private SendGuildDiscordNotificationAction $sendGuildDiscordNotificationAction,
+        private GuildLinkBuilder $linkBuilder,
     ) {}
 
     public function __invoke(User $user, Guild $guild): void
@@ -40,6 +44,14 @@ class LeaveGuildAction
         $member->delete();
 
         ($this->createGuildMemberLeftNotificationAction)($guild, $leftCharacterName);
+
+        $rosterUrl = $this->linkBuilder->rosterUrl($guild);
+        $message = "Гильдию покинул {$leftCharacterName}\n{$rosterUrl}";
+        ($this->sendGuildDiscordNotificationAction)(
+            $guild,
+            'discord_notify_member_left',
+            $message,
+        );
     }
 }
 

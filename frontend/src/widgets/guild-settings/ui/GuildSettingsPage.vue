@@ -8,6 +8,7 @@ import SettingsTab from './tabs/SettingsTab.vue';
 import AboutTab from './tabs/AboutTab.vue';
 import CharterTab from './tabs/CharterTab.vue';
 import ApplicationTab from './tabs/ApplicationTab.vue';
+import DiscordTab from './tabs/DiscordTab.vue';
 import ApplicationFieldModal from './modals/ApplicationFieldModal.vue';
 import TagDeleteConfirm from './modals/TagDeleteConfirm.vue';
 import LeaveGuildConfirm from './modals/LeaveGuildConfirm.vue';
@@ -138,6 +139,18 @@ const model = reactive(useGuildSettingsModel());
               @edit="model.openEditApplicationFieldModal"
               @delete="model.deleteApplicationField"
               @toggleRecruiting="model.toggleRecruiting"
+            />
+
+            <DiscordTab
+              v-show="model.activeTab === 'discord'"
+              :webhook-url="model.discordWebhookUrl"
+              :webhook-error="model.discordWebhookError"
+              :notifications="model.discordNotifications"
+              :saving="model.discordSaving"
+              :saving-notification-key="model.discordNotifySavingKey"
+              @update:webhookUrl="model.discordWebhookUrl = $event"
+              @notification-change="model.saveDiscordNotification"
+              @save="model.saveDiscord"
             />
           </div>
         </div>

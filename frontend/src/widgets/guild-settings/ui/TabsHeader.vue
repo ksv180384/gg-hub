@@ -100,6 +100,23 @@ const emit = defineEmits<{
           <path d="M8 11h.01" />
           <path d="M8 16h.01" />
         </svg>
+
+        <svg
+          v-else-if="t.id === 'discord'"
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <circle cx="9" cy="11" r="1" />
+          <circle cx="15" cy="11" r="1" />
+        </svg>
       </span>
       <span class="hidden md:inline">{{ t.label }}</span>
     </button>

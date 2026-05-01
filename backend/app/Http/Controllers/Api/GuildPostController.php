@@ -7,6 +7,7 @@ use App\Http\Resources\Post\PostListResource;
 use App\Http\Resources\Post\PostResource;
 use App\Actions\Notification\CreatePostGuildPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGuildRejectedNotificationAction;
+use App\Actions\Notification\SendPostOrCommentNotificationAction;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\ListGuildPendingPostsForModerationAction;
@@ -37,6 +38,7 @@ class GuildPostController extends Controller
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
         private CreatePostGuildPublishedNotificationAction $createPostGuildPublishedNotificationAction,
         private CreatePostGuildRejectedNotificationAction $createPostGuildRejectedNotificationAction,
+        private SendPostOrCommentNotificationAction $sendPostOrCommentNotificationAction,
     ) {}
 
     /**
@@ -114,6 +116,8 @@ class GuildPostController extends Controller
         $post = ($this->publishGuildPostAction)($guild, $post);
 
         $this->createPostGuildPublishedNotificationAction->__invoke($guild, $post);
+
+        $this->sendPostOrCommentNotificationAction->postPublishedInGuild($post);
 
         $post->loadMissing(['character', 'character.user', 'user']);
 

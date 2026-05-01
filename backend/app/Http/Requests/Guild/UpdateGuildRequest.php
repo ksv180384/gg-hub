@@ -15,6 +15,21 @@ use Illuminate\Validation\Validator;
 class UpdateGuildRequest extends FormRequest
 {
     /**
+     * Нормализует входные значения перед валидацией.
+     * Пустую строку discord_webhook_url трактуем как null — это «очистить вебхук».
+     * FormData не умеет передавать настоящий null, фронтенд шлёт пустую строку.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('discord_webhook_url')) {
+            $value = $this->input('discord_webhook_url');
+            if (is_string($value) && trim($value) === '') {
+                $this->merge(['discord_webhook_url' => null]);
+            }
+        }
+    }
+
+    /**
      * Пропускает текущего лидера гильдии (владелец персонажа leader_character_id)
      * или пользователя с хотя бы одним slug'ом на редактирование гильдии.
      * Создатель гильдии (owner_id) не имеет особых прав — после смены лидера
@@ -77,6 +92,20 @@ class UpdateGuildRequest extends FormRequest
             'leader_character_id' => ['sometimes', 'required', 'integer', 'exists:characters,id'],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['integer', 'exists:tags,id'],
+            'discord_webhook_url' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+                'regex:#^https://(discord\.com|discordapp\.com|ptb\.discord\.com|canary\.discord\.com)/api/webhooks/\d+/[A-Za-z0-9_-]+$#',
+            ],
+            'discord_notify_application_new' => ['sometimes', 'boolean'],
+            'discord_notify_member_joined' => ['sometimes', 'boolean'],
+            'discord_notify_member_left' => ['sometimes', 'boolean'],
+            'discord_notify_event_starting' => ['sometimes', 'boolean'],
+            'discord_notify_poll_started' => ['sometimes', 'boolean'],
+            'discord_notify_role_changed' => ['sometimes', 'boolean'],
+            'discord_notify_post_published' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -96,6 +125,16 @@ class UpdateGuildRequest extends FormRequest
             'logo.max' => 'Размер файла логотипа не должен превышать 5 МБ.',
             'leader_character_id.required' => 'Укажите лидера гильдии (персонажа на этом сервере).',
             'leader_character_id.exists' => 'Выбранный персонаж не найден.',
+            'discord_webhook_url.string' => 'URL Discord-вебхука должен быть строкой.',
+            'discord_webhook_url.max' => 'URL Discord-вебхука не должен превышать 255 символов.',
+            'discord_webhook_url.regex' => 'Укажите корректный URL Discord-вебхука вида https://discord.com/api/webhooks/<id>/<token>.',
+            'discord_notify_application_new.boolean' => 'Поле «Новая заявка вступления в гильдию» должно быть логическим значением.',
+            'discord_notify_member_joined.boolean' => 'Поле «Пользователь вступил в гильдию» должно быть логическим значением.',
+            'discord_notify_member_left.boolean' => 'Поле «Пользователь покинул гильдию» должно быть логическим значением.',
+            'discord_notify_event_starting.boolean' => 'Поле «Начало гильдейского события» должно быть логическим значением.',
+            'discord_notify_poll_started.boolean' => 'Поле «Запуск нового голосования» должно быть логическим значением.',
+            'discord_notify_role_changed.boolean' => 'Поле «Смена роли пользователю» должно быть логическим значением.',
+            'discord_notify_post_published.boolean' => 'Поле «Публикация нового поста гильдии» должно быть логическим значением.',
         ];
     }
 

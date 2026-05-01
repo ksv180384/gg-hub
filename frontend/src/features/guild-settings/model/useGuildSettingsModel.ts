@@ -14,13 +14,50 @@ import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 
 export const ACCEPT_IMAGES = 'image/jpeg,image/png,image/jpg,image/gif,image/webp';
 
-export type TabId = 'settings' | 'about' | 'charter' | 'application';
+export type TabId = 'settings' | 'about' | 'charter' | 'application' | 'discord';
 export const DEFAULT_TABS: { id: TabId; label: string }[] = [
   { id: 'settings', label: 'Настройки' },
   { id: 'about', label: 'О гильдии' },
   { id: 'charter', label: 'Устав' },
   { id: 'application', label: 'Форма заявки' },
+  { id: 'discord', label: 'Discord' },
 ];
+
+/**
+ * Тип одного из 7 ключей-оповещений Discord.
+ */
+export type DiscordNotificationKey =
+  | 'discord_notify_application_new'
+  | 'discord_notify_member_joined'
+  | 'discord_notify_member_left'
+  | 'discord_notify_event_starting'
+  | 'discord_notify_poll_started'
+  | 'discord_notify_role_changed'
+  | 'discord_notify_post_published';
+
+/**
+ * Метки для чекбоксов оповещений Discord (для UI).
+ */
+export const DISCORD_NOTIFICATION_LABELS: { key: DiscordNotificationKey; label: string }[] = [
+  { key: 'discord_notify_application_new', label: 'Новая заявка вступления в гильдию' },
+  { key: 'discord_notify_member_joined', label: 'Пользователь вступил в гильдию' },
+  { key: 'discord_notify_member_left', label: 'Пользователь покинул гильдию' },
+  { key: 'discord_notify_event_starting', label: 'Начало гильдейского события (за 10 мин)' },
+  { key: 'discord_notify_poll_started', label: 'Запуск нового голосования' },
+  { key: 'discord_notify_role_changed', label: 'Смена роли пользователю' },
+  { key: 'discord_notify_post_published', label: 'Публикация нового поста гильдии' },
+];
+
+/**
+ * Регулярка для URL Discord-вебхука. Дублируется на бэкенде в UpdateGuildRequest:
+ * https://discord.com|discordapp.com|ptb.discord.com|canary.discord.com /api/webhooks/<id>/<token>
+ */
+const DISCORD_WEBHOOK_URL_REGEX =
+  /^https:\/\/(discord\.com|discordapp\.com|ptb\.discord\.com|canary\.discord\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+$/;
+
+export function isValidDiscordWebhookUrl(url: string): boolean {
+  return DISCORD_WEBHOOK_URL_REGEX.test(url);
+}
 
 /** Тип дополнительного поля формы заявки. */
 export type ApplicationFormFieldType = 'text' | 'textarea' | 'screenshot' | 'select' | 'multiselect';
@@ -128,6 +165,7 @@ export function useGuildSettingsModel() {
     tabs.value.filter((t) => {
       if (t.id === 'settings') return canEditGuildData.value || canChangeGuildLeader.value;
       if (t.id === 'application') return canEditApplicationForm.value;
+      if (t.id === 'discord') return canEditGuildData.value;
       return true;
     })
   );
@@ -171,6 +209,35 @@ export function useGuildSettingsModel() {
   const leaveDialogOpen = ref(false);
   const leaving = ref(false);
   const leaveError = ref<string | null>(null);
+
+  // discord
+  const discordWebhookUrl = ref('');
+  const discordWebhookError = ref<string | null>(null);
+  const discordSaving = ref(false);
+  const discordNotifications = ref<Record<DiscordNotificationKey, boolean>>({
+    discord_notify_application_new: false,
+    discord_notify_member_joined: false,
+    discord_notify_member_left: false,
+    discord_notify_event_starting: false,
+    discord_notify_poll_started: false,
+    discord_notify_role_changed: false,
+    discord_notify_post_published: false,
+  });
+  /** Какая галочка оповещения Discord сейчас сохраняется на сервер (остальные временно блокируются). */
+  const discordNotifySavingKey = ref<DiscordNotificationKey | null>(null);
+
+  function applyDiscordStateFromGuild(g: Guild) {
+    discordWebhookUrl.value = g.discord_webhook_url ?? '';
+    discordNotifications.value = {
+      discord_notify_application_new: g.discord_notify_application_new ?? false,
+      discord_notify_member_joined: g.discord_notify_member_joined ?? false,
+      discord_notify_member_left: g.discord_notify_member_left ?? false,
+      discord_notify_event_starting: g.discord_notify_event_starting ?? false,
+      discord_notify_poll_started: g.discord_notify_poll_started ?? false,
+      discord_notify_role_changed: g.discord_notify_role_changed ?? false,
+      discord_notify_post_published: g.discord_notify_post_published ?? false,
+    };
+  }
 
   // games / servers
   const games = ref<Game[]>([]);
@@ -382,6 +449,8 @@ export function useGuildSettingsModel() {
       charterText.value = guild.value.charter_text ?? '';
       selectedTagIds.value = (guild.value.tags ?? []).map((t) => t.id);
       applicationFormFields.value = guild.value.application_form_fields ?? [];
+      discordWebhookError.value = null;
+      applyDiscordStateFromGuild(guild.value);
     } catch (e: unknown) {
       const err = e as { status?: number };
       if (err.status === 403) {
@@ -487,6 +556,75 @@ export function useGuildSettingsModel() {
       error.value = (e as Error).message ?? 'Не удалось сохранить';
     } finally {
       saving.value = false;
+    }
+  }
+
+  /**
+   * Сохранение настроек Discord-вебхука и галочек оповещений.
+   * Перед отправкой проверяет URL по тому же regex, что и бэкенд (UpdateGuildRequest).
+   * Пустой URL допустим — означает «удалить вебхук» и автоматически выключает все галочки.
+   */
+  async function saveDiscord() {
+    if (!guild.value) return;
+    discordWebhookError.value = null;
+
+    const url = discordWebhookUrl.value.trim();
+    if (url !== '' && !isValidDiscordWebhookUrl(url)) {
+      discordWebhookError.value =
+        'Укажите корректный URL Discord-вебхука вида https://discord.com/api/webhooks/<id>/<token>.';
+      return;
+    }
+
+    discordSaving.value = true;
+    error.value = null;
+    try {
+      const payload: Parameters<typeof guildsApi.updateGuild>[1] = {
+        discord_webhook_url: url === '' ? null : url,
+        ...discordNotifications.value,
+      };
+      // Если вебхук удалён — никаких оповещений отправлять некуда, выключаем флаги.
+      if (url === '') {
+        payload.discord_notify_application_new = false;
+        payload.discord_notify_member_joined = false;
+        payload.discord_notify_member_left = false;
+        payload.discord_notify_event_starting = false;
+        payload.discord_notify_poll_started = false;
+        payload.discord_notify_role_changed = false;
+        payload.discord_notify_post_published = false;
+      }
+
+      guild.value = await guildsApi.updateGuild(guild.value.id, payload);
+      applyDiscordStateFromGuild(guild.value);
+    } catch (e: unknown) {
+      const err = e as Error & { errors?: Record<string, string[] | string> };
+      if (err.errors?.discord_webhook_url) {
+        const msg = err.errors.discord_webhook_url;
+        discordWebhookError.value = Array.isArray(msg) ? (msg[0] ?? null) : String(msg);
+      } else {
+        error.value = err.message ?? 'Не удалось сохранить настройки Discord';
+      }
+    } finally {
+      discordSaving.value = false;
+    }
+  }
+
+  /** Сохраняет одну галочку оповещения Discord сразу после изменения. */
+  async function saveDiscordNotification(key: DiscordNotificationKey, value: boolean) {
+    if (!guild.value) return;
+    if (discordWebhookUrl.value.trim() === '') return;
+
+    const prev = discordNotifications.value[key];
+    discordNotifications.value = { ...discordNotifications.value, [key]: value };
+    discordNotifySavingKey.value = key;
+    error.value = null;
+    try {
+      guild.value = await guildsApi.updateGuild(guild.value.id, { [key]: value });
+      applyDiscordStateFromGuild(guild.value);
+    } catch (e: unknown) {
+      discordNotifications.value = { ...discordNotifications.value, [key]: prev };
+      error.value = (e as Error).message ?? 'Не удалось сохранить настройку оповещения';
+    } finally {
+      discordNotifySavingKey.value = null;
     }
   }
 
@@ -751,6 +889,15 @@ export function useGuildSettingsModel() {
     leaving,
     leaveError,
     confirmLeaveGuild,
+
+    // discord
+    discordWebhookUrl,
+    discordWebhookError,
+    discordSaving,
+    discordNotifications,
+    discordNotifySavingKey,
+    saveDiscord,
+    saveDiscordNotification,
   };
 }
 

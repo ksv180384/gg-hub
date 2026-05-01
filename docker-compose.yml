@@ -52,12 +52,14 @@ services:
         volumes:
             - ./backend/:/var/www/gg
             - ./_docker/php/php.ini:/usr/local/etc/php/php.ini
-        #    command: sh -c "php artisan inertia:start-ssr & php-fpm"
-#        command: php-fpm
-        command: >
-            sh -c "sleep 10 && php artisan queue:work & php-fpm"
-        #        environment:
-        #            APP_ENV: dev
+            - ./_docker/php/start.sh:/usr/local/bin/gg-start.sh:ro
+        # Запускаем три процесса в одном контейнере:
+        #  1) php artisan queue:work     — обработка очереди джобов (--max-time=3600 + цикл, чтобы воркер периодически перезапускался и подхватывал свежий код)
+        #  2) php artisan schedule:work  — планировщик (Laravel 11/12), эквивалент cron `* * * * *` (нужен для discord:notify-events-starting)
+        #  3) php-fpm                    — основной HTTP-обработчик (foreground)
+        # При падении любого из них контейнер завершится и Docker (restart: unless-stopped) поднимет его заново.
+        command: ["bash", "/usr/local/bin/gg-start.sh"]
+        restart: unless-stopped
         depends_on:
             - gg-mariadb
         ports:

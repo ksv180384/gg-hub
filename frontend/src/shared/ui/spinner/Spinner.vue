@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { cn } from '@/shared/lib/utils';
+
 defineProps<{
   class?: string;
 }>();
@@ -6,8 +8,7 @@ defineProps<{
 
 <template>
   <svg
-    class="h-5 w-5 animate-spin text-primary"
-    :class="$props.class"
+    :class="cn('h-5 w-5 animate-spin text-primary', $props.class)"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
