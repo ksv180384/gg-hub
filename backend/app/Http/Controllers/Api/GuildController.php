@@ -87,7 +87,7 @@ class GuildController extends Controller
     }
 
     /**
-     * Состав гильдии. Доступ: при show_roster_to_all — всем авторизованным; иначе только участникам.
+     * Состав гильдии. Доступ только участникам гильдии (middleware guild.member).
      */
     public function roster(Request $request, Guild $guild): AnonymousResourceCollection|JsonResponse
     {
@@ -96,13 +96,11 @@ class GuildController extends Controller
             return response()->json(['message' => 'Необходима авторизация.'], 401);
         }
 
-        $result = ($this->getGuildRosterAction)($user, $guild);
-
-        return $result instanceof JsonResponse ? $result : $result;
+        return ($this->getGuildRosterAction)($guild);
     }
 
     /**
-     * Один участник состава гильдии (для страницы просмотра). Доступ: как у состава.
+     * Один участник состава гильдии (для страницы просмотра). Доступ только участникам гильдии.
      * В ответе can_exclude: можно ли исключить (есть право и это не лидер).
      */
     public function showRosterMember(Request $request, Guild $guild, int $character): JsonResponse
@@ -112,11 +110,7 @@ class GuildController extends Controller
             return response()->json(['message' => 'Необходима авторизация.'], 401);
         }
 
-        $result = ($this->getGuildRosterMemberAction)($user, $guild, $character);
-
-        if ($result instanceof JsonResponse) {
-            return $result;
-        }
+        $result = ($this->getGuildRosterMemberAction)($guild, $character);
 
         $permissionSlugs = ($this->getUserGuildPermissionSlugsAction)($user, $guild);
         $isLeader = $guild->leader_character_id && (int) $guild->leader_character_id === (int) $character;
@@ -222,17 +216,24 @@ class GuildController extends Controller
      */
     public function settings(Request $request, Guild $guild): JsonResponse
     {
+        $user = $request->user();
+        $permissionSlugs = $user ? ($this->getUserGuildPermissionSlugsAction)($user, $guild)->all() : [];
+        $canEditGuildData = in_array('redaktirovanie-dannyx-gildii', $permissionSlugs, true);
+        $canEditApplicationForm = in_array('redaktirovat-formu-zaiavki-v-giliudiiu', $permissionSlugs, true);
+
         $guild->loadCount('members')->load([
             'game',
             'localization',
             'server',
             'leader',
             'tags' => fn ($q) => $q->notHidden(),
-            'applicationFormFields',
         ]);
+        if ($canEditApplicationForm) {
+            $guild->load('applicationFormFields');
+        }
+
         $data = (new GuildResource($guild))->toArray($request);
-        $user = $request->user();
-        $data['my_permission_slugs'] = $user ? ($this->getUserGuildPermissionSlugsAction)($user, $guild)->all() : [];
+        $data['my_permission_slugs'] = $permissionSlugs;
         $data['my_characters'] = $user
             ? ($this->getUserGuildCharactersAction)($user, $guild)
                 ->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'avatar_url' => $c->resolved_avatar_url])
@@ -253,9 +254,21 @@ class GuildController extends Controller
 
         $data['can_change_localization_server'] = $this->computeCanChangeLocalizationServer($guild);
 
-        // URL Discord-вебхука — потенциально секретный, отдаём только в эндпоинте настроек
-        // (не в публичных show/index). Видимость гарантирована middleware guild.member на роуте.
-        $data['discord_webhook_url'] = $guild->discord_webhook_url;
+        if ($canEditGuildData) {
+            // URL Discord-вебхука — потенциально секретный, отдаём только тем,
+            // у кого есть право редактирования данных гильдии.
+            $data['discord_webhook_url'] = $guild->discord_webhook_url;
+        } else {
+            unset(
+                $data['discord_notify_application_new'],
+                $data['discord_notify_member_joined'],
+                $data['discord_notify_member_left'],
+                $data['discord_notify_event_starting'],
+                $data['discord_notify_poll_started'],
+                $data['discord_notify_role_changed'],
+                $data['discord_notify_post_published']
+            );
+        }
 
         return response()->json(['data' => $data]);
     }

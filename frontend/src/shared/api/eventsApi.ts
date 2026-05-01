@@ -17,6 +17,7 @@ export interface GuildEvent {
   ends_at: string | null;
   recurrence: EventRecurrence | null;
   recurrence_ends_at: string | null;
+  send_discord_notification: boolean;
   creator?: { id: number; name: string };
   declined_characters?: { id: number; name: string }[];
   my_declined?: boolean;
@@ -32,6 +33,7 @@ export interface CreateEventPayload {
   ends_at?: string | null;
   recurrence?: EventRecurrence | null;
   recurrence_ends_at?: string | null;
+  send_discord_notification?: boolean;
 }
 
 export interface UpdateEventPayload extends Partial<CreateEventPayload> {}

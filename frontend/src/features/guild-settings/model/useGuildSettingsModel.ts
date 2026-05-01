@@ -175,7 +175,6 @@ export function useGuildSettingsModel() {
   const name = ref('');
   const selectedLocalizationId = ref<string>('');
   const selectedServerId = ref<string>('');
-  const showRosterToAll = ref(false);
   const aboutText = ref('');
   const aboutPreviewMode = ref(false);
   const charterText = ref('');
@@ -444,7 +443,6 @@ export function useGuildSettingsModel() {
       name.value = guild.value.name;
       selectedLocalizationId.value = String(guild.value.localization_id);
       selectedServerId.value = String(guild.value.server_id);
-      showRosterToAll.value = guild.value.show_roster_to_all ?? false;
       aboutText.value = guild.value.about_text ?? '';
       charterText.value = guild.value.charter_text ?? '';
       selectedTagIds.value = (guild.value.tags ?? []).map((t) => t.id);
@@ -453,7 +451,7 @@ export function useGuildSettingsModel() {
       applyDiscordStateFromGuild(guild.value);
     } catch (e: unknown) {
       const err = e as { status?: number };
-      if (err.status === 403) {
+      if (err.status === 403 || err.status === 404) {
         router.replace('/guilds');
         return;
       }
@@ -494,7 +492,6 @@ export function useGuildSettingsModel() {
     try {
       const payload: Parameters<typeof guildsApi.updateGuild>[1] = {
         name: name.value.trim(),
-        show_roster_to_all: showRosterToAll.value,
       };
       if (canEditGuildTags.value) payload.tag_ids = selectedTagIds.value;
       if (canChangeLocalizationServer.value) {
@@ -812,7 +809,6 @@ export function useGuildSettingsModel() {
     name,
     selectedLocalizationId,
     selectedServerId,
-    showRosterToAll,
     aboutText,
     aboutPreviewMode,
     charterText,

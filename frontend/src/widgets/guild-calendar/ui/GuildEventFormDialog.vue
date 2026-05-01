@@ -21,6 +21,7 @@ export type GuildEventFormFields = {
   starts_at: string;
   recurrence: 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   recurrence_ends_at: string;
+  send_discord_notification: boolean;
 };
 
 const props = defineProps<{
@@ -30,6 +31,7 @@ const props = defineProps<{
   loadingMyCharacters: boolean;
   myCharactersInGuild: { id: number; name: string }[];
   canDeleteEvent: boolean;
+  showDiscordNotificationToggle: boolean;
 }>();
 
 const open = defineModel<boolean>('open', { required: true });
@@ -140,6 +142,17 @@ function onOpenUpdate(v: boolean) {
                 type="datetime-local"
                 class="w-full"
               />
+            </div>
+            <div v-if="props.showDiscordNotificationToggle" class="flex items-start gap-2 rounded-md border border-border/60 p-2">
+              <input
+                id="event-send-discord-notification"
+                v-model="form.send_discord_notification"
+                type="checkbox"
+                class="mt-1 h-4 w-4 shrink-0 rounded border-input"
+              >
+              <Label for="event-send-discord-notification" class="font-normal leading-snug">
+                Отправлять оповещение в Discord
+              </Label>
             </div>
 
             <p v-if="props.formError" class="text-sm text-destructive">{{ props.formError }}</p>

@@ -29,7 +29,7 @@ class SendGuildApplicationCommentNotificationAction
         $guild = $application->guild;
         $base = $this->baseUrlWithGameSubdomain($guild?->game?->slug ?? null);
 
-        return $base . '/guilds/' . $application->guild_id . '/applications/' . $application->id;
+        return $base . '/guilds/' . $application->guild_id . '/applications/list/' . $application->id;
     }
 
     private function baseUrlWithGameSubdomain(?string $gameSlug): string

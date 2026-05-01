@@ -32,6 +32,8 @@ import {
   type UpdateRaidPayload,
   type RaidCompositionMemberPayload,
 } from '@/shared/api/guildsApi';
+import type { ApiError } from '@/shared/api/errors';
+import NotFoundPage from '@/pages/not-found/index.vue';
 import { Sortable } from 'sortablejs-vue3';
 import RaidTreeItem from './RaidTreeItem.vue';
 import { RaidCompositionModal } from '@/widgets/raid-composition-modal';
@@ -44,7 +46,8 @@ const guild = ref<Guild | null>(null);
 const raids = ref<RaidItem[]>([]);
 const roster = ref<GuildRosterMember[]>([]);
 const loading = ref(true);
-const accessDenied = ref(false);
+/** Нет доступа к разделу рейдов (403/404 с guild.member и т.п.). */
+const guildRaidsAccessNotFound = ref(false);
 const error = ref<string | null>(null);
 
 // Socket: обновление дерева рейдов гильдии для всех участников.
@@ -236,8 +239,12 @@ async function loadRaids() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
   try {
     raids.value = await guildsApi.getGuildRaids(guildId.value);
-  } catch {
+  } catch (e) {
     raids.value = [];
+    const st = (e as ApiError)?.status;
+    if (st === 403 || st === 404) {
+      guildRaidsAccessNotFound.value = true;
+    }
   }
 }
 
@@ -648,20 +655,34 @@ async function loadRaidPage() {
   selectedRaidLoading.value = false;
   formRaidModalOpen.value = false;
   loading.value = true;
-  accessDenied.value = false;
+  guildRaidsAccessNotFound.value = false;
   error.value = null;
 
   try {
     guild.value = await guildsApi.getGuildForSettings(guildId.value);
-  } catch {
+  } catch (e) {
     guild.value = null;
+    const st = (e as ApiError)?.status;
+    if (st === 403 || st === 404) {
+      guildRaidsAccessNotFound.value = true;
+    }
     loading.value = false;
     return;
   }
   try {
     roster.value = (await guildsApi.getGuildRoster(guildId.value)).members;
-  } catch {
+  } catch (e) {
     roster.value = [];
+    const st = (e as ApiError)?.status;
+    if (st === 403 || st === 404) {
+      guildRaidsAccessNotFound.value = true;
+      loading.value = false;
+      return;
+    }
+  }
+  if (guildRaidsAccessNotFound.value) {
+    loading.value = false;
+    return;
   }
   await loadRaids();
   loading.value = false;
@@ -694,7 +715,8 @@ watch(
 </script>
 
 <template>
-  <div class="container py-4 md:py-6 max-w-2xl mx-auto">
+  <NotFoundPage v-if="guildRaidsAccessNotFound" />
+  <div v-else class="container py-4 md:py-6 max-w-2xl mx-auto">
 
     <div class="flex justify-between items-center">
       <div class="text-xl font-semibold pb-4">Рейды · Группы · КП</div>
@@ -709,11 +731,6 @@ watch(
 
     <div class="relative">
       <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
-      <template v-else-if="accessDenied">
-        <p class="text-sm text-muted-foreground">
-          Раздел доступен только участникам гильдии.
-        </p>
-      </template>
       <template v-else-if="error">
         <p class="text-sm text-destructive">{{ error }}</p>
       </template>

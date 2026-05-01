@@ -26,6 +26,7 @@ class EventResource extends JsonResource
             'ends_at' => $this->ends_at?->toIso8601String(),
             'recurrence' => $this->recurrence instanceof \BackedEnum ? $this->recurrence->value : $this->recurrence,
             'recurrence_ends_at' => $this->recurrence_ends_at?->toIso8601String(),
+            'send_discord_notification' => (bool) ($this->send_discord_notification ?? true),
             'creator' => $this->whenLoaded('creator', fn () => [
                 'id' => $this->creator->id,
                 'name' => $this->creator->name,

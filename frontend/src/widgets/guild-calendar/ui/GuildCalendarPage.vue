@@ -9,6 +9,7 @@ import {
 } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { useGuildCalendar } from '@/features/guild-calendar';
+import NotFoundPage from '@/pages/not-found/index.vue';
 import GuildCalendarSelectedDayCard from './GuildCalendarSelectedDayCard.vue';
 import GuildEventFormDialog from './GuildEventFormDialog.vue';
 import GuildEventViewDialog from './GuildEventViewDialog.vue';
@@ -17,7 +18,8 @@ const model = reactive(useGuildCalendar());
 </script>
 
 <template>
-  <div class="container py-6">
+  <NotFoundPage v-if="model.calendarGuildAccessNotFound" />
+  <div v-else class="container py-6">
     <div class="flex flex-col gap-6 lg:flex-row">
       <Card class="flex-1">
         <CardHeader>
@@ -57,6 +59,7 @@ const model = reactive(useGuildCalendar());
       :loading-my-characters="model.loadingMyCharacters"
       :my-characters-in-guild="model.myCharactersInGuild"
       :can-delete-event="model.canDeleteEvent"
+      :show-discord-notification-toggle="model.guildDiscordEventStartingEnabled"
       @submit="model.submitForm"
       @cancel="model.closeModal"
       @delete-from-edit="model.deleteFromEditForm"

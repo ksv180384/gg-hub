@@ -56,8 +56,8 @@ class ApproveGuildApplicationAction
         ]);
 
         $characterName = $application->character?->name ?? 'Персонаж';
-        $rosterUrl = $this->linkBuilder->rosterUrl($guild);
-        $message = "В гильдию вступил {$characterName}\n{$rosterUrl}";
+        $rosterMemberUrl = $this->linkBuilder->rosterMemberUrl($guild, (int) $characterId);
+        $message = "В гильдию вступил {$characterName}\n{$rosterMemberUrl}";
         ($this->sendGuildDiscordNotificationAction)(
             $guild,
             'discord_notify_member_joined',

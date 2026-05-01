@@ -12,7 +12,7 @@ class EnsureUserIsGuildMember
 {
     /**
      * Проверяет, что пользователь состоит в гильдии (хотя бы один его персонаж в гильдии).
-     * Если не состоит — возвращает 403, данные гильдии не отдаются.
+     * Если не состоит — 404 (ресурс недоступен), без признаков существования закрытого содержимого.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -32,8 +32,8 @@ class EnsureUserIsGuildMember
 
         if (!$isMember) {
             return response()->json([
-                'message' => 'Вы не состоите в этой гильдии. Доступ к настройкам запрещён.',
-            ], 403);
+                'message' => 'Страница не найдена.',
+            ], 404);
         }
 
         return $next($request);

@@ -86,7 +86,7 @@ async function loadData() {
     }
   } catch (e: unknown) {
     const err = e as Error & { status?: number };
-    if (err.status === 403) {
+    if (err.status === 403 || err.status === 404) {
       router.replace({ name: 'guild-settings', params: { id: String(guildId.value) } });
       return;
     }

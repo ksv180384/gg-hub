@@ -32,6 +32,7 @@ class StoreEventRequest extends FormRequest
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'recurrence' => ['nullable', 'string', Rule::enum(EventRecurrence::class)],
             'recurrence_ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'send_discord_notification' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -48,6 +49,7 @@ class StoreEventRequest extends FormRequest
             'starts_at.required' => 'Укажите дату и время начала события.',
             'starts_at.date' => 'Дата начала должна быть в формате даты и времени.',
             'ends_at.after_or_equal' => 'Дата окончания должна быть не раньше даты начала.',
+            'send_discord_notification.boolean' => 'Поле «отправлять оповещение в Discord» должно быть логическим значением.',
         ];
     }
 
@@ -64,6 +66,7 @@ class StoreEventRequest extends FormRequest
             'ends_at' => 'окончание',
             'recurrence' => 'повторение',
             'recurrence_ends_at' => 'повторять до',
+            'send_discord_notification' => 'отправлять оповещение в Discord',
         ];
     }
 }

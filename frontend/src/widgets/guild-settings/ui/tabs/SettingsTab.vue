@@ -38,7 +38,6 @@ defineProps<{
   canChangeLocalizationServer: boolean;
   availableLocalizations: { id: number; name: string }[];
   servers: { id: number; name: string }[];
-  showRosterToAll: boolean;
 
   // tags
   allTags: Tag[];
@@ -55,7 +54,6 @@ const emit = defineEmits<{
   (e: 'update:name', value: string): void;
   (e: 'update:selectedLocalizationId', value: string): void;
   (e: 'update:selectedServerId', value: string): void;
-  (e: 'update:showRosterToAll', value: boolean): void;
   (e: 'update:selectedLeaderCharacterId', value: string): void;
   (e: 'save'): void;
   (e: 'toggleTag', tagId: number): void;
@@ -160,20 +158,6 @@ function selectedTags(allTags: Tag[], selectedIds: number[]) {
         <p v-if="fieldErrors.server_id" class="text-sm text-destructive">
           {{ fieldErrors.server_id }}
         </p>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <input
-          id="show-roster"
-          :checked="showRosterToAll"
-          type="checkbox"
-          class="h-4 w-4 rounded border-input"
-          :disabled="!isOwner"
-          @change="emit('update:showRosterToAll', ($event.target as HTMLInputElement).checked)"
-        />
-        <Label for="show-roster" class="cursor-pointer font-normal">
-          Показывать состав гильдии всем пользователям
-        </Label>
       </div>
 
       <div class="space-y-3">

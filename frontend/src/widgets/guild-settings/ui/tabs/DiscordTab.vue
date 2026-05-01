@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, Input, Label, Spinner } from '@/shared/ui';
+import { Button, Input, Label, Spinner, Tooltip } from '@/shared/ui';
 import {
   DISCORD_NOTIFICATION_LABELS,
   isValidDiscordWebhookUrl,
@@ -76,6 +76,9 @@ function closeLightbox() {
 const notificationCheckboxesDisabled = computed(
   () => props.webhookUrl.trim() === '' || props.savingNotificationKey !== null
 );
+
+const eventStartingHint =
+  'Если нужно отключить это уведомление только для конкретного события, откройте календарь событий гильдии, перейдите в создание или редактирование события и снимите галочку «Отправлять оповещение в Discord».';
 
 const instructionOpen = ref(false);
 function toggleInstruction() {
@@ -247,13 +250,44 @@ function toggleInstruction() {
                       "
                     >
                   </span>
-                  <Label
-                    :for="savingNotificationKey === item.key ? undefined : `discord-notif-${item.key}`"
-                    class="cursor-pointer font-normal leading-snug"
-                    :class="{ 'opacity-60 pointer-events-none': notificationCheckboxesDisabled }"
-                  >
-                    {{ item.label }}
-                  </Label>
+                  <div class="flex min-w-0 flex-1 items-start justify-between gap-2">
+                    <Label
+                      :for="savingNotificationKey === item.key ? undefined : `discord-notif-${item.key}`"
+                      class="cursor-pointer font-normal leading-snug"
+                      :class="{ 'opacity-60 pointer-events-none': notificationCheckboxesDisabled }"
+                    >
+                      {{ item.label }}
+                    </Label>
+                    <Tooltip
+                      v-if="item.key === 'discord_notify_event_starting'"
+                      :content="eventStartingHint"
+                      side="top"
+                      class="max-w-sm text-left leading-relaxed"
+                    >
+                      <button
+                        type="button"
+                        class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        :aria-label="eventStartingHint"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4" />
+                          <path d="M12 8h.01" />
+                        </svg>
+                      </button>
+                    </Tooltip>
+                  </div>
                 </li>
               </ul>
 

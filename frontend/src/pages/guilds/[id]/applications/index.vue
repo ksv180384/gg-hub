@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Button, Input, Label, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem, Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
+import NotFoundPage from '@/pages/not-found/index.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -12,7 +13,10 @@ const applications = ref<GuildApplicationItem[]>([]);
 const meta = ref({ current_page: 1, last_page: 1, per_page: 20, total: 0 });
 const loading = ref(true);
 const error = ref<string | null>(null);
+/** Участник без права просмотра заявок (403). */
 const noAccess = ref(false);
+/** Нет членства в гильдии и т.п. (404 guild.member), URL не меняем. */
+const applicationsGuildNotFound = ref(false);
 
 const statusFilter = ref<'all' | GuildApplicationItem['status']>('all');
 const nameFilter = ref('');
@@ -56,6 +60,7 @@ async function loadApplications(mode: 'initial' | 'filters' = 'initial') {
   }
   error.value = null;
   noAccess.value = false;
+  applicationsGuildNotFound.value = false;
 
   if (!guildId.value || Number.isNaN(guildId.value)) {
     error.value = 'Неверная ссылка.';
@@ -76,11 +81,12 @@ async function loadApplications(mode: 'initial' | 'filters' = 'initial') {
     meta.value = result.meta;
   } catch (e: unknown) {
     const err = e as Error & { status?: number };
-    if (err.status === 403) {
+    if (err.status === 404) {
+      applicationsGuildNotFound.value = true;
+      error.value = null;
+    } else if (err.status === 403) {
       noAccess.value = true;
       error.value = null;
-    } else if (err.status === 404) {
-      error.value = 'Гильдия не найдена.';
     } else {
       error.value = err.message ?? 'Не удалось загрузить заявки.';
     }
@@ -115,7 +121,8 @@ watch([nameFilter], () => {
 </script>
 
 <template>
-  <div class="container py-6 max-w-2xl mx-auto">
+  <NotFoundPage v-if="applicationsGuildNotFound" />
+  <div v-else class="container py-6 max-w-2xl mx-auto">
     <div class="text-xl font-semibold pb-4">Заявки и приглашения</div>
 
     <div>

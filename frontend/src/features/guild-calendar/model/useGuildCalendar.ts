@@ -1,7 +1,21 @@
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
+
+function parseRouteCalendarDate(raw: unknown): Date | null {
+  if (typeof raw !== 'string') return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) return null;
+  const dt = new Date(y, mo, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo || dt.getDate() !== d) return null;
+  return dt;
+}
 import { expandRecurringEvents, toDatetimeLocal, fromDatetimeLocal } from '@/entities/guild-calendar';
 import { eventsApi, type GuildEvent } from '@/shared/api/eventsApi';
+import type { ApiError } from '@/shared/api/errors';
 import { guildsApi } from '@/shared/api/guildsApi';
 import { charactersApi } from '@/shared/api/charactersApi';
 import type { CalendarEvent } from '@/shared/ui';
@@ -13,7 +27,9 @@ export function useGuildCalendar() {
 
   const events = ref<GuildEvent[]>([]);
   const loading = ref(false);
-  const selectedDate = ref<Date | null>(new Date());
+  /** Нет членства в гильдии / закрытый календарь (403/404). */
+  const calendarGuildAccessNotFound = ref(false);
+  const selectedDate = ref<Date | null>(parseRouteCalendarDate(route.query.date) ?? new Date());
   const modalOpen = ref(false);
   const modalEditingId = ref<number | null>(null);
   const formLoading = ref(false);
@@ -24,6 +40,7 @@ export function useGuildCalendar() {
   const editingEvent = ref<GuildEvent | null>(null);
 
   const myPermissionSlugs = ref<string[]>([]);
+  const guildDiscordEventStartingEnabled = ref(false);
   const myCharactersInGuild = ref<{ id: number; name: string }[]>([]);
   const loadingMyCharacters = ref(false);
 
@@ -41,6 +58,7 @@ export function useGuildCalendar() {
     starts_at: '',
     recurrence: 'once' as 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly',
     recurrence_ends_at: '',
+    send_discord_notification: true,
   });
 
   const viewRangeFrom = ref<Date | null>(null);
@@ -51,8 +69,12 @@ export function useGuildCalendar() {
     loading.value = true;
     try {
       events.value = await eventsApi.list(guildId.value, from, to);
-    } catch {
+    } catch (e) {
       events.value = [];
+      const st = (e as ApiError)?.status;
+      if (st === 403 || st === 404) {
+        calendarGuildAccessNotFound.value = true;
+      }
     } finally {
       loading.value = false;
     }
@@ -90,6 +112,7 @@ export function useGuildCalendar() {
 
     events.value = [];
     myPermissionSlugs.value = [];
+    guildDiscordEventStartingEnabled.value = false;
     myCharactersInGuild.value = [];
     loadingMyCharacters.value = false;
     modalOpen.value = false;
@@ -100,12 +123,24 @@ export function useGuildCalendar() {
     eventToDelete.value = null;
     editingEvent.value = null;
     formError.value = '';
+    calendarGuildAccessNotFound.value = false;
 
     try {
       const guild = await guildsApi.getGuildForSettings(guildId.value);
       myPermissionSlugs.value = guild.my_permission_slugs ?? [];
-    } catch {
+      guildDiscordEventStartingEnabled.value = guild.discord_notify_event_starting === true;
+    } catch (e) {
       myPermissionSlugs.value = [];
+      guildDiscordEventStartingEnabled.value = false;
+      const st = (e as ApiError)?.status;
+      if (st === 403 || st === 404) {
+        calendarGuildAccessNotFound.value = true;
+        return;
+      }
+    }
+
+    if (calendarGuildAccessNotFound.value) {
+      return;
     }
 
     if (viewRangeFrom.value && viewRangeTo.value) {
@@ -175,6 +210,7 @@ export function useGuildCalendar() {
       starts_at: toDatetimeLocal(base.toISOString()),
       recurrence: 'once',
       recurrence_ends_at: '',
+      send_discord_notification: true,
     };
     formError.value = '';
     modalOpen.value = true;
@@ -193,6 +229,7 @@ export function useGuildCalendar() {
         starts_at: toDatetimeLocal(full.starts_at),
         recurrence: (full.recurrence ?? 'once') as 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly',
         recurrence_ends_at: full.recurrence_ends_at ? toDatetimeLocal(full.recurrence_ends_at) : '',
+        send_discord_notification: full.send_discord_notification ?? true,
       };
       formError.value = '';
       modalOpen.value = true;
@@ -226,6 +263,7 @@ export function useGuildCalendar() {
       recurrence_ends_at: form.value.recurrence_ends_at
         ? fromDatetimeLocal(form.value.recurrence_ends_at)
         : null,
+      send_discord_notification: form.value.send_discord_notification,
     };
 
     formLoading.value = true;
@@ -296,10 +334,19 @@ export function useGuildCalendar() {
     loadCalendarPage();
   }, { immediate: true });
 
+  watch(
+    () => route.query.date,
+    (q) => {
+      const d = parseRouteCalendarDate(q);
+      if (d) selectedDate.value = d;
+    },
+  );
+
   return {
     guildId,
     events,
     loading,
+    calendarGuildAccessNotFound,
     selectedDate,
     modalOpen,
     modalEditingId,
@@ -315,6 +362,7 @@ export function useGuildCalendar() {
     canAddEvent,
     canEditEvent,
     canDeleteEvent,
+    guildDiscordEventStartingEnabled,
     viewModalOpen,
     viewEvent,
     form,

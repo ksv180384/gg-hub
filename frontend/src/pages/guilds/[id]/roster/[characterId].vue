@@ -18,6 +18,7 @@ import {
   type RosterTagItem,
   type RosterTagRow,
 } from '@/shared/lib/rosterTagDisplay';
+import NotFoundPage from '@/pages/not-found/index.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -37,6 +38,8 @@ const changingRole = ref(false);
 const roleError = ref<string | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+/** Нет доступа к карточке участника (403 / 404 middleware): показываем UI «не найдено», URL не меняем. */
+const rosterAccessForbiddenRedirect = ref(false);
 const excludeDialogOpen = ref(false);
 const excluding = ref(false);
 const excludeError = ref<string | null>(null);
@@ -153,6 +156,7 @@ async function loadData() {
     loading.value = false;
     return;
   }
+  rosterAccessForbiddenRedirect.value = false;
   loading.value = true;
   error.value = null;
   try {
@@ -188,12 +192,22 @@ async function loadData() {
     }
   } catch (e: unknown) {
     const err = e as Error & { status?: number };
-    if (err.status === 404) {
+    const msg = err.message ?? '';
+    /** 404 от домена: участник не в этом составе; от middleware — закрытый ресурс (не в гильдии и т.п.). */
+    const rosterMemberNotInGuild404 =
+      err.status === 404 && /участник не найден/i.test(msg);
+
+    if (err.status === 403 || (err.status === 404 && !rosterMemberNotInGuild404)) {
+      rosterAccessForbiddenRedirect.value = true;
+      guild.value = null;
+      member.value = null;
+    } else if (rosterMemberNotInGuild404) {
       error.value = 'Участник не найден в составе гильдии.';
+      member.value = null;
     } else {
       error.value = err instanceof Error ? err.message : 'Ошибка загрузки';
+      member.value = null;
     }
-    member.value = null;
   } finally {
     loading.value = false;
   }
@@ -351,7 +365,8 @@ watch([guildId, characterId], () => loadData());
 </script>
 
 <template>
-  <div class="container py-4 md:py-6 max-w-2xl mx-auto">
+  <NotFoundPage v-if="rosterAccessForbiddenRedirect" />
+  <div v-else class="container py-4 md:py-6 max-w-2xl mx-auto">
     <div class="mb-4">
       <Button variant="ghost" size="sm" class="-ml-2 shrink-0" @click="backToRoster">
         ← К составу гильдии

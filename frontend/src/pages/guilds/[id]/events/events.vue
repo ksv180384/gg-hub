@@ -11,7 +11,9 @@ import {
   Label,
 } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
+import type { ApiError } from '@/shared/api/errors';
 import { guildsApi } from '@/shared/api/guildsApi';
+import NotFoundPage from '@/pages/not-found/index.vue';
 import {
   eventHistoryApi,
   type EventHistoryItem,
@@ -23,6 +25,8 @@ const guildId = computed(() => Number(route.params.id));
 
 const loading = ref(false);
 const items = ref<EventHistoryItem[]>([]);
+/** Нет членства в гильдии (403/404 с guild.member). */
+const guildEventsAccessNotFound = ref(false);
 
 const myPermissionSlugs = ref<string[]>([]);
 
@@ -47,10 +51,13 @@ async function fetchPermissionsAndRoster() {
   try {
     const guild = await guildsApi.getGuildForSettings(guildId.value);
     myPermissionSlugs.value = guild.my_permission_slugs ?? [];
-  } catch {
+  } catch (e) {
     myPermissionSlugs.value = [];
+    const st = (e as ApiError)?.status;
+    if (st === 403 || st === 404) {
+      guildEventsAccessNotFound.value = true;
+    }
   }
-
 }
 
 async function fetchHistory() {
@@ -58,8 +65,12 @@ async function fetchHistory() {
   loading.value = true;
   try {
     items.value = await eventHistoryApi.list(guildId.value);
-  } catch {
+  } catch (e) {
     items.value = [];
+    const st = (e as ApiError)?.status;
+    if (st === 403 || st === 404) {
+      guildEventsAccessNotFound.value = true;
+    }
   } finally {
     loading.value = false;
   }
@@ -129,6 +140,7 @@ function formatParticipantsLine(item: EventHistoryItem): string {
 }
 
 async function loadEventsPage() {
+  guildEventsAccessNotFound.value = false;
   items.value = [];
   myPermissionSlugs.value = [];
   deleteConfirmOpen.value = false;
@@ -137,6 +149,7 @@ async function loadEventsPage() {
   loading.value = false;
 
   await fetchPermissionsAndRoster();
+  if (guildEventsAccessNotFound.value) return;
   await fetchHistory();
 }
 
@@ -146,7 +159,8 @@ watch(guildId, () => {
 </script>
 
 <template>
-  <div class="container py-6 space-y-4 max-w-2xl mx-auto">
+  <NotFoundPage v-if="guildEventsAccessNotFound" />
+  <div v-else class="container py-6 space-y-4 max-w-2xl mx-auto">
     <div class="flex items-center justify-between gap-2">
       <h1 class="text-xl font-semibold">
         События гильдии

@@ -1,7 +1,7 @@
 import { getActiveRouter } from '@/router/activeRouter';
 import { http } from '@/shared/api/http';
 import { attachHttpResponseInterceptor } from '@/shared/api/http-interceptors-core';
-import { getSsrRequestContext } from '@/ssr/requestContext';
+import { getSsrRequestContext } from '../../ssr/requestContext';
 
 /** SSR: Cookie и Host из AsyncLocalStorage (см. entry-server). */
 export function setupSsrHttpInterceptors(): void {

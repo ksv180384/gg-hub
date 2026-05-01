@@ -25,6 +25,7 @@ class UpdateEventRequest extends FormRequest
             'ends_at' => ['nullable', 'date'],
             'recurrence' => ['nullable', 'string', Rule::enum(EventRecurrence::class)],
             'recurrence_ends_at' => ['nullable', 'date'],
+            'send_discord_notification' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -45,6 +46,7 @@ class UpdateEventRequest extends FormRequest
             'title.max' => 'Название не должно превышать 255 символов.',
             'starts_at.required' => 'Укажите дату и время начала события.',
             'ends_at.after_or_equal' => 'Дата окончания должна быть не раньше даты начала.',
+            'send_discord_notification.boolean' => 'Поле «отправлять оповещение в Discord» должно быть логическим значением.',
         ];
     }
 
@@ -60,6 +62,7 @@ class UpdateEventRequest extends FormRequest
             'ends_at' => 'окончание',
             'recurrence' => 'повторение',
             'recurrence_ends_at' => 'повторять до',
+            'send_discord_notification' => 'отправлять оповещение в Discord',
         ];
     }
 }

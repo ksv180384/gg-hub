@@ -13,6 +13,7 @@ import {
   sliceRosterTagRowsForDisplay,
   isRosterCommonTag,
 } from '@/shared/lib/rosterTagDisplay';
+import NotFoundPage from '@/pages/not-found/index.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -29,6 +30,8 @@ const guildRosterRoles = ref<GuildRosterRoleSummary[]>([]);
 const rosterLoading = ref(false);
 const rosterFetched = ref(false);
 const rosterErrorStatus = ref<number | null>(null);
+/** Нет доступа к составу (403/404 API) — показываем UI «не найдено», URL не меняем. */
+const rosterForbiddenRedirect = ref(false);
 
 const filterName = ref('');
 /** '' = все роли */
@@ -263,11 +266,6 @@ const rosterNeedsLogin = computed(
     rosterFetched.value && !rosterLoading.value && rosterErrorStatus.value === 401
 );
 
-const accessDenied = computed(
-  () =>
-    rosterFetched.value && !rosterLoading.value && rosterErrorStatus.value === 403
-);
-
 /** Счётчик N из M в заголовке; в подсказке — полная фраза «Показано: …». */
 const rosterHeadingCount = computed(() => {
   if (
@@ -275,7 +273,6 @@ const rosterHeadingCount = computed(() => {
     rosterLoading.value ||
     rosterErrorStatus.value !== null ||
     rosterNeedsLogin.value ||
-    accessDenied.value ||
     roster.value.length === 0
   ) {
     return null;
@@ -301,7 +298,11 @@ async function loadRoster() {
     guildRosterRoles.value = guild_roles;
   } catch (e: unknown) {
     const err = e as { status?: number };
-    rosterErrorStatus.value = err.status ?? -1;
+    const st = err.status ?? -1;
+    rosterErrorStatus.value = st;
+    if (st === 403 || st === 404) {
+      rosterForbiddenRedirect.value = true;
+    }
   } finally {
     rosterLoading.value = false;
     rosterFetched.value = true;
@@ -369,6 +370,7 @@ watch(guildId, async () => {
   roster.value = [];
   guildRosterRoles.value = [];
   rosterErrorStatus.value = null;
+  rosterForbiddenRedirect.value = false;
   await loadGuild();
   if (guild.value) {
     void loadRoster();
@@ -377,7 +379,8 @@ watch(guildId, async () => {
 </script>
 
 <template>
-  <div class="container py-4 md:py-8">
+  <NotFoundPage v-if="rosterForbiddenRedirect" />
+  <div v-else class="container py-4 md:py-8">
     <div class="mx-auto max-w-4xl">
       <div v-if="guildError" class="mb-6 rounded-md bg-destructive/10 p-4 text-destructive">
         {{ guildError }}
@@ -411,16 +414,19 @@ watch(guildId, async () => {
           </RouterLink>
           , чтобы увидеть список участников.
         </p>
-        <p v-else-if="accessDenied" class="text-sm text-muted-foreground">
-          Состав гильдии доступен только её участникам или при открытом показе состава в настройках гильдии.
-        </p>
         <p
-          v-else-if="rosterFetched && rosterErrorStatus != null && rosterErrorStatus !== 401 && rosterErrorStatus !== 403"
+          v-else-if="
+            rosterFetched &&
+              rosterErrorStatus != null &&
+              rosterErrorStatus !== 401 &&
+              rosterErrorStatus !== 403 &&
+              rosterErrorStatus !== 404
+          "
           class="text-sm text-destructive"
         >
           Не удалось загрузить состав. Попробуйте обновить страницу.
         </p>
-        <template v-else-if="!rosterNeedsLogin && !accessDenied && rosterFetched && !rosterLoading && rosterErrorStatus === null">
+        <template v-else-if="!rosterNeedsLogin && rosterFetched && !rosterLoading && rosterErrorStatus === null">
           <p v-if="roster.length === 0" class="text-sm text-muted-foreground">
             В гильдии пока никого нет.
           </p>

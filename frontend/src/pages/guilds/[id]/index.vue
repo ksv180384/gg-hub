@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
+import { Button } from '@/shared/ui';
 import PostCardPreview from '@/shared/ui/post/PostCardPreview.vue';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
+import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';
+import NotFoundPage from '@/pages/not-found/index.vue';
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -17,6 +19,10 @@ const loadingPublished = ref(true);
 const loadingPending = ref(false);
 const showPending = ref(false);
 const showBlocked = ref(false);
+/** Нет доступа к журналу (404 API) — показываем UI «не найдено» без смены URL. */
+const guildJournalNotFound = ref(false);
+const publishedPostsError = ref<string | null>(null);
+const blockedPostsError = ref<string | null>(null);
 
 const canModeratePosts = computed(
   () => !!guild.value?.my_permission_slugs?.includes('publikovat-post')
@@ -25,8 +31,10 @@ const canModeratePosts = computed(
 async function loadGuildJournal() {
   if (!guildId.value) return;
 
+  guildJournalNotFound.value = false;
   guild.value = null;
   publishedPosts.value = [];
+  publishedPostsError.value = null;
   pendingPosts.value = [];
   showPending.value = false;
   showBlocked.value = false;
@@ -37,16 +45,37 @@ async function loadGuildJournal() {
   try {
     // Используем настройки гильдии, чтобы получить my_permission_slugs
     guild.value = await guildsApi.getGuildForSettings(guildId.value);
-  } catch {
+  } catch (e) {
     guild.value = null;
+    if ((e as ApiError).status === 404) {
+      guildJournalNotFound.value = true;
+    }
   } finally {
     loadingGuild.value = false;
   }
 
+  if (guildJournalNotFound.value) {
+    loadingPublished.value = false;
+    publishedPosts.value = [];
+    return;
+  }
+
   try {
     publishedPosts.value = await postsApi.getGuildPosts(guildId.value);
+  } catch (e) {
+    publishedPosts.value = [];
+    if ((e as ApiError).status === 404) {
+      guildJournalNotFound.value = true;
+    } else {
+      publishedPostsError.value =
+        e instanceof Error ? e.message : 'Не удалось загрузить журнал.';
+    }
   } finally {
     loadingPublished.value = false;
+  }
+
+  if (guildJournalNotFound.value) {
+    return;
   }
 
   if (canModeratePosts.value) {
@@ -65,8 +94,17 @@ const loadingBlocked = ref(false);
 async function loadBlockedPosts() {
   if (!guildId.value || !canModeratePosts.value) return;
   loadingBlocked.value = true;
+  blockedPostsError.value = null;
   try {
     blockedPosts.value = await postsApi.getGuildPosts(guildId.value, { filter: 'blocked' });
+  } catch (e) {
+    blockedPosts.value = [];
+    if ((e as ApiError).status === 404) {
+      guildJournalNotFound.value = true;
+    } else {
+      blockedPostsError.value =
+        e instanceof Error ? e.message : 'Не удалось загрузить заблокированные посты.';
+    }
   } finally {
     loadingBlocked.value = false;
   }
@@ -101,7 +139,8 @@ function onViewRecorded(postId: number) {
 </script>
 
 <template>
-  <div class="py-6 space-y-4 max-w-2xl mx-auto">
+  <NotFoundPage v-if="guildJournalNotFound" />
+  <div v-else class="py-6 space-y-4 max-w-2xl mx-auto">
     <div
       v-if="canModeratePosts"
       class="flex flex-wrap items-center gap-2 px-4"
@@ -168,6 +207,9 @@ function onViewRecorded(postId: number) {
       <p v-if="loadingBlocked" class="text-sm text-muted-foreground">
         Загрузка заблокированных постов…
       </p>
+      <p v-else-if="blockedPostsError" class="text-sm text-destructive px-4">
+        {{ blockedPostsError }}
+      </p>
       <p v-else-if="blockedPosts.length === 0" class="text-sm text-muted-foreground">
         Нет заблокированных постов в гильдии.
       </p>
@@ -186,6 +228,9 @@ function onViewRecorded(postId: number) {
     </template>
     <template v-else>
       <p v-if="loadingPublished" class="text-sm text-muted-foreground">Загрузка постов…</p>
+      <p v-else-if="publishedPostsError" class="text-sm text-destructive px-4">
+        {{ publishedPostsError }}
+      </p>
       <p v-else-if="publishedPosts.length === 0" class="text-sm text-muted-foreground">
         В журнале гильдии пока нет постов.
       </p>

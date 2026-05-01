@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use Domains\Guild\Models\Guild;
+use Illuminate\Support\Carbon;
 
 /**
  * Общий хелпер для построения публичного URL фронтенда с учётом субдомена игры.
@@ -19,6 +20,11 @@ class GuildLinkBuilder
     public function rosterUrl(Guild $guild): string
     {
         return $this->guildUrl($guild) . '/roster';
+    }
+
+    public function rosterMemberUrl(Guild $guild, int $characterId): string
+    {
+        return $this->guildUrl($guild) . '/roster/' . $characterId;
     }
 
     public function applicationUrl(Guild $guild, int $applicationId): string
@@ -39,6 +45,21 @@ class GuildLinkBuilder
     public function eventUrl(Guild $guild, int $eventId): string
     {
         return $this->guildUrl($guild) . '/events/' . $eventId;
+    }
+
+    /**
+     * Календарь гильдии; при переданном дне добавляет query `date=Y-m-d`
+     * для выбора этого дня на фронте.
+     */
+    public function guildCalendarUrl(Guild $guild, ?Carbon $day = null): string
+    {
+        $path = $this->guildUrl($guild) . '/calendar';
+
+        if ($day === null) {
+            return $path;
+        }
+
+        return $path . '?date=' . $day->format('Y-m-d');
     }
 
     private function baseUrlForGame(?string $gameSlug): string

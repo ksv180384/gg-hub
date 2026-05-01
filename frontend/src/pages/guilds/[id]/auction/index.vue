@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, shallowRef, unref } from 'vue';
 import { useRoute } from 'vue-router';
+import type { ApiError } from '@/shared/api/errors';
 import {
   Card,
   CardContent,
@@ -14,6 +15,7 @@ import {
   Tooltip,
 } from '@/shared/ui';
 import { SpinWheel } from '@/widgets/spin-wheel';
+import NotFoundPage from '@/pages/not-found/index.vue';
 import { GUILD_PERMISSION_MANAGE_ROULETTE } from '@/shared/api/guildPermissionSlugs';
 import { guildsApi, type Guild, type GuildRosterMember } from '@/shared/api/guildsApi';
 import { parseParticipantNicknamesFromXlsxFile } from '@/shared/lib/eventHistoryParticipantsXlsxImport';
@@ -31,6 +33,7 @@ type WheelEntry = GuildAuctionWheelEntry;
 const roster = ref<GuildRosterMember[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const guildAuctionAccessNotFound = ref(false);
 const searchQuery = ref('');
 /** Участники на колесе: из состава или только ник (из Excel / не из гильдии) */
 const wheelEntries = ref<WheelEntry[]>([]);
@@ -222,9 +225,10 @@ async function loadRoster() {
   try {
     roster.value = (await guildsApi.getGuildRoster(guildId.value)).members;
   } catch (e: unknown) {
-    const err = e as Error & { status?: number };
-    if (err.status === 403) {
-      error.value = 'Состав гильдии доступен только участникам.';
+    const err = e as ApiError;
+    if (err.status === 403 || err.status === 404) {
+      guildAuctionAccessNotFound.value = true;
+      error.value = null;
     } else {
       error.value = err instanceof Error ? err.message : 'Ошибка загрузки состава';
     }
@@ -241,7 +245,11 @@ async function loadGuildSettingsForAuction() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
   try {
     guildForPerms.value = await guildsApi.getGuildForSettings(guildId.value);
-  } catch {
+  } catch (e: unknown) {
+    const err = e as ApiError;
+    if (err.status === 403 || err.status === 404) {
+      guildAuctionAccessNotFound.value = true;
+    }
     guildForPerms.value = null;
   }
 }
@@ -252,6 +260,7 @@ const canManageRoulette = computed(
 );
 
 async function loadAuctionPage() {
+  guildAuctionAccessNotFound.value = false;
   await Promise.all([loadRoster(), loadGuildSettingsForAuction()]);
 }
 
@@ -335,7 +344,8 @@ const {
 </script>
 
 <template>
-  <div class="container py-6">
+  <NotFoundPage v-if="guildAuctionAccessNotFound" />
+  <div v-else class="container py-6">
     <div class="flex flex-col gap-6 lg:flex-row lg:items-start">
       <!-- Колесо слева -->
       <div class="min-w-0 w-full max-w-full shrink-0 lg:w-auto">

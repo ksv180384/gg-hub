@@ -19,6 +19,7 @@ class Event extends Model
         'ends_at',
         'recurrence',
         'recurrence_ends_at',
+        'send_discord_notification',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class Event extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'recurrence_ends_at' => 'datetime',
+            'send_discord_notification' => 'boolean',
         ];
     }
 

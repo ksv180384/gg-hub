@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, useSlots } from 'vue';
+import { ref, computed, watch, nextTick, useSlots, inject } from 'vue';
 import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
 import {
@@ -29,12 +29,15 @@ import NotificationsDrawer from '@/widgets/header/NotificationsDrawer.vue';
 import PollsDrawer from '@/widgets/header/PollsDrawer.vue';
 import TodaysEventsDrawer from '@/widgets/header/TodaysEventsDrawer.vue';
 import { DEFAULT_PRODUCTION_ORIGIN } from '@/seo/homePageSeo';
+import { mainSiteOriginSsrKey } from '@/shared/lib/mainSiteOriginSsr';
 
 const route = useRoute();
 const auth = useAuthStore();
 const siteContext = useSiteContextStore();
 const theme = useThemeStore();
 const slots = useSlots();
+/** Совпадает с тем, что посчитал entry-server по Host запроса (клиентский stub AsyncLocalStorage недоступен в компонентах). */
+const mainSiteOriginFromSsr = inject(mainSiteOriginSsrKey, undefined as string | undefined);
 const hasMobileMenuSidebar = computed(() => !!slots['mobile-menu-sidebar']);
 
 const showMobileSidebarAdminBlock = computed(
@@ -294,16 +297,22 @@ const navItems = [
   { to: '/games', label: 'Игры' },
 ];
 
+function baseHostStripGameSubdomain(hostname: string): string {
+  const parts = hostname.split('.');
+  return parts.length >= 3 ? parts.slice(1).join('.') : hostname;
+}
+
 function getMainSiteOrigin(): string {
   const fromEnv = import.meta.env.VITE_SITE_URL as string | undefined;
   if (fromEnv && /^https?:\/\//i.test(fromEnv.trim())) {
     return fromEnv.trim().replace(/\/$/, '');
   }
-  if (typeof window === 'undefined') return DEFAULT_PRODUCTION_ORIGIN;
+  if (typeof window === 'undefined') {
+    if (mainSiteOriginFromSsr) return mainSiteOriginFromSsr;
+    return DEFAULT_PRODUCTION_ORIGIN;
+  }
   const { protocol, hostname } = window.location;
-  const parts = hostname.split('.');
-  const baseHost = parts.length >= 3 ? parts.slice(1).join('.') : hostname;
-  return `${protocol}//${baseHost}`;
+  return `${protocol}//${baseHostStripGameSubdomain(hostname)}`;
 }
 
 const mainSiteHref = computed(() => `${getMainSiteOrigin()}/`);

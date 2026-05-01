@@ -643,7 +643,7 @@ export const guildsApi = {
   },
 
   /**
-   * Состав гильдии. Доступ: при show_roster_to_all — всем; иначе только участникам (403).
+   * Состав гильдии. Только участники гильдии (403 иначе).
    * В guild_roles — все роли гильдии (для фильтров), не только назначенные участникам.
    */
   async getGuildRoster(guildId: number): Promise<GuildRosterResponse> {
@@ -740,7 +740,7 @@ export const guildsApi = {
 
   /**
    * Гильдия для страницы настроек. Только для участников гильдии.
-   * При 403 (не состоите в гильдии) нужно перенаправить на /guilds.
+   * При 404 (нет доступа к закрытым данным гильдии) обрабатывайте как «не найдено».
    */
   async getGuildForSettings(id: number): Promise<Guild> {
     const res = await http.fetchGet<{ data: Guild } | Guild>(`/guilds/${id}/settings`);

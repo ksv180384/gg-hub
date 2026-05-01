@@ -127,8 +127,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/guilds/{guild}/raids/{raid}', [RaidController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-reidy');
     Route::put('/guilds/{guild}/raids/{raid}/composition', [RaidController::class, 'setComposition'])->middleware('guild.member', 'guild.role.permission:formirovat-reidy');
 
-    Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster']);
-    Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember']);
+    Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember'])->middleware('guild.member');
     Route::put('/guilds/{guild}/members/{character}/role', [GuildController::class, 'updateMemberRole'])->middleware('guild.member', 'guild.role.permission:meniat-izieniat-polzovateliu-rol');
     Route::match(['put', 'patch'], '/guilds/{guild}/members/{character}/tags', [GuildController::class, 'updateMemberTags'])->middleware('guild.member', 'guild.role.permission:izmeniat-tegi-polzovatelei-gildii');
     Route::post('/guilds/{guild}/tags', [GuildController::class, 'storeTag'])->middleware('guild.member', 'guild.role.permission:dobavliat-teg-gildii');

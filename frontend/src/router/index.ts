@@ -111,6 +111,17 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'Моя заявка в гильдию' },
         },
         {
+          path: 'guilds/:id/applications/:applicationId',
+          redirect: (to) => ({
+            name: 'guild-application-show',
+            params: {
+              id: String(to.params.id),
+              applicationId: String(to.params.applicationId),
+            },
+          }),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'guilds/:id/applications/list/:applicationId',
           name: 'guild-application-show',
           component: () => import('@/pages/guilds/[id]/applications/[applicationId].vue'),
@@ -410,6 +421,13 @@ const routes: RouteRecordRaw[] = [
           name: 'admin-games-edit',
           component: () => import('@/pages/admin/games/edit.vue'),
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        /** Явный URL для программного «не найдено» (catch-all без params даёт `/` → конфликт с home). */
+        {
+          path: '404',
+          name: 'page-not-found',
+          component: () => import('@/pages/not-found/index.vue'),
+          meta: { title: 'Страница не найдена' },
         },
         {
           path: ':pathMatch(.*)*',

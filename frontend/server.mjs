@@ -27,6 +27,17 @@ const resolve = (p) => path.resolve(__dirname, p);
 const isDev = process.argv.includes('--dev');
 const port = Number(process.env.PORT) || 3008;
 
+/** Для SSR: абсолютные ссылки (лого → основной сайт) совпадают с клиентом. */
+function requestPublicProtocol(req) {
+  const forwarded = req.headers['x-forwarded-proto'];
+  if (forwarded) {
+    const p = String(forwarded).split(',')[0].trim().toLowerCase();
+    if (p === 'http' || p === 'https') return p;
+  }
+  if (req.secure) return 'https';
+  return 'http';
+}
+
 /** Гонка HMR full-reload и ssrLoadModule в Vite 7+ даёт «transport was disconnected». */
 function isTransportDisconnectError(e) {
   const msg = e instanceof Error ? e.message : String(e);
@@ -87,6 +98,7 @@ async function createDevServer() {
       const result = await render(url, {
         cookie: req.headers.cookie,
         host: req.headers.host,
+        protocol: requestPublicProtocol(req),
       });
       if (result.redirect) {
         res.redirect(302, result.redirect);
@@ -125,6 +137,7 @@ async function createProdServer() {
       const result = await render(url, {
         cookie: req.headers.cookie,
         host: req.headers.host,
+        protocol: requestPublicProtocol(req),
       });
       if (result.redirect) {
         res.redirect(302, result.redirect);

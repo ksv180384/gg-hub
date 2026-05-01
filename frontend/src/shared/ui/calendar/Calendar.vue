@@ -60,7 +60,13 @@ const emit = defineEmits<{
   'click-event': [event: CalendarEvent];
 }>();
 
-const viewDate = ref(props.modelValue ? new Date(props.modelValue) : new Date());
+function initialCalendarAnchor(): Date {
+  const d = props.selectedDate ?? props.modelValue;
+  if (d) return new Date(d.getFullYear(), d.getMonth(), 1);
+  return new Date();
+}
+
+const viewDate = ref(initialCalendarAnchor());
 
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -190,6 +196,19 @@ watch(
     emit('view-range', from, to);
   },
   { immediate: true }
+);
+
+/** При выборе даты извне (например deep link `?date=`) показываем месяц этого дня. */
+watch(
+  () => props.selectedDate,
+  (d) => {
+    if (!d) return;
+    const cur = viewDate.value;
+    if (d.getFullYear() !== cur.getFullYear() || d.getMonth() !== cur.getMonth()) {
+      viewDate.value = new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+  },
+  { immediate: true },
 );
 
 function goToToday() {

@@ -25,6 +25,7 @@ import {
   SelectItem,
 } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
+import type { ApiError } from '@/shared/api/errors';
 import {
   guildsApi,
   type Guild,
@@ -33,6 +34,7 @@ import {
   type CreateGuildPollPayload,
   type UpdateGuildPollPayload,
 } from '@/shared/api/guildsApi';
+import NotFoundPage from '@/pages/not-found/index.vue';
 import { useGuildPollsSocket } from '@/shared/lib/useGuildPollsSocket';
 
 const route = useRoute();
@@ -46,7 +48,8 @@ const guildIdsForSocket = computed<number[]>(() => {
 const guild = ref<Guild | null>(null);
 const polls = ref<GuildPollItem[]>([]);
 const loading = ref(true);
-const accessDenied = ref(false);
+/** Нет членства в гильдии (403/404). */
+const guildPollsAccessNotFound = ref(false);
 const error = ref<string | null>(null);
 
 const canAdd = computed(
@@ -332,8 +335,12 @@ async function loadPolls() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
   try {
     polls.value = await guildsApi.getGuildPolls(guildId.value);
-  } catch {
+  } catch (e) {
     polls.value = [];
+    const st = (e as ApiError)?.status;
+    if (st === 403 || st === 404) {
+      guildPollsAccessNotFound.value = true;
+    }
   }
 }
 
@@ -343,15 +350,15 @@ async function loadPollsPage() {
   guild.value = null;
   polls.value = [];
   loading.value = true;
-  accessDenied.value = false;
+  guildPollsAccessNotFound.value = false;
   error.value = null;
 
   try {
     guild.value = await guildsApi.getGuildForSettings(guildId.value);
   } catch (e: unknown) {
-    const err = e as Error & { status?: number };
-    if (err.status === 403) {
-      accessDenied.value = true;
+    const err = e as ApiError;
+    if (err.status === 403 || err.status === 404) {
+      guildPollsAccessNotFound.value = true;
     }
     guild.value = null;
     loading.value = false;
@@ -415,7 +422,8 @@ useGuildPollsSocket({
 </script>
 
 <template>
-  <div class="container py-4 md:py-6 max-w-2xl mx-auto">
+  <NotFoundPage v-if="guildPollsAccessNotFound" />
+  <div v-else class="container py-4 md:py-6 max-w-2xl mx-auto">
 
     <div class="flex pb-4 justify-between items-center">
       <div class="text-xl font-semibold pb-4">Голосования</div>
@@ -430,12 +438,6 @@ useGuildPollsSocket({
 
     <div>
       <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
-
-      <template v-else-if="accessDenied">
-        <p class="text-sm text-muted-foreground">
-          Голосования доступны только участникам гильдии.
-        </p>
-      </template>
 
       <template v-else-if="error">
         <p class="text-sm text-destructive">{{ error }}</p>

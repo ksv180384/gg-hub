@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
+import NotFoundPage from '@/pages/not-found/index.vue';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
 import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
 
@@ -14,6 +15,8 @@ const applicationId = computed(() => Number(route.params.applicationId));
 const application = ref<GuildApplicationItem | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+/** 404 с заявки / middleware (нет членства и т.п.), URL не меняем. */
+const guildApplicationDetailNotFound = ref(false);
 const actionLoading = ref<'approve' | 'reject' | 'revoke' | null>(null);
 const voteLoading = ref<false | 'like' | 'dislike'>(false);
 const canReview = ref(false);
@@ -86,6 +89,7 @@ onMounted(async () => {
     loading.value = false;
     return;
   }
+  guildApplicationDetailNotFound.value = false;
   try {
     const [app, settings] = await Promise.all([
       guildsApi.getGuildApplication(guildId.value, applicationId.value),
@@ -99,8 +103,11 @@ onMounted(async () => {
       router.replace({ name: 'guild-applications', params: { id: String(guildId.value) } });
       return;
     }
-    if (err.status === 404) error.value = 'Заявка не найдена.';
-    else error.value = err.message ?? 'Не удалось загрузить заявку.';
+    if (err.status === 404) {
+      guildApplicationDetailNotFound.value = true;
+    } else {
+      error.value = err.message ?? 'Не удалось загрузить заявку.';
+    }
   } finally {
     loading.value = false;
   }
@@ -167,7 +174,8 @@ async function setVote(vote: 'like' | 'dislike') {
 </script>
 
 <template>
-  <div class="container py-6">
+  <NotFoundPage v-if="guildApplicationDetailNotFound" />
+  <div v-else class="container py-6">
     <template v-if="loading">
       <Card class="max-w-2xl mx-auto">
         <CardContent class="flex items-center justify-center py-12">

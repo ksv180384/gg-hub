@@ -27,7 +27,7 @@ class NotifyDiscordEventsStartingCommand extends Command
 
     protected $description = 'Отправить в Discord оповещения о гильдейских событиях, начинающихся через 10 минут (с учётом повторений)';
 
-    public function __invoke(
+    public function handle(
         SendGuildDiscordNotificationAction $sendGuildDiscordNotificationAction,
         GuildLinkBuilder $linkBuilder,
     ): int {
@@ -36,6 +36,7 @@ class NotifyDiscordEventsStartingCommand extends Command
         $windowEnd = $now->copy()->addMinutes(10);
 
         $events = Event::query()
+            ->where('send_discord_notification', true)
             ->where(function ($q) use ($windowStart, $windowEnd): void {
                 // Не повторяющиеся: попадают в окно по самому starts_at.
                 $q->where(function ($q) use ($windowStart, $windowEnd): void {
@@ -106,7 +107,7 @@ class NotifyDiscordEventsStartingCommand extends Command
                 continue;
             }
 
-            $url = $linkBuilder->eventUrl($guild, (int) $event->id);
+            $url = $linkBuilder->guildCalendarUrl($guild, $nextStart);
             $title = trim((string) $event->title);
             $titleLine = $title !== '' ? "«{$title}»" : '#' . $event->id;
             $message = "Через 10 минут начнётся событие: {$titleLine} (старт в "
