@@ -43,9 +43,11 @@ const model = reactive(useGuildCalendar());
         :selected-date-label="model.selectedDateLabel"
         :events="model.eventsForSelectedDay"
         :can-add-event="model.canAddEvent"
+        :can-edit-event="model.canEditEvent"
         :can-delete-event="model.canDeleteEvent"
         @create="model.openCreateModal"
         @open="model.openEvent"
+        @edit="model.openEventEditModal"
         @delete="model.askDelete"
       />
     </div>

@@ -219,24 +219,28 @@ export function useGuildCalendar() {
   async function openEvent(event: CalendarEvent) {
     if (!guildId.value) return;
     const full = events.value.find((e) => e.id === event.id) ?? (await eventsApi.get(guildId.value, event.id));
-    if (canEditEvent.value) {
-      editingEvent.value = full;
-      modalEditingId.value = full.id;
-      form.value = {
-        character_id: full.created_by_character_id ?? 0,
-        title: full.title,
-        description: full.description ?? '',
-        starts_at: toDatetimeLocal(full.starts_at),
-        recurrence: (full.recurrence ?? 'once') as 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly',
-        recurrence_ends_at: full.recurrence_ends_at ? toDatetimeLocal(full.recurrence_ends_at) : '',
-        send_discord_notification: full.send_discord_notification ?? true,
-      };
-      formError.value = '';
-      modalOpen.value = true;
-    } else {
-      viewEvent.value = full;
-      viewModalOpen.value = true;
-    }
+    viewEvent.value = full;
+    viewModalOpen.value = true;
+  }
+
+  /** Открыть модалку редактирования (кнопка «карандаш» у пользователя с правом на редактирование). */
+  async function openEventEditModal(event: CalendarEvent) {
+    if (!guildId.value || !canEditEvent.value) return;
+    viewModalOpen.value = false;
+    const full = events.value.find((e) => e.id === event.id) ?? (await eventsApi.get(guildId.value, event.id));
+    editingEvent.value = full;
+    modalEditingId.value = full.id;
+    form.value = {
+      character_id: full.created_by_character_id ?? 0,
+      title: full.title,
+      description: full.description ?? '',
+      starts_at: toDatetimeLocal(full.starts_at),
+      recurrence: (full.recurrence ?? 'once') as 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly',
+      recurrence_ends_at: full.recurrence_ends_at ? toDatetimeLocal(full.recurrence_ends_at) : '',
+      send_discord_notification: full.send_discord_notification ?? true,
+    };
+    formError.value = '';
+    modalOpen.value = true;
   }
 
   function closeModal() {
@@ -372,6 +376,7 @@ export function useGuildCalendar() {
     onViewRange,
     openCreateModal,
     openEvent,
+    openEventEditModal,
     closeModal,
     submitForm,
     askDelete,

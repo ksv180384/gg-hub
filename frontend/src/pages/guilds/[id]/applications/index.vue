@@ -132,14 +132,8 @@ watch([nameFilter], () => {
 
       <template v-else-if="noAccess">
         <p class="text-muted-foreground mb-4">
-          Список заявок доступен только участникам гильдии с правом просмотра заявок.
+          У вас недостаточно прав для просмотра заявок в гильдию.
         </p>
-        <Button
-          variant="outline"
-          @click="router.push({ name: 'guild-application-form', params: { id: String(guildId) } })"
-        >
-          Подать заявку в гильдию
-        </Button>
       </template>
 
       <template v-else-if="error">
