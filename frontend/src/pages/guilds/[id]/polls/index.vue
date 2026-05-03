@@ -82,8 +82,14 @@ const formOptions = ref<string[]>(['', '']);
 const formCharacterId = ref<string>('__none__');
 const formSubmitting = ref(false);
 const formError = ref<string | null>(null);
+/** При редактировании: голосование изначально анонимное — снять галочку нельзя. */
+const formAnonymousLocked = ref(false);
 
 const SELECT_NONE = '__none__';
+
+const isAnonymousCheckboxDisabled = computed(
+  () => formMode.value === 'edit' && formAnonymousLocked.value
+);
 
 const datetimeLocalMin = computed(() => {
   const d = new Date();
@@ -145,6 +151,7 @@ function openCreate() {
   formCharacterId.value = myCharacters.value.length === 1
     ? String(myCharacters.value[0].id)
     : SELECT_NONE;
+  formAnonymousLocked.value = false;
   formError.value = null;
   modalOpen.value = true;
 }
@@ -154,6 +161,7 @@ function openEdit(poll: GuildPollItem) {
   formPollId.value = poll.id;
   formTitle.value = poll.title;
   formDescription.value = poll.description ?? '';
+  formAnonymousLocked.value = poll.is_anonymous === true;
   formIsAnonymous.value = poll.is_anonymous ?? true;
   formEndsAt.value = poll.ends_at ? toDatetimeLocal(poll.ends_at) : '';
   formOptions.value =
@@ -198,7 +206,7 @@ async function submitForm() {
       const payload: UpdateGuildPollPayload = {
         title: formTitle.value.trim(),
         description: formDescription.value.trim() || null,
-        is_anonymous: formIsAnonymous.value,
+        is_anonymous: formAnonymousLocked.value ? true : formIsAnonymous.value,
         ends_at: fromDatetimeLocal(formEndsAt.value),
         options: opts,
       };
@@ -638,13 +646,29 @@ useGuildPollsSocket({
                   id="poll-anonymous"
                   v-model="formIsAnonymous"
                   type="checkbox"
-                  class="h-4 w-4 rounded border-input"
+                  class="h-4 w-4 rounded border-input disabled:cursor-not-allowed disabled:opacity-70"
+                  :disabled="isAnonymousCheckboxDisabled"
+                  :aria-describedby="isAnonymousCheckboxDisabled ? 'poll-anonymous-locked-hint' : undefined"
                 />
-                <Label for="poll-anonymous" class="cursor-pointer font-normal">
+                <Label
+                  for="poll-anonymous"
+                  :class="
+                    isAnonymousCheckboxDisabled
+                      ? 'cursor-default font-normal text-muted-foreground'
+                      : 'cursor-pointer font-normal'
+                  "
+                >
                   Анонимное голосование
                 </Label>
               </div>
-              <p class="text-xs text-muted-foreground -mt-2">
+              <p
+                v-if="isAnonymousCheckboxDisabled"
+                id="poll-anonymous-locked-hint"
+                class="text-xs text-muted-foreground -mt-2"
+              >
+                Голосование создано анонимным — отключить эту опцию при редактировании нельзя.
+              </p>
+              <p v-else class="text-xs text-muted-foreground -mt-2">
                 Если отключено, участники смогут видеть, кто за что проголосовал.
               </p>
               <div class="space-y-2">

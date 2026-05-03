@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Poll;
 
+use Domains\Guild\Models\Guild;
+use Domains\Poll\Models\Poll;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdatePollRequest extends FormRequest
 {
@@ -27,6 +29,38 @@ class UpdatePollRequest extends FormRequest
         ];
     }
 
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if (! $this->has('is_anonymous')) {
+                return;
+            }
+
+            $guild = $this->route('guild');
+            $pollId = $this->route('poll');
+
+            if (! $guild instanceof Guild || ! is_numeric($pollId)) {
+                return;
+            }
+
+            $poll = Poll::query()
+                ->where('guild_id', $guild->getKey())
+                ->whereKey((int) $pollId)
+                ->first(['id', 'is_anonymous']);
+
+            if ($poll === null || ! $poll->is_anonymous) {
+                return;
+            }
+
+            if (! $this->boolean('is_anonymous')) {
+                $validator->errors()->add(
+                    'is_anonymous',
+                    'Нельзя отключить анонимность: голосование создано как анонимное.'
+                );
+            }
+        });
+    }
+
     /**
      * @return array<string, string>
      */
@@ -40,6 +74,7 @@ class UpdatePollRequest extends FormRequest
             'options.max' => 'Максимум 20 вариантов ответа.',
             'options.*.required' => 'Вариант ответа не может быть пустым.',
             'ends_at.after' => 'Дата окончания должна быть в будущем.',
+            'is_anonymous.boolean' => 'Укажите корректное значение для режима анонимности.',
         ];
     }
 }
