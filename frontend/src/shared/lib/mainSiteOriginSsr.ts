@@ -22,3 +22,18 @@ export function computeMainSiteOriginForSsr(opts: { host?: string; protocol?: st
   }
   return DEFAULT_PRODUCTION_ORIGIN;
 }
+
+/** Общий расчёт origin «основного» сайта для клиентских компонентов. */
+export function getMainSiteOrigin(mainSiteOriginFromSsr?: string): string {
+  const fromEnv = import.meta.env.VITE_SITE_URL as string | undefined;
+  if (fromEnv && /^https?:\/\//i.test(fromEnv.trim())) {
+    return fromEnv.trim().replace(/\/$/, '');
+  }
+  if (typeof window === 'undefined') {
+    if (mainSiteOriginFromSsr) return mainSiteOriginFromSsr;
+    return DEFAULT_PRODUCTION_ORIGIN;
+  }
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${baseHostStripGameSubdomain(hostname)}`;
+}
+

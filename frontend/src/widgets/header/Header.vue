@@ -28,8 +28,7 @@ import { useGuildPollsSocket } from '@/shared/lib/useGuildPollsSocket';
 import NotificationsDrawer from '@/widgets/header/NotificationsDrawer.vue';
 import PollsDrawer from '@/widgets/header/PollsDrawer.vue';
 import TodaysEventsDrawer from '@/widgets/header/TodaysEventsDrawer.vue';
-import { DEFAULT_PRODUCTION_ORIGIN } from '@/seo/homePageSeo';
-import { mainSiteOriginSsrKey } from '@/shared/lib/mainSiteOriginSsr';
+import { getMainSiteOrigin, mainSiteOriginSsrKey } from '@/shared/lib/mainSiteOriginSsr';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -297,25 +296,7 @@ const navItems = [
   { to: '/games', label: 'Игры' },
 ];
 
-function baseHostStripGameSubdomain(hostname: string): string {
-  const parts = hostname.split('.');
-  return parts.length >= 3 ? parts.slice(1).join('.') : hostname;
-}
-
-function getMainSiteOrigin(): string {
-  const fromEnv = import.meta.env.VITE_SITE_URL as string | undefined;
-  if (fromEnv && /^https?:\/\//i.test(fromEnv.trim())) {
-    return fromEnv.trim().replace(/\/$/, '');
-  }
-  if (typeof window === 'undefined') {
-    if (mainSiteOriginFromSsr) return mainSiteOriginFromSsr;
-    return DEFAULT_PRODUCTION_ORIGIN;
-  }
-  const { protocol, hostname } = window.location;
-  return `${protocol}//${baseHostStripGameSubdomain(hostname)}`;
-}
-
-const mainSiteHref = computed(() => `${getMainSiteOrigin()}/`);
+const mainSiteHref = computed(() => `${getMainSiteOrigin(mainSiteOriginFromSsr)}/`);
 
 /** Активный пункт верхнего меню: главная только по точному пути, остальные — раздел и вложенные URL. */
 function isNavActive(itemTo: string): boolean {
