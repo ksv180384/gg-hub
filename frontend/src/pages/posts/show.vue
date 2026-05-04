@@ -5,6 +5,7 @@ import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import PostComments from './PostComments.vue';
+import GgHubJournalBanner from '@/widgets/journal-promo/GgHubJournalBanner.vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
@@ -139,9 +140,9 @@ onMounted(loadPost);
 </script>
 
 <template>
-  <div class="container py-6 md:py-8 pl-0">
-    <div class="mx-auto max-w-3xl relative">
-      <div class="space-y-4 min-w-0">
+  <div class="container py-6 md:py-8">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0 space-y-4">
         <p v-if="loading" class="text-sm text-muted-foreground">
           Загрузка…
         </p>
@@ -152,69 +153,69 @@ onMounted(loadPost);
           Запись не найдена.
         </p>
         <template v-else>
-          <div class="flex items-start">
-            <div class="px-1 shrink-0">
-              <!-- Desktop: текущая кнопка слева (не трогаем поведение на широкой версии) -->
-              <div class="hidden md:block fixed top-[100px] -ml-10 z-30">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="h-9 w-9 p-0"
-                  aria-label="Назад"
-                  title="Назад"
-                  @click="router.back()"
+          <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+            <!-- Desktop: стрелка слева от поста -->
+            <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-9 w-9 p-0"
+                aria-label="Назад"
+                title="Назад"
+                @click="router.back()"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                </Button>
-              </div>
-
-              <!-- Mobile: отдельная кнопка справа, видна при скролле -->
-              <div class="md:hidden fixed top-[100px] right-8 z-30">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="h-9 w-9 p-0 bg-background shadow-md border border-border"
-                  aria-label="Назад"
-                  title="Назад"
-                  @click="router.back()"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                </Button>
-              </div>
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </Button>
             </div>
 
-            <div>
+            <!-- Mobile: одна плавающая кнопка справа -->
+            <div class="fixed top-[100px] right-8 z-30 md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-9 w-9 border border-border bg-background p-0 shadow-md"
+                aria-label="Назад"
+                title="Назад"
+                @click="router.back()"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </Button>
+            </div>
+
+            <div class="min-w-0 w-full flex-1">
               <PostCardFull
                 :post="post"
                 date-type="global"
                 :comments-count="commentsCount ?? post.comments_count"
               />
+
+              <GgHubJournalBanner variant="mobile" class="mt-8" />
 
               <PostComments
                 v-if="post"
@@ -228,6 +229,8 @@ onMounted(loadPost);
           </div>
         </template>
       </div>
+
+      <GgHubJournalBanner v-if="post" variant="desktop" />
     </div>
   </div>
 </template>

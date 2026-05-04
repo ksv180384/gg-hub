@@ -2,11 +2,11 @@
 import PostCardPreview from '@/shared/ui/post/PostCardPreview.vue';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { Skeleton } from '@/shared/ui';
-import { ref, computed, watch, inject } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
-import { getMainSiteOrigin, mainSiteOriginSsrKey } from '@/shared/lib/mainSiteOriginSsr';
+import GgHubJournalBanner from '@/widgets/journal-promo/GgHubJournalBanner.vue';
 
 const router = useRouter();
 const siteContext = useSiteContextStore();
@@ -16,8 +16,6 @@ const posts = ref<Post[]>([]);
 const loading = ref(true);
 
 const siteOrigin = getSiteOrigin();
-const mainSiteOriginFromSsr = inject(mainSiteOriginSsrKey, undefined as string | undefined);
-const mainSiteHref = computed(() => `${getMainSiteOrigin(mainSiteOriginFromSsr)}/`);
 
 let cleanupSeo: (() => void) | null = null;
 
@@ -140,53 +138,13 @@ function onTitleClick(post: Post) {
                 @comments-click="onCommentsClick(post)"
                 @view-recorded="onViewRecorded(post.id)"
               />
-              <!-- Мобильный баннер сразу после первого поста; на lg баннер живёт в правой колонке -->
-              <aside
-                v-if="index === 0"
-                class="flex justify-center lg:hidden"
-                aria-label="Баннер GG-HUB"
-              >
-                <a
-                  :href="mainSiteHref"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-block"
-                >
-                  <img
-                    src="/images/journal-gg-hub-banner.png"
-                    alt="GG-HUB — управлять гильдией в MMORPG просто"
-                    width="512"
-                    height="512"
-                    class="mx-auto w-full max-w-[min(100%,20rem)] rounded-lg border border-border/60 shadow-md"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </a>
-              </aside>
+              <GgHubJournalBanner v-if="index === 0" variant="mobile" />
             </template>
           </div>
         </template>
       </div>
 
-      <!--
-        Правая колонка (lg+): grid растягивает её до высоты колонки постов,
-        внутри sticky-блок «прилипает» к viewport под шапкой и центрирует баннер.
-      -->
-      <aside v-if="game?.id" class="hidden lg:block" aria-label="Баннер GG-HUB">
-        <div class="sticky top-20 flex h-[calc(100dvh-5rem)] items-center justify-center">
-          <a :href="mainSiteHref" target="_blank" rel="noopener noreferrer" class="inline-block">
-            <img
-              src="/images/journal-gg-hub-banner.png"
-              alt="GG-HUB — управлять гильдией в MMORPG просто"
-              width="512"
-              height="512"
-              class="mx-auto w-full max-w-[min(100%,20rem)] rounded-lg border border-border/60 shadow-md"
-              loading="lazy"
-              decoding="async"
-            />
-          </a>
-        </div>
-      </aside>
+      <GgHubJournalBanner v-if="game?.id" variant="desktop" />
     </div>
   </div>
 </template>
