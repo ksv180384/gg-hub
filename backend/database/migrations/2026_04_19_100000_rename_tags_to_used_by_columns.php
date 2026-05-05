@@ -8,13 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasColumn('tags', 'created_by_user_id')) {
+        if (Schema::hasColumn('tags', 'created_by_user_id') && ! Schema::hasColumn('tags', 'used_by_user_id')) {
             Schema::table('tags', function (Blueprint $table) {
                 $table->renameColumn('created_by_user_id', 'used_by_user_id');
             });
         }
 
-        if (Schema::hasColumn('tags', 'created_by_guild_id')) {
+        if (Schema::hasColumn('tags', 'created_by_guild_id') && ! Schema::hasColumn('tags', 'used_by_guild_id')) {
             Schema::table('tags', function (Blueprint $table) {
                 $table->renameColumn('created_by_guild_id', 'used_by_guild_id');
             });
