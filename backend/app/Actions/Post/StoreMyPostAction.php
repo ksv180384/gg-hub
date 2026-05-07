@@ -4,6 +4,7 @@ namespace App\Actions\Post;
 
 use App\Actions\Notification\CreatePostPendingGuildModerationNotificationAction;
 use App\Actions\Notification\SendPostOrCommentNotificationAction;
+use App\Services\Notifications\GuildLinkBuilder;
 use App\Http\Requests\Post\StorePostRequest;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\ApplyPostModerationRulesAction;
@@ -26,6 +27,7 @@ class StoreMyPostAction
         private SyncPostBodyImagesAction $syncPostBodyImagesAction,
         private CreatePostPendingGuildModerationNotificationAction $createPostPendingGuildModerationNotificationAction,
         private SendPostOrCommentNotificationAction $sendPostOrCommentNotificationAction,
+        private GuildLinkBuilder $linkBuilder,
     ) {}
 
     public function __invoke(StorePostRequest $request): Post
@@ -69,7 +71,7 @@ class StoreMyPostAction
             if (($result['notify_guild_id'] ?? null) !== null) {
                 $guild = Guild::query()->find($result['notify_guild_id']);
                 if ($guild) {
-                    $link = '/guilds/' . $guild->id . '/posts/' . $post->id;
+                    $link = $this->linkBuilder->postPath($guild, (int) $post->id);
                     ($this->createPostPendingGuildModerationNotificationAction)($guild, $post, $link);
                 }
             }

@@ -98,45 +98,31 @@ class SendPostOrCommentNotificationAction
 
     private function buildPostUrl(Post $post): string
     {
-        $base = $this->baseUrlWithGameSubdomain($post);
         if ($post->guild_id) {
-            return $base . '/guilds/' . $post->guild_id . '/posts/' . $post->id;
+            $post->loadMissing(['guild.game']);
+            /** @var Guild|null $guild */
+            $guild = $post->guild;
+            if ($guild) {
+                return $this->linkBuilder->postUrl($guild, (int) $post->id);
+            }
         }
 
+        $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
         return $base . '/user/posts/' . $post->id;
     }
 
     private function buildCommentUrl(Post $post, PostComment $comment): string
     {
-        $base = $this->baseUrlWithGameSubdomain($post);
-        if ($post->guild_id) {
-            return $base . '/guilds/' . $post->guild_id . '/posts/' . $post->id . '#comment-' . $comment->id;
-        }
-
-        return $base . '/posts/' . $post->id . '#comment-' . $comment->id;
-    }
-
-    /**
-     * Базовый URL фронтенда с учётом субдомена игры (например tl.gg-hub.local).
-     */
-    private function baseUrlWithGameSubdomain(Post $post): string
-    {
-        $raw = rtrim(config('app.frontend_url', config('app.url')), '/');
-        $parsed = parse_url($raw);
-        $scheme = ($parsed['scheme'] ?? 'http') . '://';
-        $host = $parsed['host'] ?? 'localhost';
-        $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
-
-        $gameSlug = null;
         if ($post->guild_id) {
             $post->loadMissing(['guild.game']);
-            $gameSlug = $post->guild?->game?->slug;
+            /** @var Guild|null $guild */
+            $guild = $post->guild;
+            if ($guild) {
+                return $this->linkBuilder->postUrl($guild, (int) $post->id) . '#comment-' . $comment->id;
+            }
         }
 
-        if ($gameSlug) {
-            $host = $gameSlug . '.' . $host;
-        }
-
-        return $scheme . $host . $port;
+        $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+        return $base . '/posts/' . $post->id . '#comment-' . $comment->id;
     }
 }

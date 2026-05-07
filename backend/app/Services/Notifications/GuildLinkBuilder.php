@@ -11,10 +11,15 @@ use Illuminate\Support\Carbon;
  */
 class GuildLinkBuilder
 {
+    public function guildPath(Guild $guild): string
+    {
+        return '/guilds/' . $guild->id;
+    }
+
     public function guildUrl(Guild $guild): string
     {
         $guild->loadMissing('game');
-        return $this->baseUrlForGame($guild->game?->slug ?? null) . '/guilds/' . $guild->id;
+        return $this->baseUrlForGame($guild->game?->slug ?? null) . $this->guildPath($guild);
     }
 
     public function rosterUrl(Guild $guild): string
@@ -39,7 +44,12 @@ class GuildLinkBuilder
 
     public function postUrl(Guild $guild, int $postId): string
     {
-        return $this->guildUrl($guild) . '/posts/' . $postId;
+        return $this->guildUrl($guild) . $this->postPath($guild, $postId);
+    }
+
+    public function postPath(Guild $guild, int $postId): string
+    {
+        return $this->guildPath($guild) . '/posts/' . $postId;
     }
 
     public function eventUrl(Guild $guild, int $eventId): string
