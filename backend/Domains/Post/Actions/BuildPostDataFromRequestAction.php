@@ -5,7 +5,6 @@ namespace Domains\Post\Actions;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Enums\PostVisibilityType;
 use Illuminate\Http\Request;
-use Stevebauman\Purify\Facades\Purify;
 
 class BuildPostDataFromRequestAction
 {
@@ -53,7 +52,6 @@ class BuildPostDataFromRequestAction
 
         $body = $request->input('body') ?? '';
         $body = app(FixPostBodyHtmlAction::class)($body);
-        $body = Purify::config('guild_rich_text')->clean($body);
         $preview = app(BuildPostPreviewAction::class)($body);
 
         return [

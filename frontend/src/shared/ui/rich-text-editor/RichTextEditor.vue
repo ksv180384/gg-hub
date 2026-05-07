@@ -50,6 +50,8 @@ const linkUrl = ref('');
 const imageUrl = ref('');
 const currentFontSize = ref('default');
 
+const imageFileInputEl = ref<HTMLInputElement | null>(null);
+
 const linkDialogOpen = ref(false);
 const imageDialogOpen = ref(false);
 const videoDialogOpen = ref(false);
@@ -67,6 +69,76 @@ const fontSizeOptions = [
   { value: '20px', label: '20px' },
   { value: '24px', label: '24px' },
 ];
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Не удалось прочитать файл изображения'));
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Не удалось загрузить изображение'));
+    img.src = src;
+  });
+}
+
+async function imageFileToEmbeddedDataUrl(file: File): Promise<string> {
+  const dataUrl = await fileToDataUrl(file);
+  const img = await loadImage(dataUrl);
+
+  const max = 1280;
+  const scale = Math.min(1, max / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+  const w = Math.max(1, Math.round((img.naturalWidth || 1) * scale));
+  const h = Math.max(1, Math.round((img.naturalHeight || 1) * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return dataUrl;
+  }
+  ctx.drawImage(img, 0, 0, w, h);
+
+  // Сильно уменьшает размер по сравнению с исходным PNG/base64.
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+async function insertImageFiles(files: File[]) {
+  if (!editor.value || props.disabled) return;
+  const images = files.filter((f) => f.type.startsWith('image/'));
+  if (images.length === 0) return;
+
+  for (const file of images) {
+    try {
+      const dataUrl = await imageFileToEmbeddedDataUrl(file);
+      if (!dataUrl.startsWith('data:image/')) continue;
+      editor.value.chain().focus().setImage({ src: dataUrl }).run();
+    } catch {
+      // игнорируем конкретный файл
+    }
+  }
+}
+
+function openImageFilePicker() {
+  if (props.disabled) return;
+  imageFileInputEl.value?.click();
+}
+
+async function onImageFilesSelected(e: Event) {
+  const input = e.target as HTMLInputElement | null;
+  const fileList = input?.files;
+  if (!fileList) return;
+  await insertImageFiles(Array.from(fileList));
+  // чтобы повторно выбрать тот же файл
+  if (input) input.value = '';
+}
 
 const editor = useEditor({
   content: props.modelValue || '',
@@ -87,6 +159,28 @@ const editor = useEditor({
     attributes: {
       class:
         'min-h-[280px] w-full px-3 py-2 text-sm outline-none prose prose-sm max-w-none dark:prose-invert [&_p]:my-2 first:[&_p]:mt-0 last:[&_p]:mb-0 [&_img]:max-w-full [&_img[data-wrap="left"]]:float-left [&_img[data-wrap="left"]]:mr-4 [&_img[data-wrap="left"]]:mb-2 [&_img[data-wrap="right"]]:float-right [&_img[data-wrap="right"]]:ml-4 [&_img[data-wrap="right"]]:mb-2 [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600/40 [&_a]:underline-offset-2 hover:[&_a]:text-blue-700 dark:[&_a]:text-blue-400 dark:hover:[&_a]:text-blue-300 dark:[&_a]:decoration-blue-400/50 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_ol]:space-y-1 [&_li]:my-0.5 [&_.video-embed-wrapper]:my-4 [&_.video-embed-wrapper_iframe]:rounded-lg [&_.video-embed-wrapper_iframe]:max-w-full',
+    },
+    handlePaste: (_view, event) => {
+      if (props.disabled) return false;
+      const e = event as ClipboardEvent;
+      const dt = e.clipboardData;
+      const files = dt ? Array.from(dt.files ?? []) : [];
+      const hasImages = files.some((f) => f.type.startsWith('image/'));
+      if (!hasImages) return false;
+      e.preventDefault();
+      void insertImageFiles(files);
+      return true;
+    },
+    handleDrop: (_view, event) => {
+      if (props.disabled) return false;
+      const e = event as DragEvent;
+      const dt = e.dataTransfer;
+      const files = dt ? Array.from(dt.files ?? []) : [];
+      const hasImages = files.some((f) => f.type.startsWith('image/'));
+      if (!hasImages) return false;
+      e.preventDefault();
+      void insertImageFiles(files);
+      return true;
     },
   },
   onUpdate: ({ editor }) => {
@@ -518,6 +612,34 @@ onBeforeUnmount(() => {
           </svg>
         </Button>
       </Tooltip>
+      <Tooltip content="Вставить изображение с компьютера" side="bottom">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          class="h-7 w-7 p-0"
+          :disabled="disabled"
+          @click="openImageFilePicker"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 5 17 10" />
+            <line x1="12" y1="5" x2="12" y2="20" />
+          </svg>
+        </Button>
+      </Tooltip>
       <Tooltip content="Вставить видео (YouTube, VK)" side="bottom">
         <Button
           type="button"
@@ -679,6 +801,15 @@ onBeforeUnmount(() => {
     </div>
     </TooltipProvider>
     <EditorContent :editor="editor" />
+
+    <input
+      ref="imageFileInputEl"
+      class="hidden"
+      type="file"
+      accept="image/*"
+      multiple
+      @change="onImageFilesSelected"
+    >
 
     <!-- Диалог добавления ссылки -->
     <DialogRoot v-model:open="linkDialogOpen">
