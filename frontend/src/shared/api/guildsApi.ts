@@ -276,6 +276,8 @@ export interface GuildRole {
 /** Участник состава гильдии (персонаж с ролью, классами, тегами). */
 export interface GuildRosterMember {
   character_id: number;
+  /** Владелец персонажа: используется для группировки и подсветки в рулетке. */
+  user_id: number | null;
   name: string;
   avatar_url: string | null;
   game_classes: {

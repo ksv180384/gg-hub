@@ -10,7 +10,13 @@ const MIN_SPIN_DURATION_MS = 2000;
 const MAX_SPIN_DURATION_MS = 60000;
 const MAX_ENTRIES = 400;
 
-/** @type {Map<string, { entries: unknown[], spinLockedUntil: number }>} */
+/**
+ * @typedef {Object} GuildAuctionState
+ * @property {unknown[]} entries
+ * @property {number} spinLockedUntil
+ * @property {boolean} enrollmentOpen — открыт ли набор «Участвовать» для рядовых членов гильдии
+ */
+/** @type {Map<string, GuildAuctionState>} */
 const guildAuctionState = new Map();
 
 function auctionRoom(guildId) {
@@ -20,7 +26,7 @@ function auctionRoom(guildId) {
 function getOrCreateGuildState(guildId) {
     const key = String(guildId);
     if (!guildAuctionState.has(key)) {
-        guildAuctionState.set(key, { entries: [], spinLockedUntil: 0 });
+        guildAuctionState.set(key, { entries: [], spinLockedUntil: 0, enrollmentOpen: false });
     }
     return guildAuctionState.get(key);
 }
@@ -98,7 +104,10 @@ export function registerAuctionSocketHandlers(io, log = console) {
             const room = auctionRoom(guildId);
             socket.join(room);
             const st = getOrCreateGuildState(guildId);
-            socket.emit('auction:state', { entries: st.entries });
+            socket.emit('auction:state', {
+                entries: st.entries,
+                enrollmentOpen: !!st.enrollmentOpen,
+            });
         });
 
         socket.on('auction:leave', payload => {
@@ -115,6 +124,67 @@ export function registerAuctionSocketHandlers(io, log = console) {
             io.to(auctionRoom(guildId)).emit('auction:entries', { entries: st.entries });
         });
 
+        /**
+         * Добавление одной записи (используется рядовым участником гильдии при «Участвовать»).
+         * Доступно только когда `enrollmentOpen = true`, и только если такой записи ещё нет.
+         */
+        socket.on('auction:entries:add', payload => {
+            const guildId = Number(payload?.guildId);
+            if (!Number.isFinite(guildId) || guildId <= 0) return;
+            const st = getOrCreateGuildState(guildId);
+            if (!st.enrollmentOpen) return;
+            const [candidate] = sanitizeEntries([payload?.entry]);
+            if (!candidate) return;
+            if (st.entries.length >= MAX_ENTRIES) return;
+            const exists = st.entries.some(e => {
+                if (e.kind !== candidate.kind) return false;
+                if (candidate.kind === 'guild') {
+                    return e.character_id === candidate.character_id;
+                }
+                return e.id === candidate.id;
+            });
+            if (exists) return;
+            st.entries = [...st.entries, candidate];
+            io.to(auctionRoom(guildId)).emit('auction:entries', { entries: st.entries });
+        });
+
+        /**
+         * Удаление одной записи (рядовой участник убирает только свою — клиентское ограничение).
+         * Доступно только когда `enrollmentOpen = true`.
+         */
+        socket.on('auction:entries:remove', payload => {
+            const guildId = Number(payload?.guildId);
+            if (!Number.isFinite(guildId) || guildId <= 0) return;
+            const st = getOrCreateGuildState(guildId);
+            if (!st.enrollmentOpen) return;
+            const [target] = sanitizeEntries([payload?.entry]);
+            if (!target) return;
+            const before = st.entries.length;
+            st.entries = st.entries.filter(e => {
+                if (e.kind !== target.kind) return true;
+                if (target.kind === 'guild') {
+                    return e.character_id !== target.character_id;
+                }
+                return e.id !== target.id;
+            });
+            if (st.entries.length === before) return;
+            io.to(auctionRoom(guildId)).emit('auction:entries', { entries: st.entries });
+        });
+
+        /**
+         * Открыть/закрыть набор участников. Доступ проверяется на клиенте по праву
+         * `upravlenie-ruletkoi`; сокет-сервер без auth — этот хендлер просто синхронизирует.
+         */
+        socket.on('auction:enrollment:set', payload => {
+            const guildId = Number(payload?.guildId);
+            if (!Number.isFinite(guildId) || guildId <= 0) return;
+            const st = getOrCreateGuildState(guildId);
+            const open = !!payload?.open;
+            if (st.enrollmentOpen === open) return;
+            st.enrollmentOpen = open;
+            io.to(auctionRoom(guildId)).emit('auction:enrollment', { open: st.enrollmentOpen });
+        });
+
         socket.on('auction:spin-request', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
@@ -128,6 +198,13 @@ export function registerAuctionSocketHandlers(io, log = console) {
             const durationMs = clampSpinDurationMs(payload?.durationMs);
             const spinPayload = buildSpinPayload(n, durationMs);
             st.spinLockedUntil = now + spinPayload.duration + 400;
+
+            // Запуск розыгрыша автоматически закрывает набор участников.
+            if (st.enrollmentOpen) {
+                st.enrollmentOpen = false;
+                io.to(auctionRoom(guildId)).emit('auction:enrollment', { open: false });
+            }
+
             io.to(auctionRoom(guildId)).emit('auction:spin', spinPayload);
         });
 

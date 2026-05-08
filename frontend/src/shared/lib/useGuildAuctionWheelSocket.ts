@@ -64,6 +64,8 @@ export function useGuildAuctionWheelSocket(options: {
   const hasServerState = ref(false);
   const applyingRemoteEntries = ref(false);
   const connectError = ref<string | null>(null);
+  /** Открыт ли набор участников (синхронизируется со всеми в комнате). */
+  const enrollmentOpen = ref(false);
 
   const rawEnv = (import.meta.env.VITE_SOCKET_URL as string | undefined)?.trim() ?? '';
   const syncOff = rawEnv === 'off' || rawEnv === 'false';
@@ -84,6 +86,10 @@ export function useGuildAuctionWheelSocket(options: {
       applyingRemoteEntries.value = false;
       hasServerState.value = true;
     });
+  }
+
+  function applyRemoteEnrollment(open: unknown) {
+    enrollmentOpen.value = !!open;
   }
 
   async function loadIo() {
@@ -123,15 +129,26 @@ export function useGuildAuctionWheelSocket(options: {
         hasServerState.value = false;
       });
 
-      s.on('auction:state', (msg: { entries?: unknown }) => {
-        applyRemoteEntries(msg?.entries);
-      });
+      s.on(
+        'auction:state',
+        (msg: { entries?: unknown; enrollmentOpen?: unknown }) => {
+          applyRemoteEntries(msg?.entries);
+          applyRemoteEnrollment(msg?.enrollmentOpen);
+        }
+      );
 
       s.on('auction:entries', (msg: { entries?: unknown }) => {
         applyRemoteEntries(msg?.entries);
       });
 
+      s.on('auction:enrollment', (msg: { open?: unknown }) => {
+        applyRemoteEnrollment(msg?.open);
+      });
+
       s.on('auction:spin', (payload: SpinWheelServerParams) => {
+        // Сервер автоматически закрывает набор при запуске; продублируем локально
+        // на случай рассогласования порядка событий.
+        enrollmentOpen.value = false;
         options.spinWheelRef.value?.spinFromServer(payload);
       });
     });
@@ -180,6 +197,42 @@ export function useGuildAuctionWheelSocket(options: {
     s.emit('auction:spin-request', { guildId: gid, durationMs: d });
   }
 
+  /**
+   * Открыть/закрыть набор участников. Доступно только пользователям с правом
+   * `upravlenie-ruletkoi` (флаг проверяется здесь же, чтобы не плодить ошибки на сервере).
+   */
+  function setEnrollmentOpen(open: boolean) {
+    if (!options.canManageAuctionWheel.value) return;
+    const s = socketRef.value;
+    if (!s?.connected || !hasServerState.value) return;
+    const gid = options.guildId.value;
+    if (gid <= 0) return;
+    s.emit('auction:enrollment:set', { guildId: gid, open: !!open });
+  }
+
+  /**
+   * Добавить одну запись через сервер (для рядовых членов гильдии: одиночные операции
+   * вместо отправки всего массива записей). Сервер примет только при открытом наборе.
+   */
+  function addEntryViaServer(entry: GuildAuctionWheelEntry): boolean {
+    const s = socketRef.value;
+    if (!s?.connected || !hasServerState.value) return false;
+    const gid = options.guildId.value;
+    if (gid <= 0) return false;
+    s.emit('auction:entries:add', { guildId: gid, entry });
+    return true;
+  }
+
+  /** Удалить одну запись через сервер (рядовой участник убирает свою же). */
+  function removeEntryViaServer(entry: GuildAuctionWheelEntry): boolean {
+    const s = socketRef.value;
+    if (!s?.connected || !hasServerState.value) return false;
+    const gid = options.guildId.value;
+    if (gid <= 0) return false;
+    s.emit('auction:entries:remove', { guildId: gid, entry });
+    return true;
+  }
+
   return {
     socketConfigured: configured,
     socketConnected: connected,
@@ -188,5 +241,9 @@ export function useGuildAuctionWheelSocket(options: {
     socketUsesExplicitUrl: explicitUrl.length > 0,
     remoteSpin,
     requestSpin,
+    enrollmentOpen,
+    setEnrollmentOpen,
+    addEntryViaServer,
+    removeEntryViaServer,
   };
 }

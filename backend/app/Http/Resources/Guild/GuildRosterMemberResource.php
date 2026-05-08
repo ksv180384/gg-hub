@@ -20,6 +20,7 @@ class GuildRosterMemberResource extends JsonResource
 
         return [
             'character_id' => $character?->id,
+            'user_id' => $character?->user_id,
             'name' => $character?->name,
             'avatar_url' => $character?->resolved_avatar_url,
             'game_classes' => $character ? GameClassResource::collection($character->gameClasses) : [],
