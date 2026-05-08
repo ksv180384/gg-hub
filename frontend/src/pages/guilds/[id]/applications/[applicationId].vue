@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Spinner, BackIconButton } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Spinner, BackIconButton, LightboxImage } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import NotFoundPage from '@/pages/not-found/index.vue';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
 import { CharacterClassBadge } from '@/entities/character';
-import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -21,7 +20,6 @@ const guildApplicationDetailNotFound = ref(false);
 const actionLoading = ref<'approve' | 'reject' | 'revoke' | null>(null);
 const voteLoading = ref<false | 'like' | 'dislike'>(false);
 const canReview = ref(false);
-const fullSizeImageUrl = ref<string | null>(null);
 
 /** Считаем значение ссылкой на изображение, если это строка, начинающаяся с http(s):// (для скриншотов и картинок). */
 function isImageUrl(val: unknown): boolean {
@@ -30,17 +28,6 @@ function isImageUrl(val: unknown): boolean {
   return s.length > 0 && /^https?:\/\//i.test(s);
 }
 
-function openFullSize(url: string) {
-  fullSizeImageUrl.value = url;
-}
-
-function closeFullSize() {
-  fullSizeImageUrl.value = null;
-}
-
-function onEscape(e: KeyboardEvent) {
-  if (e.key === 'Escape') closeFullSize();
-}
 
 const characterName = computed(() => application.value?.character?.name ?? '—');
 const characterGameClasses = computed(() => application.value?.character?.game_classes ?? []);
@@ -112,11 +99,6 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-  document.addEventListener('keydown', onEscape);
-});
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', onEscape);
 });
 
 async function approve() {
@@ -249,12 +231,13 @@ async function setVote(vote: 'like' | 'dislike') {
                 <dt class="text-sm font-medium text-muted-foreground sm:w-48 shrink-0">{{ getFieldLabel(fieldId) }}</dt>
                 <dd class="text-sm break-words">
                   <template v-if="value && isImageUrl(value)">
-                    <img
-                      :src="value"
+                    <LightboxImage
+                      :src="String(value)"
                       :alt="getFieldLabel(fieldId)"
-                      class="max-w-[320px] w-full cursor-pointer rounded border object-cover hover:opacity-90 transition-opacity"
-                      @click="openFullSize(value)"
-                    >
+                      :title="getFieldLabel(fieldId)"
+                      button-class="max-w-[320px] w-full rounded border overflow-hidden"
+                      img-class="w-full object-cover hover:opacity-90 transition-opacity"
+                    />
                   </template>
                   <template v-else>{{ formatFormFieldValue(value) }}</template>
                 </dd>
@@ -374,59 +357,7 @@ async function setVote(vote: 'like' | 'dislike') {
       </Card>
     </template>
 
-    <!-- Lightbox только на клиенте — Teleport + Transition при SSR дают hydration mismatch -->
-    <ClientOnly>
-      <Teleport to="body">
-        <Transition name="lightbox">
-          <div
-            v-if="fullSizeImageUrl"
-            class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
-            aria-modal="true"
-            role="dialog"
-            aria-label="Просмотр изображения"
-            @click.self="closeFullSize"
-          >
-            <button
-              type="button"
-              class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
-              aria-label="Закрыть"
-              @click="closeFullSize"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-            <img
-              :src="fullSizeImageUrl"
-              alt="Изображение в полном размере"
-              class="max-h-[90vh] max-w-full select-none object-contain"
-              @click.stop
-            >
-          </div>
-        </Transition>
-      </Teleport>
-    </ClientOnly>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.lightbox-enter-active,
-.lightbox-leave-active {
-  transition: opacity 0.2s ease;
-}
-.lightbox-enter-from,
-.lightbox-leave-to {
-  opacity: 0;
-}
-.lightbox-enter-active img,
-.lightbox-leave-active img {
-  transition: transform 0.2s ease;
-}
-.lightbox-enter-from img,
-.lightbox-leave-to img {
-  transform: scale(0.95);
-}
-</style>

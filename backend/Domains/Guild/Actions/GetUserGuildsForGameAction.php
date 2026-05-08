@@ -4,6 +4,7 @@ namespace Domains\Guild\Actions;
 
 use App\Models\User;
 use Domains\Character\Models\Character;
+use Domains\Guild\Enums\GuildApplicationStatus;
 use Domains\Guild\Models\Guild;
 use Illuminate\Support\Collection;
 
@@ -26,7 +27,15 @@ class GetUserGuildsForGameAction
      * Гильдии текущей игры, в которых состоит пользователь (хотя бы один его персонаж в гильдии).
      * Для каждой гильдии: is_leader, can_access_roles (доступ к странице «Роли членов гильдии»).
      *
-     * @return Collection<int, array{id: int, name: string, is_leader: bool, can_access_roles: bool, can_invite: bool, show_roster_to_all: bool}>
+     * @return Collection<int, array{
+     *   id: int,
+     *   name: string,
+     *   is_leader: bool,
+     *   can_access_roles: bool,
+     *   can_invite: bool,
+     *   show_roster_to_all: bool,
+     *   pending_applications_count: int
+     * }>
      */
     public function __invoke(User $user, int $gameId): Collection
     {
@@ -45,6 +54,9 @@ class GetUserGuildsForGameAction
                 $q->whereIn('character_id', $userCharacterIds);
             })
             ->with('leader')
+            ->withCount([
+                'applications as pending_applications_count' => fn ($q) => $q->where('status', GuildApplicationStatus::Pending->value),
+            ])
             ->orderBy('name')
             ->get();
 
@@ -61,6 +73,7 @@ class GetUserGuildsForGameAction
                 'can_access_roles' => $canAccessRoles,
                 'can_invite' => $canInvite,
                 'show_roster_to_all' => (bool) $guild->show_roster_to_all,
+                'pending_applications_count' => (int) ($guild->pending_applications_count ?? 0),
             ];
         });
     }

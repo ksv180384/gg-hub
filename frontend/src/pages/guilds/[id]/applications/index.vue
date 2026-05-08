@@ -134,117 +134,121 @@ watch([nameFilter], () => {
 
 <template>
   <NotFoundPage v-if="applicationsGuildNotFound" />
-  <div v-else class="container py-6 max-w-2xl mx-auto">
-    <div class="text-xl font-semibold pb-4">Заявки и приглашения</div>
+  <div v-else class="container py-6">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0 space-y-4">
+        <div class="text-xl font-semibold pb-4">Заявки и приглашения</div>
 
-    <div>
-      <div v-if="loading && !hasLoadedOnce" class="flex justify-center py-12">
-        <Spinner class="h-8 w-8" />
-      </div>
-
-      <template v-else-if="noAccess">
-        <p class="text-muted-foreground mb-4">
-          У вас недостаточно прав для просмотра заявок в гильдию.
-        </p>
-      </template>
-
-      <template v-else-if="error">
-        <p class="text-destructive">{{ error }}</p>
-        <Button variant="outline" class="mt-4" @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })">
-          К гильдии
-        </Button>
-      </template>
-
-      <template v-else>
-        <ResponsiveFiltersToolbar
-          v-model:name="nameFilter"
-          class="mb-6"
-          name-label="Имя персонажа"
-          name-placeholder="Поиск по имени..."
-          :extra-filters-active="applicationsExtraFiltersActive"
-          extra-filters-title="Статус"
-          popover-trigger-title="Статус"
-          popover-trigger-aria-label="Открыть фильтр: статус"
-          reset-button-title="Сбросить фильтр"
-          reset-button-aria-label="Сбросить фильтр"
-          name-mobile-input-id="guild-app-filter-name-mobile"
-          name-desktop-input-id="guild-app-filter-name-desktop"
-          @reset="resetApplicationsFilters"
-        >
-          <template #extra-filters>
-            <div class="grid gap-1.5">
-              <Label for="guild-app-filter-status-mobile">Статус</Label>
-              <Select
-                id="guild-app-filter-status-mobile"
-                v-model="statusFilter"
-                :options="statusSelectOptions"
-                placeholder="Все статусы"
-                trigger-class="min-h-8 w-full"
-              />
-            </div>
-          </template>
-          <template #desktop-filters>
-            <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
-              <Label for="guild-app-filter-status-desktop">Статус</Label>
-              <Select
-                id="guild-app-filter-status-desktop"
-                v-model="statusFilter"
-                :options="statusSelectOptions"
-                placeholder="Все статусы"
-                trigger-class="min-h-8 w-full"
-              />
-            </div>
-          </template>
-        </ResponsiveFiltersToolbar>
-
-        <div class="relative min-h-[120px]">
-          <div
-            v-if="filtersLoading"
-            class="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-muted/70 px-2 py-0.5"
-            aria-busy="true"
-            aria-live="polite"
-          >
-            <Spinner class="h-3 w-3 shrink-0 text-muted-foreground" />
-            <span class="text-xs text-muted-foreground">Загрузка…</span>
+        <div>
+          <div v-if="loading && !hasLoadedOnce" class="flex justify-center py-12">
+            <Spinner class="h-8 w-8" />
           </div>
 
-          <p v-if="!filtersLoading && applications.length === 0" class="text-muted-foreground">
-            {{ hasActiveFilters ? 'Ничего не найдено по заданным фильтрам.' : 'Заявок пока нет.' }}
-          </p>
-          <ul v-else-if="applications.length > 0" class="space-y-2">
-          <li
-            v-for="app in applications"
-            :key="app.id"
-            role="button"
-            tabindex="0"
-            class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            @click="goToApplication(app.id)"
-            @keydown.enter.prevent="goToApplication(app.id)"
-            @keydown.space.prevent="goToApplication(app.id)"
-          >
-            <div class="min-w-0">
-              <p class="font-medium">{{ app.character?.name ?? '—' }}</p>
-              <p class="text-sm">
-                <span
-                  :class="
-                    app.status === 'pending'
-                      ? 'font-medium text-green-600 dark:text-green-400'
-                      : 'text-muted-foreground'
-                  "
-                >
-                  {{ statusLabel(app.status) }}
-                </span>
-                <template v-if="app.created_at">
-                  <span class="text-muted-foreground">
-                    · {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
-                  </span>
-                </template>
+          <template v-else-if="noAccess">
+            <p class="text-muted-foreground mb-4">
+              У вас недостаточно прав для просмотра заявок в гильдию.
+            </p>
+          </template>
+
+          <template v-else-if="error">
+            <p class="text-destructive">{{ error }}</p>
+            <Button variant="outline" class="mt-4" @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })">
+              К гильдии
+            </Button>
+          </template>
+
+          <template v-else>
+            <ResponsiveFiltersToolbar
+              v-model:name="nameFilter"
+              class="mb-6"
+              name-label="Имя персонажа"
+              name-placeholder="Поиск по имени..."
+              :extra-filters-active="applicationsExtraFiltersActive"
+              extra-filters-title="Статус"
+              popover-trigger-title="Статус"
+              popover-trigger-aria-label="Открыть фильтр: статус"
+              reset-button-title="Сбросить фильтр"
+              reset-button-aria-label="Сбросить фильтр"
+              name-mobile-input-id="guild-app-filter-name-mobile"
+              name-desktop-input-id="guild-app-filter-name-desktop"
+              @reset="resetApplicationsFilters"
+            >
+              <template #extra-filters>
+                <div class="grid gap-1.5">
+                  <Label for="guild-app-filter-status-mobile">Статус</Label>
+                  <Select
+                    id="guild-app-filter-status-mobile"
+                    v-model="statusFilter"
+                    :options="statusSelectOptions"
+                    placeholder="Все статусы"
+                    trigger-class="min-h-8 w-full"
+                  />
+                </div>
+              </template>
+              <template #desktop-filters>
+                <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
+                  <Label for="guild-app-filter-status-desktop">Статус</Label>
+                  <Select
+                    id="guild-app-filter-status-desktop"
+                    v-model="statusFilter"
+                    :options="statusSelectOptions"
+                    placeholder="Все статусы"
+                    trigger-class="min-h-8 w-full"
+                  />
+                </div>
+              </template>
+            </ResponsiveFiltersToolbar>
+
+            <div class="relative min-h-[120px]">
+              <div
+                v-if="filtersLoading"
+                class="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-muted/70 px-2 py-0.5"
+                aria-busy="true"
+                aria-live="polite"
+              >
+                <Spinner class="h-3 w-3 shrink-0 text-muted-foreground" />
+                <span class="text-xs text-muted-foreground">Загрузка…</span>
+              </div>
+
+              <p v-if="!filtersLoading && applications.length === 0" class="text-muted-foreground">
+                {{ hasActiveFilters ? 'Ничего не найдено по заданным фильтрам.' : 'Заявок пока нет.' }}
               </p>
+              <ul v-else-if="applications.length > 0" class="space-y-2">
+              <li
+                v-for="app in applications"
+                :key="app.id"
+                role="button"
+                tabindex="0"
+                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                @click="goToApplication(app.id)"
+                @keydown.enter.prevent="goToApplication(app.id)"
+                @keydown.space.prevent="goToApplication(app.id)"
+              >
+                <div class="min-w-0">
+                  <p class="font-medium">{{ app.character?.name ?? '—' }}</p>
+                  <p class="text-sm">
+                    <span
+                      :class="
+                        app.status === 'pending'
+                          ? 'font-medium text-green-600 dark:text-green-400'
+                          : 'text-muted-foreground'
+                      "
+                    >
+                      {{ statusLabel(app.status) }}
+                    </span>
+                    <template v-if="app.created_at">
+                      <span class="text-muted-foreground">
+                        · {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
+                      </span>
+                    </template>
+                  </p>
+                </div>
+              </li>
+            </ul>
             </div>
-          </li>
-        </ul>
+          </template>
         </div>
-      </template>
+      </div>
     </div>
 
   </div>

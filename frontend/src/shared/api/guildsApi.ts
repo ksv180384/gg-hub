@@ -48,6 +48,8 @@ export interface UserGuildItem {
   can_access_roles?: boolean;
   /** Право приглашать в гильдию (подтверждение/отклонение заявок). */
   can_invite?: boolean;
+  /** Количество заявок в статусе «на рассмотрении» (pending) по гильдии. */
+  pending_applications_count?: number;
   /** Включён показ состава неучастникам (авторизованным), если открыт в настройках гильдии. */
   show_roster_to_all?: boolean;
 }

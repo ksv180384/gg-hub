@@ -343,7 +343,15 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
                   :class="guildSubLinkClass(guild.id, item)"
                   @click="onMobileNavigate"
                 >
-                  {{ item.label }}
+                  <span class="relative block min-w-0 pr-6">
+                    <span class="block truncate">{{ item.label }}</span>
+                    <span
+                      v-if="item.pathSuffix === '/applications' && guild.can_invite && (guild.pending_applications_count ?? 0) > 0"
+                      class="absolute -top-1 right-0 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive/20 px-1 text-[10px] font-medium leading-none text-destructive"
+                    >
+                      {{ guild.pending_applications_count }}
+                    </span>
+                  </span>
                 </RouterLink>
               </div>
             </Transition>

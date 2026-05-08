@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardHeader, CardTitle, CardContent, Button, BackIconButton } from '@/shared/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, BackIconButton, LightboxImage } from '@/shared/ui';
 import {
   eventHistoryApi,
   type EventHistoryItem,
@@ -18,10 +18,6 @@ const eventHistoryId = computed(() =>
 const loading = ref(false);
 const error = ref('');
 const item = ref<EventHistoryItem | null>(null);
-
-const lightboxOpen = ref(false);
-const lightboxUrl = ref<string | null>(null);
-const lightboxTitle = ref<string | null>(null);
 
 const exportParticipantsLoading = ref(false);
 const exportParticipantsError = ref('');
@@ -59,18 +55,6 @@ function goBack() {
   router.push({ name: 'guild-events', params: { id: guildId.value } });
 }
 
-function openScreenshot(url: string, title: string | null) {
-  lightboxUrl.value = url;
-  lightboxTitle.value = title;
-  lightboxOpen.value = true;
-}
-
-function closeLightbox() {
-  lightboxOpen.value = false;
-  lightboxUrl.value = null;
-  lightboxTitle.value = null;
-}
-
 async function exportParticipantsXlsx() {
   const current = item.value;
   const list = current?.participants;
@@ -97,7 +81,7 @@ onMounted(loadEvent);
 </script>
 
 <template>
-  <div class="container py-6">
+  <div class="container py-6 overflow-x-hidden">
     <!-- Mobile: одна плавающая кнопка справа -->
     <div class="fixed top-[100px] right-8 z-30 md:hidden">
       <BackIconButton
@@ -128,8 +112,8 @@ onMounted(loadEvent);
           {{ item?.title || 'Событие' }}
         </CardTitle>
       </CardHeader>
-      <CardContent class="space-y-3 lg:flex lg:items-start lg:gap-6">
-        <div class="flex-1 space-y-3">
+      <CardContent class="min-w-0 space-y-3 lg:flex lg:items-start lg:gap-6">
+        <div class="min-w-0 flex-1 space-y-3">
           <p v-if="loading" class="text-sm text-muted-foreground">
             Загрузка...
           </p>
@@ -195,7 +179,7 @@ onMounted(loadEvent);
             Событие не найдено.
           </p>
         </div>
-        <div class="w-full lg:w-80 shrink-0 space-y-2 text-sm">
+        <div class="min-w-0 w-full lg:w-80 shrink-0 space-y-2 text-sm">
           <div class="font-medium">
             Скриншоты:
           </div>
@@ -212,23 +196,15 @@ onMounted(loadEvent);
             v-else-if="item && (item.screenshots?.length ?? 0) > 0"
             class="flex flex-wrap gap-3"
           >
-            <button
+            <LightboxImage
               v-for="s in item.screenshots"
               :key="s.id"
-              type="button"
-              class="rounded border p-1 hover:bg-accent"
-              @click="openScreenshot(s.url, s.title)"
-            >
-              <img
-                :src="s.url"
-                :alt="s.title || 'Скриншот'"
-                width="96"
-                height="96"
-                loading="lazy"
-                decoding="async"
-                class="h-24 w-24 rounded object-cover"
-              >
-            </button>
+              :src="s.url"
+              :alt="s.title || 'Скриншот'"
+              :title="s.title || 'Скриншот'"
+              button-class="rounded border p-1 hover:bg-accent transition-colors"
+              img-class="h-24 w-24 rounded object-cover"
+            />
           </div>
 
           <p v-else class="text-sm text-muted-foreground">
@@ -238,23 +214,6 @@ onMounted(loadEvent);
       </CardContent>
     </Card>
       </div>
-    </div>
-  </div>
-
-  <div
-    v-if="lightboxOpen && lightboxUrl"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-    @click.self="closeLightbox"
-  >
-    <div class="max-h-[90vh] max-w-[90vw] space-y-2 text-center">
-      <img
-        :src="lightboxUrl"
-        :alt="lightboxTitle || 'Скриншот'"
-        class="max-h-[80vh] max-w-[90vw] rounded object-contain mx-auto"
-      >
-      <Button size="sm" variant="outline" @click="closeLightbox">
-        Закрыть
-      </Button>
     </div>
   </div>
 </template>

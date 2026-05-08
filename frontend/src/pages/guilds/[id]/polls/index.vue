@@ -595,6 +595,7 @@ useGuildPollsSocket({
       </div>
     </div>
 
+    </div>
 
     <!-- Модальное окно создания/редактирования -->
     <DialogRoot v-model:open="modalOpen">

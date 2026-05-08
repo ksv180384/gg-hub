@@ -32,6 +32,11 @@ withDefaults(
     nameDesktopInputId?: string;
     cardClass?: string;
     cardContentClass?: string;
+    desktopRowClass?: string;
+    /** Показывать кнопку «ещё фильтры» на десктопе (как на мобильной) */
+    desktopExtraFiltersTrigger?: boolean;
+    /** Кол-во задействованных полей фильтра (для бейджа на кнопке). */
+    activeFiltersCount?: number;
   }>(),
   {
     extraFiltersActive: false,
@@ -46,10 +51,14 @@ withDefaults(
     nameDesktopInputId: 'responsive-filter-name-desktop',
     cardClass: '',
     cardContentClass: 'p-4',
+    desktopRowClass: '',
+    desktopExtraFiltersTrigger: false,
+    activeFiltersCount: 0,
   },
 );
 
-const moreFiltersOpen = ref(false);
+const moreFiltersOpenMobile = ref(false);
+const moreFiltersOpenDesktop = ref(false);
 </script>
 
 <template>
@@ -68,7 +77,7 @@ const moreFiltersOpen = ref(false);
               class="h-8"
             />
           </div>
-          <PopoverRoot v-model:open="moreFiltersOpen">
+          <PopoverRoot v-model:open="moreFiltersOpenMobile">
             <PopoverTrigger as-child>
               <Button
                 type="button"
@@ -80,6 +89,13 @@ const moreFiltersOpen = ref(false);
                 :title="popoverTriggerTitle"
                 :aria-label="popoverTriggerAriaLabel"
               >
+                <span
+                  v-if="activeFiltersCount && activeFiltersCount > 0"
+                  class="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground"
+                  aria-hidden="true"
+                >
+                  {{ activeFiltersCount }}
+                </span>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -156,7 +172,7 @@ const moreFiltersOpen = ref(false);
 
         <!-- Десктоп: имя + слот + кнопки -->
         <div
-          class="hidden w-full min-w-0 flex-wrap items-end gap-x-2 gap-y-3 md:flex"
+          :class="cn('hidden w-full min-w-0 flex-wrap items-end gap-x-2 gap-y-3 md:flex', desktopRowClass)"
         >
           <div class="grid w-[7.5rem] shrink-0 gap-1.5 sm:w-36">
             <Label :for="nameDesktopInputId">{{ nameLabel }}</Label>
@@ -170,6 +186,72 @@ const moreFiltersOpen = ref(false);
           </div>
           <slot name="desktop-filters" />
           <div class="flex shrink-0 gap-2">
+            <PopoverRoot v-if="desktopExtraFiltersTrigger" v-model:open="moreFiltersOpenDesktop">
+              <PopoverTrigger as-child>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  :class="cn(
+                    'relative h-8 w-8 shrink-0 cursor-pointer px-0',
+                    extraFiltersActive && 'ring-1 ring-primary/60',
+                  )"
+                  :title="popoverTriggerTitle"
+                  :aria-label="popoverTriggerAriaLabel"
+                >
+                  <span
+                    v-if="activeFiltersCount && activeFiltersCount > 0"
+                    class="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground"
+                    aria-hidden="true"
+                  >
+                    {{ activeFiltersCount }}
+                  </span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="4" x2="4" y1="21" y2="14" />
+                    <line x1="4" x2="4" y1="10" y2="3" />
+                    <line x1="12" x2="12" y1="21" y2="12" />
+                    <line x1="12" x2="12" y1="8" y2="3" />
+                    <line x1="20" x2="20" y1="21" y2="16" />
+                    <line x1="20" x2="20" y1="12" y2="3" />
+                    <line x1="2" x2="6" y1="14" y2="14" />
+                    <line x1="10" x2="14" y1="8" y2="8" />
+                    <line x1="18" x2="22" y1="16" y2="16" />
+                  </svg>
+                </Button>
+              </PopoverTrigger>
+              <ClientOnly>
+                <PopoverPortal>
+                  <PopoverContent
+                    side="bottom"
+                    align="end"
+                    :side-offset="8"
+                    :class="cn(
+                      'z-50 w-[min(calc(100vw-2rem),22rem)] max-h-[min(85vh,32rem)] overflow-y-auto rounded-md border bg-popover p-3 text-popover-foreground shadow-md',
+                      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+                      'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+                      'data-[side=bottom]:slide-in-from-top-2',
+                    )"
+                  >
+                    <p class="mb-3 text-sm font-medium">{{ extraFiltersTitle }}</p>
+                    <div class="flex flex-col gap-3">
+                      <slot name="desktop-extra-filters">
+                        <slot name="extra-filters" />
+                      </slot>
+                    </div>
+                  </PopoverContent>
+                </PopoverPortal>
+              </ClientOnly>
+            </PopoverRoot>
             <Button
               type="button"
               variant="secondary"

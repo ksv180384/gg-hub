@@ -234,9 +234,27 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container py-6 md:py-8">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0 space-y-4">
+  <div class="container py-6 md:py-8 overflow-x-hidden">
+    <!-- Mobile: одна плавающая кнопка справа -->
+    <div class="fixed top-[100px] right-8 z-30 md:hidden">
+      <BackIconButton
+        aria-label="Назад"
+        title="Назад"
+        @click="router.back()"
+      />
+    </div>
+
+    <div class="relative flex flex-col md:flex-row md:gap-3">
+      <!-- Desktop: стрелка слева от контента -->
+      <div class="sticky top-[100px] z-30 hidden h-9 shrink-0 self-start md:block">
+        <BackIconButton
+          aria-label="Назад"
+          title="Назад"
+          @click="router.back()"
+        />
+      </div>
+
+      <div class="min-w-0 w-full flex-1 space-y-4">
         <p v-if="loading" class="text-sm text-muted-foreground">
           Загрузка…
         </p>
@@ -247,89 +265,69 @@ onMounted(() => {
           Запись не найдена.
         </p>
         <template v-else>
-          <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
-            <!-- Desktop: стрелка слева от поста -->
-            <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
-              <BackIconButton
-                aria-label="Назад"
-                title="Назад"
-                @click="router.back()"
-              />
-            </div>
+          <div class="max-w-2xl">
+            <PostCardFull
+              :post="post"
+              date-type="guild"
+              :comments-count="commentsCount ?? post.comments_count"
+            />
 
-            <!-- Mobile: одна плавающая кнопка справа -->
-            <div class="fixed top-[100px] right-8 z-30 md:hidden">
-              <BackIconButton
-                aria-label="Назад"
-                title="Назад"
-                @click="router.back()"
-              />
-            </div>
-
-            <div class="min-w-0 w-full flex-1">
-              <PostCardFull
-                :post="post"
-                date-type="guild"
-                :comments-count="commentsCount ?? post.comments_count"
-              />
-
-              <div
-                v-if="(canModeratePosts && isPendingInGuild) || canBlock || canUnblock"
-                class="flex flex-wrap items-center justify-end gap-3 pt-2"
-              >
-                <span v-if="canModeratePosts && isPendingInGuild" class="text-xs text-muted-foreground">
-                  Статус: ожидает публикации
-                </span>
-                <span v-else-if="canUnblock" class="text-xs text-muted-foreground">
-                  Заблокировано для гильдии
-                </span>
-                <template v-if="canModeratePosts && isPendingInGuild">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :disabled="submitting"
-                    @click="reject"
-                  >
-                    {{ submitting ? 'Обработка…' : 'Отклонить' }}
-                  </Button>
-                  <Button
-                    size="sm"
-                    :disabled="submitting"
-                    @click="publish"
-                  >
-                    {{ submitting ? 'Обработка…' : 'Опубликовать' }}
-                  </Button>
-                </template>
+            <div
+              v-if="(canModeratePosts && isPendingInGuild) || canBlock || canUnblock"
+              class="flex flex-wrap items-center justify-end gap-3 pt-2"
+            >
+              <span v-if="canModeratePosts && isPendingInGuild" class="text-xs text-muted-foreground">
+                Статус: ожидает публикации
+              </span>
+              <span v-else-if="canUnblock" class="text-xs text-muted-foreground">
+                Заблокировано для гильдии
+              </span>
+              <template v-if="canModeratePosts && isPendingInGuild">
                 <Button
-                  v-if="canUnblock"
                   variant="outline"
                   size="sm"
                   :disabled="submitting"
-                  @click="unblock"
+                  @click="reject"
                 >
-                  {{ submitting ? 'Обработка…' : 'Разблокировать' }}
+                  {{ submitting ? 'Обработка…' : 'Отклонить' }}
                 </Button>
                 <Button
-                  v-if="canBlock"
-                  variant="destructive"
                   size="sm"
                   :disabled="submitting"
-                  @click="block"
+                  @click="publish"
                 >
-                  {{ submitting ? 'Обработка…' : 'Заблокировать' }}
+                  {{ submitting ? 'Обработка…' : 'Опубликовать' }}
                 </Button>
-              </div>
-
-              <PostComments
-                v-if="post"
-                class="mt-8"
-                :guild-id="guildId"
-                :post-id="post.id"
-                :can-comment="canComment"
-                :my-characters="guild?.my_characters ?? []"
-                @update:comments-count="commentsCount = $event"
-              />
+              </template>
+              <Button
+                v-if="canUnblock"
+                variant="outline"
+                size="sm"
+                :disabled="submitting"
+                @click="unblock"
+              >
+                {{ submitting ? 'Обработка…' : 'Разблокировать' }}
+              </Button>
+              <Button
+                v-if="canBlock"
+                variant="destructive"
+                size="sm"
+                :disabled="submitting"
+                @click="block"
+              >
+                {{ submitting ? 'Обработка…' : 'Заблокировать' }}
+              </Button>
             </div>
+
+            <PostComments
+              v-if="post"
+              class="mt-8"
+              :guild-id="guildId"
+              :post-id="post.id"
+              :can-comment="canComment"
+              :my-characters="guild?.my_characters ?? []"
+              @update:comments-count="commentsCount = $event"
+            />
           </div>
         </template>
       </div>

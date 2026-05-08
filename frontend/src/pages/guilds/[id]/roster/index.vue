@@ -39,6 +39,16 @@ const filterGuildRole = ref<string>('');
 const filterGameClassIds = ref<(string | number)[]>([]);
 const filterTagIds = ref<(string | number)[]>([]);
 
+const GUILD_ROLE_FILTER_ALL = '__all__';
+const filterGuildRoleUi = computed<string>({
+  get() {
+    return filterGuildRole.value || GUILD_ROLE_FILTER_ALL;
+  },
+  set(v) {
+    filterGuildRole.value = v === GUILD_ROLE_FILTER_ALL ? '' : v;
+  },
+});
+
 /** Справочник классов игры (GET /games/:id/game-classes). */
 const gameClassesCatalog = ref<GameClassCatalogItem[]>([]);
 /** Лимит выбора классов в фильтре = «Классов у персонажа» в настройках игры. */
@@ -54,13 +64,23 @@ const rosterExtraFiltersActive = computed(
     filterTagIds.value.length > 0,
 );
 
+const rosterActiveFiltersCount = computed(() => {
+  let n = 0;
+  if (filterName.value.trim().length > 0) n += 1;
+  if (filterGuildRole.value.trim().length > 0) n += 1;
+  if (filterGameClassIds.value.length > 0) n += 1;
+  if (filterTagIds.value.length > 0) n += 1;
+  return n;
+});
+
 const guildRoleOptions = computed<SelectOption[]>(() => {
   const fromMeta = guildRosterRoles.value;
   if (fromMeta.length > 0) {
-    return [...fromMeta]
+    const opts = [...fromMeta]
       .filter((r) => r.slug)
       .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
       .map((r) => ({ value: r.slug, label: r.name }));
+    return [{ value: GUILD_ROLE_FILTER_ALL, label: 'Все роли' }, ...opts];
   }
   const roles = new Map<string, string>();
   roster.value.forEach((m) => {
@@ -68,9 +88,10 @@ const guildRoleOptions = computed<SelectOption[]>(() => {
     if (!r?.slug) return;
     if (!roles.has(r.slug)) roles.set(r.slug, r.name);
   });
-  return Array.from(roles.entries())
+  const opts = Array.from(roles.entries())
     .sort((a, b) => a[1].localeCompare(b[1], 'ru'))
     .map(([slug, name]) => ({ value: slug, label: name }));
+  return [{ value: GUILD_ROLE_FILTER_ALL, label: 'Все роли' }, ...opts];
 });
 
 watch(guildRoleOptions, (opts) => {
@@ -381,7 +402,8 @@ watch(guildId, async () => {
 <template>
   <NotFoundPage v-if="rosterForbiddenRedirect" />
   <div v-else class="container py-4 md:py-8">
-    <div class="mx-auto max-w-4xl">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0">
       <div v-if="guildError" class="mb-6 rounded-md bg-destructive/10 p-4 text-destructive">
         {{ guildError }}
       </div>
@@ -434,7 +456,9 @@ watch(guildId, async () => {
             <ResponsiveFiltersToolbar
               v-model:name="filterName"
               class="mb-5"
+              desktop-extra-filters-trigger
               :extra-filters-active="rosterExtraFiltersActive"
+              :active-filters-count="rosterActiveFiltersCount"
               name-placeholder="Например: Alex"
               popover-trigger-title="Роль, классы, теги"
               popover-trigger-aria-label="Открыть фильтры: роль, классы, теги"
@@ -446,7 +470,7 @@ watch(guildId, async () => {
                 <div class="grid gap-1.5">
                   <Label>Роль в гильдии</Label>
                   <Select
-                    v-model="filterGuildRole"
+                    v-model="filterGuildRoleUi"
                     :options="guildRoleOptions"
                     placeholder="Все роли"
                     trigger-class="min-h-8 w-full"
@@ -481,7 +505,7 @@ watch(guildId, async () => {
                 <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
                   <Label>Роль в гильдии</Label>
                   <Select
-                    v-model="filterGuildRole"
+                    v-model="filterGuildRoleUi"
                     :options="guildRoleOptions"
                     placeholder="Все роли"
                     trigger-class="min-h-8 w-full"
@@ -500,7 +524,9 @@ watch(guildId, async () => {
                     display-mode="badges"
                   />
                 </div>
-                <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
+              </template>
+              <template #desktop-extra-filters>
+                <div class="grid gap-1.5">
                   <Label>Теги</Label>
                   <MultiSelect
                     v-model="filterTagIds"
@@ -645,6 +671,7 @@ watch(guildId, async () => {
           </template>
         </template>
       </template>
+    </div>
     </div>
   </div>
 </template>
