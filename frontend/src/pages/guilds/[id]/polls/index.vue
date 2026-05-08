@@ -431,7 +431,8 @@ useGuildPollsSocket({
 
 <template>
   <NotFoundPage v-if="guildPollsAccessNotFound" />
-  <div v-else class="container py-4 md:py-6 max-w-2xl mx-auto">
+  <div v-else class="container py-4 md:py-6">
+    <div class="max-w-2xl md:mx-0 mx-auto">
 
     <div class="flex pb-4 justify-between items-center">
       <div class="text-xl font-semibold pb-4">Голосования</div>

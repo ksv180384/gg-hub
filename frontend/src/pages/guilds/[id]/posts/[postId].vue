@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button, Separator } from '@/shared/ui';
+import { Button, BackIconButton } from '@/shared/ui';
 import PostCardFull from '@/shared/ui/post/PostCardFull.vue';
 import PostComments from './PostComments.vue';
 import type { ApiError } from '@/shared/api/errors';
@@ -235,62 +235,8 @@ onMounted(() => {
 
 <template>
   <div class="container py-6 md:py-8">
-    <div class="mx-auto max-w-3xl relative">
-      <!-- Desktop: кнопка слева -->
-      <div class="hidden md:block fixed top-[100px] -ml-10 z-30">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="h-9 w-9 p-0"
-          aria-label="Назад"
-          title="Назад"
-          @click="router.back()"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </Button>
-      </div>
-
-      <!-- Mobile: кнопка справа -->
-      <div class="md:hidden fixed top-[100px] right-8 z-30">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="h-9 w-9 p-0 bg-background shadow-md border border-border"
-          aria-label="Назад"
-          title="Назад"
-          @click="router.back()"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </Button>
-      </div>
-
-      <div class="space-y-4 min-w-0">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0 space-y-4">
         <p v-if="loading" class="text-sm text-muted-foreground">
           Загрузка…
         </p>
@@ -301,68 +247,90 @@ onMounted(() => {
           Запись не найдена.
         </p>
         <template v-else>
-          <PostCardFull
-            :post="post"
-            date-type="guild"
-            :comments-count="commentsCount ?? post.comments_count"
-          />
+          <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+            <!-- Desktop: стрелка слева от поста -->
+            <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+              <BackIconButton
+                aria-label="Назад"
+                title="Назад"
+                @click="router.back()"
+              />
+            </div>
 
-          <div
-            v-if="(canModeratePosts && isPendingInGuild) || canBlock || canUnblock"
-            class="flex flex-wrap items-center justify-end gap-3 pt-2"
-          >
-            <span v-if="canModeratePosts && isPendingInGuild" class="text-xs text-muted-foreground">
-              Статус: ожидает публикации
-            </span>
-            <span v-else-if="canUnblock" class="text-xs text-muted-foreground">
-              Заблокировано для гильдии
-            </span>
-            <template v-if="canModeratePosts && isPendingInGuild">
-              <Button
-                variant="outline"
-                size="sm"
-                :disabled="submitting"
-                @click="reject"
+            <!-- Mobile: одна плавающая кнопка справа -->
+            <div class="fixed top-[100px] right-8 z-30 md:hidden">
+              <BackIconButton
+                aria-label="Назад"
+                title="Назад"
+                @click="router.back()"
+              />
+            </div>
+
+            <div class="min-w-0 w-full flex-1">
+              <PostCardFull
+                :post="post"
+                date-type="guild"
+                :comments-count="commentsCount ?? post.comments_count"
+              />
+
+              <div
+                v-if="(canModeratePosts && isPendingInGuild) || canBlock || canUnblock"
+                class="flex flex-wrap items-center justify-end gap-3 pt-2"
               >
-                {{ submitting ? 'Обработка…' : 'Отклонить' }}
-              </Button>
-              <Button
-                size="sm"
-                :disabled="submitting"
-                @click="publish"
-              >
-                {{ submitting ? 'Обработка…' : 'Опубликовать' }}
-              </Button>
-            </template>
-            <Button
-              v-if="canUnblock"
-              variant="outline"
-              size="sm"
-              :disabled="submitting"
-              @click="unblock"
-            >
-              {{ submitting ? 'Обработка…' : 'Разблокировать' }}
-            </Button>
-            <Button
-              v-if="canBlock"
-              variant="destructive"
-              size="sm"
-              :disabled="submitting"
-              @click="block"
-            >
-              {{ submitting ? 'Обработка…' : 'Заблокировать' }}
-            </Button>
+                <span v-if="canModeratePosts && isPendingInGuild" class="text-xs text-muted-foreground">
+                  Статус: ожидает публикации
+                </span>
+                <span v-else-if="canUnblock" class="text-xs text-muted-foreground">
+                  Заблокировано для гильдии
+                </span>
+                <template v-if="canModeratePosts && isPendingInGuild">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    :disabled="submitting"
+                    @click="reject"
+                  >
+                    {{ submitting ? 'Обработка…' : 'Отклонить' }}
+                  </Button>
+                  <Button
+                    size="sm"
+                    :disabled="submitting"
+                    @click="publish"
+                  >
+                    {{ submitting ? 'Обработка…' : 'Опубликовать' }}
+                  </Button>
+                </template>
+                <Button
+                  v-if="canUnblock"
+                  variant="outline"
+                  size="sm"
+                  :disabled="submitting"
+                  @click="unblock"
+                >
+                  {{ submitting ? 'Обработка…' : 'Разблокировать' }}
+                </Button>
+                <Button
+                  v-if="canBlock"
+                  variant="destructive"
+                  size="sm"
+                  :disabled="submitting"
+                  @click="block"
+                >
+                  {{ submitting ? 'Обработка…' : 'Заблокировать' }}
+                </Button>
+              </div>
+
+              <PostComments
+                v-if="post"
+                class="mt-8"
+                :guild-id="guildId"
+                :post-id="post.id"
+                :can-comment="canComment"
+                :my-characters="guild?.my_characters ?? []"
+                @update:comments-count="commentsCount = $event"
+              />
+            </div>
           </div>
-
-          <PostComments
-            v-if="post"
-            class="mt-8"
-            :guild-id="guildId"
-            :post-id="post.id"
-            :can-comment="canComment"
-            :my-characters="guild?.my_characters ?? []"
-            @update:comments-count="commentsCount = $event"
-          />
         </template>
       </div>
     </div>

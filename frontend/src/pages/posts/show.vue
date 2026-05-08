@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button } from '@/shared/ui';
+import { BackIconButton } from '@/shared/ui';
 import PostCardFull from '@/shared/ui/post/PostCardFull.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';
@@ -156,56 +156,22 @@ onMounted(loadPost);
           <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
             <!-- Desktop: стрелка слева от поста -->
             <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
-              <Button
-                variant="ghost"
-                size="sm"
-                class="h-9 w-9 p-0"
+              <BackIconButton
                 aria-label="Назад"
                 title="Назад"
                 @click="router.back()"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-              </Button>
+              </BackIconButton>
             </div>
 
             <!-- Mobile: одна плавающая кнопка справа -->
             <div class="fixed top-[100px] right-8 z-30 md:hidden">
-              <Button
-                variant="ghost"
-                size="sm"
-                class="h-9 w-9 border border-border bg-background p-0 shadow-md"
+              <BackIconButton
                 aria-label="Назад"
                 title="Назад"
                 @click="router.back()"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-              </Button>
+              </BackIconButton>
             </div>
 
             <div class="min-w-0 w-full flex-1">

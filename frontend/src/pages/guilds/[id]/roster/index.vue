@@ -4,7 +4,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { Card, CardContent, Badge, Button, Label, Select, type SelectOption, MultiSelect, type MultiSelectOption } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import { ResponsiveFiltersToolbar } from '@/widgets/responsive-filters-toolbar';
-import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
+import { CharacterClassBadge } from '@/entities/character';
 import { guildsApi, type Guild, type GuildRosterMember, type GuildRosterRoleSummary } from '@/shared/api/guildsApi';
 import { gamesApi, type GameClass, type GameClassCatalogItem } from '@/shared/api/gamesApi';
 import {

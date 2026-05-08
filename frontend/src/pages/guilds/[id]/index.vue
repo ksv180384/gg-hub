@@ -140,113 +140,116 @@ function onViewRecorded(postId: number) {
 
 <template>
   <NotFoundPage v-if="guildJournalNotFound" />
-  <div v-else class="py-6 space-y-4 max-w-2xl mx-auto">
-    <div
-      v-if="canModeratePosts"
-      class="flex flex-wrap items-center gap-2 px-4"
-    >
-      <div class="min-w-0 flex-1">
-        {{ showPending ? 'Посты, ожидающие публикации' : showBlocked ? 'Заблокированные посты' : 'Журнал гильдии' }}
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        class="cursor-pointer shrink-0"
-        :class="
-          showPending
-            ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-            : ''
-        "
-        @click="togglePending"
-      >
-        Ожидают публикации
-        <span
-          class="ml-1 inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full bg-background px-1 text-xs font-medium text-foreground"
+  <div v-else class="container py-6">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0 space-y-4">
+        <div
+          v-if="canModeratePosts"
+          class="flex flex-wrap items-center gap-2"
         >
-          {{ loadingPending ? '…' : pendingCount }}
-        </span>
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        class="cursor-pointer shrink-0"
-        :class="
-          showBlocked
-            ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-            : ''
-        "
-        @click="toggleBlocked"
-      >
-        Заблокированные
-      </Button>
+          <div class="min-w-0 flex-1">
+            {{ showPending ? 'Посты, ожидающие публикации' : showBlocked ? 'Заблокированные посты' : 'Журнал гильдии' }}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            class="cursor-pointer shrink-0"
+            :class="
+              showPending
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                : ''
+            "
+            @click="togglePending"
+          >
+            Ожидают публикации
+            <span
+              class="ml-1 inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full bg-background px-1 text-xs font-medium text-foreground"
+            >
+              {{ loadingPending ? '…' : pendingCount }}
+            </span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            class="cursor-pointer shrink-0"
+            :class="
+              showBlocked
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                : ''
+            "
+            @click="toggleBlocked"
+          >
+            Заблокированные
+          </Button>
+        </div>
+
+        <template v-if="showPending">
+          <p v-if="loadingPending" class="text-sm text-muted-foreground">
+            Загрузка постов на модерации…
+          </p>
+          <p v-else-if="pendingPosts.length === 0" class="text-sm text-muted-foreground">
+            Нет постов, ожидающих публикации.
+          </p>
+          <div v-else class="space-y-4">
+            <PostCardPreview
+              v-for="post in pendingPosts"
+              :key="post.id"
+              :post="post"
+              :guild-id="guildId"
+              date-type="guild"
+              @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+              @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
+              @view-recorded="onViewRecorded(post.id)"
+            />
+          </div>
+        </template>
+        <template v-else-if="showBlocked">
+          <p v-if="loadingBlocked" class="text-sm text-muted-foreground">
+            Загрузка заблокированных постов…
+          </p>
+          <p v-else-if="blockedPostsError" class="text-sm text-destructive">
+            {{ blockedPostsError }}
+          </p>
+          <p v-else-if="blockedPosts.length === 0" class="text-sm text-muted-foreground">
+            Нет заблокированных постов в гильдии.
+          </p>
+          <div v-else class="space-y-4">
+            <PostCardPreview
+              v-for="post in blockedPosts"
+              :key="post.id"
+              :post="post"
+              :guild-id="guildId"
+              date-type="guild"
+              @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+              @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
+              @view-recorded="onViewRecorded(post.id)"
+            />
+          </div>
+        </template>
+        <template v-else>
+          <p v-if="loadingPublished" class="text-sm text-muted-foreground">Загрузка постов…</p>
+          <p v-else-if="publishedPostsError" class="text-sm text-destructive">
+            {{ publishedPostsError }}
+          </p>
+          <p v-else-if="publishedPosts.length === 0" class="text-sm text-muted-foreground">
+            В журнале гильдии пока нет постов.
+          </p>
+          <div v-else class="space-y-4">
+            <PostCardPreview
+              v-for="post in publishedPosts"
+              :key="post.id"
+              :post="post"
+              :guild-id="guildId"
+              date-type="guild"
+              @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
+              @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
+              @view-recorded="onViewRecorded(post.id)"
+            />
+          </div>
+        </template>
+      </div>
     </div>
-
-    <template v-if="showPending">
-      <p v-if="loadingPending" class="text-sm text-muted-foreground">
-        Загрузка постов на модерации…
-      </p>
-      <p v-else-if="pendingPosts.length === 0" class="text-sm text-muted-foreground">
-        Нет постов, ожидающих публикации.
-      </p>
-      <div v-else class="space-y-4">
-        <PostCardPreview
-          v-for="post in pendingPosts"
-          :key="post.id"
-          :post="post"
-          :guild-id="guildId"
-          date-type="guild"
-          @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
-          @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
-          @view-recorded="onViewRecorded(post.id)"
-        />
-      </div>
-    </template>
-    <template v-else-if="showBlocked">
-      <p v-if="loadingBlocked" class="text-sm text-muted-foreground">
-        Загрузка заблокированных постов…
-      </p>
-      <p v-else-if="blockedPostsError" class="text-sm text-destructive px-4">
-        {{ blockedPostsError }}
-      </p>
-      <p v-else-if="blockedPosts.length === 0" class="text-sm text-muted-foreground">
-        Нет заблокированных постов в гильдии.
-      </p>
-      <div v-else class="space-y-4">
-        <PostCardPreview
-          v-for="post in blockedPosts"
-          :key="post.id"
-          :post="post"
-          :guild-id="guildId"
-          date-type="guild"
-          @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
-          @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
-          @view-recorded="onViewRecorded(post.id)"
-        />
-      </div>
-    </template>
-    <template v-else>
-      <p v-if="loadingPublished" class="text-sm text-muted-foreground">Загрузка постов…</p>
-      <p v-else-if="publishedPostsError" class="text-sm text-destructive px-4">
-        {{ publishedPostsError }}
-      </p>
-      <p v-else-if="publishedPosts.length === 0" class="text-sm text-muted-foreground">
-        В журнале гильдии пока нет постов.
-      </p>
-      <div v-else class="space-y-4">
-        <PostCardPreview
-          v-for="post in publishedPosts"
-          :key="post.id"
-          :post="post"
-          :guild-id="guildId"
-          date-type="guild"
-          @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
-          @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
-          @view-recorded="onViewRecorded(post.id)"
-        />
-      </div>
-    </template>
-
   </div>
 </template>

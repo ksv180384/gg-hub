@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Spinner, BackIconButton } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import NotFoundPage from '@/pages/not-found/index.vue';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
-import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
+import { CharacterClassBadge } from '@/entities/character';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
 
 const route = useRoute();
@@ -177,8 +177,28 @@ async function setVote(vote: 'like' | 'dislike') {
 <template>
   <NotFoundPage v-if="guildApplicationDetailNotFound" />
   <div v-else class="container py-6">
+    <!-- Mobile: одна плавающая кнопка справа -->
+    <div class="fixed top-[100px] right-8 z-30 md:hidden">
+      <BackIconButton
+        aria-label="К списку заявок"
+        title="К списку заявок"
+        @click="router.push({ name: 'guild-applications', params: { id: String(guildId) } })"
+      />
+    </div>
+
+    <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+      <!-- Desktop: стрелка слева от контента -->
+      <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+        <BackIconButton
+          aria-label="К списку заявок"
+          title="К списку заявок"
+          @click="router.push({ name: 'guild-applications', params: { id: String(guildId) } })"
+        />
+      </div>
+
+      <div class="min-w-0 w-full flex-1">
     <template v-if="loading">
-      <Card class="max-w-2xl mx-auto">
+      <Card class="max-w-2xl md:mx-0 mx-auto">
         <CardContent class="flex items-center justify-center py-12">
           <Spinner class="h-8 w-8" />
         </CardContent>
@@ -186,32 +206,10 @@ async function setVote(vote: 'like' | 'dislike') {
     </template>
 
     <template v-else-if="application">
-      <Card class="max-w-2xl mx-auto">
+      <Card class="max-w-2xl md:mx-0 mx-auto">
         <CardHeader class="flex flex-row items-start justify-between gap-4 flex-wrap">
           <div class="min-w-0">
             <div class="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                class="shrink-0"
-                aria-label="К списку заявок"
-                @click="router.push({ name: 'guild-applications', params: { id: String(guildId) } })"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-              </Button>
               <CardTitle class="text-xl min-w-0 truncate">
                 {{ isInvitation ? 'Приглашение: ' : 'Заявка: ' }}{{ characterName }}
               </CardTitle>
@@ -362,7 +360,7 @@ async function setVote(vote: 'like' | 'dislike') {
     </template>
 
     <template v-else>
-      <Card class="max-w-2xl mx-auto">
+      <Card class="max-w-2xl md:mx-0 mx-auto">
         <CardContent class="py-8 text-center">
           <p class="text-muted-foreground">{{ error ?? 'Заявка не найдена.' }}</p>
           <Button
@@ -409,6 +407,8 @@ async function setVote(vote: 'like' | 'dislike') {
         </Transition>
       </Teleport>
     </ClientOnly>
+      </div>
+    </div>
   </div>
 </template>
 

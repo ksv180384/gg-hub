@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardHeader, CardTitle, CardContent, Button } from '@/shared/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, BackIconButton } from '@/shared/ui';
 import {
   eventHistoryApi,
   type EventHistoryItem,
@@ -97,38 +97,32 @@ onMounted(loadEvent);
 </script>
 
 <template>
-  <div class="container py-6 space-y-4">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-2 min-w-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="h-9 w-9 p-0 shrink-0"
-          aria-label="Назад к списку"
+  <div class="container py-6">
+    <!-- Mobile: одна плавающая кнопка справа -->
+    <div class="fixed top-[100px] right-8 z-30 md:hidden">
+      <BackIconButton
+        aria-label="К списку событий"
+        title="К списку событий"
+        @click="goBack"
+      />
+    </div>
+
+    <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+      <!-- Desktop: стрелка слева от контента -->
+      <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+        <BackIconButton
+          aria-label="К списку событий"
+          title="К списку событий"
           @click="goBack"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </Button>
+        />
+      </div>
+
+      <div class="min-w-0 w-full flex-1 space-y-4">
         <h1 class="text-xl font-semibold truncate">
           Событие гильдии
         </h1>
-      </div>
-    </div>
 
-    <Card>
+        <Card class="max-w-2xl md:mx-0 mx-auto">
       <CardHeader>
         <CardTitle class="text-base">
           {{ item?.title || 'Событие' }}
@@ -243,6 +237,8 @@ onMounted(loadEvent);
         </div>
       </CardContent>
     </Card>
+      </div>
+    </div>
   </div>
 
   <div

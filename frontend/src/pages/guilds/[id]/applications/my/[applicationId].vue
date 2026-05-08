@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
-import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
+import { CharacterClassBadge } from '@/entities/character';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 

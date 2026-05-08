@@ -2,12 +2,12 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { watchDebounced } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Select, TagAddCombobox } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Select, TagAddCombobox, BackIconButton } from '@/shared/ui';
 import type { SelectOption } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import Badge from '@/shared/ui/badge/Badge.vue';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
-import CharacterClassBadge from '@/pages/characters/CharacterClassBadge.vue';
+import { CharacterClassBadge } from '@/entities/character';
 import { guildsApi, type Guild, type GuildRosterMember, type GuildRole } from '@/shared/api/guildsApi';
 import type { GameClass } from '@/shared/api/gamesApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
@@ -367,164 +367,182 @@ watch([guildId, characterId], () => loadData());
 <template>
   <NotFoundPage v-if="rosterAccessForbiddenRedirect" />
   <div v-else class="container py-4 md:py-6 max-w-2xl mx-auto">
-    <div class="mb-4">
-      <Button variant="ghost" size="sm" class="-ml-2 shrink-0" @click="backToRoster">
-        ← К составу гильдии
-      </Button>
+    <!-- Mobile: одна плавающая кнопка справа -->
+    <div class="fixed top-[100px] right-8 z-30 md:hidden">
+      <BackIconButton
+        aria-label="К составу гильдии"
+        title="К составу гильдии"
+        @click="backToRoster"
+      />
     </div>
 
-    <Card v-if="error">
-      <CardContent class="pt-6">
-        <p class="text-sm text-destructive">{{ error }}</p>
-        <Button class="mt-4" variant="outline" @click="backToRoster">К составу</Button>
-      </CardContent>
-    </Card>
+    <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+      <!-- Desktop: стрелка слева от контента -->
+      <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+        <BackIconButton
+          aria-label="К составу гильдии"
+          title="К составу гильдии"
+          @click="backToRoster"
+        />
+      </div>
 
-    <Card v-else-if="loading">
-      <CardContent class="py-8">
-        <p class="text-sm text-muted-foreground">Загрузка…</p>
-      </CardContent>
-    </Card>
+      <div class="min-w-0 w-full flex-1">
 
-    <Card v-else-if="member" class="overflow-hidden">
-      <CardHeader class="flex flex-row items-start justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <Avatar
-            :src="member.avatar_url ?? undefined"
-            :alt="member.name"
-            :fallback="avatarFallback(member.name)"
-            class="h-16 w-16 shrink-0 md:h-20 md:w-20"
-          />
-          <div class="min-w-0 flex-1">
-            <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-              <CardTitle class="text-2xl !mb-0 min-w-0 shrink-0">{{ member.name }}</CardTitle>
-              <Badge
-                v-if="
-                  member.guild_role &&
-                  (!canChangeRole || !roleOptions.length || hasMemberLeaderRoleSlug)
-                "
-                variant="secondary"
-                class="shrink-0 text-xs"
-              >
-                {{ member.guild_role.name }}
-              </Badge>
-              <div
-                v-else-if="canChangeRole && roleOptions.length && !hasMemberLeaderRoleSlug"
-                class="flex min-w-0 flex-wrap items-center gap-2"
-              >
-                <Select
-                  v-model="selectedRoleId"
-                  :options="roleOptions"
-                  placeholder="Роль"
-                  :disabled="changingRole"
-                  trigger-class="w-[180px]"
-                  @update:model-value="onRoleChange"
-                />
-                <span v-if="changingRole" class="text-xs text-muted-foreground">Сохранение…</span>
-                <p v-if="roleError" class="text-xs text-destructive">{{ roleError }}</p>
+        <Card v-if="error">
+          <CardContent class="pt-6">
+            <p class="text-sm text-destructive">{{ error }}</p>
+            <Button class="mt-4" variant="outline" @click="backToRoster">К составу</Button>
+          </CardContent>
+        </Card>
+
+        <Card v-else-if="loading">
+          <CardContent class="py-8">
+            <p class="text-sm text-muted-foreground">Загрузка…</p>
+          </CardContent>
+        </Card>
+
+        <Card v-else-if="member" class="overflow-hidden">
+          <CardHeader class="flex flex-row items-start justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <Avatar
+                :src="member.avatar_url ?? undefined"
+                :alt="member.name"
+                :fallback="avatarFallback(member.name)"
+                class="h-16 w-16 shrink-0 md:h-20 md:w-20"
+              />
+              <div class="min-w-0 flex-1">
+                <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <CardTitle class="text-2xl !mb-0 min-w-0 shrink-0">{{ member.name }}</CardTitle>
+                  <Badge
+                    v-if="
+                      member.guild_role &&
+                      (!canChangeRole || !roleOptions.length || hasMemberLeaderRoleSlug)
+                    "
+                    variant="secondary"
+                    class="shrink-0 text-xs"
+                  >
+                    {{ member.guild_role.name }}
+                  </Badge>
+                  <div
+                    v-else-if="canChangeRole && roleOptions.length && !hasMemberLeaderRoleSlug"
+                    class="flex min-w-0 flex-wrap items-center gap-2"
+                  >
+                    <Select
+                      v-model="selectedRoleId"
+                      :options="roleOptions"
+                      placeholder="Роль"
+                      :disabled="changingRole"
+                      trigger-class="w-[180px]"
+                      @update:model-value="onRoleChange"
+                    />
+                    <span v-if="changingRole" class="text-xs text-muted-foreground">Сохранение…</span>
+                    <p v-if="roleError" class="text-xs text-destructive">{{ roleError }}</p>
+                  </div>
+                </div>
+                <p v-if="isGuildLeaderCharacter" class="mt-1 text-xs text-muted-foreground">
+                  Лидер гильдии назначается только в разделе «Настройки» этой гильдии.
+                </p>
+                <template v-if="canChangeRole && roleOptions.length && hasMemberLeaderRoleSlug">
+                  <p class="mt-2 text-xs text-muted-foreground">
+                    Роль «Лидер» нельзя выбрать в этом списке — лидер задаётся в настройках гильдии. Выберите
+                    другую роль, чтобы снять эту с участника.
+                  </p>
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <Select
+                      v-model="selectedRoleId"
+                      :options="roleOptions"
+                      placeholder="Сменить на другую роль"
+                      :disabled="changingRole"
+                      trigger-class="w-[180px]"
+                      @update:model-value="onRoleChange"
+                    />
+                    <span v-if="changingRole" class="text-xs text-muted-foreground">Сохранение…</span>
+                    <p v-if="roleError" class="text-xs text-destructive">{{ roleError }}</p>
+                  </div>
+                </template>
               </div>
             </div>
-            <p v-if="isGuildLeaderCharacter" class="mt-1 text-xs text-muted-foreground">
-              Лидер гильдии назначается только в разделе «Настройки» этой гильдии.
-            </p>
-            <template v-if="canChangeRole && roleOptions.length && hasMemberLeaderRoleSlug">
-              <p class="mt-2 text-xs text-muted-foreground">
-                Роль «Лидер» нельзя выбрать в этом списке — лидер задаётся в настройках гильдии. Выберите
-                другую роль, чтобы снять эту с участника.
-              </p>
-              <div class="mt-2 flex flex-wrap items-center gap-2">
-                <Select
-                  v-model="selectedRoleId"
-                  :options="roleOptions"
-                  placeholder="Сменить на другую роль"
-                  :disabled="changingRole"
-                  trigger-class="w-[180px]"
-                  @update:model-value="onRoleChange"
-                />
-                <span v-if="changingRole" class="text-xs text-muted-foreground">Сохранение…</span>
-                <p v-if="roleError" class="text-xs text-destructive">{{ roleError }}</p>
-              </div>
-            </template>
-          </div>
-        </div>
-        <Button
-          v-if="canExclude"
-          variant="destructive"
-          size="sm"
-          class="shrink-0"
-          :disabled="excluding"
-          @click="openExcludeDialog"
-        >
-          Исключить из гильдии
-        </Button>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div v-if="member.game_classes.length > 0">
-          <p class="mb-1 text-sm font-medium text-muted-foreground">Классы</p>
-          <div class="flex flex-wrap items-center gap-2">
-            <CharacterClassBadge
-              v-for="gc in member.game_classes"
-              :key="gc.id"
-              :game-class="rosterMemberGameClass(gc)"
-            />
-          </div>
-        </div>
-
-        <div class="space-y-2">
-          <p class="text-sm font-medium text-muted-foreground">Теги</p>
-          <div v-if="displayTagRows.length > 0" class="flex flex-wrap items-center gap-2">
-            <template v-for="row in displayTagRowsUi.visible" :key="row.source + '-' + row.tag.id">
-              <button
-                v-if="canEditGuildTags && row.source === 'guild'"
-                type="button"
-                class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                @click="guildSelectedTagIds = guildSelectedTagIds.filter((x) => x !== row.tag.id)"
-              >
-                <Badge
-                  variant="outline"
-                  :class="[rosterTagBadgeClass('guild', row.tag), 'pr-1 text-xs']"
-                >
-                  {{ row.tag.name }}
-                  <span class="ml-1 opacity-70" aria-hidden="true">×</span>
-                </Badge>
-              </button>
-              <Badge
-                v-else
-                variant="outline"
-                :class="[rosterTagBadgeClass(row.source, row.tag), 'text-xs']"
-              >
-                {{ row.tag.name }}
-              </Badge>
-            </template>
-            <span
-              v-if="displayTagRowsUi.moreCount > 0"
-              class="text-xs text-muted-foreground"
-              :title="`Ещё ${displayTagRowsUi.moreCount} тегов`"
+            <Button
+              v-if="canExclude"
+              variant="destructive"
+              size="sm"
+              class="shrink-0"
+              :disabled="excluding"
+              @click="openExcludeDialog"
             >
-              +{{ displayTagRowsUi.moreCount }}
-            </span>
-          </div>
-          <p v-else-if="!canEditGuildTags" class="text-sm text-muted-foreground">Нет тегов</p>
-          <template v-if="canEditGuildTags">
-            <TagAddCombobox
-              v-model:all-tags="allTags"
-              v-model:selected-tag-ids="guildSelectedTagIds"
-              :input-id="tagComboInputId"
-              :allow-create-tag="canCreateGuildTag"
-              :tag-create-guild-id="guildId"
-              :can-delete-tag="canDeleteTagHandler"
-              label="Добавить тег гильдии"
-              placeholder="Выберите или введите тег"
-              @delete-tag="openTagDeleteConfirm"
-            />
-            <div class="flex flex-wrap items-center gap-2">
-              <span v-if="tagsSaving" class="text-xs text-muted-foreground">Сохранение…</span>
-              <p v-if="tagsError" class="text-xs text-destructive">{{ tagsError }}</p>
+              Исключить из гильдии
+            </Button>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div v-if="member.game_classes.length > 0">
+              <p class="mb-1 text-sm font-medium text-muted-foreground">Классы</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <CharacterClassBadge
+                  v-for="gc in member.game_classes"
+                  :key="gc.id"
+                  :game-class="rosterMemberGameClass(gc)"
+                />
+              </div>
             </div>
-          </template>
-        </div>
-      </CardContent>
-    </Card>
+
+            <div class="space-y-2">
+              <p class="text-sm font-medium text-muted-foreground">Теги</p>
+              <div v-if="displayTagRows.length > 0" class="flex flex-wrap items-center gap-2">
+                <template v-for="row in displayTagRowsUi.visible" :key="row.source + '-' + row.tag.id">
+                  <button
+                    v-if="canEditGuildTags && row.source === 'guild'"
+                    type="button"
+                    class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    @click="guildSelectedTagIds = guildSelectedTagIds.filter((x) => x !== row.tag.id)"
+                  >
+                    <Badge
+                      variant="outline"
+                      :class="[rosterTagBadgeClass('guild', row.tag), 'pr-1 text-xs']"
+                    >
+                      {{ row.tag.name }}
+                      <span class="ml-1 opacity-70" aria-hidden="true">×</span>
+                    </Badge>
+                  </button>
+                  <Badge
+                    v-else
+                    variant="outline"
+                    :class="[rosterTagBadgeClass(row.source, row.tag), 'text-xs']"
+                  >
+                    {{ row.tag.name }}
+                  </Badge>
+                </template>
+                <span
+                  v-if="displayTagRowsUi.moreCount > 0"
+                  class="text-xs text-muted-foreground"
+                  :title="`Ещё ${displayTagRowsUi.moreCount} тегов`"
+                >
+                  +{{ displayTagRowsUi.moreCount }}
+                </span>
+              </div>
+              <p v-else-if="!canEditGuildTags" class="text-sm text-muted-foreground">Нет тегов</p>
+              <template v-if="canEditGuildTags">
+                <TagAddCombobox
+                  v-model:all-tags="allTags"
+                  v-model:selected-tag-ids="guildSelectedTagIds"
+                  :input-id="tagComboInputId"
+                  :allow-create-tag="canCreateGuildTag"
+                  :tag-create-guild-id="guildId"
+                  :can-delete-tag="canDeleteTagHandler"
+                  label="Добавить тег гильдии"
+                  placeholder="Выберите или введите тег"
+                  @delete-tag="openTagDeleteConfirm"
+                />
+                <div class="flex flex-wrap items-center gap-2">
+                  <span v-if="tagsSaving" class="text-xs text-muted-foreground">Сохранение…</span>
+                  <p v-if="tagsError" class="text-xs text-destructive">{{ tagsError }}</p>
+                </div>
+              </template>
+            </div>
+          </CardContent>
+        </Card>
+
+      </div>
+    </div>
 
     <ConfirmDialog
       :open="excludeDialogOpen"

@@ -42,6 +42,7 @@ class CharacterController extends Controller
                 'server',
                 'gameClasses',
                 'tags' => fn ($q) => $q->notHidden()->with(['usedByUser', 'createdByUser']),
+                'guildMember.guild',
                 'user',
             ])
             ->filter($filter)

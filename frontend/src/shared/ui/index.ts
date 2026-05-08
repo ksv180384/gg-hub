@@ -19,5 +19,6 @@ export { default as RelativeTime } from './relative-time/RelativeTime.vue';
 export { default as TimezoneSelect } from './timezone-select/TimezoneSelect.vue';
 export * from './rich-text-editor';
 export * from './tooltip';
+export * from './back-icon-button';
 export { default as SiteLogo } from './SiteLogo.vue';
 export { default as TagAddCombobox } from './tag-add-combobox/TagAddCombobox.vue';

@@ -7,7 +7,15 @@ import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { gamesApi, type GameCatalogItem } from '@/shared/api/gamesApi';
 import { getGameSiteUrl } from '@/shared/lib/gameSiteUrl';
-import CharacterListItem from './CharacterListItem.vue';
+import { CharacterCard } from '@/entities/character';
+import {
+  Button as UiButton,
+  Tooltip,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/shared/ui';
 
 const router = useRouter();
 const siteContext = useSiteContextStore();
@@ -168,15 +176,45 @@ onMounted(() => {
           </p>
           <template v-else>
             <TooltipProvider>
-              <ul class="space-y-3">
-                <CharacterListItem
+              <ul class="flex flex-wrap justify-around gap-3">
+                <CharacterCard
                   v-for="c in characters"
                   :key="c.id"
                   :character="c"
-                  :deleting="deletingId === c.id"
-                  @edit="openEdit(c)"
-                  @delete="openDeleteDialog(c)"
-                />
+                >
+                  <template #actions>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger as-child>
+                        <UiButton
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          class="h-10 w-10 shrink-0 min-h-10 min-w-10 touch-manipulation"
+                          aria-label="Действия"
+                          title="Действия"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                            <circle cx="12" cy="5" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="12" cy="19" r="2" />
+                          </svg>
+                        </UiButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" class="min-w-44">
+                        <DropdownMenuItem @click="openEdit(c)">
+                          Редактировать
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          class="text-destructive focus:text-destructive"
+                          :disabled="deletingId === c.id"
+                          @click="openDeleteDialog(c)"
+                        >
+                          Удалить
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </template>
+                </CharacterCard>
               </ul>
             </TooltipProvider>
           </template>
