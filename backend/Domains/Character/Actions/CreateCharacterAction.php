@@ -2,6 +2,7 @@
 
 namespace Domains\Character\Actions;
 
+use App\Actions\Character\HandleFirstCharacterCreatedAction;
 use App\Contracts\Repositories\CharacterRepositoryInterface;
 use App\Models\User;
 use App\Services\CharacterAvatarService;
@@ -12,7 +13,8 @@ class CreateCharacterAction
 {
     public function __construct(
         private CharacterRepositoryInterface $characterRepository,
-        private CharacterAvatarService $characterAvatarService
+        private CharacterAvatarService $characterAvatarService,
+        private HandleFirstCharacterCreatedAction $handleFirstCharacterCreatedAction,
     ) {}
 
     /**
@@ -45,6 +47,9 @@ class CreateCharacterAction
             $character->is_main = true;
         }
         $character->load(['game', 'localization', 'server', 'gameClasses', 'tags.createdByUser']);
+
+        ($this->handleFirstCharacterCreatedAction)($character);
+
         return $character;
     }
 }

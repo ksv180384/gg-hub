@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Actions\Auth\HandleFirstLoginAction;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Auth\Events\Login;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
@@ -76,6 +78,12 @@ class FortifyServiceProvider extends ServiceProvider
                     Fortify::username() => ['Необходимо подтвердить email. Проверьте почту или запросите повторное письмо.'],
                 ]);
             }
+        });
+
+        Event::listen(Login::class, function (Login $event): void {
+            /** @var HandleFirstLoginAction $action */
+            $action = app(HandleFirstLoginAction::class);
+            $action($event->user);
         });
     }
 }
