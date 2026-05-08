@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Card, CardHeader, CardTitle } from '@/shared/ui';
-import { gamesApi, type Game } from '@/shared/api/gamesApi';
+import { gamesApi, type GameCatalogItem } from '@/shared/api/gamesApi';
 import { getGameSiteUrl } from '@/shared/lib/gameSiteUrl';
 import { ref, onMounted } from 'vue';
 import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 
-const games = ref<Game[]>([]);
+const games = ref<GameCatalogItem[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -25,7 +25,7 @@ async function loadGames() {
   loading.value = true;
   error.value = null;
   try {
-    games.value = await gamesApi.getGames();
+    games.value = await gamesApi.getGamesCatalog();
   } catch (e: unknown) {
     const err = e as Error & { message?: string };
     error.value = err.message ?? 'Не удалось загрузить игры';
@@ -34,7 +34,7 @@ async function loadGames() {
   }
 }
 
-function goToGameSite(g: Game) {
+function goToGameSite(g: GameCatalogItem) {
   window.location.href = getGameSiteUrl(g.slug);
 }
 
@@ -83,7 +83,6 @@ onMounted(() => loadGames());
           </div>
           <CardHeader class="space-y-2 pb-2">
             <CardTitle class="line-clamp-1 text-lg leading-tight">{{ g.name }}</CardTitle>
-            <p class="line-clamp-2 text-sm text-muted-foreground">{{ g.description || '—' }}</p>
           </CardHeader>
         </Card>
       </div>

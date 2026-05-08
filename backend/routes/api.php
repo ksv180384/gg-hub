@@ -60,6 +60,7 @@ Route::post('/landing/cta-clicks', [LandingCtaClickController::class, 'store'])
     ->middleware('throttle:60,1');
 
 Route::get('/games', [GameController::class, 'index']);
+Route::get('/games/catalog', [GameController::class, 'catalog']);
 Route::get('/games/{game}', [GameController::class, 'show']);
 /** Публичный справочник классов игры (фильтры, формы персонажей; не только админский субдомен). */
 Route::get('/games/{game}/game-classes', [GameClassController::class, 'index']);

@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\StoreGameRequest;
 use App\Http\Requests\Game\UpdateGameRequest;
+use App\Http\Resources\Game\GameCatalogResource;
 use App\Http\Resources\Game\GameResource;
 use App\Actions\Game\CreateGameAction;
 use App\Actions\Game\DeleteGameAction;
 use App\Actions\Game\GetGameAction;
+use App\Actions\Game\ListGamesCatalogAction;
 use App\Actions\Game\ListGamesAction;
 use App\Actions\Game\UpdateGameAction;
 use App\Models\Game;
@@ -20,6 +22,7 @@ class GameController extends Controller
 {
     public function __construct(
         private ListGamesAction $listGamesAction,
+        private ListGamesCatalogAction $listGamesCatalogAction,
         private GetGameAction $getGameAction,
         private CreateGameAction $createGameAction,
         private UpdateGameAction $updateGameAction,
@@ -30,6 +33,12 @@ class GameController extends Controller
     {
         $games = ($this->listGamesAction)();
         return GameResource::collection($games);
+    }
+
+    public function catalog(): AnonymousResourceCollection
+    {
+        $games = ($this->listGamesCatalogAction)();
+        return GameCatalogResource::collection($games);
     }
 
     public function show(Game $game): GameResource

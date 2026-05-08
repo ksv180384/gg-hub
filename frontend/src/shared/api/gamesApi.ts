@@ -58,6 +58,15 @@ export interface Game {
   updated_at?: string;
 }
 
+/** Облегчённый ответ для витрин (без description и связей). */
+export interface GameCatalogItem {
+  id: number;
+  name: string;
+  slug: string;
+  image_preview: string | null;
+  is_active: boolean;
+}
+
 export interface CreateGamePayload {
   name: string;
   slug: string;
@@ -101,6 +110,10 @@ export interface GamesListResponse {
   data: Game[];
 }
 
+export interface GamesCatalogResponse {
+  data: GameCatalogItem[];
+}
+
 /** Ответ сервера: одна игра (GET/POST/PUT /games, /games/:id). */
 export interface GameResponse {
   data: Game;
@@ -125,6 +138,15 @@ export const gamesApi = {
     const data = res.data;
     return Array.isArray((data as GamesListResponse)?.data)
       ? (data as GamesListResponse).data
+      : (Array.isArray(data) ? data : []);
+  },
+
+  async getGamesCatalog(): Promise<GameCatalogItem[]> {
+    const res = await http.fetchGet<GamesCatalogResponse | GameCatalogItem[]>('/games/catalog');
+    throwOnError(res, 'Ошибка загрузки игр');
+    const data = res.data;
+    return Array.isArray((data as GamesCatalogResponse)?.data)
+      ? (data as GamesCatalogResponse).data
       : (Array.isArray(data) ? data : []);
   },
 

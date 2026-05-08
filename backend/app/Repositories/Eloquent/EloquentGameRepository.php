@@ -15,6 +15,14 @@ class EloquentGameRepository implements GameRepositoryInterface
             ->get();
     }
 
+    public function getActiveCatalog(): Collection
+    {
+        return Game::query()
+            ->select(['id', 'name', 'slug', 'image', 'is_active'])
+            ->where('is_active', true)
+            ->get();
+    }
+
     /**
      * @param array<string, mixed> $data
      */

@@ -5,6 +5,8 @@ import { Button, Card, CardContent, CardHeader, CardTitle, TooltipProvider } fro
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
+import { gamesApi, type GameCatalogItem } from '@/shared/api/gamesApi';
+import { getGameSiteUrl } from '@/shared/lib/gameSiteUrl';
 import CharacterListItem from './CharacterListItem.vue';
 
 const router = useRouter();
@@ -18,6 +20,10 @@ const deleteDialogOpen = ref(false);
 const characterToDelete = ref<Character | null>(null);
 const deleteError = ref<string | null>(null);
 
+const availableGames = ref<GameCatalogItem[]>([]);
+const availableGamesLoading = ref(false);
+const availableGamesError = ref<string | null>(null);
+
 async function loadCharacters() {
   if (!game.value?.id) return;
   loading.value = true;
@@ -26,6 +32,26 @@ async function loadCharacters() {
   } finally {
     loading.value = false;
   }
+}
+
+async function loadAvailableGames() {
+  availableGamesLoading.value = true;
+  availableGamesError.value = null;
+  try {
+    availableGames.value = await gamesApi.getGamesCatalog();
+  } catch (e) {
+    availableGamesError.value = e instanceof Error ? e.message : 'Не удалось загрузить список игр';
+  } finally {
+    availableGamesLoading.value = false;
+  }
+}
+
+function getMyCharactersUrlForGame(slug: string): string {
+  return `${getGameSiteUrl(slug)}/my-characters`;
+}
+
+function goToGameMyCharacters(g: GameCatalogItem) {
+  window.location.href = getMyCharactersUrlForGame(g.slug);
 }
 
 function openEdit(character: Character) {
@@ -65,25 +91,68 @@ async function confirmDeleteCharacter() {
 
 onMounted(() => {
   loadCharacters();
+  if (!game.value) {
+    loadAvailableGames();
+  }
 });
 </script>
 
 <template>
   <div class="container py-6">
-    <Card v-if="!game" class="border-destructive/50">
+    <Card v-if="!game" class="border-0 shadow-none">
       <CardHeader>
-        <CardTitle>Персонажи</CardTitle>
+        <CardTitle>Мои персонажи</CardTitle>
       </CardHeader>
       <CardContent>
         <p class="text-sm text-muted-foreground">
-          Перейдите на страницу игры (поддомен игры, например <strong>wow.gg-hub.local</strong>), чтобы управлять персонажами.
+          Перейдите на страницу игры, чтобы управлять персонажами.
         </p>
+
+        <div class="mt-4">
+          <p v-if="availableGamesLoading" class="text-sm text-muted-foreground">Загрузка игр…</p>
+          <p v-else-if="availableGamesError" class="text-sm text-destructive">{{ availableGamesError }}</p>
+          <template v-else>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Card
+                v-for="(g, i) in availableGames"
+                :key="g.id"
+                class="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-3"
+                :style="{
+                  animationDelay: `${i * 80}ms`,
+                  animationDuration: '400ms',
+                  animationFillMode: 'backwards',
+                }"
+                @click="goToGameMyCharacters(g)"
+              >
+                <div class="relative aspect-[16/10] w-full overflow-hidden bg-muted">
+                  <img
+                    v-if="g.image_preview"
+                    :src="g.image_preview"
+                    :alt="g.name"
+                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div
+                    v-else
+                    class="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/70 text-4xl font-bold text-muted-foreground/60"
+                  >
+                    {{ g.name.slice(0, 2).toUpperCase() }}
+                  </div>
+                </div>
+                <CardHeader class="space-y-2 pb-2">
+                  <CardTitle class="line-clamp-1 text-lg leading-tight">{{ g.name }}</CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
+          </template>
+        </div>
       </CardContent>
     </Card>
 
     <template v-else>
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-xl font-semibold sm:text-2xl">Персонажи</h1>
+      <div class="mb-4 flex min-w-0 items-center justify-between gap-3">
+        <h1 class="min-w-0 truncate text-base font-semibold sm:text-lg">
+          Ваши персонажи в {{ game.name }}
+        </h1>
         <RouterLink :to="{ name: 'my-characters-create' }">
           <Button class="min-h-11 min-w-[44px] shrink-0 touch-manipulation">
             Добавить персонажа
@@ -91,11 +160,8 @@ onMounted(() => {
         </RouterLink>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ваши персонажи в {{ game.name }}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card class="border-0 shadow-none">
+        <CardContent class="px-0 pb-0 pt-0">
           <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
           <p v-else-if="characters.length === 0" class="text-sm text-muted-foreground">
             Нет персонажей. Нажмите «Добавить персонажа», чтобы создать первого.
