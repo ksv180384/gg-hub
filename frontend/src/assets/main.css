@@ -82,39 +82,40 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Тёмная тема: мягкий сине-сланцевый тон вместо «чистого» ч/б, спокойные акценты */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: #cdcdcd;
-  --card: oklch(0.205 0 0);
-  --card-foreground: #cdcdcd;
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: #cdcdcd;
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: #cdcdcd;
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.68 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: #cdcdcd;
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: #cdcdcd;
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: oklch(0.21 0.024 260);
+  --foreground: oklch(0.92 0.012 85);
+  --card: oklch(0.27 0.022 258);
+  --card-foreground: oklch(0.92 0.012 85);
+  --popover: oklch(0.3 0.022 258);
+  --popover-foreground: oklch(0.92 0.012 85);
+  --primary: oklch(0.89 0.02 264);
+  --primary-foreground: oklch(0.22 0.028 260);
+  --secondary: oklch(0.32 0.028 258);
+  --secondary-foreground: oklch(0.9 0.014 85);
+  --muted: oklch(0.3 0.02 258);
+  --muted-foreground: oklch(0.68 0.024 258);
+  --accent: oklch(0.34 0.03 258);
+  --accent-foreground: oklch(0.94 0.012 85);
+  --destructive: oklch(0.62 0.2 22);
+  --destructive-foreground: oklch(0.96 0.01 85);
+  --border: oklch(0.42 0.022 258 / 0.4);
+  --input: oklch(0.3 0.024 258);
+  --ring: oklch(0.62 0.08 264);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: #cdcdcd;
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: #cdcdcd;
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: #cdcdcd;
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.19 0.026 262);
+  --sidebar-foreground: oklch(0.9 0.014 85);
+  --sidebar-primary: oklch(0.72 0.12 264);
+  --sidebar-primary-foreground: oklch(0.2 0.03 262);
+  --sidebar-accent: oklch(0.3 0.028 258);
+  --sidebar-accent-foreground: oklch(0.92 0.012 85);
+  --sidebar-border: oklch(0.42 0.022 258 / 0.35);
+  --sidebar-ring: oklch(0.62 0.08 264);
 }
 
 @layer base {
@@ -123,6 +124,31 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  input[type='button']:not(:disabled),
+  input[type='submit']:not(:disabled),
+  input[type='reset']:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  input[type='button']:disabled,
+  input[type='submit']:disabled,
+  input[type='reset']:disabled {
+    cursor: not-allowed;
+  }
+
+  /*
+   * Нативные поля даты/времени: иконка календаря в Chromium/WebKit по умолчанию тёмная —
+   * на bg-background в .dark почти не видна. Firefox частично помогает color-scheme.
+   */
+  .dark input:is([type='datetime-local'], [type='date'], [type='time'], [type='month'], [type='week']) {
+    color-scheme: dark;
+  }
+  .dark input:is([type='datetime-local'], [type='date'], [type='time'], [type='month'], [type='week'])::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(1) brightness(1.1);
+    opacity: 0.9;
   }
 }
 

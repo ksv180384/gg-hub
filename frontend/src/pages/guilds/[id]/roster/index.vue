@@ -13,6 +13,7 @@ import {
   sliceRosterTagRowsForDisplay,
   isRosterCommonTag,
 } from '@/shared/lib/rosterTagDisplay';
+import { cn } from '@/shared/lib/utils';
 import NotFoundPage from '@/pages/not-found/index.vue';
 
 const route = useRoute();
@@ -39,15 +40,20 @@ const filterGuildRole = ref<string>('');
 const filterGameClassIds = ref<(string | number)[]>([]);
 const filterTagIds = ref<(string | number)[]>([]);
 
+/** Sentinel для Radix Select: пустую строку нельзя использовать как value у SelectItem. */
 const GUILD_ROLE_FILTER_ALL = '__all__';
 const filterGuildRoleUi = computed<string>({
   get() {
-    return filterGuildRole.value || GUILD_ROLE_FILTER_ALL;
+    return filterGuildRole.value ? filterGuildRole.value : GUILD_ROLE_FILTER_ALL;
   },
   set(v) {
     filterGuildRole.value = v === GUILD_ROLE_FILTER_ALL ? '' : v;
   },
 });
+
+const guildRoleSelectTriggerClass = computed(() =>
+  cn('h-8 py-1.5 w-full', !filterGuildRole.value.trim() && 'text-muted-foreground'),
+);
 
 /** Справочник классов игры (GET /games/:id/game-classes). */
 const gameClassesCatalog = ref<GameClassCatalogItem[]>([]);
@@ -74,13 +80,14 @@ const rosterActiveFiltersCount = computed(() => {
 });
 
 const guildRoleOptions = computed<SelectOption[]>(() => {
+  const all: SelectOption = { value: GUILD_ROLE_FILTER_ALL, label: 'Все роли' };
   const fromMeta = guildRosterRoles.value;
   if (fromMeta.length > 0) {
     const opts = [...fromMeta]
       .filter((r) => r.slug)
       .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
       .map((r) => ({ value: r.slug, label: r.name }));
-    return [{ value: GUILD_ROLE_FILTER_ALL, label: 'Все роли' }, ...opts];
+    return [all, ...opts];
   }
   const roles = new Map<string, string>();
   roster.value.forEach((m) => {
@@ -91,7 +98,7 @@ const guildRoleOptions = computed<SelectOption[]>(() => {
   const opts = Array.from(roles.entries())
     .sort((a, b) => a[1].localeCompare(b[1], 'ru'))
     .map(([slug, name]) => ({ value: slug, label: name }));
-  return [{ value: GUILD_ROLE_FILTER_ALL, label: 'Все роли' }, ...opts];
+  return [all, ...opts];
 });
 
 watch(guildRoleOptions, (opts) => {
@@ -473,7 +480,7 @@ watch(guildId, async () => {
                     v-model="filterGuildRoleUi"
                     :options="guildRoleOptions"
                     placeholder="Все роли"
-                    trigger-class="min-h-8 w-full"
+                    :trigger-class="guildRoleSelectTriggerClass"
                   />
                 </div>
                 <div class="grid gap-1.5">
@@ -508,7 +515,7 @@ watch(guildId, async () => {
                     v-model="filterGuildRoleUi"
                     :options="guildRoleOptions"
                     placeholder="Все роли"
-                    trigger-class="min-h-8 w-full"
+                    :trigger-class="guildRoleSelectTriggerClass"
                   />
                 </div>
                 <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">

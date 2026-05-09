@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
@@ -13,6 +14,10 @@ use Spatie\Sitemap\Tags\Url;
 
 final class SitemapController extends Controller
 {
+    public function __construct(
+        private readonly GuildLinkBuilder $guildLinkBuilder,
+    ) {}
+
     public function __invoke(): Response
     {
         $frontendUrl = $this->frontendBaseUrl();
@@ -21,7 +26,7 @@ final class SitemapController extends Controller
         $sitemap = Sitemap::create();
         $this->addStaticUrls($sitemap, $frontendUrl, $now);
         $this->addGuildUrls($sitemap, $frontendUrl);
-        $this->addGlobalPostUrls($sitemap, $frontendUrl);
+        $this->addGlobalPostUrls($sitemap);
 
         return $this->xmlResponse($sitemap);
     }
@@ -43,6 +48,12 @@ final class SitemapController extends Controller
             )
             ->add(
                 Url::create("{$frontendUrl}/guilds")
+                    ->setLastModificationDate($now)
+                    ->setChangeFrequency(Url::CHANGE_FREQUENCY_DAILY)
+                    ->setPriority(0.9)
+            )
+            ->add(
+                Url::create("{$frontendUrl}/games")
                     ->setLastModificationDate($now)
                     ->setChangeFrequency(Url::CHANGE_FREQUENCY_DAILY)
                     ->setPriority(0.9)
@@ -68,27 +79,36 @@ final class SitemapController extends Controller
             }, 'id');
     }
 
-    private function addGlobalPostUrls(Sitemap $sitemap, string $frontendUrl): void
+    private function addGlobalPostUrls(Sitemap $sitemap): void
     {
         Post::query()
-            ->where('is_visible_global', true)
-            ->where('status_global', PostStatus::Published->value)
-            ->whereNotNull('published_at_global')
-            ->select(['id', 'published_at_global', 'updated_at'])
-            ->orderBy('id')
-            ->chunkById(500, function ($posts) use ($sitemap, $frontendUrl) {
+            ->where('posts.is_visible_global', true)
+            ->where('posts.status_global', PostStatus::Published->value)
+            ->whereNotNull('posts.published_at_global')
+            ->leftJoin('games', 'posts.game_id', '=', 'games.id')
+            ->select([
+                'posts.id',
+                'posts.published_at_global',
+                'posts.updated_at',
+                'games.slug as game_slug',
+            ])
+            ->orderBy('posts.id')
+            ->chunkById(500, function ($posts) use ($sitemap) {
                 foreach ($posts as $post) {
                     $lastmod = $post->published_at_global ?? $post->updated_at;
                     $lastmod = $lastmod ? Carbon::parse($lastmod) : null;
 
+                    $slug = $post->game_slug !== null ? (string) $post->game_slug : null;
+                    $url = $this->guildLinkBuilder->globalJournalPostUrl($slug, (int) $post->id);
+
                     $sitemap->add(
-                        Url::create("{$frontendUrl}/posts/{$post->id}")
+                        Url::create($url)
                             ->setLastModificationDate($lastmod)
                             ->setChangeFrequency(Url::CHANGE_FREQUENCY_WEEKLY)
                             ->setPriority(0.6)
                     );
                 }
-            }, 'id');
+            }, 'posts.id', 'id');
     }
 
     private function xmlResponse(Sitemap $sitemap): Response

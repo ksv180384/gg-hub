@@ -175,6 +175,7 @@ export function useGuildSettingsModel() {
   const name = ref('');
   const selectedLocalizationId = ref<string>('');
   const selectedServerId = ref<string>('');
+  const dkpEnabled = ref(false);
   const aboutText = ref('');
   const aboutPreviewMode = ref(false);
   const charterText = ref('');
@@ -438,6 +439,7 @@ export function useGuildSettingsModel() {
       name.value = guild.value.name;
       selectedLocalizationId.value = String(guild.value.localization_id);
       selectedServerId.value = String(guild.value.server_id);
+      dkpEnabled.value = guild.value.dkp_enabled ?? false;
       aboutText.value = guild.value.about_text ?? '';
       charterText.value = guild.value.charter_text ?? '';
       applicationFormDescription.value = guild.value.application_form_description ?? '';
@@ -490,6 +492,7 @@ export function useGuildSettingsModel() {
         name: name.value.trim(),
       };
       if (canEditGuildTags.value) payload.tag_ids = selectedTagIds.value;
+      if (canEditGuildData.value) payload.dkp_enabled = dkpEnabled.value;
       if (canChangeLocalizationServer.value) {
         payload.localization_id = Number(selectedLocalizationId.value);
         payload.server_id = Number(selectedServerId.value);
@@ -821,6 +824,7 @@ export function useGuildSettingsModel() {
     name,
     selectedLocalizationId,
     selectedServerId,
+    dkpEnabled,
     aboutText,
     aboutPreviewMode,
     charterText,

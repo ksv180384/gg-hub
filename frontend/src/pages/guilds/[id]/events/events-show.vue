@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardHeader, CardTitle, CardContent, Button, BackIconButton, LightboxImage } from '@/shared/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, BackIconButton, Input, Label, LightboxImage } from '@/shared/ui';
 import {
   eventHistoryApi,
   type EventHistoryItem,
@@ -22,8 +22,17 @@ const item = ref<EventHistoryItem | null>(null);
 const exportParticipantsLoading = ref(false);
 const exportParticipantsError = ref('');
 
+const dkpSaving = ref(false);
+const dkpError = ref('');
+
 function isExternalEventParticipant(p: EventHistoryParticipantDto): boolean {
   return p.character_id == null;
+}
+
+function calcParticipantDkpPoints(base: number | null, coef: number, override: number | null): number | null {
+  if (override != null) return override;
+  if (base == null) return null;
+  return Math.round(base * (Number.isFinite(coef) ? coef : 1));
 }
 
 function formatDateTime(iso: string | null): string {
@@ -44,10 +53,48 @@ async function loadEvent() {
   error.value = '';
   try {
     item.value = await eventHistoryApi.get(guildId.value, eventHistoryId.value);
+    // гарантируем наличие dkp-объекта у участников для v-model
+    if (item.value?.dkp && Array.isArray(item.value.participants)) {
+      item.value.participants = item.value.participants.map((p) => ({
+        ...p,
+        dkp: p.dkp ?? { coefficient: 1, points_override: null },
+      }));
+    }
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить событие.';
   } finally {
     loading.value = false;
+  }
+}
+
+async function saveDkp() {
+  if (!guildId.value || !eventHistoryId.value || !item.value) return;
+  if (!item.value.dkp) return;
+  dkpSaving.value = true;
+  dkpError.value = '';
+  try {
+    const payload = {
+      dkp_base_points: item.value.dkp.base_points,
+      participants: (item.value.participants ?? []).map((p) => ({
+        character_id: p.character_id,
+        external_name: p.character_id ? null : p.external_name,
+        dkp_coefficient: p.dkp?.coefficient ?? 1,
+        dkp_points_override: p.dkp?.points_override ?? null,
+      })),
+    };
+    const updated = await eventHistoryApi.update(guildId.value, eventHistoryId.value, payload);
+    // нормализуем dkp у участников так же, как после loadEvent
+    if (updated?.dkp && Array.isArray(updated.participants)) {
+      updated.participants = updated.participants.map((p) => ({
+        ...p,
+        dkp: p.dkp ?? { coefficient: 1, points_override: null },
+      }));
+    }
+    item.value = updated;
+  } catch (e: unknown) {
+    dkpError.value = e instanceof Error ? e.message : 'Не удалось сохранить ДКП.';
+  } finally {
+    dkpSaving.value = false;
   }
 }
 
@@ -127,6 +174,75 @@ onMounted(loadEvent);
             <p v-if="item.description" class="text-sm whitespace-pre-wrap">
               {{ item.description }}
             </p>
+
+            <div v-if="item.dkp" class="space-y-2 rounded-md border p-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="font-medium">ДКП</div>
+                <Button variant="outline" size="sm" :disabled="dkpSaving" @click="saveDkp">
+                  {{ dkpSaving ? 'Сохранение…' : 'Сохранить ДКП' }}
+                </Button>
+              </div>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div class="space-y-1">
+                  <Label for="dkp-base">Базовые очки *</Label>
+                  <Input
+                    id="dkp-base"
+                    v-model.number="item.dkp.base_points"
+                    type="number"
+                    min="0"
+                    placeholder="Например 10"
+                  />
+                </div>
+              </div>
+              <p v-if="dkpError" class="text-sm text-destructive">{{ dkpError }}</p>
+
+              <div v-if="(item.participants?.length ?? 0) > 0" class="space-y-2 text-sm">
+                <div class="font-medium">Коэффициенты и очки</div>
+                <ul class="space-y-2">
+                  <li v-for="p in item.participants" :key="p.id" class="rounded border p-2">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div class="min-w-0">
+                        <div class="truncate font-medium">
+                          {{ p.character?.name || p.external_name }}
+                        </div>
+                        <div class="text-xs text-muted-foreground">
+                          Итог:
+                          {{
+                            calcParticipantDkpPoints(
+                              item.dkp.base_points ?? null,
+                              p.dkp?.coefficient ?? 1,
+                              p.dkp?.points_override ?? null
+                            ) ?? '—'
+                          }}
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 sm:w-[260px]">
+                        <div class="space-y-1">
+                          <Label :for="`dkp-coef-${p.id}`">Коэф.</Label>
+                          <Input
+                            :id="`dkp-coef-${p.id}`"
+                            v-model.number="p.dkp!.coefficient"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                          />
+                        </div>
+                        <div class="space-y-1">
+                          <Label :for="`dkp-ovr-${p.id}`">Override</Label>
+                          <Input
+                            :id="`dkp-ovr-${p.id}`"
+                            v-model.number="p.dkp!.points_override"
+                            type="number"
+                            min="0"
+                            placeholder="—"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
 
             <div v-if="(item.participants?.length ?? 0) > 0" class="space-y-2 text-sm">
               <Button

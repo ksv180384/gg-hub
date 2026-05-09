@@ -258,7 +258,7 @@ function onDeleteClick(tag: Tag) {
         :reset-search-term-on-blur="true"
       >
         <ComboboxAnchor
-          class="flex h-9 w-full min-w-0 cursor-text items-center gap-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background focus-within:ring-1 focus-within:ring-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+          class="flex h-9 w-full min-w-0 cursor-text items-center gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm ring-offset-background transition-colors focus-within:ring-1 focus-within:ring-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
           @pointerdown="onTagAnchorPointerDown"
         >
           <ComboboxInput

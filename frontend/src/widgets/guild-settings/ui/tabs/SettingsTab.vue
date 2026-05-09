@@ -35,6 +35,7 @@ defineProps<{
   name: string;
   selectedLocalizationId: string;
   selectedServerId: string;
+  dkpEnabled: boolean;
   canChangeLocalizationServer: boolean;
   availableLocalizations: { id: number; name: string }[];
   servers: { id: number; name: string }[];
@@ -54,6 +55,7 @@ const emit = defineEmits<{
   (e: 'update:name', value: string): void;
   (e: 'update:selectedLocalizationId', value: string): void;
   (e: 'update:selectedServerId', value: string): void;
+  (e: 'update:dkpEnabled', value: boolean): void;
   (e: 'update:selectedLeaderCharacterId', value: string): void;
   (e: 'save'): void;
   (e: 'toggleTag', tagId: number): void;
@@ -158,6 +160,28 @@ function selectedTags(allTags: Tag[], selectedIds: number[]) {
         <p v-if="fieldErrors.server_id" class="text-sm text-destructive">
           {{ fieldErrors.server_id }}
         </p>
+      </div>
+
+      <div class="space-y-2">
+        <Label for="settings-dkp">Система ДКП</Label>
+        <div class="flex items-center gap-2">
+          <input
+            id="settings-dkp"
+            type="checkbox"
+            class="h-4 w-4 rounded border-input"
+            :checked="dkpEnabled"
+            :disabled="!canEditGuildData"
+            @change="emit('update:dkpEnabled', ($event.target as HTMLInputElement).checked)"
+          >
+          <Label
+            :for="canEditGuildData ? 'settings-dkp' : undefined"
+            class="cursor-pointer font-normal"
+            :class="{ 'opacity-60 pointer-events-none': !canEditGuildData }"
+          >
+            Включить начисление и отображение ДКП для событий гильдии
+          </Label>
+        </div>
+        <p v-if="fieldErrors.dkp_enabled" class="text-sm text-destructive">{{ fieldErrors.dkp_enabled }}</p>
       </div>
 
       <div class="space-y-3">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Card, CardContent, Badge, BackIconButton } from '@/shared/ui';
+import { Button, Card, CardContent, Badge, BackIconButton } from '@/shared/ui';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { ref, computed, watch } from 'vue';
@@ -174,8 +174,8 @@ function goToApplication() {
 </script>
 
 <template>
-  <div class="container py-8 md:py-12">
-    <div class="mx-auto max-w-4xl">
+  <div class="container py-6 md:py-8">
+    <div class="min-w-0 max-w-4xl">
       <!-- Mobile: одна плавающая кнопка справа -->
       <div class="fixed top-[100px] right-8 z-30 md:hidden">
         <BackIconButton

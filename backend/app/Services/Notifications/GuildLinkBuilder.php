@@ -72,6 +72,14 @@ class GuildLinkBuilder
         return $path . '?date=' . $day->format('Y-m-d');
     }
 
+    /**
+     * Публичная запись журнала «Общие» (/posts/:id) с учётом поддомена игры.
+     */
+    public function globalJournalPostUrl(?string $gameSlug, int $postId): string
+    {
+        return $this->baseUrlForGame($gameSlug) . '/posts/' . $postId;
+    }
+
     private function baseUrlForGame(?string $gameSlug): string
     {
         $raw = rtrim((string) config('app.frontend_url', config('app.url')), '/');

@@ -19,6 +19,7 @@ class ListGuildEventHistoriesAction
         $query = EventHistory::query()
             ->where('guild_id', $guild->id)
             ->with([
+                'guild:id,dkp_enabled',
                 'participants.character:id,name',
                 'screenshots',
             ])

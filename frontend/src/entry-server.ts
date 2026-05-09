@@ -10,6 +10,7 @@ import { setupSsrHttpInterceptors } from '@/shared/api/http-interceptors-ssr';
 import { computeMainSiteOriginForSsr, mainSiteOriginSsrKey } from '@/shared/lib/mainSiteOriginSsr';
 import { ssrRequestContext } from './ssr/requestContext';
 import '@/assets/main.css';
+import '@cyhnkckali/vue3-color-picker/dist/style.css';
 
 let ssrInterceptorsInstalled = false;
 

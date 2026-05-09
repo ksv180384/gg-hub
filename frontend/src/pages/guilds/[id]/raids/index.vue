@@ -33,6 +33,7 @@ import {
   type RaidCompositionMemberPayload,
 } from '@/shared/api/guildsApi';
 import type { ApiError } from '@/shared/api/errors';
+import { normalizeGuildRaidTree } from '@/shared/lib/normalizeGuildRaidTree';
 import NotFoundPage from '@/pages/not-found/index.vue';
 import { Sortable } from 'sortablejs-vue3';
 import RaidTreeItem from './RaidTreeItem.vue';
@@ -238,7 +239,8 @@ watch(modalOpen, async (isOpen) => {
 async function loadRaids() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
   try {
-    raids.value = await guildsApi.getGuildRaids(guildId.value);
+    const raw = await guildsApi.getGuildRaids(guildId.value);
+    raids.value = normalizeGuildRaidTree(raw);
   } catch (e) {
     raids.value = [];
     const st = (e as ApiError)?.status;
@@ -552,22 +554,37 @@ function findRaidInTree(items: RaidItem[], raidId: number): RaidItem | null {
   return null;
 }
 
+/**
+ * Определяет parent_id списка, в который дропнули элемент (Sortable передаёт контейнер списка).
+ * Используем closest: корневой список обёрнут в ul с data-parent-id="".
+ */
+function resolveRaidDropParentId(sortableListEl: HTMLElement): number | null {
+  const marked = sortableListEl.closest('[data-parent-id]') as HTMLElement | null;
+  if (!marked) {
+    return null;
+  }
+  const raw = marked.getAttribute('data-parent-id');
+  if (raw === null || raw === '') {
+    return null;
+  }
+  const n = Number(raw);
+  return Number.isInteger(n) ? n : null;
+}
+
 /** Обработчик дропа рейда (sortablejs-vue3 передаёт событие с item, to и from). */
 async function handleRaidDrop(evt: { item: HTMLElement; to: HTMLElement; from?: HTMLElement }) {
   const movedRaidId = Number(evt.item.getAttribute('data-raid-id'));
   if (!Number.isInteger(movedRaidId)) return;
   const toEl = evt.to as HTMLElement;
-  const parentIdAttr = toEl.getAttribute?.('data-parent-id') ?? toEl.parentElement?.getAttribute?.('data-parent-id') ?? '';
-  const parentId = parentIdAttr === '' ? null : Number(parentIdAttr);
+  const parentId = resolveRaidDropParentId(toEl);
   const descendantIds = getDescendantIds(raids.value, movedRaidId);
   if (parentId !== null && descendantIds.has(parentId)) {
     await loadRaids();
     return;
   }
   const raidIdsInOrder = Array.from(toEl.children)
-    .map((el) => (el as HTMLElement).getAttribute('data-raid-id'))
-    .filter(Boolean)
-    .map(Number)
+    .filter((el): el is HTMLElement => el instanceof HTMLElement && el.hasAttribute('data-raid-id'))
+    .map((el) => Number(el.getAttribute('data-raid-id')))
     .filter((id) => Number.isInteger(id));
   if (raidIdsInOrder.length === 0) return;
 
@@ -580,11 +597,16 @@ async function handleRaidDrop(evt: { item: HTMLElement; to: HTMLElement; from?: 
     for (const r of currentList) byId.set(r.id, r);
     byId.set(movedRaid.id, movedRaid);
     const ordered = raidIdsInOrder.map((id) => byId.get(id)).filter((r): r is RaidItem => r != null);
+    ordered.forEach((r, index) => {
+      r.parent_id = parentId;
+      r.sort_order = index;
+    });
     if (parentId === null) {
       raids.value = ordered;
     } else if (parent) {
       parent.children = ordered;
     }
+    raids.value = normalizeGuildRaidTree(raids.value);
     // Пересоздаём корневой Sortable, иначе он не обновляет DOM и элемент остаётся в двух местах
     raidSortableKey.value++;
   }
@@ -716,10 +738,11 @@ watch(
 
 <template>
   <NotFoundPage v-if="guildRaidsAccessNotFound" />
-  <div v-else class="container py-4 md:py-6 max-w-2xl mx-auto">
+  <div v-else class="container py-4 md:py-6">
+    <div class="min-w-0 max-w-[42rem]">
 
-    <div class="flex justify-between items-center">
-      <div class="text-xl font-semibold pb-4">Рейды · Группы · КП</div>
+    <div class="flex justify-between items-center gap-3 pb-4">
+      <div class="text-xl sm:text-2xl font-semibold">Рейды · Группы · КП</div>
       <Button
         v-if="canFormRaid"
         type="button"
@@ -741,7 +764,7 @@ watch(
         </p>
       </template>
       <div v-else>
-        <ul class="raid-tree space-y-2 pt-2" data-parent-id="" aria-label="Дерево рейдов">
+        <ul class="raid-tree raid-tree-root space-y-1.5 pt-2" data-parent-id="" aria-label="Дерево рейдов">
           <Sortable
             :key="raidSortableKey"
             :list="raids"
@@ -929,6 +952,7 @@ watch(
       @close="closeFormRaidModal"
       @save="saveFormRaid"
     />
+    </div>
   </div>
 </template>
 
@@ -936,23 +960,35 @@ watch(
 .raid-tree {
   min-height: 2px;
 }
+
+.raid-tree-root {
+  list-style: none;
+}
 </style>
 
 <style>
-/* Стили перетаскивания (Sortable применяет классы к элементам вне компонента) */
+/* Стили перетаскивания (Sortable применяет классы к элементам вне компонента).
+   Радиус совпадает с .raid-tree-card (rounded-2xl = 1rem), чтобы имитация при
+   перетаскивании выглядела как сам элемент. */
 .raid-drag-ghost {
   opacity: 0.5;
-  background: hsl(var(--accent));
-  border-radius: 0.5rem;
+  background: var(--accent);
+  border-radius: 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.raid-drag-ghost > .raid-tree-children {
+  display: none;
 }
 .raid-drag-chosen {
   opacity: 0.9;
 }
 .raid-drag-drag {
   opacity: 1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  border-radius: 0.5rem;
-  background-color: white;
+  border-radius: 1rem;
+  background-color: var(--card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.raid-drag-drag > .raid-tree-children {
+  display: none;
 }
 </style>

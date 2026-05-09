@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, Input, Label, Spinner, Tooltip } from '@/shared/ui';
+import { Button, Card, CardContent, Input, Label, Spinner, Tooltip } from '@/shared/ui';
 import {
   DISCORD_NOTIFICATION_LABELS,
   isValidDiscordWebhookUrl,
@@ -90,7 +90,8 @@ function toggleInstruction() {
   <!-- Один корень: у компонента с несколькими корнями v-show родителя не применяется ко всем узлам,
        из‑за этого вкладка Discord была видна на всех вкладках (Card + Teleport). -->
   <div class="min-w-0">
-    <div class="mb-6 min-w-0 space-y-6">
+    <Card class="mb-6 min-w-0 border-0 p-0 shadow-none">
+      <CardContent class="space-y-6 px-2 pt-2">
         <div class="space-y-3">
           <p class="text-sm text-muted-foreground">
             Заполните URL вебхука, отметьте нужные оповещения и нажмите «Сохранить».
@@ -296,7 +297,8 @@ function toggleInstruction() {
               </p>
           </div>
         </div>
-    </div>
+      </CardContent>
+    </Card>
 
   <Teleport to="body">
     <Transition name="discord-lightbox">

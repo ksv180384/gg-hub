@@ -85,6 +85,7 @@ class UpdateGuildRequest extends FormRequest
             'server_id' => ['sometimes', 'required', 'integer', 'exists:servers,id'],
             'show_roster_to_all' => ['sometimes', 'boolean'],
             'is_recruiting' => ['sometimes', 'boolean'],
+            'dkp_enabled' => ['sometimes', 'boolean'],
             'about_text' => ['nullable', 'string'],
             'charter_text' => ['nullable', 'string'],
             'application_form_description' => ['nullable', 'string', 'max:65535'],
@@ -136,6 +137,7 @@ class UpdateGuildRequest extends FormRequest
             'discord_notify_poll_started.boolean' => 'Поле «Запуск нового голосования» должно быть логическим значением.',
             'discord_notify_role_changed.boolean' => 'Поле «Смена роли пользователю» должно быть логическим значением.',
             'discord_notify_post_published.boolean' => 'Поле «Публикация нового поста гильдии» должно быть логическим значением.',
+            'dkp_enabled.boolean' => 'Поле «Система ДКП» должно быть логическим значением.',
             'application_form_description.max' => 'Описание формы заявки не должно превышать 65535 символов.',
         ];
     }

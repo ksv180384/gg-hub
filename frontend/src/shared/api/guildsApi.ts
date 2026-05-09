@@ -72,6 +72,8 @@ export interface Guild {
   leader?: GuildLeader | null;
   members_count?: number;
   is_recruiting: boolean;
+  /** Включена ли система ДКП для гильдии (возвращается с API). */
+  dkp_enabled?: boolean;
   /** Текст над формой заявки (вкладка «Форма заявки», публичная страница заявки). */
   application_form_description?: string | null;
   game_id: number;
@@ -228,6 +230,7 @@ export interface UpdateGuildPayload {
   server_id?: number;
   show_roster_to_all?: boolean;
   is_recruiting?: boolean;
+  dkp_enabled?: boolean;
   about_text?: string | null;
   charter_text?: string | null;
   application_form_description?: string | null;
@@ -795,6 +798,7 @@ export const guildsApi = {
     if (payload.server_id !== undefined) form.append('server_id', String(payload.server_id));
     if (payload.show_roster_to_all !== undefined) form.append('show_roster_to_all', payload.show_roster_to_all ? '1' : '0');
     if (payload.is_recruiting !== undefined) form.append('is_recruiting', payload.is_recruiting ? '1' : '0');
+    if (payload.dkp_enabled !== undefined) form.append('dkp_enabled', payload.dkp_enabled ? '1' : '0');
     if (payload.about_text !== undefined) form.append('about_text', payload.about_text ?? '');
     if (payload.charter_text !== undefined) form.append('charter_text', payload.charter_text ?? '');
     if (payload.application_form_description !== undefined) {

@@ -34,6 +34,7 @@ class Guild extends Model
         'owner_id',
         'leader_character_id',
         'is_recruiting',
+        'dkp_enabled',
         'application_form_description',
         'discord_webhook_url',
         'discord_notify_application_new',
@@ -49,6 +50,7 @@ class Guild extends Model
     {
         return [
             'is_recruiting' => 'boolean',
+            'dkp_enabled' => 'boolean',
             'show_roster_to_all' => 'boolean',
             'discord_notify_application_new' => 'boolean',
             'discord_notify_member_joined' => 'boolean',

@@ -23,6 +23,7 @@ class UpdateEventHistoryRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'occurred_at' => ['sometimes', 'nullable', 'date'],
+            'dkp_base_points' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:1000000000'],
 
             'participants' => ['sometimes', 'nullable', 'array'],
             'participants.*.character_id' => [
@@ -31,6 +32,8 @@ class UpdateEventHistoryRequest extends FormRequest
                 Rule::exists('guild_members', 'character_id')->where('guild_id', $guild->id),
             ],
             'participants.*.external_name' => ['nullable', 'string', 'max:255'],
+            'participants.*.dkp_coefficient' => ['nullable', 'numeric', 'min:0', 'max:999'],
+            'participants.*.dkp_points_override' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
 
             'screenshots' => ['sometimes', 'nullable', 'array'],
             'screenshots.*.url' => ['required_with:screenshots', 'url', 'max:2000'],
@@ -49,11 +52,17 @@ class UpdateEventHistoryRequest extends FormRequest
             'title.max' => 'Название не должно превышать 255 символов.',
             'description.max' => 'Описание не должно превышать 5000 символов.',
             'occurred_at.date' => 'Дата и время проведения должны быть корректной датой.',
+            'dkp_base_points.integer' => 'Очки ДКП должны быть числом.',
+            'dkp_base_points.min' => 'Очки ДКП не могут быть отрицательными.',
 
             'participants.array' => 'Список участников должен быть массивом.',
             'participants.*.character_id.integer' => 'Участник должен быть корректным персонажем.',
             'participants.*.character_id.exists' => 'Выбранный персонаж не состоит в этой гильдии.',
             'participants.*.external_name.max' => 'Ник участника не должен превышать 255 символов.',
+            'participants.*.dkp_coefficient.numeric' => 'Коэффициент ДКП должен быть числом.',
+            'participants.*.dkp_coefficient.min' => 'Коэффициент ДКП не может быть отрицательным.',
+            'participants.*.dkp_points_override.integer' => 'Переопределение ДКП должно быть числом.',
+            'participants.*.dkp_points_override.min' => 'Переопределение ДКП не может быть отрицательным.',
 
             'screenshots.array' => 'Список скриншотов должен быть массивом.',
             'screenshots.*.url.required_with' => 'Укажите ссылку на скриншот.',
@@ -74,9 +83,12 @@ class UpdateEventHistoryRequest extends FormRequest
             'title' => 'название',
             'description' => 'описание',
             'occurred_at' => 'время проведения',
+            'dkp_base_points' => 'очки ДКП',
             'participants' => 'участники',
             'participants.*.character_id' => 'участник гильдии',
             'participants.*.external_name' => 'ник участника',
+            'participants.*.dkp_coefficient' => 'коэффициент ДКП',
+            'participants.*.dkp_points_override' => 'переопределение ДКП',
             'screenshots' => 'скриншоты',
             'screenshots.*.url' => 'ссылка на скриншот',
             'screenshots.*.title' => 'название скриншота',

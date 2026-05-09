@@ -567,8 +567,12 @@ watch(filterGameId, async () => {
               :options="serverMultiOptions"
               placeholder="Все"
               search-placeholder="Поиск сервера..."
-              empty-text="Нет серверов"
-              :disabled="!filterServers.length"
+              :empty-text="
+                filterLocalizationIds.length === 0
+                  ? 'Сначала выберите локализацию'
+                  : 'Нет серверов'
+              "
+              :disabled="loadingFilterOptions || !filterLocalizations.length"
               trigger-class="min-h-8 w-full min-w-0"
               @update:model-value="onServersChange"
             />
@@ -632,8 +636,12 @@ watch(filterGameId, async () => {
               :options="serverMultiOptions"
               placeholder="Все"
               search-placeholder="Поиск сервера..."
-              empty-text="Нет серверов"
-              :disabled="!filterServers.length"
+              :empty-text="
+                filterLocalizationIds.length === 0
+                  ? 'Сначала выберите локализацию'
+                  : 'Нет серверов'
+              "
+              :disabled="loadingFilterOptions || !filterLocalizations.length"
               trigger-class="min-h-8 w-full min-w-0"
               @update:model-value="onServersChange"
             />

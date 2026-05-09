@@ -11,6 +11,7 @@ import { CharacterClassBadge } from '@/entities/character';
 import { guildsApi, type Guild, type GuildRosterMember, type GuildRole } from '@/shared/api/guildsApi';
 import type { GameClass } from '@/shared/api/gamesApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
+import { guildBankApi, type GuildBankGrant } from '@/shared/api/guildBankApi';
 import {
   rosterTagBadgeClass,
   sliceRosterTagRowsForDisplay,
@@ -51,6 +52,10 @@ const tagsError = ref<string | null>(null);
 const tagComboInputId = computed(
   () => `guild-roster-tags-${guildId.value}-${characterId.value}`
 );
+
+const bankGrantsLoading = ref(false);
+const bankGrantsError = ref<string | null>(null);
+const bankGrants = ref<GuildBankGrant[]>([]);
 
 const GUILD_ROLE_SLUG_LEADER = 'leader';
 
@@ -190,6 +195,17 @@ async function loadData() {
     } else {
       guildRoles.value = [];
     }
+
+    bankGrantsLoading.value = true;
+    bankGrantsError.value = null;
+    try {
+      bankGrants.value = await guildBankApi.listMemberGrants(guildId.value, characterId.value);
+    } catch (e: unknown) {
+      bankGrants.value = [];
+      bankGrantsError.value = e instanceof Error ? e.message : 'Не удалось загрузить предметы участника.';
+    } finally {
+      bankGrantsLoading.value = false;
+    }
   } catch (e: unknown) {
     const err = e as Error & { status?: number };
     const msg = err.message ?? '';
@@ -211,6 +227,18 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function openExcludeDialog() {
@@ -539,6 +567,55 @@ watch([guildId, characterId], () => loadData());
                   <p v-if="tagsError" class="text-xs text-destructive">{{ tagsError }}</p>
                 </div>
               </template>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-sm font-medium text-muted-foreground">Предметы от гильдии</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="h-8"
+                  @click="router.push({ name: 'guild-bank', params: { id: String(guildId) } })"
+                >
+                  Открыть хранилище
+                </Button>
+              </div>
+
+              <p v-if="bankGrantsLoading" class="text-sm text-muted-foreground">Загрузка…</p>
+              <p v-else-if="bankGrantsError" class="text-sm text-destructive">{{ bankGrantsError }}</p>
+              <p v-else-if="!bankGrants.length" class="text-sm text-muted-foreground">
+                Пока нет полученных предметов.
+              </p>
+              <ul v-else class="space-y-2">
+                <li v-for="g in bankGrants" :key="g.id" class="rounded border p-3">
+                  <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span
+                          v-if="g.item?.color"
+                          class="inline-block h-2.5 w-2.5 rounded-full border"
+                          :style="{ backgroundColor: g.item.color }"
+                          aria-hidden="true"
+                        />
+                        <span class="font-medium truncate">
+                          {{ g.item?.name ?? `Предмет #${g.guild_bank_item_id}` }}
+                        </span>
+                      </div>
+                      <div class="text-xs text-muted-foreground">
+                        {{ formatDateTime(g.granted_at) }}
+                        <span v-if="g.granted_by_character?.name"> · выдал: {{ g.granted_by_character.name }}</span>
+                      </div>
+                    </div>
+                    <div v-if="g.item?.dkp_cost != null" class="text-xs text-muted-foreground">
+                      ДКП: {{ g.item.dkp_cost }}
+                    </div>
+                  </div>
+                  <div class="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">
+                    {{ g.reason?.trim() ? g.reason : '—' }}
+                  </div>
+                </li>
+              </ul>
             </div>
           </CardContent>
         </Card>

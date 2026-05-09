@@ -87,6 +87,14 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'Состав гильдии' },
         },
         {
+          path: 'guilds/:id/bank',
+          name: 'guild-bank',
+          // В некоторых окружениях резолв алиаса '@' + path с `[id]` даёт ошибку поиска модуля.
+          // Относительный импорт стабильнее, т.к. идёт от `src/router`.
+          component: () => import('../pages/guilds/[id]/bank/index.vue'),
+          meta: { requiresAuth: true, title: 'Хранилище гильдии' },
+        },
+        {
           path: 'guilds/:id/raids',
           name: 'guild-raids',
           component: () => import('@/pages/guilds/[id]/raids/index.vue'),

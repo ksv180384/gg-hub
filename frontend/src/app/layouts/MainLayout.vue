@@ -16,9 +16,6 @@ const routeLoading = useRouteLoadingStore();
 // но показывается только для авторизованных пользователей (включая мобильную версию).
 const sidebarAvailable = computed(() => siteContext.isGameSubdomain || siteContext.isAdmin);
 const showSidebar = computed(() => auth.isAuthenticated && sidebarAvailable.value);
-const reserveSidebarSpace = computed(
-  () => sidebarAvailable.value && (showSidebar.value || auth.loading)
-);
 </script>
 
 <template>
@@ -30,11 +27,11 @@ const reserveSidebarSpace = computed(
     </Header>
     <div class="flex min-h-0 flex-1 items-stretch">
       <!--
-        Резервируем место под сайдбар на desktop всегда, когда он потенциально доступен.
-        Иначе при догрузке auth/user сайдбар появляется и даёт большой CLS (main/body сдвигаются).
+        Колонка под сайдбар на desktop, если субдомен игры/админки — всегда (даже для гостей),
+        чтобы дерево SSR и гидратации совпадало и не было CLS при догрузке пользователя.
       -->
       <div
-        v-if="reserveSidebarSpace"
+        v-if="sidebarAvailable"
         class="hidden min-h-0 w-56 shrink-0 md:flex md:flex-col"
       >
         <GameSidebar v-if="showSidebar" class="min-h-0 flex-1" />
@@ -49,13 +46,13 @@ const reserveSidebarSpace = computed(
           leave-to-class="opacity-0"
         >
           <div
-            v-if="routeLoading.isLoading"
+            v-show="routeLoading.isLoading"
             :class="[
               'fixed top-14 left-0 right-0 bottom-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm',
               showSidebar && 'md:left-56',
             ]"
             aria-live="polite"
-            aria-busy="true"
+            :aria-busy="routeLoading.isLoading"
           >
             <Spinner />
             <p class="text-sm text-muted-foreground">Загрузка…</p>

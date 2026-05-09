@@ -17,7 +17,8 @@ class CreateEventHistoryAction
      *     title: string,
      *     description?: string|null,
      *     occurred_at?: string|null,
-     *     participants?: array<int, array{character_id?: int|null, external_name?: string|null}>,
+     *     dkp_base_points?: int|null,
+     *     participants?: array<int, array{character_id?: int|null, external_name?: string|null, dkp_coefficient?: float|int|string|null, dkp_points_override?: int|null}>,
      *     screenshots?: array<int, array{url: string, title?: string|null, sort_order?: int|null}>
      * }  $data
      */
@@ -37,6 +38,7 @@ class CreateEventHistoryAction
                 'occurred_at' => isset($data['occurred_at']) && $data['occurred_at'] !== null
                     ? Carbon::parse($data['occurred_at'])
                     : now(),
+                'dkp_base_points' => $data['dkp_base_points'] ?? null,
             ];
 
             /** @var EventHistory $history */
@@ -55,6 +57,8 @@ class CreateEventHistoryAction
                     'event_history_id' => $history->id,
                     'character_id' => $participant['character_id'] ?? null,
                     'external_name' => $participant['external_name'] ?? null,
+                    'dkp_coefficient' => $participant['dkp_coefficient'] ?? 1,
+                    'dkp_points_override' => $participant['dkp_points_override'] ?? null,
                 ]);
             }
 
@@ -69,6 +73,7 @@ class CreateEventHistoryAction
             }
 
             return $history->load([
+                'guild:id,dkp_enabled',
                 'participants.character:id,name',
                 'screenshots',
             ]);

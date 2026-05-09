@@ -154,7 +154,7 @@ function clearAll() {
         type="button"
         :disabled="disabled"
         :class="cn(
-          'flex min-w-[120px] justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm font-normal shadow-sm transition-colors',
+          'flex min-w-[120px] justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm font-normal text-foreground shadow-sm transition-colors',
           badgesTriggerMultiline
             ? 'min-h-8 h-auto items-start py-1.5'
             : 'h-8 items-center py-1.5',

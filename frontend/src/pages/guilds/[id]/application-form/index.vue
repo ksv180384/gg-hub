@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRoute, useRouter } from 'vue-router';
 import {
+  BackIconButton,
   Card,
   CardContent,
   CardHeader,
@@ -252,19 +253,60 @@ function setMultiselectFieldValue(fieldId: number, value: (string | number)[]) {
 function onTextareaInput(fieldId: number, e: Event) {
   setFieldValue(fieldId, (e.target as HTMLTextAreaElement).value);
 }
+
+function goToGuildInfo() {
+  router.push({ name: 'guild-info', params: { id: String(guildId.value) } });
+}
 </script>
 
 <template>
-  <div class="container py-6">
-    <Card v-if="loading" class="max-w-2xl mx-auto">
-      <CardContent class="flex items-center justify-center py-12">
-        <Spinner class="h-8 w-8" />
-      </CardContent>
-    </Card>
+  <div class="container py-6 md:py-8">
+    <div class="min-w-0 space-y-4">
+      <template v-if="loading">
+        <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+          <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+            <BackIconButton
+              title="Перейти в гильдию"
+              aria-label="Перейти в гильдию"
+              @click="goToGuildInfo"
+            />
+          </div>
+          <div class="fixed top-[100px] right-8 z-30 md:hidden">
+            <BackIconButton
+              title="Перейти в гильдию"
+              aria-label="Перейти в гильдию"
+              @click="goToGuildInfo"
+            />
+          </div>
+          <div class="min-w-0 w-full flex-1 max-w-2xl">
+            <Card>
+              <CardContent class="flex items-center justify-center py-12">
+                <Spinner class="h-8 w-8" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </template>
 
-    <template v-else-if="formData">
-      <Card class="max-w-2xl mx-auto">
-        <CardHeader class="flex flex-row items-center gap-4 gap-y-2 flex-wrap">
+      <template v-else-if="formData">
+        <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+          <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+            <BackIconButton
+              title="Перейти в гильдию"
+              aria-label="Перейти в гильдию"
+              @click="goToGuildInfo"
+            />
+          </div>
+          <div class="fixed top-[100px] right-8 z-30 md:hidden">
+            <BackIconButton
+              title="Перейти в гильдию"
+              aria-label="Перейти в гильдию"
+              @click="goToGuildInfo"
+            />
+          </div>
+          <div class="min-w-0 w-full flex-1 max-w-2xl">
+            <Card>
+              <CardHeader class="flex flex-row items-center gap-4 gap-y-2 flex-wrap">
           <div
             v-if="logoUrl"
             class="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted"
@@ -277,9 +319,9 @@ function onTextareaInput(fieldId: number, e: Event) {
               {{ formData.game.name }}
               <template v-if="formData.server"> · {{ formData.server.name }}</template>
             </p>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-6">
+              </div>
+              </CardHeader>
+              <CardContent class="space-y-6">
           <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
           <p v-if="success" class="text-sm text-green-600 dark:text-green-400">
             Заявка успешно отправлена. Ожидайте решения руководства гильдии.
@@ -294,7 +336,7 @@ function onTextareaInput(fieldId: number, e: Event) {
             </Button>
           </template>
           <template v-else-if="success">
-            <Button variant="outline" @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })">
+            <Button variant="outline" @click="goToGuildInfo">
               К гильдии
             </Button>
           </template>
@@ -391,7 +433,7 @@ function onTextareaInput(fieldId: number, e: Event) {
                 v-else-if="field.type === 'textarea'"
                 :id="`field-${field.id}`"
                 :value="fieldValues[field.id] ?? ''"
-                class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                 :placeholder="field.required ? 'Обязательное поле' : ''"
                 :disabled="isFormDisabled"
                 :required="field.required"
@@ -426,23 +468,46 @@ function onTextareaInput(fieldId: number, e: Event) {
               <Button
                 type="button"
                 variant="outline"
-                @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })"
+                @click="goToGuildInfo"
               >
                 Отмена
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
-    </template>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </template>
 
-    <Card v-else class="max-w-2xl mx-auto">
-      <CardContent class="py-8 text-center">
-        <p class="text-muted-foreground">{{ error ?? 'Гильдия не найдена.' }}</p>
-        <Button variant="outline" class="mt-4" @click="router.push({ name: 'guilds' })">
-          К списку гильдий
-        </Button>
-      </CardContent>
-    </Card>
+      <template v-else>
+        <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+          <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+            <BackIconButton
+              title="Перейти в гильдию"
+              aria-label="Перейти в гильдию"
+              @click="goToGuildInfo"
+            />
+          </div>
+          <div class="fixed top-[100px] right-8 z-30 md:hidden">
+            <BackIconButton
+              title="Перейти в гильдию"
+              aria-label="Перейти в гильдию"
+              @click="goToGuildInfo"
+            />
+          </div>
+          <div class="min-w-0 w-full flex-1 max-w-2xl">
+            <Card>
+              <CardContent class="py-8 text-center">
+                <p class="text-muted-foreground">{{ error ?? 'Гильдия не найдена.' }}</p>
+                <Button variant="outline" class="mt-4" @click="router.push({ name: 'guilds' })">
+                  К списку гильдий
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </template>
+    </div>
   </div>
 </template>

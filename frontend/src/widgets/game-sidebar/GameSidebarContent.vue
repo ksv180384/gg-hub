@@ -43,6 +43,7 @@ const guildSubmenuItems: GuildSubmenuItem[] = [
   { pathSuffix: '/posts', label: 'Журнал гильдии' },
   { pathSuffix: '/settings', label: 'Информация' },
   { pathSuffix: '/roster', label: 'Состав' },
+  { pathSuffix: '/bank', label: 'Хранилище гильдии' },
   { pathSuffix: '/raids', label: 'Рейды|Группы|КП' },
   { pathSuffix: '/applications', label: 'Заявки и приглашения' },
   { pathSuffix: '/calendar', label: 'Календарь событий' },

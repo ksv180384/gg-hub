@@ -9,6 +9,52 @@ class GuildPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
+        $bankGroup = PermissionGroup::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'bank',
+            ],
+            [
+                'name' => 'Хранилище гильдии',
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'dobavliat-predmety',
+            ],
+            [
+                'name' => 'Добавлять предметы',
+                'description' => 'Добавление и редактирование предметов хранилища гильдии',
+                'permission_group_id' => $bankGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'udaliat-predmety',
+            ],
+            [
+                'name' => 'Удалять предметы',
+                'description' => 'Удаление предметов банка гильдии',
+                'permission_group_id' => $bankGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'peredavat-predmety-polzovateliam',
+            ],
+            [
+                'name' => 'Передавать предметы пользователям',
+                'description' => 'Выдача предметов участникам гильдии с указанием причины',
+                'permission_group_id' => $bankGroup->id,
+            ]
+        );
+
         $raidsGroup = PermissionGroup::firstOrCreate(
             [
                 'scope' => PermissionScope::Guild,

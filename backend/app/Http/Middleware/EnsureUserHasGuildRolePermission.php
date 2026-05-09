@@ -26,7 +26,7 @@ class EnsureUserHasGuildRolePermission
 
         $guild = $request->route('guild');
         if (!$guild instanceof Guild) {
-            return $next($request);
+            return response()->json(['message' => 'Гильдия не найдена.'], 404);
         }
 
         $required = array_map('trim', explode(',', $allowedSlugs));

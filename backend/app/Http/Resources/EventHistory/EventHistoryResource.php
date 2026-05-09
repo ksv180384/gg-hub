@@ -14,18 +14,28 @@ class EventHistoryResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $guildDkpEnabled = (bool) ($this->relationLoaded('guild') ? ($this->guild?->dkp_enabled ?? false) : false);
+        $dkpBasePoints = $this->dkp_base_points === null ? null : (int) $this->dkp_base_points;
+
         return [
             'id' => $this->id,
             'guild_id' => $this->guild_id,
             'title' => $this->titleReference?->name ?? '',
             'description' => $this->description,
             'occurred_at' => $this->occurred_at?->toIso8601String(),
-            'participants' => $this->whenLoaded('participants', function () {
-                return $this->participants->map(function ($participant) {
+            'dkp' => $guildDkpEnabled ? [
+                'base_points' => $dkpBasePoints,
+            ] : null,
+            'participants' => $this->whenLoaded('participants', function () use ($guildDkpEnabled) {
+                return $this->participants->map(function ($participant) use ($guildDkpEnabled) {
                     return [
                         'id' => $participant->id,
                         'character_id' => $participant->character_id,
                         'external_name' => $participant->external_name,
+                        'dkp' => $guildDkpEnabled ? [
+                            'coefficient' => (float) ($participant->dkp_coefficient ?? 1),
+                            'points_override' => $participant->dkp_points_override === null ? null : (int) $participant->dkp_points_override,
+                        ] : null,
                         'character' => $participant->relationLoaded('character') && $participant->character
                             ? [
                                 'id' => $participant->character->id,

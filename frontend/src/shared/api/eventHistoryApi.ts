@@ -9,6 +9,7 @@ export interface EventHistoryParticipantDto {
   id: number;
   character_id: number | null;
   external_name: string | null;
+  dkp?: { coefficient: number; points_override: number | null };
   character?: { id: number; name: string } | null;
 }
 
@@ -25,6 +26,7 @@ export interface EventHistoryItem {
   title: string;
   description: string | null;
   occurred_at: string | null;
+  dkp?: { base_points: number | null } | null;
   participants?: EventHistoryParticipantDto[];
   screenshots?: EventHistoryScreenshotDto[];
   created_at: string | null;
@@ -35,7 +37,13 @@ export interface CreateEventHistoryPayload {
   title: string;
   description?: string | null;
   occurred_at?: string | null;
-  participants?: { character_id?: number | null; external_name?: string | null }[];
+  dkp_base_points?: number | null;
+  participants?: {
+    character_id?: number | null;
+    external_name?: string | null;
+    dkp_coefficient?: number | null;
+    dkp_points_override?: number | null;
+  }[];
   screenshots?: { url: string; title?: string | null; sort_order?: number | null }[];
 }
 

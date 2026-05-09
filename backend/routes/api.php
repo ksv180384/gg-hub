@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\UserRolePermissionController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventHistoryController;
 use App\Http\Controllers\Api\EventHistoryTitleController;
+use App\Http\Controllers\Api\GuildBankController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\RaidController;
 use App\Http\Controllers\Api\TagController;
@@ -111,6 +112,15 @@ Route::middleware(['auth'])->group(function () {
     Route::match(['put', 'patch'], '/guilds/{guild}/events/{event}', [EventController::class, 'update'])->middleware('guild.member', 'guild.role.permission:redaktirovat-sobytie-kalendar');
     Route::delete('/guilds/{guild}/events/{event}', [EventController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-sobytie-kalendar');
     Route::post('/guilds/{guild}/events/{event}/decline', [EventController::class, 'decline'])->middleware('guild.member');
+
+    Route::get('/guilds/{guild}/bank/items', [GuildBankController::class, 'items'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/bank/items', [GuildBankController::class, 'storeItem'])->middleware('guild.member', 'guild.role.permission:dobavliat-predmety');
+    Route::match(['put', 'patch'], '/guilds/{guild}/bank/items/{item}', [GuildBankController::class, 'updateItem'])->middleware('guild.member', 'guild.role.permission:dobavliat-predmety');
+    Route::delete('/guilds/{guild}/bank/items/{item}', [GuildBankController::class, 'destroyItem'])->middleware('guild.member', 'guild.role.permission:udaliat-predmety');
+    Route::get('/guilds/{guild}/bank/items/{item}/grants', [GuildBankController::class, 'itemGrants'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/bank/grants', [GuildBankController::class, 'storeGrant'])->middleware('guild.member', 'guild.role.permission:peredavat-predmety-polzovateliam');
+    Route::delete('/guilds/{guild}/bank/grants/{grant}', [GuildBankController::class, 'revokeGrant'])->middleware('guild.member', 'guild.role.permission:peredavat-predmety-polzovateliam');
+    Route::get('/guilds/{guild}/bank/members/{character}/grants', [GuildBankController::class, 'memberGrants'])->middleware('guild.member');
 
     Route::get('/guilds/{guild}/event-history', [EventHistoryController::class, 'index'])->middleware('guild.member');
     Route::get('/guilds/{guild}/event-history/{eventHistory}', [EventHistoryController::class, 'show'])->middleware('guild.member');

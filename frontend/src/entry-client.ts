@@ -10,6 +10,7 @@ import { useSiteContextStore } from '@/stores/siteContext';
 import { setupHttpInterceptors } from '@/shared/api/http-interceptors';
 import { setHydrating } from '@/ssr/hydrationFlag';
 import '@/assets/main.css';
+import '@cyhnkckali/vue3-color-picker/dist/style.css';
 
 async function bootstrap() {
   const el = document.getElementById('app');

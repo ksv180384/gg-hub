@@ -23,7 +23,7 @@ class EnsureUserIsGuildMember
 
         $guild = $request->route('guild');
         if (!$guild instanceof Guild) {
-            return $next($request);
+            return response()->json(['message' => 'Страница не найдена.'], 404);
         }
 
         $isMember = $guild->members()
