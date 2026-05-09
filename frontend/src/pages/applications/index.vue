@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
+import { Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 
 const router = useRouter();
@@ -38,6 +38,11 @@ function statusLabel(status: string) {
   return status;
 }
 
+function typeLabel(status: string) {
+  if (status === 'invitation' || status === 'revoked') return 'Приглашение';
+  return 'Заявка';
+}
+
 function openApplication(app: GuildApplicationItem) {
   if (!app.guild_id || !app.id) return;
   router.push({
@@ -49,11 +54,10 @@ function openApplication(app: GuildApplicationItem) {
 
 <template>
   <div class="container py-6">
-    <Card class="max-w-3xl mx-auto">
-      <CardHeader>
-        <CardTitle class="text-xl">Мои заявки и приглашения</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0">
+        <h1 class="mb-4 text-xl font-semibold tracking-tight">Мои заявки и приглашения</h1>
+
         <div v-if="loading" class="flex justify-center py-10">
           <Spinner class="h-8 w-8" />
         </div>
@@ -74,9 +78,16 @@ function openApplication(app: GuildApplicationItem) {
               @click="openApplication(app)"
             >
               <div class="min-w-0">
-                <p class="text-sm font-medium">
-                  {{ app.guild?.name ?? 'Гильдия #' + app.guild_id }}
-                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="min-w-0 truncate text-sm font-medium">
+                    {{ app.guild?.name ?? 'Гильдия #' + app.guild_id }}
+                  </p>
+                  <span
+                    class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground"
+                  >
+                    {{ typeLabel(app.status) }}
+                  </span>
+                </div>
                 <p class="text-xs text-muted-foreground">
                   Персонаж: {{ app.character?.name ?? '—' }}
                 </p>
@@ -84,7 +95,7 @@ function openApplication(app: GuildApplicationItem) {
               <div class="text-right text-xs">
                 <p
                   :class="
-                    app.status === 'pending'
+                    app.status === 'pending' || app.status === 'invitation'
                       ? 'font-medium text-green-600 dark:text-green-400'
                       : 'text-muted-foreground'
                   "
@@ -98,8 +109,10 @@ function openApplication(app: GuildApplicationItem) {
             </li>
           </ul>
         </template>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div class="hidden lg:block" />
+    </div>
   </div>
 </template>
 

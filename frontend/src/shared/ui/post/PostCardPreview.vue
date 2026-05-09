@@ -17,15 +17,23 @@ interface Props {
   showGame?: boolean;
   /** Показывать статусы поста (общий и гильдейский). */
   showStatus?: boolean;
+  /** Делать заголовок кликабельным и подсвечивать при hover. */
+  titleClickable?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   dateType: 'guild',
+  titleClickable: true,
 });
 
 function displayBody(): string {
   if (props.post.preview?.trim()) return props.post.preview;
-  return '';
+  const raw = (props.post.body ?? '').trim();
+  if (!raw) return '';
+  const text = raw.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  if (text.length <= 240) return text;
+  return text.slice(0, 240) + '…';
 }
 
 const isPreviewHtml = computed(
@@ -121,13 +129,17 @@ useVideoPlaybackTracking(previewContainerRef, {
           </div>
         </div>
       </div>
+      <div v-if="$slots.headerRight" class="shrink-0">
+        <slot name="headerRight" />
+      </div>
     </header>
 
     <div class="px-4 pb-2">
       <h3
-        class="text-[18px] leading-snug font-semibold text-foreground/95 cursor-pointer hover:underline line-clamp-2"
+        class="text-[18px] leading-snug font-semibold text-foreground/95 line-clamp-2"
+        :class="props.titleClickable ? 'cursor-pointer hover:underline' : 'cursor-default'"
         :title="post.title || 'Без заголовка'"
-        @click.stop="emit('titleClick')"
+        @click.stop="props.titleClickable && emit('titleClick')"
       >
         {{ post.title || 'Без заголовка' }}
       </h3>
@@ -143,14 +155,15 @@ useVideoPlaybackTracking(previewContainerRef, {
       {{ displayBody() }}
     </p>
     <div
-      v-if="post.views_count != null || post.comments_count != null"
-      class="flex items-center gap-4 border-t bg-card px-4 py-3 text-xs text-muted-foreground"
+      v-if="post.views_count != null || post.comments_count != null || $slots.footerRight"
+      class="flex items-center justify-between gap-4 border-t bg-card px-4 py-3 text-xs text-muted-foreground"
     >
-      <div
-        v-if="post.views_count != null"
-        class="flex items-center gap-1.5"
-        title="Просмотры"
-      >
+      <div class="flex items-center gap-4">
+        <div
+          v-if="post.views_count != null"
+          class="flex items-center gap-1.5"
+          title="Просмотры"
+        >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="14"
@@ -168,29 +181,33 @@ useVideoPlaybackTracking(previewContainerRef, {
         </svg>
         <span>{{ post.views_count }}</span>
       </div>
-      <button
-        v-if="post.comments_count != null"
-        type="button"
-        class="flex cursor-pointer items-center gap-1.5 hover:text-foreground"
-        title="Комментарии"
-        @click.stop="emit('commentsClick')"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="shrink-0"
+        <button
+          v-if="post.comments_count != null"
+          type="button"
+          class="flex cursor-pointer items-center gap-1.5 hover:text-foreground"
+          title="Комментарии"
+          @click.stop="emit('commentsClick')"
         >
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        <span>{{ post.comments_count }}</span>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="shrink-0"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span>{{ post.comments_count }}</span>
+        </button>
+      </div>
+      <div v-if="$slots.footerRight" class="shrink-0">
+        <slot name="footerRight" />
+      </div>
     </div>
   </article>
 </template>

@@ -11,6 +11,7 @@ use App\Http\Resources\Poll\UserPollResource;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\Guild\GuildApplicationResource;
 use Domains\Event\Actions\ListUserGuildCalendarEventsAction;
+use Domains\Guild\Actions\CountUserActiveGuildApplicationsAction;
 use Domains\Guild\Actions\GetUserGuildsForGameAction;
 use Domains\Guild\Actions\ListUserGuildApplicationsAction;
 use Domains\Poll\Actions\ListUserPollsAction;
@@ -25,6 +26,7 @@ class UserController extends Controller
         private UpdateUserProfileAction $updateUserProfileAction,
         private GetUserGuildsForGameAction $getUserGuildsForGameAction,
         private ListUserGuildApplicationsAction $listUserGuildApplicationsAction,
+        private CountUserActiveGuildApplicationsAction $countUserActiveGuildApplicationsAction,
         private ListUserPollsAction $listUserPollsAction,
         private ListUserGuildCalendarEventsAction $listUserGuildCalendarEventsAction
     ) {}
@@ -119,6 +121,21 @@ class UserController extends Controller
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Количество активных заявок/приглашений пользователя.
+     * Активные статусы: pending, invitation.
+     */
+    public function applicationsActiveCount(Request $request): JsonResponse
+    {
+        $count = ($this->countUserActiveGuildApplicationsAction)($request->user());
+
+        return response()->json([
+            'data' => [
+                'count' => $count,
             ],
         ]);
     }

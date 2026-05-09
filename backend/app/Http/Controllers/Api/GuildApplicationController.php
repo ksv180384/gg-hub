@@ -7,6 +7,7 @@ use App\Actions\Notification\CreateGuildApplicationRejectedNotificationAction;
 use App\Actions\Notification\CreateGuildApplicationApprovedNotificationAction;
 use App\Actions\Notification\CreateGuildInvitationNotificationAction;
 use App\Actions\Notification\CreateGuildInvitationRevokedNotificationAction;
+use App\Actions\Notification\CreateGuildInvitationRevokedForUserNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\SendGuildInvitationRequest;
 use App\Http\Requests\Guild\SubmitGuildApplicationRequest;
@@ -37,6 +38,7 @@ class GuildApplicationController extends Controller
         private CreateGuildApplicationRejectedNotificationAction $createRejectedNotificationAction,
         private CreateGuildApplicationApprovedNotificationAction $createApprovedNotificationAction,
         private CreateGuildInvitationRevokedNotificationAction $createInvitationRevokedNotificationAction,
+        private CreateGuildInvitationRevokedForUserNotificationAction $createInvitationRevokedForUserNotificationAction,
         private ListGuildApplicationsAction $listAction,
         private ApproveGuildApplicationAction $approveAction,
         private RejectGuildApplicationAction $rejectAction,
@@ -231,6 +233,7 @@ class GuildApplicationController extends Controller
             $application = ($this->revokeInvitationAction)($request->user(), $guild, $application);
             $application->load(['character', 'revokedByCharacter']);
             ($this->createInvitationRevokedNotificationAction)($application);
+            ($this->createInvitationRevokedForUserNotificationAction)($application);
             return response()->json(new GuildApplicationResource($application));
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([

@@ -55,7 +55,10 @@ class GetUserGuildsForGameAction
             })
             ->with('leader')
             ->withCount([
-                'applications as pending_applications_count' => fn ($q) => $q->where('status', GuildApplicationStatus::Pending->value),
+                'applications as pending_applications_count' => fn ($q) => $q->whereIn('status', [
+                    GuildApplicationStatus::Pending->value,
+                    GuildApplicationStatus::Invitation->value,
+                ]),
             ])
             ->orderBy('name')
             ->get();

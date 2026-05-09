@@ -11,6 +11,7 @@ import {
   CardTitle,
   Spinner,
 } from '@/shared/ui';
+import { BackIconButton } from '@/shared/ui';
 import {
   DialogRoot,
   DialogPortal,
@@ -26,6 +27,7 @@ import { useAuthStore } from '@/stores/auth';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { guildsApi, type UserGuildItem } from '@/shared/api/guildsApi';
 import CharacterClassBadge from '../CharacterClassBadge.vue';
+import { rosterTagBadgeClass, sortRosterTagRows, sliceRosterTagRowsForDisplay, type RosterTagRow } from '@/shared/lib/rosterTagDisplay';
 
 const route = useRoute();
 const router = useRouter();
@@ -43,6 +45,18 @@ const inviteError = ref<string | null>(null);
 const inviteSuccess = ref(false);
 
 const characterId = computed(() => Number(route.params.id));
+
+const tagRows = computed((): RosterTagRow[] => {
+  const tags = character.value?.tags ?? [];
+  return sortRosterTagRows(
+    tags.map((t) => ({
+      tag: t,
+      source: t.used_by_guild_id != null ? 'guild' : 'personal',
+    }))
+  );
+});
+
+const tagsUi = computed(() => sliceRosterTagRowsForDisplay(tagRows.value));
 
 async function loadCharacter() {
   if (!game.value?.id || !characterId.value) return;
@@ -116,97 +130,117 @@ watch([() => game.value?.id, characterId], () => {
 </script>
 
 <template>
-  <div class="container py-6">
-    <div v-if="loading" class="flex justify-center py-12">
-      <Spinner class="h-8 w-8" />
-    </div>
+  <div class="container py-6 md:py-8">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0 space-y-4">
+        <div v-if="loading" class="flex justify-center py-12">
+          <Spinner class="h-8 w-8" />
+        </div>
 
-    <template v-else-if="!character">
-      <Card class="border-destructive/50">
-        <CardHeader>
-          <CardTitle>Персонаж не найден</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p class="text-sm text-muted-foreground mb-4">
-            Персонаж не найден или был удалён.
-          </p>
-          <Button variant="outline" @click="router.push({ name: 'game-characters' })">
-            К списку персонажей
-          </Button>
-        </CardContent>
-      </Card>
-    </template>
-
-    <template v-else>
-      <div class="mb-4 flex flex-wrap items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="shrink-0 -ml-2"
-          @click="router.push({ name: 'game-characters' })"
-        >
-          ← К списку персонажей
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="flex flex-wrap items-center gap-4">
-            <Avatar
-              :src="character.avatar_url ?? undefined"
-              :alt="character.name"
-              :fallback="character.name.slice(0, 2).toUpperCase()"
-              class="h-20 w-20 shrink-0 rounded-lg"
-            />
-            <div class="min-w-0">
-              <CardTitle class="text-xl">{{ character.name }}</CardTitle>
-              <p class="text-sm text-muted-foreground mt-1">
-                <span v-if="character.localization?.name">{{ character.localization.name }}</span>
-                <template v-if="character.localization?.name && character.server?.name"> · </template>
-                <span v-if="character.server?.name">{{ character.server.name }}</span>
-                <template v-if="!character.localization?.name && !character.server?.name">—</template>
+        <template v-else-if="!character">
+          <Card class="border-destructive/50">
+            <CardHeader>
+              <CardTitle>Персонаж не найден</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p class="text-sm text-muted-foreground mb-4">
+                Персонаж не найден или был удалён.
               </p>
-              <div v-if="character.guild" class="mt-2">
-                <RouterLink
-                  :to="{ name: 'guild-show', params: { id: character.guild.id } }"
-                  class="text-sm text-primary hover:underline"
-                >
-                  Гильдия: {{ character.guild.name }}
-                </RouterLink>
-              </div>
-              <div v-if="character.game_classes?.length" class="mt-2 flex flex-wrap items-center gap-1.5">
-                <CharacterClassBadge
-                  v-for="gc in character.game_classes"
-                  :key="gc.id"
-                  :game-class="gc"
-                />
-              </div>
-              <div v-if="character.tags?.length" class="mt-2 flex flex-wrap items-center gap-1">
-                <Badge
-                  v-for="tag in character.tags"
-                  :key="tag.id"
-                  variant="outline"
-                  class="text-xs font-normal"
-                >
-                  {{ tag.name }}
-                </Badge>
-              </div>
+              <Button variant="outline" @click="router.push({ name: 'game-characters' })">
+                К списку персонажей
+              </Button>
+            </CardContent>
+          </Card>
+        </template>
+
+        <template v-else>
+          <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+            <!-- Desktop: стрелка слева от контента -->
+            <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+              <BackIconButton
+                aria-label="К списку персонажей"
+                title="К списку персонажей"
+                @click="router.push({ name: 'game-characters' })"
+              />
+            </div>
+
+            <!-- Mobile: одна плавающая кнопка справа -->
+            <div class="fixed top-[100px] right-8 z-30 md:hidden">
+              <BackIconButton
+                aria-label="К списку персонажей"
+                title="К списку персонажей"
+                @click="router.push({ name: 'game-characters' })"
+              />
+            </div>
+
+            <div class="min-w-0 w-full flex-1">
+              <Card>
+                <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="flex flex-wrap items-center gap-4">
+                    <Avatar
+                      :src="character.avatar_url ?? undefined"
+                      :alt="character.name"
+                      :fallback="character.name.slice(0, 2).toUpperCase()"
+                      class="h-20 w-20 shrink-0 rounded-lg"
+                    />
+                    <div class="min-w-0">
+                      <CardTitle class="text-xl">{{ character.name }}</CardTitle>
+                      <p class="text-sm text-muted-foreground mt-1">
+                        <span v-if="character.localization?.name">{{ character.localization.name }}</span>
+                        <template v-if="character.localization?.name && character.server?.name"> · </template>
+                        <span v-if="character.server?.name">{{ character.server.name }}</span>
+                        <template v-if="!character.localization?.name && !character.server?.name">—</template>
+                      </p>
+                      <div v-if="character.guild" class="mt-2">
+                        <RouterLink
+                          :to="{ name: 'guild-show', params: { id: character.guild.id } }"
+                          class="text-sm text-primary hover:underline"
+                        >
+                          Гильдия: {{ character.guild.name }}
+                        </RouterLink>
+                      </div>
+                      <div v-if="character.game_classes?.length" class="mt-2 flex flex-wrap items-center gap-1.5">
+                        <CharacterClassBadge
+                          v-for="gc in character.game_classes"
+                          :key="gc.id"
+                          :game-class="gc"
+                        />
+                      </div>
+                      <div v-if="tagsUi.visible.length" class="mt-2 flex flex-wrap items-center gap-1.5">
+                        <Badge
+                          v-for="row in tagsUi.visible"
+                          :key="row.source + '-' + row.tag.id"
+                          variant="outline"
+                          :class="[rosterTagBadgeClass(row.source, row.tag), 'text-xs font-normal']"
+                        >
+                          {{ row.tag.name }}
+                        </Badge>
+                        <span
+                          v-if="tagsUi.moreCount > 0"
+                          class="text-xs text-muted-foreground"
+                          :title="`Ещё ${tagsUi.moreCount} тегов`"
+                        >
+                          +{{ tagsUi.moreCount }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    v-if="canShowInviteButton"
+                    class="shrink-0"
+                    @click="openInviteModal"
+                  >
+                    Пригласить в гильдию
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <p v-if="!character.guild && !character.game_classes?.length && !character.tags?.length && (!character.localization?.name && !character.server?.name)" class="text-sm text-muted-foreground">
+                    Дополнительная информация о персонаже отсутствует.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
-          <Button
-            v-if="canShowInviteButton"
-            class="shrink-0"
-            @click="openInviteModal"
-          >
-            Пригласить в гильдию
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <p v-if="!character.guild && !character.game_classes?.length && !character.tags?.length && (!character.localization?.name && !character.server?.name)" class="text-sm text-muted-foreground">
-            Дополнительная информация о персонаже отсутствует.
-          </p>
-        </CardContent>
-      </Card>
 
       <!-- Модалка выбора гильдии для приглашения -->
       <DialogRoot :open="inviteModalOpen" @update:open="(v: boolean) => { if (!v) closeInviteModal(); }">
@@ -253,6 +287,10 @@ watch([() => game.value?.id, characterId], () => {
         </DialogPortal>
         </ClientOnly>
       </DialogRoot>
-    </template>
+        </template>
+      </div>
+
+      <div class="hidden lg:block" />
+    </div>
   </div>
 </template>

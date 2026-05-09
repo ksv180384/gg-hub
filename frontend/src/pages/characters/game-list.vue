@@ -266,6 +266,16 @@ const gameListExtraFiltersActive = computed(
     filterCommonTagIds.value.length > 0,
 );
 
+const gameListActiveFiltersCount = computed(() => {
+  let n = 0;
+  if (filterName.value.trim().length > 0) n += 1;
+  if (filterLocalizationIds.value.length > 0) n += 1;
+  if (filterServerIds.value.length > 0) n += 1;
+  if (filterGameClassIds.value.length > 0) n += 1;
+  if (filterCommonTagIds.value.length > 0) n += 1;
+  return n;
+});
+
 const filterReady = ref(false);
 
 onMounted(async () => {
@@ -292,187 +302,198 @@ watch(
 </script>
 
 <template>
-  <div class="container py-6">
-    <Card v-if="!game" class="border-destructive/50">
-      <CardHeader>
-        <CardTitle>Персонажи</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p class="text-sm text-muted-foreground">
-          Перейдите на страницу игры (поддомен игры), чтобы увидеть список персонажей.
-        </p>
-      </CardContent>
-    </Card>
+  <div class="container py-6 md:py-8">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0">
+        <Card v-if="!game" class="border-destructive/50">
+          <CardHeader>
+            <CardTitle>Персонажи</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p class="text-sm text-muted-foreground">
+              Перейдите на страницу игры (поддомен игры), чтобы увидеть список персонажей.
+            </p>
+          </CardContent>
+        </Card>
 
-    <template v-else>
-      <div class="mb-4">
-        <h1 class="text-xl font-semibold sm:text-2xl">Персонажи</h1>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Все персонажи игры {{ game.name }}
-        </p>
-      </div>
+        <template v-else>
+          <div class="mb-4">
+            <h1 class="text-xl font-semibold sm:text-2xl">Персонажи</h1>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Все персонажи игры {{ game.name }}
+            </p>
+          </div>
 
-      <ResponsiveFiltersToolbar
-        v-model:name="filterName"
-        class="mb-6"
-        :extra-filters-active="gameListExtraFiltersActive"
-        name-placeholder="Поиск по имени..."
-        extra-filters-title="Локализация, сервер, классы, теги"
-        popover-trigger-title="Локализация, сервер, классы, теги"
-        popover-trigger-aria-label="Открыть фильтры: локализация, сервер, классы, теги"
-        reset-button-title="Сбросить фильтр"
-        reset-button-aria-label="Сбросить фильтр"
-        name-mobile-input-id="game-char-filter-name-mobile"
-        name-desktop-input-id="game-char-filter-name-desktop"
-        @reset="resetFilter"
-      >
-        <template #extra-filters>
-          <div class="grid gap-1.5">
-            <Label>Локализация</Label>
-            <MultiSelect
-              :model-value="filterLocalizationIds"
-              :options="localizationMultiOptions"
-              placeholder="Все"
-              search-placeholder="Поиск локализации..."
-              empty-text="Нет локализаций"
-              :disabled="loadingFilterOptions || !filterLocalizations.length"
-              trigger-class="min-h-8 w-full min-w-0"
-              @update:model-value="onLocalizationsChange"
-            />
+          <ResponsiveFiltersToolbar
+            v-model:name="filterName"
+            class="mb-6"
+            desktop-extra-filters-trigger
+            desktop-name-wrap-class="min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]"
+            :extra-filters-active="gameListExtraFiltersActive"
+            :active-filters-count="gameListActiveFiltersCount"
+            name-placeholder="Поиск по имени..."
+            extra-filters-title="Локализация, сервер, классы, теги"
+            popover-trigger-title="Классы, теги"
+            popover-trigger-aria-label="Открыть фильтры: классы, теги"
+            reset-button-title="Сбросить фильтр"
+            reset-button-aria-label="Сбросить фильтр"
+            name-mobile-input-id="game-char-filter-name-mobile"
+            name-desktop-input-id="game-char-filter-name-desktop"
+            @reset="resetFilter"
+          >
+            <template #extra-filters>
+              <div class="grid gap-1.5">
+                <Label>Локализация</Label>
+                <MultiSelect
+                  :model-value="filterLocalizationIds"
+                  :options="localizationMultiOptions"
+                  placeholder="Все"
+                  search-placeholder="Поиск локализации..."
+                  empty-text="Нет локализаций"
+                  :disabled="loadingFilterOptions || !filterLocalizations.length"
+                  trigger-class="min-h-8 w-full min-w-0"
+                  @update:model-value="onLocalizationsChange"
+                />
+              </div>
+              <div class="grid gap-1.5">
+                <Label>Сервер</Label>
+                <MultiSelect
+                  :model-value="filterServerIds"
+                  :options="serverMultiOptions"
+                  placeholder="Все"
+                  search-placeholder="Поиск сервера..."
+                  empty-text="Нет серверов"
+                  :disabled="!filterServers.length"
+                  trigger-class="min-h-8 w-full min-w-0"
+                  @update:model-value="onServersChange"
+                />
+              </div>
+              <div class="grid gap-1.5">
+                <Label>Классы</Label>
+                <MultiSelect
+                  :model-value="filterGameClassIds"
+                  :options="gameClassMultiOptions"
+                  :max-selected="gameMaxClassesPerCharacter"
+                  hide-actions
+                  placeholder="Все классы"
+                  search-placeholder="Поиск классов..."
+                  empty-text="Нет классов"
+                  :disabled="loadingFilterOptions || !filterGameClasses.length"
+                  trigger-class="min-h-8 w-full min-w-0"
+                  display-mode="badges"
+                  @update:model-value="onGameClassesChange"
+                />
+              </div>
+              <div class="grid gap-1.5">
+                <Label>Общие теги</Label>
+                <MultiSelect
+                  :model-value="filterCommonTagIds"
+                  :options="commonTagMultiOptions"
+                  placeholder="Все"
+                  search-placeholder="Поиск тега..."
+                  empty-text="Нет общих тегов"
+                  :disabled="!commonTags.length"
+                  trigger-class="min-h-8 w-full min-w-0"
+                  display-mode="badges"
+                  @update:model-value="onCommonTagsChange"
+                />
+              </div>
+            </template>
+            <template #desktop-filters>
+              <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
+                <Label>Локализация</Label>
+                <MultiSelect
+                  :model-value="filterLocalizationIds"
+                  :options="localizationMultiOptions"
+                  placeholder="Все"
+                  search-placeholder="Поиск локализации..."
+                  empty-text="Нет локализаций"
+                  :disabled="loadingFilterOptions || !filterLocalizations.length"
+                  trigger-class="min-h-8 w-full min-w-0"
+                  @update:model-value="onLocalizationsChange"
+                />
+              </div>
+              <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
+                <Label>Сервер</Label>
+                <MultiSelect
+                  :model-value="filterServerIds"
+                  :options="serverMultiOptions"
+                  placeholder="Все"
+                  search-placeholder="Поиск сервера..."
+                  empty-text="Нет серверов"
+                  :disabled="!filterServers.length"
+                  trigger-class="min-h-8 w-full min-w-0"
+                  @update:model-value="onServersChange"
+                />
+              </div>
+            </template>
+            <template #desktop-extra-filters>
+              <div class="grid gap-1.5">
+                <Label>Классы</Label>
+                <MultiSelect
+                  :model-value="filterGameClassIds"
+                  :options="gameClassMultiOptions"
+                  :max-selected="gameMaxClassesPerCharacter"
+                  hide-actions
+                  placeholder="Все классы"
+                  search-placeholder="Поиск классов..."
+                  empty-text="Нет классов"
+                  :disabled="loadingFilterOptions || !filterGameClasses.length"
+                  trigger-class="min-h-8 w-full min-w-0"
+                  display-mode="badges"
+                  @update:model-value="onGameClassesChange"
+                />
+              </div>
+              <div class="grid gap-1.5">
+                <Label>Общие теги</Label>
+                <MultiSelect
+                  :model-value="filterCommonTagIds"
+                  :options="commonTagMultiOptions"
+                  placeholder="Все"
+                  search-placeholder="Поиск тега..."
+                  empty-text="Нет общих тегов"
+                  :disabled="!commonTags.length"
+                  trigger-class="min-h-8 w-full min-w-0"
+                  display-mode="badges"
+                  @update:model-value="onCommonTagsChange"
+                />
+              </div>
+            </template>
+          </ResponsiveFiltersToolbar>
+
+          <div v-if="error" class="mb-6 rounded-md bg-destructive/10 p-4 text-destructive">
+            {{ error }}
           </div>
-          <div class="grid gap-1.5">
-            <Label>Сервер</Label>
-            <MultiSelect
-              :model-value="filterServerIds"
-              :options="serverMultiOptions"
-              placeholder="Все"
-              search-placeholder="Поиск сервера..."
-              empty-text="Нет серверов"
-              :disabled="!filterServers.length"
-              trigger-class="min-h-8 w-full min-w-0"
-              @update:model-value="onServersChange"
-            />
-          </div>
-          <div class="grid gap-1.5">
-            <Label>Классы</Label>
-            <MultiSelect
-              :model-value="filterGameClassIds"
-              :options="gameClassMultiOptions"
-              :max-selected="gameMaxClassesPerCharacter"
-              hide-actions
-              placeholder="Все классы"
-              search-placeholder="Поиск классов..."
-              empty-text="Нет классов"
-              :disabled="loadingFilterOptions || !filterGameClasses.length"
-              trigger-class="min-h-8 w-full min-w-0"
-              display-mode="badges"
-              @update:model-value="onGameClassesChange"
-            />
-          </div>
-          <div class="grid gap-1.5">
-            <Label>Общие теги</Label>
-            <MultiSelect
-              :model-value="filterCommonTagIds"
-              :options="commonTagMultiOptions"
-              placeholder="Все"
-              search-placeholder="Поиск тега..."
-              empty-text="Нет общих тегов"
-              :disabled="!commonTags.length"
-              trigger-class="min-h-8 w-full min-w-0"
-              display-mode="badges"
-              @update:model-value="onCommonTagsChange"
-            />
+
+          <div class="relative min-h-[200px]">
+            <div
+              v-if="loading || refreshing"
+              class="absolute left-1/2 top-2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-muted/70 px-2 py-0.5"
+              aria-busy="true"
+              aria-live="polite"
+            >
+              <Spinner class="h-1.5 w-1.5 shrink-0 text-muted-foreground" />
+              <span class="text-xs text-muted-foreground">Загрузка…</span>
+            </div>
+
+            <p v-if="loading && characters.length === 0" class="text-sm text-muted-foreground">Загрузка…</p>
+            <p v-else-if="visibleCharacters.length === 0" class="text-sm text-muted-foreground">
+              По выбранным критериям персонажей не найдено.
+            </p>
+            <ul v-else class="flex flex-wrap justify-around gap-3">
+              <CharacterCard
+                v-for="c in visibleCharacters"
+                :key="c.id"
+                :character="c"
+                clickable
+                @click="router.push({ name: 'game-character-show', params: { id: c.id } })"
+              />
+            </ul>
           </div>
         </template>
-        <template #desktop-filters>
-          <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
-            <Label>Локализация</Label>
-            <MultiSelect
-              :model-value="filterLocalizationIds"
-              :options="localizationMultiOptions"
-              placeholder="Все"
-              search-placeholder="Поиск локализации..."
-              empty-text="Нет локализаций"
-              :disabled="loadingFilterOptions || !filterLocalizations.length"
-              trigger-class="min-h-8 w-full min-w-0"
-              @update:model-value="onLocalizationsChange"
-            />
-          </div>
-          <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
-            <Label>Сервер</Label>
-            <MultiSelect
-              :model-value="filterServerIds"
-              :options="serverMultiOptions"
-              placeholder="Все"
-              search-placeholder="Поиск сервера..."
-              empty-text="Нет серверов"
-              :disabled="!filterServers.length"
-              trigger-class="min-h-8 w-full min-w-0"
-              @update:model-value="onServersChange"
-            />
-          </div>
-          <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
-            <Label>Классы</Label>
-            <MultiSelect
-              :model-value="filterGameClassIds"
-              :options="gameClassMultiOptions"
-              :max-selected="gameMaxClassesPerCharacter"
-              hide-actions
-              placeholder="Все классы"
-              search-placeholder="Поиск классов..."
-              empty-text="Нет классов"
-              :disabled="loadingFilterOptions || !filterGameClasses.length"
-              trigger-class="min-h-8 w-full min-w-0"
-              display-mode="badges"
-              @update:model-value="onGameClassesChange"
-            />
-          </div>
-          <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
-            <Label>Общие теги</Label>
-            <MultiSelect
-              :model-value="filterCommonTagIds"
-              :options="commonTagMultiOptions"
-              placeholder="Все"
-              search-placeholder="Поиск тега..."
-              empty-text="Нет общих тегов"
-              :disabled="!commonTags.length"
-              trigger-class="min-h-8 w-full min-w-0"
-              display-mode="badges"
-              @update:model-value="onCommonTagsChange"
-            />
-          </div>
-        </template>
-      </ResponsiveFiltersToolbar>
-
-      <div v-if="error" class="mb-6 rounded-md bg-destructive/10 p-4 text-destructive">
-        {{ error }}
       </div>
 
-      <div class="relative min-h-[200px]">
-        <div
-          v-if="loading || refreshing"
-          class="absolute left-1/2 top-2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-muted/70 px-2 py-0.5"
-          aria-busy="true"
-          aria-live="polite"
-        >
-          <Spinner class="h-1.5 w-1.5 shrink-0 text-muted-foreground" />
-          <span class="text-xs text-muted-foreground">Загрузка…</span>
-        </div>
-
-        <p v-if="loading && characters.length === 0" class="text-sm text-muted-foreground">Загрузка…</p>
-        <p v-else-if="visibleCharacters.length === 0" class="text-sm text-muted-foreground">
-          По выбранным критериям персонажей не найдено.
-        </p>
-        <ul v-else class="flex flex-wrap justify-around gap-3">
-          <CharacterCard
-            v-for="c in visibleCharacters"
-            :key="c.id"
-            :character="c"
-            clickable
-            @click="router.push({ name: 'game-character-show', params: { id: c.id } })"
-          />
-        </ul>
-      </div>
-    </template>
+      <div class="hidden lg:block" />
+    </div>
   </div>
 </template>

@@ -33,6 +33,8 @@ withDefaults(
     cardClass?: string;
     cardContentClass?: string;
     desktopRowClass?: string;
+    /** Класс-обёртка для поля имени на десктопе (чтобы можно было выровнять ширины). */
+    desktopNameWrapClass?: string;
     /** Показывать кнопку «ещё фильтры» на десктопе (как на мобильной) */
     desktopExtraFiltersTrigger?: boolean;
     /** Кол-во задействованных полей фильтра (для бейджа на кнопке). */
@@ -52,6 +54,7 @@ withDefaults(
     cardClass: '',
     cardContentClass: 'p-4',
     desktopRowClass: '',
+    desktopNameWrapClass: 'w-[7.5rem] shrink-0 sm:w-36',
     desktopExtraFiltersTrigger: false,
     activeFiltersCount: 0,
   },
@@ -174,7 +177,7 @@ const moreFiltersOpenDesktop = ref(false);
         <div
           :class="cn('hidden w-full min-w-0 flex-wrap items-end gap-x-2 gap-y-3 md:flex', desktopRowClass)"
         >
-          <div class="grid w-[7.5rem] shrink-0 gap-1.5 sm:w-36">
+          <div :class="cn('grid gap-1.5', desktopNameWrapClass)">
             <Label :for="nameDesktopInputId">{{ nameLabel }}</Label>
             <Input
               :id="nameDesktopInputId"

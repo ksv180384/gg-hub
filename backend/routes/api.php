@@ -83,6 +83,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/user/polls', [UserController::class, 'polls']);
     Route::get('/user/guild-calendar-events', [UserController::class, 'guildCalendarEvents']);
     Route::get('/user/applications', [UserController::class, 'applications']);
+    Route::get('/user/applications/active-count', [UserController::class, 'applicationsActiveCount']);
     Route::get('/user/posts', [PostController::class, 'index']);
     Route::post('/user/posts', [PostController::class, 'store'])->middleware('ensure.not.banned');
     Route::get('/user/posts/{post}', [PostController::class, 'show']);

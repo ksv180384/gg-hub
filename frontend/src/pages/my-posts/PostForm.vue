@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Separator, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
+import { BackIconButton, Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Separator, SelectRoot, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui';
 import RichTextEditor from '@/shared/ui/rich-text-editor/RichTextEditor.vue';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
@@ -308,108 +308,118 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container py-8 md:py-12">
-    <div class="mx-auto max-w-3xl space-y-6">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <h1 class="mb-1 text-3xl font-bold tracking-tight">
-            {{ isEdit ? 'Редактирование поста' : 'Новый пост' }}
-          </h1>
-          <p class="text-muted-foreground">
-            {{ isEdit ? 'Измените содержимое и видимость поста.' : 'Укажите текст и выберите, кому будет виден пост.' }}
-          </p>
-        </div>
-        <Button variant="link" size="sm" class="min-h-9 cursor-pointer" @click="router.back()">
-          Назад
-        </Button>
-      </div>
-
-      <Card v-if="isBlocked" class="border-destructive/50 bg-destructive/5">
-        <CardContent class="pt-6">
-          <p class="text-sm font-medium text-destructive">
-            Пост заблокирован. Редактирование недоступно.
-          </p>
-          <p class="mt-1 text-xs text-muted-foreground">
-            Вы можете только просматривать содержимое. Для разблокировки обратитесь к администратору.
-          </p>
-        </CardContent>
-      </Card>
-
-      <template v-if="!isBlocked">
-      <div class="space-y-4">
-          <div class="space-y-2">
-            <Label for="title">Заголовок *</Label>
-            <Input id="title" v-model="title" required placeholder="Например, «Советы по рейдам в пятницу»" />
+  <div class="container py-6 md:py-8">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0 space-y-4">
+        <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+          <!-- Desktop: стрелка слева от формы -->
+          <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+            <BackIconButton aria-label="Назад" title="Назад" @click="router.back()" />
           </div>
-          <div class="space-y-2">
-            <div class="flex flex-wrap items-center gap-2 border-b border-border pb-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                :class="{ 'bg-muted': !bodyPreviewMode }"
-                @click="bodyPreviewMode = false"
-              >
-                Редактирование
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                :class="{ 'bg-muted': bodyPreviewMode }"
-                @click="bodyPreviewMode = true"
-              >
-                Предпросмотр
-              </Button>
-            </div>
-            <Label for="body">Текст поста *</Label>
-            <div v-show="!bodyPreviewMode">
-              <RichTextEditor
-                id="body"
-                v-model="body"
-                placeholder="Напишите текст вашего поста…"
-                :disabled="loading"
-              />
-            </div>
-            <div
-              v-show="bodyPreviewMode"
-              class="min-h-[200px] rounded-md border border-input bg-muted/30 px-3 py-3 text-sm"
-            >
-              <div
-                v-if="body"
-                class="prose prose-sm max-w-none text-muted-foreground dark:prose-invert [&_p]:my-2 [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600/40 [&_a]:underline-offset-2 hover:[&_a]:text-blue-700 dark:[&_a]:text-blue-400 dark:hover:[&_a]:text-blue-300 dark:[&_a]:decoration-blue-400/50 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_ol]:space-y-1 [&_li]:my-0.5"
-                v-html="body"
-              />
-              <p v-else class="text-muted-foreground">Нет текста. Переключитесь в режим редактирования и добавьте описание.</p>
-            </div>
-          </div>
-          <div>
-            <Label for="character">Персонаж *</Label>
-            <SelectRoot
-              :model-value="characterId !== null ? String(characterId) : undefined"
-              @update:model-value="(val) => { characterId = val ? Number(val) : null; }"
-            >
-              <SelectTrigger id="character" class="w-full">
-                <SelectValue placeholder="Выберите персонажа" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="c in characters"
-                  :key="c.id"
-                  :value="String(c.id)"
-                >
-                  {{ c.name }}
-                </SelectItem>
-              </SelectContent>
-            </SelectRoot>
-          </div>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Кому будет виден пост</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
+          <!-- Mobile: одна плавающая кнопка справа -->
+          <div class="fixed top-[100px] right-8 z-30 md:hidden">
+            <BackIconButton aria-label="Назад" title="Назад" @click="router.back()" />
+          </div>
+
+          <div class="min-w-0 w-full flex-1 space-y-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h1 class="mb-1 text-3xl font-bold tracking-tight">
+                  {{ isEdit ? 'Редактирование поста' : 'Новый пост' }}
+                </h1>
+                <p class="text-muted-foreground">
+                  {{ isEdit ? 'Измените содержимое и видимость поста.' : 'Укажите текст и выберите, кому будет виден пост.' }}
+                </p>
+              </div>
+            </div>
+
+            <Card v-if="isBlocked" class="border-destructive/50 bg-destructive/5">
+              <CardContent class="pt-6">
+                <p class="text-sm font-medium text-destructive">
+                  Пост заблокирован. Редактирование недоступно.
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                  Вы можете только просматривать содержимое. Для разблокировки обратитесь к администратору.
+                </p>
+              </CardContent>
+            </Card>
+
+            <template v-if="!isBlocked">
+              <div class="space-y-4">
+                <div class="space-y-2">
+                  <Label for="title">Заголовок *</Label>
+                  <Input id="title" v-model="title" required placeholder="Например, «Советы по рейдам в пятницу»" />
+                </div>
+                <div class="space-y-2">
+                  <div class="flex flex-wrap items-center gap-2 border-b border-border pb-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      :class="{ 'bg-muted': !bodyPreviewMode }"
+                      @click="bodyPreviewMode = false"
+                    >
+                      Редактирование
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      :class="{ 'bg-muted': bodyPreviewMode }"
+                      @click="bodyPreviewMode = true"
+                    >
+                      Предпросмотр
+                    </Button>
+                  </div>
+                  <Label for="body">Текст поста *</Label>
+                  <div v-show="!bodyPreviewMode">
+                    <RichTextEditor
+                      id="body"
+                      v-model="body"
+                      placeholder="Напишите текст вашего поста…"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div
+                    v-show="bodyPreviewMode"
+                    class="min-h-[200px] rounded-md border border-input bg-muted/30 px-3 py-3 text-sm"
+                  >
+                    <div
+                      v-if="body"
+                      class="prose prose-sm max-w-none text-muted-foreground dark:prose-invert [&_p]:my-2 [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600/40 [&_a]:underline-offset-2 hover:[&_a]:text-blue-700 dark:[&_a]:text-blue-400 dark:hover:[&_a]:text-blue-300 dark:[&_a]:decoration-blue-400/50 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_ol]:space-y-1 [&_li]:my-0.5"
+                      v-html="body"
+                    />
+                    <p v-else class="text-muted-foreground">Нет текста. Переключитесь в режим редактирования и добавьте описание.</p>
+                  </div>
+                </div>
+                <div>
+                  <Label for="character">Персонаж *</Label>
+                  <SelectRoot
+                    :model-value="characterId !== null ? String(characterId) : undefined"
+                    @update:model-value="(val) => { characterId = val ? Number(val) : null; }"
+                  >
+                    <SelectTrigger id="character" class="w-full">
+                      <SelectValue placeholder="Выберите персонажа" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="c in characters"
+                        :key="c.id"
+                        :value="String(c.id)"
+                      >
+                        {{ c.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </SelectRoot>
+                </div>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Кому будет виден пост</CardTitle>
+                </CardHeader>
+                <CardContent class="space-y-4">
           <div
             class="flex items-start justify-between gap-4"
             :class="{ 'opacity-70': isPendingGlobal || isGlobalBlocked }"
@@ -630,26 +640,31 @@ onMounted(() => {
           <p v-if="profileVisibilityText" class="text-sm text-muted-foreground">
             {{ profileVisibilityText }}
           </p>
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
 
-      <div class="flex items-center justify-between gap-4">
-        <p v-if="submitError" class="text-sm text-destructive">
-          {{ submitError }}
-        </p>
-        <p v-else-if="loadError" class="text-sm text-destructive">
-          {{ loadError }}
-        </p>
-        <div class="ml-auto flex gap-3">
-          <Button variant="outline" @click="router.back()">
-            Отмена
-          </Button>
-          <Button :disabled="loading" @click="submit">
-            {{ loading ? 'Сохранение…' : (isEdit ? 'Сохранить пост' : 'Создать пост') }}
-          </Button>
+              <div class="flex items-center justify-between gap-4">
+                <p v-if="submitError" class="text-sm text-destructive">
+                  {{ submitError }}
+                </p>
+                <p v-else-if="loadError" class="text-sm text-destructive">
+                  {{ loadError }}
+                </p>
+                <div class="ml-auto flex gap-3">
+                  <Button variant="outline" @click="router.back()">
+                    Отмена
+                  </Button>
+                  <Button :disabled="loading" @click="submit">
+                    {{ loading ? 'Сохранение…' : (isEdit ? 'Сохранить пост' : 'Создать пост') }}
+                  </Button>
+                </div>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
-      </template>
+
+      <div class="hidden lg:block" />
     </div>
   </div>
 </template>

@@ -229,7 +229,7 @@ watch([nameFilter], () => {
                   <p class="text-sm">
                     <span
                       :class="
-                        app.status === 'pending'
+                        app.status === 'pending' || app.status === 'invitation'
                           ? 'font-medium text-green-600 dark:text-green-400'
                           : 'text-muted-foreground'
                       "

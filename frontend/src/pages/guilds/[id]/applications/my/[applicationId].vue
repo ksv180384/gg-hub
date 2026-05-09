@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
+import { BackIconButton, Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
 import { CharacterClassBadge } from '@/entities/character';
@@ -174,132 +174,152 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="container py-6">
-    <template v-if="loading">
-      <Card class="max-w-2xl mx-auto">
-        <CardContent class="flex items-center justify-center py-12">
-          <Spinner class="h-8 w-8" />
-        </CardContent>
-      </Card>
-    </template>
-
-    <template v-else-if="application">
-      <Card class="max-w-2xl mx-auto">
-        <CardHeader class="flex flex-row items-end justify-between gap-4 flex-wrap">
-          <div>
-            <CardTitle class="text-xl">
-              {{ isInvitation ? 'Приглашение в гильдию' : 'Ваша заявка в гильдию' }}
-            </CardTitle>
-            <p class="mt-1 text-sm text-muted-foreground">
-              Персонаж:
-              <span class="text-lg font-semibold text-foreground sm:text-xl">{{ characterName }}</span>
-            </p>
-            <div v-if="characterGameClasses.length" class="mt-1 flex flex-wrap gap-2">
-              <CharacterClassBadge
-                v-for="gc in characterGameClasses"
-                :key="gc.id"
-                :game-class="gc"
-              />
-            </div>
-            <p class="mt-0.5 text-sm text-muted-foreground">
-              Гильдия:
-              <span class="font-semibold text-foreground">{{ guildName }}</span>
-            </p>
-            <p v-if="isInvitation" class="mt-0.5 text-sm text-muted-foreground">
-              Вас пригласил(а): {{ inviterName }}
-            </p>
-            <p v-if="application.status === 'revoked' && application.revoked_by_character?.name" class="mt-0.5 text-sm text-muted-foreground">
-              Отозвал(а): {{ application.revoked_by_character.name }}
-            </p>
-            <p class="mt-0.5 text-sm text-muted-foreground">
-              Статус: {{ statusLabel }}
-              <template v-if="application.created_at">
-                · {{ new Date(application.created_at).toLocaleDateString('ru-RU') }}
-              </template>
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-6">
-          <div v-if="isInvitation && (application.status === 'invitation')" class="flex flex-wrap gap-2">
-            <Button :disabled="accepting || declining" @click="acceptInvitation">
-              {{ accepting ? '…' : 'Принять приглашение' }}
-            </Button>
-            <Button variant="outline" :disabled="accepting || declining" @click="declineInvitation">
-              {{ declining ? '…' : 'Отклонить' }}
-            </Button>
-          </div>
-          <div v-else-if="application.status === 'pending'" class="flex flex-wrap gap-2">
-            <Button
-              variant="destructive"
-              :disabled="withdrawing"
-              @click="withdrawDialogOpen = true"
-            >
-              Отозвать заявку
-            </Button>
+  <div class="container py-6 md:py-8">
+    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
+      <div class="min-w-0 space-y-4">
+        <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+          <!-- Desktop: стрелка слева от карточки -->
+          <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+            <BackIconButton aria-label="Назад" title="Назад" @click="router.back()" />
           </div>
 
-          <ConfirmDialog
-            v-model:open="withdrawDialogOpen"
-            title="Отозвать заявку?"
-            confirm-label="Отозвать"
-            cancel-label="Отмена"
-            :loading="withdrawing"
-            @confirm="confirmWithdrawApplication"
-          >
-            <template #description>
-              <p>Заявка будет снята с рассмотрения. Восстановить её будет нельзя.</p>
+          <!-- Mobile: одна плавающая кнопка справа -->
+          <div class="fixed top-[100px] right-8 z-30 md:hidden">
+            <BackIconButton aria-label="Назад" title="Назад" @click="router.back()" />
+          </div>
+
+          <div class="min-w-0 w-full flex-1">
+            <template v-if="loading">
+              <Card>
+                <CardContent class="flex items-center justify-center py-12">
+                  <Spinner class="h-8 w-8" />
+                </CardContent>
+              </Card>
             </template>
-          </ConfirmDialog>
-          <p v-if="actionError" class="text-sm text-destructive">{{ actionError }}</p>
-          <div v-if="application.form_data && Object.keys(application.form_data).length > 0" class="space-y-3">
-            <h3 class="text-sm font-medium text-muted-foreground">Ответы на вопросы формы</h3>
-            <dl class="space-y-2">
-              <div
-                v-for="(value, fieldId) in application.form_data"
-                :key="fieldId"
-                class="flex flex-col gap-0.5 sm:flex-row sm:gap-2"
-              >
-                <dt class="text-sm font-medium text-muted-foreground sm:w-48 shrink-0">{{ getFieldLabel(fieldId) }}</dt>
-                <dd class="text-sm break-words">
-                  <template v-if="value && isImageUrl(value)">
-                    <img
-                      :src="value"
-                      :alt="getFieldLabel(fieldId)"
-                      class="max-w-[320px] w-full rounded border object-cover"
-                      :class="
-                        isScreenshotImageField(fieldId, value)
-                          ? 'cursor-pointer transition-opacity hover:opacity-90'
-                          : ''
-                      "
-                      role="presentation"
-                      @click="onScreenshotThumbClick(fieldId, value)"
+
+            <template v-else-if="application">
+              <Card>
+                <CardHeader class="flex flex-row items-end justify-between gap-4 flex-wrap">
+                  <div>
+                    <CardTitle class="text-xl">
+                      {{ isInvitation ? 'Приглашение в гильдию' : 'Ваша заявка в гильдию' }}
+                    </CardTitle>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                      Персонаж:
+                      <span class="text-lg font-semibold text-foreground sm:text-xl">{{ characterName }}</span>
+                    </p>
+                    <div v-if="characterGameClasses.length" class="mt-1 flex flex-wrap gap-2">
+                      <CharacterClassBadge
+                        v-for="gc in characterGameClasses"
+                        :key="gc.id"
+                        :game-class="gc"
+                      />
+                    </div>
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                      Гильдия:
+                      <span class="font-semibold text-foreground">{{ guildName }}</span>
+                    </p>
+                    <p v-if="isInvitation" class="mt-0.5 text-sm text-muted-foreground">
+                      Вас пригласил(а): {{ inviterName }}
+                    </p>
+                    <p v-if="application.status === 'revoked' && application.revoked_by_character?.name" class="mt-0.5 text-sm text-muted-foreground">
+                      Отозвал(а): {{ application.revoked_by_character.name }}
+                    </p>
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                      Статус: {{ statusLabel }}
+                      <template v-if="application.created_at">
+                        · {{ new Date(application.created_at).toLocaleDateString('ru-RU') }}
+                      </template>
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent class="space-y-6">
+                  <div v-if="isInvitation && (application.status === 'invitation')" class="flex flex-wrap gap-2">
+                    <Button :disabled="accepting || declining" @click="acceptInvitation">
+                      {{ accepting ? '…' : 'Принять приглашение' }}
+                    </Button>
+                    <Button variant="outline" :disabled="accepting || declining" @click="declineInvitation">
+                      {{ declining ? '…' : 'Отклонить' }}
+                    </Button>
+                  </div>
+                  <div v-else-if="application.status === 'pending'" class="flex flex-wrap gap-2">
+                    <Button
+                      variant="destructive"
+                      :disabled="withdrawing"
+                      @click="withdrawDialogOpen = true"
                     >
-                  </template>
-                  <template v-else>{{ formatFormFieldValue(value) }}</template>
-                </dd>
-              </div>
-            </dl>
+                      Отозвать заявку
+                    </Button>
+                  </div>
+
+                  <ConfirmDialog
+                    v-model:open="withdrawDialogOpen"
+                    title="Отозвать заявку?"
+                    confirm-label="Отозвать"
+                    cancel-label="Отмена"
+                    :loading="withdrawing"
+                    @confirm="confirmWithdrawApplication"
+                  >
+                    <template #description>
+                      <p>Заявка будет снята с рассмотрения. Восстановить её будет нельзя.</p>
+                    </template>
+                  </ConfirmDialog>
+                  <p v-if="actionError" class="text-sm text-destructive">{{ actionError }}</p>
+                  <div v-if="application.form_data && Object.keys(application.form_data).length > 0" class="space-y-3">
+                    <h3 class="text-sm font-medium text-muted-foreground">Ответы на вопросы формы</h3>
+                    <dl class="space-y-2">
+                      <div
+                        v-for="(value, fieldId) in application.form_data"
+                        :key="fieldId"
+                        class="flex flex-col gap-0.5 sm:flex-row sm:gap-2"
+                      >
+                        <dt class="text-sm font-medium text-muted-foreground sm:w-48 shrink-0">{{ getFieldLabel(fieldId) }}</dt>
+                        <dd class="text-sm break-words">
+                          <template v-if="value && isImageUrl(value)">
+                            <img
+                              :src="value"
+                              :alt="getFieldLabel(fieldId)"
+                              class="max-w-[320px] w-full rounded border object-cover"
+                              :class="
+                                isScreenshotImageField(fieldId, value)
+                                  ? 'cursor-pointer transition-opacity hover:opacity-90'
+                                  : ''
+                              "
+                              role="presentation"
+                              @click="onScreenshotThumbClick(fieldId, value)"
+                            >
+                          </template>
+                          <template v-else>{{ formatFormFieldValue(value) }}</template>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <ApplicationComments :guild-id="guildId" :application-id="applicationId" />
+                </CardContent>
+              </Card>
+            </template>
+
+            <template v-else>
+              <Card>
+                <CardContent class="py-8 text-center">
+                  <p class="text-muted-foreground">{{ error ?? 'Заявка не найдена.' }}</p>
+                  <Button
+                    variant="outline"
+                    class="mt-4"
+                    @click="router.push({ name: 'guilds' })"
+                  >
+                    К списку гильдий
+                  </Button>
+                </CardContent>
+              </Card>
+            </template>
           </div>
+        </div>
+      </div>
 
-          <ApplicationComments :guild-id="guildId" :application-id="applicationId" />
-        </CardContent>
-      </Card>
-    </template>
-
-    <template v-else>
-      <Card class="max-w-2xl mx-auto">
-        <CardContent class="py-8 text-center">
-          <p class="text-muted-foreground">{{ error ?? 'Заявка не найдена.' }}</p>
-          <Button
-            variant="outline"
-            class="mt-4"
-            @click="router.push({ name: 'guilds' })"
-          >
-            К списку гильдий
-          </Button>
-        </CardContent>
-      </Card>
-    </template>
+      <div class="hidden lg:block" />
+    </div>
 
     <ClientOnly>
       <Teleport to="body">

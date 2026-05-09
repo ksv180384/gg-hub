@@ -17,6 +17,7 @@ const siteContext = useSiteContextStore();
 
 const userGuilds = ref<UserGuildItem[]>([]);
 const guildsLoading = ref(false);
+const myActiveApplicationsCount = ref(0);
 /** Множество id гильдий с раскрытым подменю (можно держать открытыми несколько). */
 const openGuildIds = ref<Set<number>>(new Set());
 
@@ -118,6 +119,18 @@ const isAdminRoute = (path: string) => route.path === path || route.path.startsW
 async function loadAdminPendingCount() {
   if (!showAdminBlock.value) return;
   await adminJournal.refreshPendingCount();
+}
+
+async function loadMyActiveApplicationsCount() {
+  if (!auth.isAuthenticated) {
+    myActiveApplicationsCount.value = 0;
+    return;
+  }
+  try {
+    myActiveApplicationsCount.value = await guildsApi.getMyActiveGuildApplicationsCount();
+  } catch {
+    myActiveApplicationsCount.value = 0;
+  }
 }
 
 async function loadUserGuilds() {
@@ -231,14 +244,20 @@ function guildSubmenuWrapClass() {
 onMounted(() => {
   loadUserGuilds();
   loadAdminPendingCount();
+  loadMyActiveApplicationsCount();
 });
 
 watch(() => siteContext.game?.id, () => loadUserGuilds());
 watch(
   () => auth.isAuthenticated,
   (isAuth) => {
-    if (isAuth) loadUserGuilds();
-    else userGuilds.value = [];
+    if (isAuth) {
+      loadUserGuilds();
+      loadMyActiveApplicationsCount();
+    } else {
+      userGuilds.value = [];
+      myActiveApplicationsCount.value = 0;
+    }
   }
 );
 watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
@@ -287,7 +306,15 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
           :class="topGameLinkClass(route.path === '/applications' || route.path.startsWith('/applications/'))"
           @click="onMobileNavigate"
         >
-          Заявки и приглашения
+          <span class="relative block min-w-0 pr-6">
+            <span class="block truncate">Заявки и приглашения</span>
+            <span
+              v-if="myActiveApplicationsCount > 0"
+              class="absolute -top-1 right-0 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive/20 px-1 text-[10px] font-medium leading-none text-destructive"
+            >
+              {{ myActiveApplicationsCount }}
+            </span>
+          </span>
         </RouterLink>
 
         <template v-if="guildsLoading">

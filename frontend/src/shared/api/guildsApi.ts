@@ -654,6 +654,15 @@ export const guildsApi = {
     return { applications: list, meta };
   },
 
+  /** Количество активных заявок/приглашений пользователя (GET /user/applications/active-count). */
+  async getMyActiveGuildApplicationsCount(): Promise<number> {
+    const res = await http.fetchGet<{ data: { count: number } }>('/user/applications/active-count');
+    throwOnError(res, 'Ошибка загрузки количества заявок');
+    const body = res.data as { data?: { count?: unknown } } | null;
+    const raw = body?.data?.count;
+    return typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
+  },
+
   /**
    * Состав гильдии. Только участники гильдии (403 иначе).
    * В guild_roles — все роли гильдии (для фильтров), не только назначенные участникам.
