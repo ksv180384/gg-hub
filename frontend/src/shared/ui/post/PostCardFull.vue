@@ -137,9 +137,9 @@ onUnmounted(() => {
     <div class="px-4 pb-2">
       <h3
         class="text-[22px] leading-snug font-semibold text-foreground/95"
-        :title="post.title || 'Без заголовка'"
+        :title="post.title"
       >
-        {{ post.title || 'Без заголовка' }}
+        {{ post.title }}
       </h3>
     </div>
     <div

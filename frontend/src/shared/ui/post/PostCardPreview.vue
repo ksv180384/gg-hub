@@ -2,6 +2,7 @@
 import { Avatar } from '@/shared/ui';
 import type { Post } from '@/shared/api/postsApi';
 import { computed, ref } from 'vue';
+import { RouterLink, type RouteLocationRaw } from 'vue-router';
 import { formatRelativeTime } from '@/shared/lib/relativeTime';
 import { useVideoPlaybackTracking } from '@/shared/lib/useVideoPlaybackTracking';
 
@@ -17,13 +18,14 @@ interface Props {
   showGame?: boolean;
   /** Показывать статусы поста (общий и гильдейский). */
   showStatus?: boolean;
-  /** Делать заголовок кликабельным и подсвечивать при hover. */
-  titleClickable?: boolean;
+  /** Маршрут просмотра поста (для SEO-ссылки). */
+  postTo?: RouteLocationRaw | null;
+  /** Маршрут к комментариям поста (для SEO-ссылки). */
+  commentsTo?: RouteLocationRaw | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   dateType: 'guild',
-  titleClickable: true,
 });
 
 function displayBody(): string {
@@ -41,9 +43,7 @@ const isPreviewHtml = computed(
 );
 
 const emit = defineEmits<{
-  (e: 'titleClick'): void;
   (e: 'authorClick', userId: number): void;
-  (e: 'commentsClick'): void;
   (e: 'viewRecorded'): void;
 }>();
 
@@ -137,11 +137,18 @@ useVideoPlaybackTracking(previewContainerRef, {
     <div class="px-4 pb-2">
       <h3
         class="text-[18px] leading-snug font-semibold text-foreground/95 line-clamp-2"
-        :class="props.titleClickable ? 'cursor-pointer hover:underline' : 'cursor-default'"
-        :title="post.title || 'Без заголовка'"
-        @click.stop="props.titleClickable && emit('titleClick')"
+        :title="post.title"
       >
-        {{ post.title || 'Без заголовка' }}
+        <RouterLink
+          v-if="postTo"
+          :to="postTo"
+          class="text-inherit hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+        >
+          {{ post.title }}
+        </RouterLink>
+        <span v-else>
+          {{ post.title }}
+        </span>
       </h3>
     </div>
 
@@ -181,12 +188,11 @@ useVideoPlaybackTracking(previewContainerRef, {
         </svg>
         <span>{{ post.views_count }}</span>
       </div>
-        <button
-          v-if="post.comments_count != null"
-          type="button"
-          class="flex cursor-pointer items-center gap-1.5 hover:text-foreground"
+        <RouterLink
+          v-if="post.comments_count != null && commentsTo"
+          :to="commentsTo"
+          class="flex items-center gap-1.5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
           title="Комментарии"
-          @click.stop="emit('commentsClick')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -203,7 +209,28 @@ useVideoPlaybackTracking(previewContainerRef, {
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
           <span>{{ post.comments_count }}</span>
-        </button>
+        </RouterLink>
+        <div
+          v-else-if="post.comments_count != null"
+          class="flex items-center gap-1.5"
+          title="Комментарии"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="shrink-0"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span>{{ post.comments_count }}</span>
+        </div>
       </div>
       <div v-if="$slots.footerRight" class="shrink-0">
         <slot name="footerRight" />

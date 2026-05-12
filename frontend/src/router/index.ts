@@ -95,6 +95,12 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'Хранилище гильдии' },
         },
         {
+          path: 'guilds/:id/bank/dkp-history',
+          name: 'guild-bank-dkp-history',
+          component: () => import('../pages/guilds/[id]/bank/dkp-history/index.vue'),
+          meta: { requiresAuth: true, title: 'История ДКП' },
+        },
+        {
           path: 'guilds/:id/raids',
           name: 'guild-raids',
           component: () => import('@/pages/guilds/[id]/raids/index.vue'),

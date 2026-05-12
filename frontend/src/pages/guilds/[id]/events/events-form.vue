@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Card,
@@ -24,6 +24,8 @@ import {
 } from '@/shared/api/eventHistoryTitlesApi';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { parseParticipantNicknamesFromXlsxFile } from '@/shared/lib/eventHistoryParticipantsXlsxImport';
+import { useEventHistoryTitlesAdmin } from '@/features/guild-event-history-titles';
+import { EventHistoryTitlesDialog } from '@/widgets/guild-event-history-titles';
 
 const route = useRoute();
 const router = useRouter();
@@ -36,6 +38,11 @@ const isEdit = computed(() => eventHistoryId.value != null);
 const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
+const dkpEnabled = ref(false);
+
+const titlesAdmin = reactive(useEventHistoryTitlesAdmin({
+  dkpEnabled: () => dkpEnabled.value,
+}));
 
 const roster = ref<GuildRosterMember[]>([]);
 const loadingRoster = ref(false);
@@ -53,6 +60,7 @@ const form = ref({
   title: '',
   description: '',
   occurred_at: '',
+  dkp_base_points: '',
   participants: [] as Participant[],
   externalNickname: '',
   screenshots: [] as { url: string; title: string }[],
@@ -103,6 +111,29 @@ function fromDatetimeLocal(v: string): string | null {
   return new Date(v).toISOString();
 }
 
+function formatDkpBasePoints(value: number | null | undefined): string {
+  if (value == null) return '';
+  return String(value);
+}
+
+function resolveDkpBasePointsForPayload(): number | null | undefined {
+  const raw = form.value.dkp_base_points.trim();
+  if (!raw) return isEdit.value ? null : undefined;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return isEdit.value ? null : undefined;
+  return Math.trunc(value);
+}
+
+async function loadGuildContext() {
+  if (!guildId.value) return;
+  try {
+    const guild = await guildsApi.getGuildForSettings(guildId.value);
+    dkpEnabled.value = guild.dkp_enabled ?? false;
+  } catch {
+    dkpEnabled.value = false;
+  }
+}
+
 async function loadRoster() {
   if (!guildId.value) return;
   loadingRoster.value = true;
@@ -127,7 +158,19 @@ function toggleGuildParticipant(characterId: number) {
 function addExternalParticipant() {
   const nick = form.value.externalNickname.trim();
   if (!nick) return;
-  form.value.participants.push({ external_name: nick });
+
+  const member = findRosterMemberByNickname(nick);
+  const participant: Participant = member
+    ? { character_id: member.character_id, external_name: null }
+    : { character_id: null, external_name: nick };
+
+  const key = participantKey(participant);
+  if (form.value.participants.some((p) => participantKey(p) === key)) {
+    form.value.externalNickname = '';
+    return;
+  }
+
+  form.value.participants.push(participant);
   form.value.externalNickname = '';
 }
 
@@ -210,6 +253,7 @@ async function loadEventIfEdit() {
     form.value.title = item.title;
     form.value.description = item.description ?? '';
     form.value.occurred_at = item.occurred_at ? toDatetimeLocal(item.occurred_at) : '';
+    form.value.dkp_base_points = formatDkpBasePoints(item.dkp?.base_points);
     form.value.participants = (item.participants ?? []).map((p) => ({
       character_id: p.character_id,
       external_name: p.character_id ? null : p.external_name,
@@ -243,6 +287,9 @@ async function searchTitleSuggestions(query: string) {
 
 function applyTitleSuggestion(suggestion: EventHistoryTitleDto) {
   form.value.title = suggestion.name;
+  if (dkpEnabled.value) {
+    form.value.dkp_base_points = formatDkpBasePoints(suggestion.dkp_base_points);
+  }
   showTitleSuggestions.value = false;
 }
 
@@ -261,7 +308,7 @@ async function saveEditTitleSuggestion() {
   try {
     editTitleDialogLoading.value = true;
     titleSuggestionsError.value = '';
-    const updated = await eventHistoryTitlesApi.update(editingTitleId.value, newName);
+    const updated = await eventHistoryTitlesApi.update(editingTitleId.value, { name: newName });
     const idx = titleSuggestions.value.findIndex((s) => s.id === editingTitleId.value);
     if (idx !== -1) {
       titleSuggestions.value[idx] = updated;
@@ -341,6 +388,13 @@ async function submit() {
       .filter((s) => s.url.length > 0),
   };
 
+  if (dkpEnabled.value) {
+    const dkpBasePoints = resolveDkpBasePointsForPayload();
+    if (dkpBasePoints !== undefined) {
+      payloadBase.dkp_base_points = dkpBasePoints;
+    }
+  }
+
   saving.value = true;
   try {
     if (isEdit.value && eventHistoryId.value) {
@@ -365,7 +419,7 @@ onMounted(async () => {
   if (!isEdit.value) {
     form.value.occurred_at = toDatetimeLocal(now.toISOString());
   }
-  await Promise.all([loadRoster(), loadEventIfEdit()]);
+  await Promise.all([loadGuildContext(), loadRoster(), loadEventIfEdit()]);
 });
 </script>
 
@@ -375,9 +429,19 @@ onMounted(async () => {
       <h1 class="text-xl font-semibold">
         {{ isEdit ? 'Редактирование события' : 'Новое событие' }}
       </h1>
-      <Button variant="outline" size="sm" @click="goBack">
-        Назад к событиям
-      </Button>
+      <div class="flex flex-wrap items-center gap-2">
+        <Button
+          v-if="!isEdit"
+          type="button"
+          size="sm"
+          @click="titlesAdmin.openModal()"
+        >
+          Виды событий
+        </Button>
+        <Button variant="outline" size="sm" @click="goBack">
+          Назад к событиям
+        </Button>
+      </div>
     </div>
 
     <div class="flex flex-col gap-4 lg:flex-row">
@@ -445,6 +509,17 @@ onMounted(async () => {
                 id="history-occurred-at"
                 v-model="form.occurred_at"
                 type="datetime-local"
+              />
+            </div>
+            <div v-if="dkpEnabled" class="space-y-2">
+              <Label for="history-dkp-base">Очки ДКП за посещение</Label>
+              <Input
+                id="history-dkp-base"
+                v-model="form.dkp_base_points"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Не задано"
               />
             </div>
             <div class="space-y-2">
@@ -715,5 +790,27 @@ onMounted(async () => {
       </div>
     </template>
   </ConfirmDialog>
+
+  <EventHistoryTitlesDialog
+    v-model:open="titlesAdmin.open"
+    v-model:form="titlesAdmin.form"
+    v-model:edit-form="titlesAdmin.editForm"
+    :loading="titlesAdmin.loading"
+    :list-error="titlesAdmin.listError"
+    :form-error="titlesAdmin.formError"
+    :saving="titlesAdmin.saving"
+    :deleting-id="titlesAdmin.deletingId"
+    :sorted-titles="titlesAdmin.sortedTitles"
+    :editing-id="titlesAdmin.editingId"
+    :create-form-open="titlesAdmin.createFormOpen"
+    :dkp-enabled="dkpEnabled"
+    @open-create="titlesAdmin.openCreateForm()"
+    @cancel-create="titlesAdmin.cancelCreateForm()"
+    @create="titlesAdmin.createTitle()"
+    @start-edit="titlesAdmin.startEdit"
+    @save-edit="titlesAdmin.saveEdit()"
+    @cancel-edit="titlesAdmin.resetEditForm()"
+    @delete="titlesAdmin.deleteTitle"
+  />
 </template>
 

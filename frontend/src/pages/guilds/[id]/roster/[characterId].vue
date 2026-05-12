@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { watchDebounced } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Select, TagAddCombobox, BackIconButton } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Select, TagAddCombobox, BackIconButton } from '@/shared/ui';
 import type { SelectOption } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import Badge from '@/shared/ui/badge/Badge.vue';
@@ -12,6 +12,7 @@ import { guildsApi, type Guild, type GuildRosterMember, type GuildRole } from '@
 import type { GameClass } from '@/shared/api/gamesApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 import { guildBankApi, type GuildBankGrant } from '@/shared/api/guildBankApi';
+import { guildDkpApi } from '@/shared/api/guildDkpApi';
 import {
   rosterTagBadgeClass,
   sliceRosterTagRowsForDisplay,
@@ -56,6 +57,17 @@ const tagComboInputId = computed(
 const bankGrantsLoading = ref(false);
 const bankGrantsError = ref<string | null>(null);
 const bankGrants = ref<GuildBankGrant[]>([]);
+
+const dkpEnabled = ref(false);
+const canManageDkp = ref(false);
+const dkpBalance = ref<number | null>(null);
+const dkpBalanceLoading = ref(false);
+const dkpBalanceError = ref<string | null>(null);
+const dkpAdjustDialogOpen = ref(false);
+const dkpAdjustAmount = ref('');
+const dkpAdjustReason = ref('');
+const dkpAdjustSaving = ref(false);
+const dkpAdjustError = ref<string | null>(null);
 
 const GUILD_ROLE_SLUG_LEADER = 'leader';
 
@@ -206,6 +218,26 @@ async function loadData() {
     } finally {
       bankGrantsLoading.value = false;
     }
+
+    dkpBalanceLoading.value = true;
+    dkpBalanceError.value = null;
+    dkpAdjustError.value = null;
+    try {
+      const bankContext = await guildBankApi.getPageContext(guildId.value);
+      dkpEnabled.value = bankContext.dkp_enabled ?? false;
+      canManageDkp.value = (bankContext.my_permission_slugs ?? []).includes('peredavat-predmety-polzovateliam');
+      if (dkpEnabled.value) {
+        const balance = await guildDkpApi.getMemberBalance(guildId.value, characterId.value);
+        dkpBalance.value = balance.balance;
+      } else {
+        dkpBalance.value = null;
+      }
+    } catch (e: unknown) {
+      dkpBalance.value = null;
+      dkpBalanceError.value = e instanceof Error ? e.message : 'Не удалось загрузить баланс ДКП.';
+    } finally {
+      dkpBalanceLoading.value = false;
+    }
   } catch (e: unknown) {
     const err = e as Error & { status?: number };
     const msg = err.message ?? '';
@@ -226,6 +258,47 @@ async function loadData() {
     }
   } finally {
     loading.value = false;
+  }
+}
+
+function openDkpAdjustDialog() {
+  if (!canManageDkp.value) return;
+  dkpAdjustError.value = null;
+  dkpAdjustAmount.value = '';
+  dkpAdjustReason.value = '';
+  dkpAdjustDialogOpen.value = true;
+}
+
+function closeDkpAdjustDialog() {
+  if (dkpAdjustSaving.value) return;
+  dkpAdjustDialogOpen.value = false;
+  dkpAdjustError.value = null;
+}
+
+async function submitDkpAdjust(direction: 'credit' | 'debit') {
+  if (!guildId.value || !characterId.value || dkpAdjustSaving.value) return;
+  dkpAdjustError.value = null;
+  const rawAmount = Number(dkpAdjustAmount.value.trim());
+  if (!Number.isFinite(rawAmount) || rawAmount <= 0 || !Number.isInteger(rawAmount)) {
+    dkpAdjustError.value = 'Укажите целое положительное количество очков ДКП.';
+    return;
+  }
+  const amount = direction === 'credit' ? rawAmount : -rawAmount;
+  dkpAdjustSaving.value = true;
+  try {
+    await guildDkpApi.adjustMemberBalance(guildId.value, characterId.value, {
+      amount,
+      reason: dkpAdjustReason.value.trim() || null,
+    });
+    const balance = await guildDkpApi.getMemberBalance(guildId.value, characterId.value);
+    dkpBalance.value = balance.balance;
+    dkpAdjustAmount.value = '';
+    dkpAdjustReason.value = '';
+    dkpAdjustDialogOpen.value = false;
+  } catch (e: unknown) {
+    dkpAdjustError.value = e instanceof Error ? e.message : 'Не удалось изменить баланс ДКП.';
+  } finally {
+    dkpAdjustSaving.value = false;
   }
 }
 
@@ -492,16 +565,31 @@ watch([guildId, characterId], () => loadData());
                 </template>
               </div>
             </div>
-            <Button
-              v-if="canExclude"
-              variant="destructive"
-              size="sm"
-              class="shrink-0"
-              :disabled="excluding"
-              @click="openExcludeDialog"
-            >
-              Исключить из гильдии
-            </Button>
+            <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <Button
+                v-if="dkpEnabled"
+                variant="outline"
+                size="sm"
+                class="h-8"
+                :disabled="dkpBalanceLoading"
+                :title="canManageDkp ? 'Изменить очки ДКП' : 'Баланс очков ДКП участника'"
+                @click="openDkpAdjustDialog"
+              >
+                <span>Очки ДКП</span>
+                <span class="ml-1.5 font-semibold tabular-nums">
+                  {{ dkpBalanceLoading ? '…' : dkpBalance ?? 0 }}
+                </span>
+              </Button>
+              <Button
+                v-if="canExclude"
+                variant="destructive"
+                size="sm"
+                :disabled="excluding"
+                @click="openExcludeDialog"
+              >
+                Исключить из гильдии
+              </Button>
+            </div>
           </CardHeader>
           <CardContent class="space-y-4">
             <div v-if="member.game_classes.length > 0">
@@ -569,6 +657,8 @@ watch([guildId, characterId], () => loadData());
               </template>
             </div>
 
+            <p v-if="dkpEnabled && dkpBalanceError" class="text-sm text-destructive">{{ dkpBalanceError }}</p>
+
             <div class="space-y-2">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <p class="text-sm font-medium text-muted-foreground">Предметы от гильдии</p>
@@ -593,9 +683,9 @@ watch([guildId, characterId], () => loadData());
                     <div class="min-w-0">
                       <div class="flex items-center gap-2">
                         <span
-                          v-if="g.item?.color"
+                          v-if="g.item?.tier?.color"
                           class="inline-block h-2.5 w-2.5 rounded-full border"
-                          :style="{ backgroundColor: g.item.color }"
+                          :style="{ backgroundColor: g.item.tier.color }"
                           aria-hidden="true"
                         />
                         <span class="font-medium truncate">
@@ -607,8 +697,8 @@ watch([guildId, characterId], () => loadData());
                         <span v-if="g.granted_by_character?.name"> · выдал: {{ g.granted_by_character.name }}</span>
                       </div>
                     </div>
-                    <div v-if="g.item?.dkp_cost != null" class="text-xs text-muted-foreground">
-                      ДКП: {{ g.item.dkp_cost }}
+                    <div v-if="g.dkp_charged != null || g.item?.dkp_cost != null" class="text-xs text-muted-foreground">
+                      ДКП: {{ g.dkp_charged ?? g.item?.dkp_cost }}
                     </div>
                   </div>
                   <div class="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">
@@ -624,6 +714,58 @@ watch([guildId, characterId], () => loadData());
     </div>
       </div>
       <div class="hidden lg:block" />
+    </div>
+
+    <div
+      v-if="dkpAdjustDialogOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      @click.self="closeDkpAdjustDialog"
+    >
+      <div class="w-full max-w-lg rounded-xl border border-border bg-card text-card-foreground shadow-lg">
+        <div class="border-b border-border px-4 py-3">
+          <div class="text-base font-semibold">Очки ДКП</div>
+          <p v-if="member" class="mt-0.5 truncate text-xs text-muted-foreground">
+            {{ member.name }} · сейчас {{ dkpBalance ?? 0 }}
+          </p>
+        </div>
+        <div class="space-y-4 px-4 py-4">
+          <div class="space-y-2">
+            <Label for="dkp-adjust-amount">Количество очков *</Label>
+            <Input
+              id="dkp-adjust-amount"
+              v-model="dkpAdjustAmount"
+              type="number"
+              min="1"
+              step="1"
+              class="h-9"
+              placeholder="Например, 10"
+              :disabled="dkpAdjustSaving"
+              required
+            />
+          </div>
+          <div class="space-y-2">
+            <Label for="dkp-adjust-reason">Комментарий</Label>
+            <textarea
+              id="dkp-adjust-reason"
+              v-model="dkpAdjustReason"
+              rows="2"
+              class="flex min-h-16 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              placeholder="Необязательно"
+              :disabled="dkpAdjustSaving"
+            />
+          </div>
+          <p v-if="dkpAdjustError" class="text-sm text-destructive">{{ dkpAdjustError }}</p>
+        </div>
+        <div class="flex flex-col-reverse gap-2 border-t border-border px-4 py-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" :disabled="dkpAdjustSaving" @click="closeDkpAdjustDialog">Отмена</Button>
+          <Button variant="destructive" :disabled="dkpAdjustSaving" @click="submitDkpAdjust('debit')">
+            {{ dkpAdjustSaving ? 'Сохранение…' : 'Списать' }}
+          </Button>
+          <Button :disabled="dkpAdjustSaving" @click="submitDkpAdjust('credit')">
+            {{ dkpAdjustSaving ? 'Сохранение…' : 'Начислить' }}
+          </Button>
+        </div>
+      </div>
     </div>
 
     <ConfirmDialog

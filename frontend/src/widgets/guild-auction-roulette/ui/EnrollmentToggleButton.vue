@@ -22,7 +22,7 @@ defineEmits<{
     size="sm"
     variant="default"
     :disabled="props.disabled || !remoteAvailable"
-    class="shrink-0 cursor-pointer bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-500/40 ring-offset-2 ring-offset-background transition-[filter] hover:bg-emerald-600 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-emerald-400/60 dark:bg-emerald-500 dark:text-emerald-950 dark:shadow-emerald-500/20 dark:ring-emerald-400/30"
+    class="shrink-0"
     @click="$emit('open')"
   >
     Открыть набор участников

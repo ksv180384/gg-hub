@@ -136,7 +136,7 @@ const moreFiltersOpenDesktop = ref(false);
                     'data-[side=bottom]:slide-in-from-top-2',
                   )"
                 >
-                  <p class="mb-3 text-sm font-medium">{{ extraFiltersTitle }}</p>
+                  <p v-if="extraFiltersTitle" class="mb-3 text-sm font-medium">{{ extraFiltersTitle }}</p>
                   <div class="flex flex-col gap-3">
                     <slot name="extra-filters" />
                   </div>
@@ -245,7 +245,7 @@ const moreFiltersOpenDesktop = ref(false);
                       'data-[side=bottom]:slide-in-from-top-2',
                     )"
                   >
-                    <p class="mb-3 text-sm font-medium">{{ extraFiltersTitle }}</p>
+                    <p v-if="extraFiltersTitle" class="mb-3 text-sm font-medium">{{ extraFiltersTitle }}</p>
                     <div class="flex flex-col gap-3">
                       <slot name="desktop-extra-filters">
                         <slot name="extra-filters" />

@@ -3,24 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Domains\Event\Actions\ListEventHistoryTitlesAction;
+use App\Http\Requests\EventHistory\StoreEventHistoryTitleRequest;
+use App\Http\Requests\EventHistory\UpdateEventHistoryTitleRequest;
+use App\Http\Resources\EventHistory\EventHistoryTitleResource;
+use Domains\Event\Actions\CreateEventHistoryTitleAction;
 use Domains\Event\Actions\DeleteEventHistoryTitleAction;
+use Domains\Event\Actions\ListEventHistoryTitlesAction;
 use Domains\Event\Actions\UpdateEventHistoryTitleAction;
 use Domains\Event\Models\EventHistoryTitle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\ValidationException;
 
 class EventHistoryTitleController extends Controller
 {
     public function __construct(
         private readonly ListEventHistoryTitlesAction $listEventHistoryTitlesAction,
+        private readonly CreateEventHistoryTitleAction $createEventHistoryTitleAction,
         private readonly DeleteEventHistoryTitleAction $deleteEventHistoryTitleAction,
         private readonly UpdateEventHistoryTitleAction $updateEventHistoryTitleAction,
-    ) {
-    }
+    ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): AnonymousResourceCollection
     {
         $query = $request->query('query');
         $limit = $request->query('limit');
@@ -30,34 +35,33 @@ class EventHistoryTitleController extends Controller
             'limit' => is_numeric($limit) ? (int) $limit : 10,
         ]);
 
-        return response()->json([
-            'data' => $titles->map(fn ($title) => [
-                'id' => $title->id,
-                'name' => $title->name,
-            ]),
-        ]);
+        return EventHistoryTitleResource::collection($titles);
     }
 
-    /**
-     * Обновление названия (только текста), используется в выпадающем списке на фронтенде.
-     */
-    public function update(Request $request, EventHistoryTitle $eventHistoryTitle): JsonResponse
+    public function store(StoreEventHistoryTitleRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
+        $title = ($this->createEventHistoryTitleAction)(
+            $validated['name'],
+            $validated['dkp_base_points'] ?? null,
+        );
 
-        $title = ($this->updateEventHistoryTitleAction)($eventHistoryTitle, $validated['name']);
-
-        return response()->json([
-            'id' => $title->id,
-            'name' => $title->name,
-        ]);
+        return (new EventHistoryTitleResource($title->loadCount('histories')))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    /**
-     * Удаление названия, если оно не использовалось ни в одном событии.
-     */
+    public function update(
+        UpdateEventHistoryTitleRequest $request,
+        EventHistoryTitle $eventHistoryTitle,
+    ): EventHistoryTitleResource {
+        $validated = $request->validated();
+
+        $title = ($this->updateEventHistoryTitleAction)($eventHistoryTitle, $validated);
+
+        return new EventHistoryTitleResource($title->loadCount('histories'));
+    }
+
     public function destroy(EventHistoryTitle $eventHistoryTitle): JsonResponse
     {
         try {
@@ -72,4 +76,3 @@ class EventHistoryTitleController extends Controller
         return response()->json()->setStatusCode(204);
     }
 }
-

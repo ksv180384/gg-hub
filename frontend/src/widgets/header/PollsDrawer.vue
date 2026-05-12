@@ -130,7 +130,7 @@ watch(
       </button>
     </template>
     <template #title>Голосования</template>
-    <h2 class="pb-2 text-lg font-semibold">Голосования</h2>
+    <h2 class="pb-2 font-semibold">Голосования</h2>
     <div class="flex min-h-0 flex-1 flex-col">
       <div class="flex min-h-0 flex-1 flex-col overflow-y-auto pt-2">
         <p v-if="loading" class="px-2 py-4 text-sm text-muted-foreground">

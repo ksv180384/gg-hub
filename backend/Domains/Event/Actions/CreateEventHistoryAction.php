@@ -6,11 +6,15 @@ use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryParticipant;
 use Domains\Event\Models\EventHistoryScreenshot;
 use Domains\Event\Models\EventHistoryTitle;
+use Domains\GuildDkp\Actions\SyncEventHistoryDkpLedgerAction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class CreateEventHistoryAction
 {
+    public function __construct(
+        private SyncEventHistoryDkpLedgerAction $syncEventHistoryDkpLedgerAction,
+    ) {}
     /**
      * @param  array{
      *     guild_id: int,
@@ -38,7 +42,9 @@ class CreateEventHistoryAction
                 'occurred_at' => isset($data['occurred_at']) && $data['occurred_at'] !== null
                     ? Carbon::parse($data['occurred_at'])
                     : now(),
-                'dkp_base_points' => $data['dkp_base_points'] ?? null,
+                'dkp_base_points' => array_key_exists('dkp_base_points', $data)
+                    ? $data['dkp_base_points']
+                    : $title->dkp_base_points,
             ];
 
             /** @var EventHistory $history */
@@ -72,11 +78,15 @@ class CreateEventHistoryAction
                 ]);
             }
 
-            return $history->load([
+            $history = $history->load([
                 'guild:id,dkp_enabled',
-                'participants.character:id,name',
+                'participants.character:id,name,user_id',
                 'screenshots',
             ]);
+
+            ($this->syncEventHistoryDkpLedgerAction)($history);
+
+            return $history;
         });
     }
 }

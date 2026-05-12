@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BackIconButton } from '@/shared/ui';
+import { BackIconButton, Skeleton } from '@/shared/ui';
 import PostCardFull from '@/shared/ui/post/PostCardFull.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';
@@ -143,9 +143,41 @@ onMounted(loadPost);
   <div class="container py-6 md:py-8">
     <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
       <div class="min-w-0 space-y-4">
-        <p v-if="loading" class="text-sm text-muted-foreground">
-          Загрузка…
-        </p>
+        <article
+          v-if="loading"
+          class="overflow-hidden bg-accent/30 rounded-[calc(var(--radius)-2px)] border shadow-sm"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <div class="flex items-start justify-between gap-3 p-4 pb-2">
+            <div class="flex min-w-0 items-start gap-3">
+              <Skeleton class="h-10 w-10 rounded-full shrink-0" />
+              <div class="min-w-0 space-y-2">
+                <Skeleton class="h-4 w-44" />
+                <Skeleton class="h-3 w-24" />
+              </div>
+            </div>
+          </div>
+          <div class="px-4 pb-3">
+            <Skeleton class="h-7 w-4/5" />
+          </div>
+          <div class="space-y-2 px-4 pb-6">
+            <Skeleton class="h-3 w-full" />
+            <Skeleton class="h-3 w-11/12" />
+            <Skeleton class="h-3 w-full" />
+            <Skeleton class="h-3 w-10/12" />
+            <Skeleton class="h-3 w-full" />
+            <Skeleton class="h-3 w-9/12" />
+            <Skeleton class="h-3 w-full" />
+            <Skeleton class="h-3 w-8/12" />
+            <Skeleton class="h-3 w-full" />
+            <Skeleton class="h-3 w-7/12" />
+          </div>
+          <div class="flex items-center gap-4 border-t bg-card px-4 py-3">
+            <Skeleton class="h-3 w-16" />
+            <Skeleton class="h-3 w-16" />
+          </div>
+        </article>
         <p v-else-if="error" class="text-sm text-destructive">
           {{ error }}
         </p>

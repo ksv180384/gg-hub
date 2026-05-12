@@ -21,6 +21,7 @@ interface Props {
   id?: string;
   class?: string;
   disabled?: boolean;
+  clearable?: boolean;
   /**
    * Предустановленные цвета (для палитры внутри vue3-color-picker).
    * Значения лучше передавать как HEX8 (#RRGGBBAA), но допустим и #RRGGBB — библиотека нормализует.
@@ -31,6 +32,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   disabled: false,
+  clearable: false,
   presets: () => [
     { label: 'Золотой', value: '#D4AF37FF' },
     { label: 'Фиолетовый', value: '#8B5CF6FF' },
@@ -52,6 +54,14 @@ const model = computed({
 
 const displayValue = computed(() => (model.value || '').trim() || '—');
 
+const showClear = computed(
+  () => props.clearable && !props.disabled && (model.value || '').trim() !== '',
+);
+
+function clearColor() {
+  model.value = '';
+}
+
 const localStorageKey = 'ck-cp-local-color-list';
 if (typeof window !== 'undefined') {
   try {
@@ -70,23 +80,48 @@ if (typeof window !== 'undefined') {
 
 <template>
   <PopoverRoot v-model:open="open">
-    <PopoverTrigger as-child>
-      <Button
-        :id="id"
+    <div :class="cn('relative w-full', props.class)">
+      <PopoverTrigger as-child>
+        <Button
+          :id="id"
+          type="button"
+          variant="outline"
+          size="default"
+          :disabled="disabled"
+          :class="cn('h-9 w-full justify-start gap-2 px-3 font-normal', showClear && 'pr-9')"
+        >
+          <span
+            class="h-4 w-4 rounded-sm border"
+            :style="{ background: model || '#00000000' }"
+            aria-hidden="true"
+          />
+          <span class="font-mono text-sm">{{ displayValue }}</span>
+        </Button>
+      </PopoverTrigger>
+      <button
+        v-if="showClear"
         type="button"
-        variant="outline"
-        size="default"
-        :disabled="disabled"
-        :class="cn('h-9 w-full justify-start gap-2 px-3 font-normal', props.class)"
+        class="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        aria-label="Сбросить цвет"
+        @click.stop="clearColor"
       >
-        <span
-          class="h-4 w-4 rounded-sm border"
-          :style="{ background: model || '#00000000' }"
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
           aria-hidden="true"
-        />
-        <span class="font-mono text-sm">{{ displayValue }}</span>
-      </Button>
-    </PopoverTrigger>
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
 
     <ClientOnly>
     <PopoverPortal>

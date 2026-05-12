@@ -6,11 +6,21 @@ import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import NotFoundPage from '@/pages/not-found/index.vue';
 import { ref, computed, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 
 const route = useRoute();
-const router = useRouter();
 const guildId = computed(() => Number(route.params.id));
+
+function guildPostTo(postId: number) {
+  return {
+    name: 'guild-post-show' as const,
+    params: { id: String(guildId.value), postId: String(postId) },
+  };
+}
+
+function guildCommentsTo(postId: number) {
+  return { ...guildPostTo(postId), hash: '#comments' };
+}
 const guild = ref<Guild | null>(null);
 const publishedPosts = ref<Post[]>([]);
 const pendingPosts = ref<Post[]>([]);
@@ -199,8 +209,8 @@ function onViewRecorded(postId: number) {
               :post="post"
               :guild-id="guildId"
               date-type="guild"
-              @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
-              @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
+              :post-to="guildPostTo(post.id)"
+              :comments-to="guildCommentsTo(post.id)"
               @view-recorded="onViewRecorded(post.id)"
             />
           </div>
@@ -222,8 +232,8 @@ function onViewRecorded(postId: number) {
               :post="post"
               :guild-id="guildId"
               date-type="guild"
-              @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
-              @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
+              :post-to="guildPostTo(post.id)"
+              :comments-to="guildCommentsTo(post.id)"
               @view-recorded="onViewRecorded(post.id)"
             />
           </div>
@@ -243,8 +253,8 @@ function onViewRecorded(postId: number) {
               :post="post"
               :guild-id="guildId"
               date-type="guild"
-              @title-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) } })"
-              @comments-click="router.push({ name: 'guild-post-show', params: { id: String(guildId), postId: String(post.id) }, hash: '#comments' })"
+              :post-to="guildPostTo(post.id)"
+              :comments-to="guildCommentsTo(post.id)"
               @view-recorded="onViewRecorded(post.id)"
             />
           </div>

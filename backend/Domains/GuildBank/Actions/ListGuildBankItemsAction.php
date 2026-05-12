@@ -4,7 +4,6 @@ namespace Domains\GuildBank\Actions;
 
 use Domains\Guild\Models\Guild;
 use Domains\GuildBank\Models\GuildBankItem;
-use Domains\GuildBank\Models\GuildBankItemGrant;
 use Illuminate\Database\Eloquent\Collection;
 
 class ListGuildBankItemsAction
@@ -14,14 +13,8 @@ class ListGuildBankItemsAction
     {
         return GuildBankItem::query()
             ->where('guild_id', $guild->id)
+            ->with('tier:id,name,color')
             ->withCount('grants')
-            ->addSelect([
-                'last_granted_at' => GuildBankItemGrant::query()
-                    ->select('granted_at')
-                    ->whereColumn('guild_bank_item_id', 'guild_bank_items.id')
-                    ->latest('granted_at')
-                    ->limit(1),
-            ])
             ->orderBy('name')
             ->get();
     }

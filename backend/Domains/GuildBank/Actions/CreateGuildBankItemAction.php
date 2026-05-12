@@ -7,7 +7,7 @@ use Domains\GuildBank\Models\GuildBankItem;
 
 class CreateGuildBankItemAction
 {
-    /** @param array{name:string,description?:?string,tier?:?string,color?:?string,dkp_cost?:?int,quantity?:?int} $data */
+    /** @param array{name:string,description?:?string,guild_bank_item_tier_id?:?int,dkp_cost?:?int,quantity?:?int} $data */
     public function __invoke(Guild $guild, array $data): GuildBankItem
     {
         $item = new GuildBankItem();
@@ -15,7 +15,7 @@ class CreateGuildBankItemAction
         $item->guild_id = $guild->id;
         $item->save();
 
-        return $item;
+        return $item->load('tier');
     }
 }
 

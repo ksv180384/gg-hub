@@ -4,6 +4,7 @@ use App\Models\User;
 use Domains\Access\Enums\PermissionScope;
 use Domains\Access\Models\GuildRole;
 use Domains\Access\Models\Permission;
+use Domains\Access\Models\PermissionGroup;
 use Domains\Character\Models\Character;
 use Domains\Event\Models\EventHistory;
 use Domains\Game\Models\Game;
@@ -13,13 +14,47 @@ use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
+use Domains\GuildBank\Models\GuildBankItemTier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use function Pest\Laravel\actingAs;
 
 uses(RefreshDatabase::class);
 
+function seedGuildBankPermissions(): void
+{
+    $bankGroup = PermissionGroup::query()->firstOrCreate(
+        [
+            'scope' => PermissionScope::Guild,
+            'slug' => 'bank',
+        ],
+        [
+            'name' => 'Хранилище гильдии',
+        ]
+    );
+
+    foreach ([
+        ['slug' => 'dobavliat-predmety', 'name' => 'Добавлять предметы'],
+        ['slug' => 'udaliat-predmety', 'name' => 'Удалять предметы'],
+        ['slug' => 'peredavat-predmety-polzovateliam', 'name' => 'Передавать предметы пользователям'],
+    ] as $permission) {
+        Permission::query()->firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => $permission['slug'],
+            ],
+            [
+                'name' => $permission['name'],
+                'description' => $permission['name'],
+                'permission_group_id' => $bankGroup->id,
+            ]
+        );
+    }
+}
+
 function seedMinimalGuildContext(): array
 {
+    seedGuildBankPermissions();
+
     $user = User::factory()->create();
 
     $game = Game::query()->create([
@@ -74,15 +109,28 @@ it('allows guild leader to create item and grant it', function () {
     // лидер гильдии получает все guild-scope права по логике проекта
     $ctx['guild']->update(['leader_character_id' => $ctx['char']->id]);
 
+    $tierResponse = actingAs($ctx['user'])
+        ->postJson("/api/v1/guilds/{$ctx['guild']->id}/bank/tiers", [
+            'name' => '2',
+            'color' => '#ff0000',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.name', '2')
+        ->assertJsonPath('data.color', '#ff0000');
+
+    $tierId = $tierResponse->json('data.id');
+
     actingAs($ctx['user'])
         ->postJson("/api/v1/guilds/{$ctx['guild']->id}/bank/items", [
             'name' => 'Sword of Test',
-            'tier' => '2',
-            'color' => '#ff0000',
+            'guild_bank_item_tier_id' => $tierId,
             'dkp_cost' => 10,
         ])
         ->assertCreated()
-        ->assertJsonFragment(['name' => 'Sword of Test']);
+        ->assertJsonFragment(['name' => 'Sword of Test'])
+        ->assertJsonPath('data.guild_bank_item_tier_id', $tierId)
+        ->assertJsonPath('data.tier.id', $tierId)
+        ->assertJsonMissingPath('data.color');
 
     $itemId = GuildBankItem::query()->where('guild_id', $ctx['guild']->id)->value('id');
     expect($itemId)->not()->toBeNull();
@@ -92,6 +140,7 @@ it('allows guild leader to create item and grant it', function () {
             'guild_bank_item_id' => $itemId,
             'received_by_character_id' => $ctx['char']->id,
             'reason' => 'За вклад в рейд',
+            'confirm_negative_balance' => true,
         ])
         ->assertCreated()
         ->assertJsonFragment(['reason' => 'За вклад в рейд']);
@@ -156,8 +205,7 @@ it('forbids revoking grant without peredavat permission', function () {
         'guild_id' => $ctx['guild']->id,
         'name' => 'Item',
         'description' => null,
-        'tier' => null,
-        'color' => null,
+        'guild_bank_item_tier_id' => null,
         'dkp_cost' => null,
         'quantity' => null,
     ]);
@@ -183,8 +231,7 @@ it('removes grant from member bank list after revoke', function () {
         'guild_id' => $ctx['guild']->id,
         'name' => 'Item',
         'description' => null,
-        'tier' => null,
-        'color' => null,
+        'guild_bank_item_tier_id' => null,
         'dkp_cost' => null,
         'quantity' => null,
     ]);
@@ -288,9 +335,132 @@ it('forbids creating item without guild permission (not leader)', function () {
     actingAs($ctx['user'])
         ->postJson("/api/v1/guilds/{$ctx['guild']->id}/bank/items", [
             'name' => 'Forbidden item',
-            'tier' => '1',
         ])
         ->assertForbidden();
+});
+
+it('returns only bank page context fields for guild members', function () {
+    $ctx = seedMinimalGuildContext();
+    $ctx['guild']->update(['leader_character_id' => $ctx['char']->id, 'dkp_enabled' => true]);
+
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/bank/context")
+        ->assertSuccessful()
+        ->assertJsonPath('data.dkp_enabled', true)
+        ->assertJsonPath('data.my_dkp_balance', 0)
+        ->assertJsonPath('data.my_permission_slugs', fn ($slugs) => is_array($slugs) && count($slugs) > 0)
+        ->assertJsonMissingPath('data.name')
+        ->assertJsonMissingPath('data.logo_url');
+});
+
+it('returns only fields needed to render bank lists', function () {
+    $ctx = seedMinimalGuildContext();
+    $ctx['guild']->update(['leader_character_id' => $ctx['char']->id]);
+
+    $tier = GuildBankItemTier::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'name' => 'Epic',
+        'color' => '#8B5CF6FF',
+    ]);
+
+    $item = GuildBankItem::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'name' => 'Sword',
+        'description' => 'Sharp',
+        'guild_bank_item_tier_id' => $tier->id,
+        'dkp_cost' => 10,
+        'quantity' => 5,
+    ]);
+
+    GuildBankItemGrant::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'guild_bank_item_id' => $item->id,
+        'received_by_character_id' => $ctx['char']->id,
+        'granted_by_character_id' => $ctx['char']->id,
+        'reason' => 'Raid',
+        'granted_at' => now(),
+    ]);
+
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/bank/items")
+        ->assertSuccessful()
+        ->assertJsonPath('data.0.name', 'Sword')
+        ->assertJsonPath('data.0.grants_count', 1)
+        ->assertJsonPath('data.0.tier.name', 'Epic')
+        ->assertJsonMissingPath('data.0.guild_id')
+        ->assertJsonMissingPath('data.0.created_at')
+        ->assertJsonMissingPath('data.0.last_granted_at')
+        ->assertJsonMissingPath('data.0.tier.guild_id');
+
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/bank/tiers")
+        ->assertSuccessful()
+        ->assertJsonPath('data.0.items_count', 1)
+        ->assertJsonMissingPath('data.0.guild_id')
+        ->assertJsonMissingPath('data.0.created_at');
+
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/bank/items/{$item->id}/grants")
+        ->assertSuccessful()
+        ->assertJsonPath('data.0.reason', 'Raid')
+        ->assertJsonPath('data.0.received_by_character.name', 'Char A')
+        ->assertJsonMissingPath('data.0.guild_id')
+        ->assertJsonMissingPath('data.0.item')
+        ->assertJsonMissingPath('data.0.created_at');
+});
+
+it('lists and deletes guild bank tiers when they are not linked to items', function () {
+    $ctx = seedMinimalGuildContext();
+    $ctx['guild']->update(['leader_character_id' => $ctx['char']->id]);
+
+    actingAs($ctx['user'])
+        ->postJson("/api/v1/guilds/{$ctx['guild']->id}/bank/tiers", [
+            'name' => 'Epic',
+            'color' => '#8B5CF6FF',
+        ])
+        ->assertCreated();
+
+    $tier = GuildBankItemTier::query()->where('guild_id', $ctx['guild']->id)->first();
+    expect($tier)->not()->toBeNull();
+
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/bank/tiers")
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.items_count', 0);
+
+    actingAs($ctx['user'])
+        ->deleteJson("/api/v1/guilds/{$ctx['guild']->id}/bank/tiers/{$tier->id}")
+        ->assertNoContent();
+
+    expect(GuildBankItemTier::query()->whereKey($tier->id)->exists())->toBeFalse();
+});
+
+it('forbids deleting guild bank tier linked to an item', function () {
+    $ctx = seedMinimalGuildContext();
+    $ctx['guild']->update(['leader_character_id' => $ctx['char']->id]);
+
+    $tier = GuildBankItemTier::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'name' => 'Rare',
+        'color' => '#3B82F6FF',
+    ]);
+
+    GuildBankItem::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'name' => 'Linked item',
+        'description' => null,
+        'guild_bank_item_tier_id' => $tier->id,
+        'dkp_cost' => null,
+        'quantity' => null,
+    ]);
+
+    actingAs($ctx['user'])
+        ->deleteJson("/api/v1/guilds/{$ctx['guild']->id}/bank/tiers/{$tier->id}")
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['tier']);
+
+    expect(GuildBankItemTier::query()->whereKey($tier->id)->exists())->toBeTrue();
 });
 
 it('returns dkp fields for event history when dkp is enabled', function () {

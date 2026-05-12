@@ -3,12 +3,10 @@ import PostCardPreview from '@/shared/ui/post/PostCardPreview.vue';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { Skeleton } from '@/shared/ui';
 import { ref, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 import GgHubJournalBanner from '@/widgets/journal-promo/GgHubJournalBanner.vue';
 
-const router = useRouter();
 const siteContext = useSiteContextStore();
 const game = computed(() => siteContext.game);
 
@@ -73,18 +71,12 @@ function onViewRecorded(postId: number) {
   if (p) p.views_count = (p.views_count ?? 0) + 1;
 }
 
-function postLink(post: Post) {
+function postTo(post: Post) {
   return { name: 'global-post-show' as const, params: { postId: String(post.id) } };
 }
 
-function onCommentsClick(post: Post) {
-  router.push({ name: 'global-post-show', params: { postId: String(post.id) }, hash: '#comments' });
-}
-
-function onTitleClick(post: Post) {
-  const link = postLink(post);
-  if (!link) return;
-  router.push(link);
+function commentsTo(post: Post) {
+  return { ...postTo(post), hash: '#comments' };
 }
 </script>
 
@@ -134,8 +126,8 @@ function onTitleClick(post: Post) {
                 :post="post"
                 :guild-id="post.guild_id ?? undefined"
                 date-type="global"
-                @title-click="onTitleClick(post)"
-                @comments-click="onCommentsClick(post)"
+                :post-to="postTo(post)"
+                :comments-to="commentsTo(post)"
                 @view-recorded="onViewRecorded(post.id)"
               />
               <GgHubJournalBanner v-if="index === 0" variant="mobile" />

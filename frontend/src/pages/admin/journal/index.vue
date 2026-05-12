@@ -90,14 +90,13 @@ function onAuthorClick(userId: number) {
   router.push({ name: 'admin-users-show', params: { id: String(userId) } });
 }
 
-function onCommentsClick(post: Post) {
-  if (post.guild_id != null) {
-    router.push({
-      name: 'guild-post-show',
-      params: { id: String(post.guild_id), postId: String(post.id) },
-      hash: '#comments',
-    });
-  }
+function commentsTo(post: Post) {
+  if (post.guild_id == null) return null;
+  return {
+    name: 'guild-post-show' as const,
+    params: { id: String(post.guild_id), postId: String(post.id) },
+    hash: '#comments',
+  };
 }
 </script>
 
@@ -178,9 +177,9 @@ function onCommentsClick(post: Post) {
         :show-game="true"
         :show-status="true"
         date-type="global"
-        @title-click="router.push(postLink(post))"
+        :post-to="postLink(post)"
+        :comments-to="commentsTo(post)"
         @author-click="onAuthorClick"
-        @comments-click="onCommentsClick(post)"
         @view-recorded="onViewRecorded(post.id)"
       />
     </div>

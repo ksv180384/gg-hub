@@ -8,21 +8,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Предмет банка гильдии (каталог предметов внутри конкретной гильдии).
+ * Предмет каталога банка (хранилища) гильдии.
  *
- * @property int $id Уникальный идентификатор предмета.
- * @property int $guild_id Гильдия-владелец предмета (свой каталог у каждой гильдии).
- * @property string $name Название предмета (отображается в списках/выборе).
- * @property string|null $description Описание/примечания по предмету (необязательно).
- * @property string|null $tier Тир предмета (строковый; используется для маркировки/важности, необязателен).
- * @property string|null $color Цвет предмета (например, для UI/редкости; HEX или любая строка).
- * @property int|null $dkp_cost Стоимость предмета в ДКП (если система ДКП включена у гильдии).
- * @property int|null $quantity Остаток предмета в банке (null — количество не ограничено).
- * @property \Illuminate\Support\Carbon|null $created_at Дата создания записи.
- * @property \Illuminate\Support\Carbon|null $updated_at Дата обновления записи.
+ * Описывает тип предмета в гильдии: название, тир, опциональную стоимость в ДКП и остаток
+ * на складе. Выдачи участникам фиксируются отдельными записями {@see GuildBankItemGrant};
+ * при выдаче quantity уменьшается на 1, если не null. Значение null у quantity означает
+ * неограниченный остаток. Списание ДКП при выдаче опирается на dkp_cost только при
+ * включённой у гильдии системе ДКП.
  *
- * @property-read Guild $guild Гильдия, которой принадлежит предмет.
- * @property-read \Illuminate\Database\Eloquent\Collection<int, GuildBankItemGrant> $grants История выдач этого предмета.
+ * @property int $id Уникальный идентификатор предмета в каталоге.
+ * @property int $guild_id Гильдия-владелец каталога; предмет не переносится между гильдиями.
+ * @property string $name Название для списков, карточек и выбора при выдаче.
+ * @property string|null $description Дополнительное описание в форме редактирования (необязательно).
+ * @property int|null $guild_bank_item_tier_id Ссылка на тир; null — предмет без тира.
+ * @property int|null $dkp_cost Стоимость в ДКП при выдаче; null или 0 — без списания очков.
+ * @property int|null $quantity Остаток на складе; null — бесконечный остаток (∞ в интерфейсе).
+ * @property \Illuminate\Support\Carbon|null $created_at Дата добавления предмета в каталог.
+ * @property \Illuminate\Support\Carbon|null $updated_at Дата последнего изменения полей или остатка.
+ *
+ * @property-read Guild $guild Гильдия, которой принадлежит каталогная позиция.
+ * @property-read GuildBankItemTier|null $tier Тир для отображения названия и цвета в UI.
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, GuildBankItemGrant> $grants Все выдачи этого предмета, от новых к старым.
  */
 class GuildBankItem extends Model
 {
@@ -32,8 +38,7 @@ class GuildBankItem extends Model
         'guild_id',
         'name',
         'description',
-        'tier',
-        'color',
+        'guild_bank_item_tier_id',
         'dkp_cost',
         'quantity',
     ];
@@ -41,20 +46,31 @@ class GuildBankItem extends Model
     protected function casts(): array
     {
         return [
+            'guild_bank_item_tier_id' => 'integer',
             'dkp_cost' => 'integer',
             'quantity' => 'integer',
         ];
     }
 
+    /** Гильдия, в банке которой заведён предмет. */
     public function guild(): BelongsTo
     {
         return $this->belongsTo(Guild::class);
     }
 
-    /** @return HasMany<GuildBankItemGrant> */
+    /** Тир предмета; при удалении тира у предметов сбрасывается привязка на уровне приложения. */
+    public function tier(): BelongsTo
+    {
+        return $this->belongsTo(GuildBankItemTier::class, 'guild_bank_item_tier_id');
+    }
+
+    /**
+     * История выдач данного предмета участникам гильдии.
+     *
+     * @return HasMany<GuildBankItemGrant>
+     */
     public function grants(): HasMany
     {
         return $this->hasMany(GuildBankItemGrant::class, 'guild_bank_item_id')->orderByDesc('granted_at');
     }
 }
-

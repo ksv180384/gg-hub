@@ -6,11 +6,15 @@ use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryParticipant;
 use Domains\Event\Models\EventHistoryScreenshot;
 use Domains\Event\Models\EventHistoryTitle;
+use Domains\GuildDkp\Actions\SyncEventHistoryDkpLedgerAction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class UpdateEventHistoryAction
 {
+    public function __construct(
+        private SyncEventHistoryDkpLedgerAction $syncEventHistoryDkpLedgerAction,
+    ) {}
     /**
      * @param  array{
      *     title?: string,
@@ -92,11 +96,15 @@ class UpdateEventHistoryAction
                 }
             }
 
-            return $history->load([
+            $history = $history->load([
                 'guild:id,dkp_enabled',
-                'participants.character:id,name',
+                'participants.character:id,name,user_id',
                 'screenshots',
             ]);
+
+            ($this->syncEventHistoryDkpLedgerAction)($history);
+
+            return $history;
         });
     }
 }

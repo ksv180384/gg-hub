@@ -221,7 +221,7 @@ watch(() => props.myCharacters, initSelectedCharacter);
 <template>
   <section id="comments" class="space-y-4">
     <div class="flex items-center justify-between gap-3">
-      <h2 class="text-lg font-semibold">Комментарии</h2>
+      <h2 class="font-semibold">Комментарии</h2>
       <span class="text-xs text-muted-foreground">{{ totalCount }}</span>
     </div>
 

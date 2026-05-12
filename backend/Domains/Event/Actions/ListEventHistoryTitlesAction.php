@@ -12,7 +12,9 @@ class ListEventHistoryTitlesAction
      */
     public function __invoke(array $params = []): Collection
     {
-        $query = EventHistoryTitle::query()->orderBy('name');
+        $query = EventHistoryTitle::query()
+            ->withCount('histories')
+            ->orderBy('name');
 
         if (! empty($params['query']) && is_string($params['query'])) {
             $q = mb_strtolower($params['query']);

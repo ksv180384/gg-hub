@@ -68,7 +68,7 @@ function goToDetails() {
 
     <!-- Секция с информацией -->
     <section class="guild-card__section flex flex-1 flex-col rounded-b-[1.5rem] px-3 pb-3 pt-4">
-      <h2 class="guild-card__section-title mb-1.5 mt-0 text-lg font-semibold text-foreground">
+      <h2 class="guild-card__section-title mb-1.5 mt-0 font-semibold text-foreground">
         {{ guild.name }}
       </h2>
       <p

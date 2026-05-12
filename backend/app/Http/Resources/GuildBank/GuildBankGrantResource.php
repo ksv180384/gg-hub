@@ -20,14 +20,21 @@ class GuildBankGrantResource extends JsonResource
             'granted_by_character_id' => $this->granted_by_character_id,
             'reason' => $this->reason,
             'granted_at' => $this->granted_at?->toIso8601String(),
-            'item' => $this->whenLoaded('item', fn () => [
-                'id' => $this->item->id,
-                'name' => $this->item->name,
-                'tier' => $this->item->tier === null ? null : (string) $this->item->tier,
-                'color' => $this->item->color,
-                'dkp_cost' => $this->item->dkp_cost === null ? null : (int) $this->item->dkp_cost,
-                'quantity' => $this->item->quantity === null ? null : (int) $this->item->quantity,
-            ]),
+            'dkp_charged' => $this->dkp_charged === null ? null : (int) $this->dkp_charged,
+            'item' => $this->whenLoaded('item', function () use ($request) {
+                $item = $this->item;
+
+                return [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'guild_bank_item_tier_id' => $item->guild_bank_item_tier_id === null ? null : (int) $item->guild_bank_item_tier_id,
+                    'tier' => $item->relationLoaded('tier') && $item->tier !== null
+                        ? (new GuildBankItemTierResource($item->tier))->toArray($request)
+                        : null,
+                    'dkp_cost' => $item->dkp_cost === null ? null : (int) $item->dkp_cost,
+                    'quantity' => $item->quantity === null ? null : (int) $item->quantity,
+                ];
+            }),
             'received_by_character' => $this->whenLoaded('receivedByCharacter', fn () => [
                 'id' => $this->receivedByCharacter->id,
                 'name' => $this->receivedByCharacter->name,

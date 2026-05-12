@@ -17,8 +17,10 @@ class GuildBankItemResource extends JsonResource
             'guild_id' => $this->guild_id,
             'name' => $this->name,
             'description' => $this->description,
-            'tier' => $this->tier === null ? null : (string) $this->tier,
-            'color' => $this->color,
+            'guild_bank_item_tier_id' => $this->guild_bank_item_tier_id === null ? null : (int) $this->guild_bank_item_tier_id,
+            'tier' => $this->whenLoaded('tier', fn () => $this->tier === null
+                ? null
+                : (new GuildBankItemTierResource($this->tier))->toArray($request)),
             'dkp_cost' => $this->dkp_cost === null ? null : (int) $this->dkp_cost,
             'quantity' => $this->quantity === null ? null : (int) $this->quantity,
             'grants_count' => $this->when(isset($this->grants_count), fn () => (int) $this->grants_count),

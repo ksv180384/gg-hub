@@ -35,6 +35,7 @@ class StoreGuildBankGrantRequest extends FormRequest
             ],
             'reason' => ['nullable', 'string', 'max:5000'],
             'granted_at' => ['nullable', 'date'],
+            'confirm_negative_balance' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -61,6 +62,7 @@ class StoreGuildBankGrantRequest extends FormRequest
             'granted_by_character_id' => 'кто выдал',
             'reason' => 'за что',
             'granted_at' => 'дата выдачи',
+            'confirm_negative_balance' => 'подтверждение отрицательного баланса ДКП',
         ];
     }
 }

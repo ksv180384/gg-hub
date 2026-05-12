@@ -312,7 +312,7 @@ function onNewEvent() {
           </button>
         </div>
       </div>
-      <h2 class="text-lg font-semibold">
+      <h2 class="font-semibold">
         {{ monthTitle }}
       </h2>
     </div>

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { RouterLink } from 'vue-router';
 import PostCardPreview from '@/shared/ui/post/PostCardPreview.vue';
 import { Badge, Button, Separator } from '@/shared/ui';
 import { postsApi, type Post } from '@/shared/api/postsApi';
-
-const router = useRouter();
 
 const posts = ref<Post[]>([]);
 const loading = ref(false);
@@ -24,9 +22,9 @@ function isPostBlocked(post: Post): boolean {
   return post.status_global === 'blocked' && post.status_guild === 'blocked';
 }
 
-function onTitleClick(post: Post) {
-  if (isPostBlocked(post)) return;
-  router.push({ name: 'my-posts-edit', params: { id: String(post.id) } });
+function postTo(post: Post) {
+  if (isPostBlocked(post)) return null;
+  return { name: 'my-posts-edit' as const, params: { id: String(post.id) } };
 }
 
 async function loadPosts() {
@@ -75,8 +73,7 @@ onMounted(() => {
             :style="{ animationDelay: `${i * 80}ms`, animationDuration: '400ms', animationFillMode: 'backwards' }"
             :post="post"
             date-type="global"
-            :title-clickable="!isPostBlocked(post)"
-            @title-click="onTitleClick(post)"
+            :post-to="postTo(post)"
           >
             <template #headerRight>
               <div class="flex flex-wrap justify-end gap-2">
