@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { Input, Label, Select, Spinner, type SelectOption } from '@/shared/ui';
+import { Button, Input, Label, Select, Spinner, type SelectOption } from '@/shared/ui';
 import { BackIconButton } from '@/shared/ui';
 import { ResponsiveFiltersToolbar } from '@/widgets/responsive-filters-toolbar';
 import { formatBankDateTime } from '@/features/guild-bank';
@@ -187,6 +187,24 @@ function goBackToBank() {
               </div>
             </li>
           </ul>
+
+          <div
+            v-if="model.canLoadMoreLedger || model.ledgerLoadingMore"
+            class="flex flex-col items-center gap-2 pt-2"
+          >
+            <p v-if="model.ledgerTotal > 0" class="text-xs text-muted-foreground">
+              Показано {{ model.entries.length }} из {{ model.ledgerTotal }}
+            </p>
+            <Button
+              v-if="model.canLoadMoreLedger"
+              variant="outline"
+              size="sm"
+              :disabled="model.ledgerLoadingMore"
+              @click="model.loadMoreLedger()"
+            >
+              {{ model.ledgerLoadingMore ? 'Загрузка…' : 'Загрузить ещё' }}
+            </Button>
+          </div>
         </div>
       </template>
 

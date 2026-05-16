@@ -82,7 +82,7 @@ const tierSelectValue = computed({
           </div>
           <div v-if="dkpEnabled" class="space-y-2 sm:col-span-2">
             <Label for="item-dkp">Стоимость ДКП</Label>
-            <Input id="item-dkp" v-model="form.dkp_cost" type="number" min="0" />
+            <Input id="item-dkp" v-model="form.dkp_cost" type="number" min="0" step="1" />
           </div>
         </div>
 

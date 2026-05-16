@@ -14,6 +14,12 @@ import { tagsApi, type Tag } from '@/shared/api/tagsApi';
 import { guildBankApi, type GuildBankGrant } from '@/shared/api/guildBankApi';
 import { guildDkpApi } from '@/shared/api/guildDkpApi';
 import {
+  DKP_COEFFICIENT_MAX,
+  DKP_REASON_MAX_LENGTH,
+  isValidDkpAdjustReason,
+  isValidDkpCoefficient,
+} from '@/shared/lib/dkpValidation';
+import {
   rosterTagBadgeClass,
   sliceRosterTagRowsForDisplay,
   sortRosterTagRows,
@@ -298,8 +304,8 @@ async function submitDkpCoefficient() {
   if (!guildId.value || !characterId.value || !member.value || dkpCoefficientSaving.value) return;
   dkpCoefficientError.value = null;
   const value = Number(dkpCoefficientValue.value.trim());
-  if (!Number.isFinite(value) || value < 0) {
-    dkpCoefficientError.value = 'Укажите коэффициент не меньше 0.';
+  if (!isValidDkpCoefficient(value)) {
+    dkpCoefficientError.value = `Укажите коэффициент от 0 до ${DKP_COEFFICIENT_MAX}.`;
     return;
   }
   dkpCoefficientSaving.value = true;
@@ -328,11 +334,16 @@ async function submitDkpAdjust(direction: 'credit' | 'debit') {
     return;
   }
   const amount = direction === 'credit' ? rawAmount : -rawAmount;
+  const reason = dkpAdjustReason.value.trim();
+  if (!isValidDkpAdjustReason(reason)) {
+    dkpAdjustError.value = `Комментарий не должен превышать ${DKP_REASON_MAX_LENGTH} символов.`;
+    return;
+  }
   dkpAdjustSaving.value = true;
   try {
     await guildDkpApi.adjustMemberBalance(guildId.value, characterId.value, {
       amount,
-      reason: dkpAdjustReason.value.trim() || null,
+      reason: reason || null,
     });
     const balance = await guildDkpApi.getMemberBalance(guildId.value, characterId.value);
     dkpBalance.value = balance.balance;
@@ -792,6 +803,7 @@ watch([guildId, characterId], () => loadData());
               v-model="dkpCoefficientValue"
               type="number"
               min="0"
+              :max="DKP_COEFFICIENT_MAX"
               step="0.1"
               class="h-9"
               placeholder="1"
@@ -848,6 +860,7 @@ watch([guildId, characterId], () => loadData());
               id="dkp-adjust-reason"
               v-model="dkpAdjustReason"
               rows="2"
+              :maxlength="DKP_REASON_MAX_LENGTH"
               class="flex min-h-16 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               placeholder="Необязательно"
               :disabled="dkpAdjustSaving"

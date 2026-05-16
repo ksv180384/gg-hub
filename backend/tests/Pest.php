@@ -44,7 +44,39 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+use Domains\Guild\Models\Guild;
+use Domains\GuildBank\Models\GuildBankItem;
+use Domains\GuildBank\Models\GuildBankItemGrant;
+
+function makeGuildForDkpUnit(bool $dkpEnabled = true): Guild
 {
-    // ..
+    $guild = new Guild;
+    $guild->forceFill(['id' => 1, 'dkp_enabled' => $dkpEnabled]);
+    $guild->exists = true;
+
+    return $guild;
+}
+
+function makeBankGrantForDkpUnit(int $dkpCharged = 10): GuildBankItemGrant
+{
+    $grant = new GuildBankItemGrant;
+    $grant->forceFill([
+        'id' => 99,
+        'dkp_charged' => $dkpCharged,
+        'received_by_character_id' => 7,
+        'guild_bank_item_id' => 3,
+        'reason' => 'Raid',
+    ]);
+    $grant->exists = true;
+
+    return $grant;
+}
+
+function makeBankItemForDkpUnit(int $dkpCost = 10): GuildBankItem
+{
+    $item = new GuildBankItem;
+    $item->forceFill(['id' => 2, 'dkp_cost' => $dkpCost]);
+    $item->exists = true;
+
+    return $item;
 }

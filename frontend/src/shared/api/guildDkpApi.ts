@@ -40,10 +40,25 @@ export type GuildDkpLedgerListParams = {
   user_name?: string;
   event_history_title_id?: number;
   source?: GuildDkpLedgerSource;
+  page?: number;
+  per_page?: number;
+};
+
+export type GuildDkpLedgerListResult = {
+  data: GuildDkpLedgerEntry[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
 };
 
 export const guildDkpApi = {
-  async listLedger(guildId: number, params: GuildDkpLedgerListParams = {}): Promise<GuildDkpLedgerEntry[]> {
+  async listLedger(
+    guildId: number,
+    params: GuildDkpLedgerListParams = {},
+  ): Promise<GuildDkpLedgerListResult> {
     const query: Record<string, string | number> = {};
     const occurredFrom = params.occurred_from?.trim();
     const occurredTo = params.occurred_to?.trim();
@@ -55,12 +70,26 @@ export const guildDkpApi = {
       query.event_history_title_id = params.event_history_title_id;
     }
     if (params.source) query.source = params.source;
+    if (params.page != null) query.page = params.page;
+    if (params.per_page != null) query.per_page = params.per_page;
 
-    const res = await http.fetchGet<{ data: GuildDkpLedgerEntry[] }>(`/guilds/${guildId}/dkp/ledger`, {
+    const res = await http.fetchGet<{
+      data: GuildDkpLedgerEntry[];
+      meta?: GuildDkpLedgerListResult['meta'];
+    }>(`/guilds/${guildId}/dkp/ledger`, {
       params: Object.keys(query).length ? query : undefined,
     });
     throwOnError(res, 'Не удалось загрузить историю ДКП.');
-    return res.data?.data ?? [];
+    const payload = res.data;
+    return {
+      data: payload?.data ?? [],
+      meta: payload?.meta ?? {
+        current_page: 1,
+        last_page: 1,
+        per_page: payload?.data?.length ?? 0,
+        total: payload?.data?.length ?? 0,
+      },
+    };
   },
 
   async getMemberBalance(guildId: number, characterId: number): Promise<GuildUserDkpBalance> {

@@ -24,6 +24,8 @@ class ListGuildDkpLedgerRequest extends FormRequest
             'user_name' => ['nullable', 'string', 'max:255'],
             'event_history_title_id' => ['nullable', 'integer', Rule::exists('event_history_titles', 'id')],
             'source' => ['nullable', 'string', Rule::enum(GuildDkpLedgerSource::class)],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 

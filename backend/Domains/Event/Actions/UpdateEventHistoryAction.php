@@ -23,6 +23,7 @@ class UpdateEventHistoryAction
      *     description?: string|null,
      *     occurred_at?: string|null,
      *     dkp_base_points?: int|null,
+     *     distribute_dkp_to_participants?: bool,
      *     participants?: array<int, array{character_id?: int|null, external_name?: string|null, dkp_coefficient?: float|int|string|null, dkp_points_override?: int|null}>,
      *     screenshots?: array<int, array{url: string, title?: string|null, sort_order?: int|null}>
      * }  $data
@@ -40,7 +41,30 @@ class UpdateEventHistoryAction
                     'name' => $data['title'],
                 ]);
                 $update['event_history_title_id'] = $title->id;
-                $update['distribute_dkp_to_participants'] = (bool) $title->distribute_dkp_to_participants;
+
+                $distributeDkp = array_key_exists('distribute_dkp_to_participants', $data)
+                    ? (bool) $data['distribute_dkp_to_participants']
+                    : (bool) $title->distribute_dkp_to_participants;
+                $previousDistribute = (bool) $history->distribute_dkp_to_participants;
+                $update['distribute_dkp_to_participants'] = $distributeDkp;
+
+                if (
+                    ! array_key_exists('dkp_base_points', $data)
+                    && $distributeDkp !== $previousDistribute
+                ) {
+                    $update['dkp_base_points'] = $distributeDkp ? null : $title->dkp_base_points;
+                }
+            } elseif (array_key_exists('distribute_dkp_to_participants', $data)) {
+                $distributeDkp = (bool) $data['distribute_dkp_to_participants'];
+                $previousDistribute = (bool) $history->distribute_dkp_to_participants;
+                $update['distribute_dkp_to_participants'] = $distributeDkp;
+
+                if (
+                    ! array_key_exists('dkp_base_points', $data)
+                    && $distributeDkp !== $previousDistribute
+                ) {
+                    $update['dkp_base_points'] = $distributeDkp ? null : $history->titleReference?->dkp_base_points;
+                }
             }
             if (array_key_exists('description', $data)) {
                 $update['description'] = $data['description'];

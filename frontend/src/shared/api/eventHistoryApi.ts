@@ -41,6 +41,7 @@ export interface CreateEventHistoryPayload {
   description?: string | null;
   occurred_at?: string | null;
   dkp_base_points?: number | null;
+  distribute_dkp_to_participants?: boolean;
   participants?: {
     character_id?: number | null;
     external_name?: string | null;

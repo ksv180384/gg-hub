@@ -9,6 +9,7 @@ import {
 } from '@/shared/api/guildBankApi';
 import { guildsApi, type GuildRosterMember } from '@/shared/api/guildsApi';
 import type { ApiError } from '@/shared/api/errors';
+import { parseDkpCostInput } from '@/shared/lib/dkpValidation';
 
 export const MAX_BANK_QUANTITY = 1_000_000_000;
 
@@ -385,6 +386,15 @@ export function useGuildBank() {
       itemFormError.value = 'Введите название предмета.';
       return;
     }
+    let parsedDkpCost: number | null = null;
+    if (dkpEnabled.value && itemForm.value.dkp_cost.trim()) {
+      parsedDkpCost = parseDkpCostInput(itemForm.value.dkp_cost);
+      if (parsedDkpCost === null) {
+        itemFormError.value = 'Стоимость ДКП должна быть целым неотрицательным числом.';
+        return;
+      }
+    }
+
     itemFormSaving.value = true;
     try {
       const tierId = Number(itemForm.value.guild_bank_item_tier_id);
@@ -392,9 +402,7 @@ export function useGuildBank() {
         name,
         description: itemForm.value.description.trim() || null,
         guild_bank_item_tier_id: tierId > 0 ? tierId : null,
-        dkp_cost: dkpEnabled.value && itemForm.value.dkp_cost.trim()
-          ? Number(itemForm.value.dkp_cost.trim())
-          : null,
+        dkp_cost: parsedDkpCost,
         quantity: itemForm.value.quantity.trim() !== ''
           ? Number(itemForm.value.quantity.trim())
           : null,

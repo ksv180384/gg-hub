@@ -290,7 +290,7 @@ function isMine(member: GuildRosterMember): boolean {
           </Button>
           <Button
             v-else-if="model.canManageRoulette"
-            variant="default"
+            variant="outlinePrimary"
             size="sm"
             class="shrink-0"
             :disabled="!model.canEditWheelEntries"

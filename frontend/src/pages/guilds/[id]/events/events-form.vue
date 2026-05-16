@@ -15,6 +15,7 @@ import {
 } from '@/shared/api/eventHistoryTitlesApi';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { parseParticipantNicknamesFromXlsxFile } from '@/shared/lib/eventHistoryParticipantsXlsxImport';
+import { DKP_COEFFICIENT_MAX, isValidDkpCoefficient } from '@/shared/lib/dkpValidation';
 import { useEventHistoryTitlesAdmin } from '@/features/guild-event-history-titles';
 import { EventHistoryTitlesDialog } from '@/widgets/guild-event-history-titles';
 import EventsFormTabsHeader from './ui/EventsFormTabsHeader.vue';
@@ -407,6 +408,19 @@ async function submit() {
     return;
   }
 
+  if (dkpEnabled.value) {
+    for (const participant of form.value.participants) {
+      if (participant.character_id == null) {
+        continue;
+      }
+      const coefficient = Number(participant.dkp_coefficient ?? 1);
+      if (!isValidDkpCoefficient(coefficient)) {
+        error.value = `Коэффициент ДКП должен быть от 0 до ${DKP_COEFFICIENT_MAX}.`;
+        return;
+      }
+    }
+  }
+
   const payloadBase: CreateEventHistoryPayload | UpdateEventHistoryPayload = {
     title: form.value.title.trim(),
     description: form.value.description.trim() || null,
@@ -435,6 +449,7 @@ async function submit() {
   };
 
   if (dkpEnabled.value) {
+    payloadBase.distribute_dkp_to_participants = distributeDkpToParticipants.value;
     const dkpBasePoints = resolveDkpBasePointsForPayload();
     if (dkpBasePoints !== undefined) {
       payloadBase.dkp_base_points = dkpBasePoints;

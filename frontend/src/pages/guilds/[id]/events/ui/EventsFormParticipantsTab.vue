@@ -17,6 +17,7 @@ import {
   calculateEventParticipantDkpPoints,
   parseDkpBasePointsInput,
 } from '@/shared/lib/calculateEventParticipantDkpPoints';
+import { DKP_COEFFICIENT_MAX } from '@/shared/lib/dkpValidation';
 
 const props = defineProps<{
   guildId: number;
@@ -320,6 +321,7 @@ function formatDkpPreview(points: number | null): string {
                   v-model.number="row.participant.dkp_coefficient"
                   type="number"
                   min="0"
+                  :max="DKP_COEFFICIENT_MAX"
                   step="0.1"
                   title="Коэффициент"
                   class="h-7 w-14 px-1.5 text-center text-xs tabular-nums"

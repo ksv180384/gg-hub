@@ -40,8 +40,14 @@ export function useGuildDkpLedger() {
   const hasLoadedOnce = ref(false);
   const error = ref('');
   const entries = ref<GuildDkpLedgerEntry[]>([]);
+  const ledgerPage = ref(1);
+  const ledgerLastPage = ref(1);
+  const ledgerTotal = ref(0);
+  const ledgerLoadingMore = ref(false);
   const dkpEnabled = ref(false);
   const eventTitles = ref<EventHistoryTitleDto[]>([]);
+
+  const LEDGER_PER_PAGE = 50;
 
   const userNameFilter = ref('');
   const occurredFromFilter = ref('');
@@ -77,6 +83,10 @@ export function useGuildDkpLedger() {
 
   const hasActiveFilters = computed(() => ledgerActiveFiltersCount.value > 0);
 
+  const canLoadMoreLedger = computed(
+    () => ledgerPage.value < ledgerLastPage.value && !loading.value && !filtersLoading.value,
+  );
+
   function resetLedgerFilters() {
     userNameFilter.value = '';
     occurredFromFilter.value = '';
@@ -93,6 +103,30 @@ export function useGuildDkpLedger() {
     }
   }
 
+  function buildLedgerParams(page: number) {
+    const eventHistoryTitleId =
+      eventTitleFilter.value !== EVENT_TITLE_FILTER_ALL
+        ? Number(eventTitleFilter.value)
+        : undefined;
+
+    const source =
+      sourceFilter.value !== SOURCE_FILTER_ALL
+        ? (sourceFilter.value as GuildDkpLedgerSource)
+        : undefined;
+
+    return {
+      page,
+      per_page: LEDGER_PER_PAGE,
+      occurred_from: occurredFromFilter.value || undefined,
+      occurred_to: occurredToFilter.value || undefined,
+      user_name: userNameFilter.value.trim() || undefined,
+      ...(eventHistoryTitleId != null && Number.isFinite(eventHistoryTitleId)
+        ? { event_history_title_id: eventHistoryTitleId }
+        : {}),
+      ...(source ? { source } : {}),
+    };
+  }
+
   async function loadPage(mode: 'initial' | 'filters' = 'initial') {
     if (!guildId.value) return;
 
@@ -100,8 +134,11 @@ export function useGuildDkpLedger() {
     if (isInitial) {
       loading.value = true;
       entries.value = [];
+      ledgerPage.value = 1;
     } else {
       filtersLoading.value = true;
+      entries.value = [];
+      ledgerPage.value = 1;
     }
     error.value = '';
 
@@ -119,25 +156,11 @@ export function useGuildDkpLedger() {
         return;
       }
 
-      const eventHistoryTitleId =
-        eventTitleFilter.value !== EVENT_TITLE_FILTER_ALL
-          ? Number(eventTitleFilter.value)
-          : undefined;
-
-      const source =
-        sourceFilter.value !== SOURCE_FILTER_ALL
-          ? (sourceFilter.value as GuildDkpLedgerSource)
-          : undefined;
-
-      entries.value = await guildDkpApi.listLedger(guildId.value, {
-        occurred_from: occurredFromFilter.value || undefined,
-        occurred_to: occurredToFilter.value || undefined,
-        user_name: userNameFilter.value.trim() || undefined,
-        ...(eventHistoryTitleId != null && Number.isFinite(eventHistoryTitleId)
-          ? { event_history_title_id: eventHistoryTitleId }
-          : {}),
-        ...(source ? { source } : {}),
-      });
+      const result = await guildDkpApi.listLedger(guildId.value, buildLedgerParams(1));
+      entries.value = result.data;
+      ledgerPage.value = result.meta.current_page;
+      ledgerLastPage.value = result.meta.last_page;
+      ledgerTotal.value = result.meta.total;
     } catch (e: unknown) {
       entries.value = [];
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить историю ДКП.';
@@ -145,6 +168,26 @@ export function useGuildDkpLedger() {
       if (isInitial) loading.value = false;
       filtersLoading.value = false;
       hasLoadedOnce.value = true;
+    }
+  }
+
+  async function loadMoreLedger() {
+    if (!guildId.value || !dkpEnabled.value || !canLoadMoreLedger.value || ledgerLoadingMore.value) {
+      return;
+    }
+
+    ledgerLoadingMore.value = true;
+    try {
+      const nextPage = ledgerPage.value + 1;
+      const result = await guildDkpApi.listLedger(guildId.value, buildLedgerParams(nextPage));
+      entries.value = [...entries.value, ...result.data];
+      ledgerPage.value = result.meta.current_page;
+      ledgerLastPage.value = result.meta.last_page;
+      ledgerTotal.value = result.meta.total;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Не удалось загрузить историю ДКП.';
+    } finally {
+      ledgerLoadingMore.value = false;
     }
   }
 
@@ -198,6 +241,10 @@ export function useGuildDkpLedger() {
     hasActiveFilters,
     resetLedgerFilters,
     loadPage,
+    loadMoreLedger,
+    canLoadMoreLedger,
+    ledgerLoadingMore,
+    ledgerTotal,
     formatLedgerDescription,
   };
 }

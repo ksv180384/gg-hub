@@ -14,7 +14,6 @@ use Domains\GuildDkp\Actions\GetGuildUserDkpBalanceAction;
 use Domains\GuildDkp\Actions\ListGuildDkpLedgerAction;
 use Domains\GuildDkp\Actions\ResolveGuildMemberUserIdAction;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class GuildDkpController extends Controller
 {
@@ -25,7 +24,7 @@ class GuildDkpController extends Controller
         private ResolveGuildMemberUserIdAction $resolveGuildMemberUserIdAction,
     ) {}
 
-    public function ledger(ListGuildDkpLedgerRequest $request, Guild $guild): AnonymousResourceCollection|JsonResponse
+    public function ledger(ListGuildDkpLedgerRequest $request, Guild $guild): JsonResponse
     {
         if (! (bool) ($guild->dkp_enabled ?? false)) {
             return response()->json([
@@ -35,9 +34,24 @@ class GuildDkpController extends Controller
 
         $filter = new GuildDkpLedgerFilter($request);
 
-        return GuildDkpLedgerEntryListResource::collection(
-            ($this->listGuildDkpLedgerAction)($guild, $filter)
-        );
+        $perPage = (int) $request->input('per_page', 50);
+        $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 50;
+        $page = max(1, (int) $request->input('page', 1));
+
+        $paginator = ($this->listGuildDkpLedgerAction)($guild, $filter, [
+            'page' => $page,
+            'per_page' => $perPage,
+        ]);
+
+        return response()->json([
+            'data' => GuildDkpLedgerEntryListResource::collection($paginator->items()),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     public function memberBalance(Guild $guild, int $character): GuildUserDkpBalanceResource|JsonResponse

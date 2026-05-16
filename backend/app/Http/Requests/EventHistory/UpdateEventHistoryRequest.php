@@ -24,6 +24,7 @@ class UpdateEventHistoryRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:5000'],
             'occurred_at' => ['sometimes', 'nullable', 'date'],
             'dkp_base_points' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:1000000000'],
+            'distribute_dkp_to_participants' => ['sometimes', 'boolean'],
 
             'participants' => ['sometimes', 'nullable', 'array'],
             'participants.*.character_id' => [
@@ -84,6 +85,7 @@ class UpdateEventHistoryRequest extends FormRequest
             'description' => 'описание',
             'occurred_at' => 'время проведения',
             'dkp_base_points' => 'очки ДКП',
+            'distribute_dkp_to_participants' => 'режим распределения ДКП',
             'participants' => 'участники',
             'participants.*.character_id' => 'участник гильдии',
             'participants.*.external_name' => 'ник участника',

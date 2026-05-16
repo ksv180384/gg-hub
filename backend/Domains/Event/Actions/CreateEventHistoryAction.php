@@ -24,6 +24,7 @@ class CreateEventHistoryAction
      *     description?: string|null,
      *     occurred_at?: string|null,
      *     dkp_base_points?: int|null,
+     *     distribute_dkp_to_participants?: bool,
      *     participants?: array<int, array{character_id?: int|null, external_name?: string|null, dkp_coefficient?: float|int|string|null, dkp_points_override?: int|null}>,
      *     screenshots?: array<int, array{url: string, title?: string|null, sort_order?: int|null}>
      * }  $data
@@ -36,6 +37,10 @@ class CreateEventHistoryAction
                 'name' => $data['title'],
             ]);
 
+            $distributeDkp = array_key_exists('distribute_dkp_to_participants', $data)
+                ? (bool) $data['distribute_dkp_to_participants']
+                : (bool) $title->distribute_dkp_to_participants;
+
             $payload = [
                 'guild_id' => $data['guild_id'],
                 'event_history_title_id' => $title->id,
@@ -46,8 +51,8 @@ class CreateEventHistoryAction
                     : now(),
                 'dkp_base_points' => array_key_exists('dkp_base_points', $data)
                     ? $data['dkp_base_points']
-                    : ($title->distribute_dkp_to_participants ? null : $title->dkp_base_points),
-                'distribute_dkp_to_participants' => (bool) $title->distribute_dkp_to_participants,
+                    : ($distributeDkp ? null : $title->dkp_base_points),
+                'distribute_dkp_to_participants' => $distributeDkp,
             ];
 
             /** @var EventHistory $history */

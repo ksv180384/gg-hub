@@ -16,10 +16,6 @@ class ReverseBankGrantDkpAction
 
     public function __invoke(Guild $guild, GuildBankItemGrant $grant, ?User $actor): void
     {
-        if (! (bool) ($guild->dkp_enabled ?? false)) {
-            return;
-        }
-
         $charged = (int) ($grant->dkp_charged ?? 0);
         if ($charged <= 0) {
             return;
