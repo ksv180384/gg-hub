@@ -10,12 +10,14 @@ class EventHistoryTitle extends Model
     protected $fillable = [
         'name',
         'dkp_base_points',
+        'distribute_dkp_to_participants',
     ];
 
     protected function casts(): array
     {
         return [
             'dkp_base_points' => 'integer',
+            'distribute_dkp_to_participants' => 'boolean',
         ];
     }
 

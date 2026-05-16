@@ -40,6 +40,7 @@ class UpdateEventHistoryAction
                     'name' => $data['title'],
                 ]);
                 $update['event_history_title_id'] = $title->id;
+                $update['distribute_dkp_to_participants'] = (bool) $title->distribute_dkp_to_participants;
             }
             if (array_key_exists('description', $data)) {
                 $update['description'] = $data['description'];
@@ -100,6 +101,7 @@ class UpdateEventHistoryAction
 
             $history = $history->load([
                 'guild:id,dkp_enabled',
+                'titleReference:id,distribute_dkp_to_participants',
                 'participants.character:id,name,user_id',
                 'screenshots',
             ]);

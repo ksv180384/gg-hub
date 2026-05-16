@@ -44,6 +44,7 @@ class EventHistoryTitleController extends Controller
         $title = ($this->createEventHistoryTitleAction)(
             $validated['name'],
             $validated['dkp_base_points'] ?? null,
+            (bool) ($validated['distribute_dkp_to_participants'] ?? false),
         );
 
         return (new EventHistoryTitleResource($title->loadCount('histories')))

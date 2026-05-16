@@ -8,11 +8,15 @@ use Illuminate\Validation\ValidationException;
 
 class CreateEventHistoryTitleAction
 {
-    public function __invoke(string $name, ?int $dkpBasePoints = null): EventHistoryTitle
-    {
+    public function __invoke(
+        string $name,
+        ?int $dkpBasePoints = null,
+        bool $distributeDkpToParticipants = false,
+    ): EventHistoryTitle {
         $title = new EventHistoryTitle([
             'name' => $name,
-            'dkp_base_points' => $dkpBasePoints,
+            'dkp_base_points' => $distributeDkpToParticipants ? null : $dkpBasePoints,
+            'distribute_dkp_to_participants' => $distributeDkpToParticipants,
         ]);
 
         try {

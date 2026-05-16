@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   Button,
   Input,
@@ -20,15 +19,17 @@ import {
 } from '@/shared/lib/calculateEventParticipantDkpPoints';
 
 const props = defineProps<{
+  guildId: number;
   dkpEnabled: boolean;
+  distributeDkpToParticipants: boolean;
   dkpBasePoints: string;
+  guildParticipants: EventsFormParticipant[];
   externalNickname: string;
   roster: GuildRosterMember[];
   loadingRoster: boolean;
   importParticipantsLoading: boolean;
   importParticipantsError: string;
   participantsExcelImportHint: string;
-  guildParticipants: EventsFormParticipant[];
   externalParticipants: EventsFormParticipant[];
   hasParticipants: boolean;
   totalParticipantsCount: number;
@@ -105,6 +106,8 @@ const confirmedParticipantRows = computed(() => {
       subtitle: member ? memberSubtitle(member) : null,
       avatarUrl: member?.avatar_url ?? null,
       isExternal: false,
+      characterId: participant.character_id ?? null,
+      isGuildMember: member != null,
     };
   });
 
@@ -130,11 +133,10 @@ function parseOverrideValue(value: string | number): number | null {
 const eventDkpBasePoints = computed(() => parseDkpBasePointsInput(props.dkpBasePoints));
 
 function previewParticipantDkpPoints(participant: EventsFormParticipant): number | null {
-  return calculateEventParticipantDkpPoints(
-    eventDkpBasePoints.value,
-    participant.dkp_coefficient ?? 1,
-    participant.dkp_points_override ?? null
-  );
+  return calculateEventParticipantDkpPoints(eventDkpBasePoints.value, participant, {
+    distributeTotal: props.distributeDkpToParticipants,
+    guildParticipants: props.guildParticipants,
+  });
 }
 
 function formatDkpPreview(points: number | null): string {
@@ -145,14 +147,7 @@ function formatDkpPreview(points: number | null): string {
 
 <template>
   <Card>
-    <CardHeader class="space-y-1 pb-4">
-      <CardTitle class="text-base">Участники события</CardTitle>
-      <p class="text-sm text-muted-foreground">
-        Добавьте участников, которые подтвердили участие
-      </p>
-    </CardHeader>
-
-    <CardContent class="space-y-6">
+    <CardContent class="space-y-6 pt-6">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
           <Input
@@ -164,13 +159,21 @@ function formatDkpPreview(points: number | null): string {
             @update:model-value="emit('update:externalNickname', String($event))"
             @keydown.enter.prevent="emit('addExternalParticipant')"
           />
-          <Button
-            type="button"
-            class="shrink-0 sm:px-6"
-            @click="emit('addExternalParticipant')"
+          <Tooltip
+            content="Добавьте участников, которые не состоят в гильдии"
+            side="top"
+            class="max-w-sm text-left"
           >
-            Добавить
-          </Button>
+            <Button
+              type="button"
+              variant="outlinePrimary"
+              size="sm"
+              class="shrink-0 sm:px-6"
+              @click="emit('addExternalParticipant')"
+            >
+              Добавить
+            </Button>
+          </Tooltip>
         </div>
 
         <input
@@ -183,7 +186,7 @@ function formatDkpPreview(points: number | null): string {
         <Tooltip
           :content="participantsExcelImportHint"
           side="top"
-          class="max-w-sm text-left"
+          class="max-w-sm text-left whitespace-pre-line"
         >
           <Button
             type="button"
@@ -218,10 +221,32 @@ function formatDkpPreview(points: number | null): string {
       </p>
 
       <section class="space-y-3">
-        <h3 class="text-sm font-semibold">
-          Приняли участие
-          <span v-if="totalParticipantsCount">({{ totalParticipantsCount }})</span>
-        </h3>
+        <Tooltip
+          :content="`Приняли участие (${totalParticipantsCount})`"
+          side="top"
+        >
+          <h3
+            class="inline-flex cursor-default items-center gap-1.5 text-sm font-semibold text-foreground"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-4 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span class="tabular-nums">{{ totalParticipantsCount }}</span>
+          </h3>
+        </Tooltip>
 
         <p
           v-if="!hasParticipants"
@@ -257,7 +282,21 @@ function formatDkpPreview(points: number | null): string {
               {{ avatarFallback(row.name) }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium">{{ row.name }}</p>
+              <p class="truncate text-sm font-medium">
+                <RouterLink
+                  v-if="row.isGuildMember && row.characterId"
+                  :to="{
+                    name: 'guild-roster-member',
+                    params: { id: String(guildId), characterId: String(row.characterId) },
+                  }"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary underline-offset-4 hover:underline"
+                >
+                  {{ row.name }}
+                </RouterLink>
+                <template v-else>{{ row.name }}</template>
+              </p>
               <p v-if="row.subtitle" class="truncate text-xs text-muted-foreground">
                 {{ row.subtitle }}
               </p>
@@ -318,8 +357,12 @@ function formatDkpPreview(points: number | null): string {
                   row.participant.dkp_points_override != null
                     ? 'Итог по коррекции'
                     : eventDkpBasePoints == null
-                      ? 'Укажите очки ДКП за посещение на вкладке «Информация»'
-                      : 'База × коэффициент'
+                      ? distributeDkpToParticipants
+                        ? 'Укажите общее количество ДКП события на вкладке «Информация»'
+                        : 'Укажите очки ДКП за посещение на вкладке «Информация»'
+                      : distributeDkpToParticipants
+                        ? 'Доля от общего пула × коэффициент'
+                        : 'База × коэффициент'
                 "
               >
                 {{ formatDkpPreview(previewParticipantDkpPoints(row.participant)) }} очк.
@@ -413,9 +456,9 @@ function formatDkpPreview(points: number | null): string {
               </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="outlinePrimary"
                 size="sm"
-                class="shrink-0 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+                class="shrink-0"
                 @click="emit('toggleGuildParticipant', member.character_id)"
               >
                 Добавить

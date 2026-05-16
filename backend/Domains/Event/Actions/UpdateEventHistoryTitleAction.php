@@ -9,12 +9,19 @@ use Illuminate\Validation\ValidationException;
 class UpdateEventHistoryTitleAction
 {
     /**
-     * @param  array{name: string, dkp_base_points?: int|null}  $data
+     * @param  array{name: string, dkp_base_points?: int|null, distribute_dkp_to_participants?: bool}  $data
      */
     public function __invoke(EventHistoryTitle $title, array $data): EventHistoryTitle
     {
         $title->name = $data['name'];
-        if (array_key_exists('dkp_base_points', $data)) {
+
+        if (array_key_exists('distribute_dkp_to_participants', $data)) {
+            $title->distribute_dkp_to_participants = (bool) $data['distribute_dkp_to_participants'];
+        }
+
+        if ($title->distribute_dkp_to_participants) {
+            $title->dkp_base_points = null;
+        } elseif (array_key_exists('dkp_base_points', $data)) {
             $title->dkp_base_points = $data['dkp_base_points'];
         }
 

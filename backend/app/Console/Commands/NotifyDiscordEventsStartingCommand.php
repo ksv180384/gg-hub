@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Actions\Notification\SendGuildDiscordNotificationAction;
+use App\Services\Notifications\EventNotificationTimeFormatter;
 use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Event\Enums\EventRecurrence;
 use Domains\Event\Models\Event;
@@ -30,6 +31,7 @@ class NotifyDiscordEventsStartingCommand extends Command
     public function handle(
         SendGuildDiscordNotificationAction $sendGuildDiscordNotificationAction,
         GuildLinkBuilder $linkBuilder,
+        EventNotificationTimeFormatter $eventNotificationTimeFormatter,
     ): int {
         $now = Carbon::now();
         $windowStart = $now->copy()->addMinutes(9);
@@ -64,7 +66,7 @@ class NotifyDiscordEventsStartingCommand extends Command
                 $q->whereNotNull('discord_webhook_url')
                     ->where('discord_notify_event_starting', true);
             })
-            ->with(['guild.game'])
+            ->with(['guild.game', 'creator:id,user_id', 'creator.user:id,timezone'])
             ->get();
 
         if ($events->isEmpty()) {
@@ -107,11 +109,13 @@ class NotifyDiscordEventsStartingCommand extends Command
                 continue;
             }
 
-            $url = $linkBuilder->guildCalendarUrl($guild, $nextStart);
+            $timezone = $eventNotificationTimeFormatter->timezoneFor($event);
+            $localStart = $eventNotificationTimeFormatter->toLocal($nextStart, $timezone);
+            $url = $linkBuilder->guildCalendarUrl($guild, $localStart);
             $title = trim((string) $event->title);
             $titleLine = $title !== '' ? "«{$title}»" : '#' . $event->id;
             $message = "Через 10 минут начнётся событие: {$titleLine} (старт в "
-                . $nextStart->format('H:i') . ")\n{$url}";
+                . $localStart->format('H:i') . ")\n{$url}";
 
             ($sendGuildDiscordNotificationAction)(
                 $guild,

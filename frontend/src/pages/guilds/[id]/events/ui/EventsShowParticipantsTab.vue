@@ -1,16 +1,46 @@
 <script setup lang="ts">
-import { Card, CardHeader, CardTitle, CardContent, Button } from '@/shared/ui';
+import { computed } from 'vue';
+import { Card, CardContent, Button, Tooltip } from '@/shared/ui';
 import type {
   EventHistoryItem,
   EventHistoryParticipantDto,
 } from '@/shared/api/eventHistoryApi';
+import { calculateEventParticipantDkpPoints } from '@/shared/lib/calculateEventParticipantDkpPoints';
 
-defineProps<{
+const props = defineProps<{
   item: EventHistoryItem;
   exportParticipantsLoading: boolean;
   exportParticipantsError: string;
   isExternalEventParticipant: (p: EventHistoryParticipantDto) => boolean;
 }>();
+
+const guildParticipantsForDkp = computed(() =>
+  (props.item.participants ?? [])
+    .filter((p) => p.character_id != null)
+    .map((p) => ({
+      character_id: p.character_id,
+      dkp_coefficient: p.dkp?.coefficient ?? 1,
+      dkp_points_override: p.dkp?.points_override ?? null,
+    }))
+);
+
+function participantDkpPoints(p: EventHistoryParticipantDto): number | null {
+  if (!props.item.dkp) {
+    return null;
+  }
+  return calculateEventParticipantDkpPoints(
+    props.item.dkp.base_points,
+    {
+      character_id: p.character_id,
+      dkp_coefficient: p.dkp?.coefficient ?? 1,
+      dkp_points_override: p.dkp?.points_override ?? null,
+    },
+    {
+      distributeTotal: props.item.dkp.distribute_to_participants ?? false,
+      guildParticipants: guildParticipantsForDkp.value,
+    }
+  );
+}
 
 const emit = defineEmits<{
   (e: 'exportParticipantsXlsx'): void;
@@ -19,18 +49,38 @@ const emit = defineEmits<{
 
 <template>
   <Card>
-    <CardHeader>
-      <CardTitle class="text-base">Участники события</CardTitle>
-    </CardHeader>
-    <CardContent class="space-y-6">
+    <CardContent class="space-y-6 pt-6">
       <section class="space-y-3">
         <div
           v-if="(item.participants?.length ?? 0) > 0"
           class="flex flex-wrap items-center justify-between gap-2"
         >
-          <p class="text-sm font-semibold">
-            Приняли участие ({{ item.participants?.length }})
-          </p>
+          <Tooltip
+            :content="`Приняли участие (${item.participants?.length ?? 0})`"
+            side="top"
+          >
+            <span
+              class="inline-flex cursor-default items-center gap-1.5 text-sm font-semibold text-foreground"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-4 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span class="tabular-nums">{{ item.participants?.length }}</span>
+            </span>
+          </Tooltip>
           <Button
             variant="outline"
             size="sm"
@@ -84,15 +134,28 @@ const emit = defineEmits<{
                 {{ p.character?.name || p.external_name }}
               </span>
               <span
-                v-if="item.dkp"
-                class="text-xs text-muted-foreground tabular-nums"
+                v-if="item.dkp && participantDkpPoints(p) != null"
+                class="shrink-0 text-right text-sm tabular-nums"
               >
-                <template v-if="p.dkp?.points_override != null">
-                  {{ p.dkp.points_override }} очк. (коррекция)
-                </template>
-                <template v-else-if="p.dkp?.coefficient != null && p.dkp.coefficient !== 1">
+                <span class="font-semibold text-foreground">
+                  +{{ participantDkpPoints(p) }} очк.
+                </span>
+                <span
+                  v-if="p.dkp?.points_override != null"
+                  class="mt-0.5 block text-xs text-muted-foreground"
+                >
+                  коррекция
+                </span>
+                <span
+                  v-else-if="
+                    item.dkp.distribute_to_participants &&
+                    p.dkp?.coefficient != null &&
+                    p.dkp.coefficient !== 1
+                  "
+                  class="mt-0.5 block text-xs text-muted-foreground"
+                >
                   коэф. {{ p.dkp.coefficient }}
-                </template>
+                </span>
               </span>
             </div>
             <span

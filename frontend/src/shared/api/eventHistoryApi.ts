@@ -26,7 +26,10 @@ export interface EventHistoryItem {
   title: string;
   description: string | null;
   occurred_at: string | null;
-  dkp?: { base_points: number | null } | null;
+  dkp?: {
+    base_points: number | null;
+    distribute_to_participants?: boolean;
+  } | null;
   participants?: EventHistoryParticipantDto[];
   screenshots?: EventHistoryScreenshotDto[];
   created_at: string | null;

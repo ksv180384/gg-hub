@@ -16,6 +16,7 @@ class EventHistoryTitleResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'dkp_base_points' => $this->dkp_base_points === null ? null : (int) $this->dkp_base_points,
+            'distribute_dkp_to_participants' => (bool) ($this->distribute_dkp_to_participants ?? false),
             'histories_count' => $this->when(isset($this->histories_count), fn () => (int) $this->histories_count),
         ];
     }

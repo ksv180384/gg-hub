@@ -19,8 +19,14 @@ defineProps<{
         <p class="text-sm">{{ formatDateTime(item.occurred_at) }}</p>
       </div>
       <div v-if="item.dkp?.base_points != null" class="space-y-1">
-        <p class="text-xs font-medium text-muted-foreground">Очки ДКП за посещение</p>
-        <p class="text-sm">{{ item.dkp.base_points }}</p>
+        <p class="text-xs font-medium text-muted-foreground">
+          {{
+            item.dkp.distribute_to_participants
+              ? 'Общее количество ДКП события'
+              : 'Очки ДКП за посещение'
+          }}
+        </p>
+        <p class="text-sm tabular-nums">{{ item.dkp.base_points }}</p>
       </div>
       <div v-if="item.description" class="space-y-1">
         <p class="text-xs font-medium text-muted-foreground">Описание</p>

@@ -18,7 +18,7 @@ class SyncEventHistoryDkpLedgerAction
 
     public function __invoke(EventHistory $history): void
     {
-        $history->loadMissing(['guild', 'participants.character:id,user_id']);
+        $history->loadMissing(['guild', 'titleReference', 'participants.character:id,user_id']);
 
         $guild = $history->guild;
         if ($guild === null || ! (bool) ($guild->dkp_enabled ?? false)) {
@@ -35,16 +35,33 @@ class SyncEventHistoryDkpLedgerAction
                 return;
             }
 
-            foreach ($history->participants as $participant) {
+            $distributeTotal = (bool) ($history->distribute_dkp_to_participants
+                ?? $history->titleReference?->distribute_dkp_to_participants
+                ?? false);
+
+            $participantPayloads = $history->participants
+                ->values()
+                ->map(fn ($participant) => [
+                    'character_id' => $participant->character_id,
+                    'dkp_coefficient' => $participant->dkp_coefficient,
+                    'dkp_points_override' => $participant->dkp_points_override === null
+                        ? null
+                        : (int) $participant->dkp_points_override,
+                ])
+                ->all();
+
+            $amounts = CalculateEventParticipantDkpPoints::resolveAll(
+                $basePoints,
+                $distributeTotal,
+                $participantPayloads,
+            );
+
+            foreach ($history->participants->values() as $index => $participant) {
                 if ($participant->character_id === null) {
                     continue;
                 }
 
-                $amount = CalculateEventParticipantDkpPoints::resolve(
-                    $basePoints,
-                    $participant->dkp_coefficient,
-                    $participant->dkp_points_override === null ? null : (int) $participant->dkp_points_override,
-                );
+                $amount = $amounts[$index] ?? null;
 
                 if ($amount === null || $amount === 0) {
                     continue;

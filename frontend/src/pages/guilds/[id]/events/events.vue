@@ -1,15 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  Button,
-  Input,
-  Label,
-} from '@/shared/ui';
+import { Button } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { guildsApi } from '@/shared/api/guildsApi';
@@ -18,6 +10,8 @@ import {
   eventHistoryApi,
   type EventHistoryItem,
 } from '@/shared/api/eventHistoryApi';
+import { useEventHistoryTitlesAdmin } from '@/features/guild-event-history-titles';
+import { EventHistoryTitlesDialog } from '@/widgets/guild-event-history-titles';
 
 const route = useRoute();
 const router = useRouter();
@@ -29,6 +23,13 @@ const items = ref<EventHistoryItem[]>([]);
 const guildEventsAccessNotFound = ref(false);
 
 const myPermissionSlugs = ref<string[]>([]);
+const dkpEnabled = ref(false);
+
+const titlesAdmin = reactive(
+  useEventHistoryTitlesAdmin({
+    dkpEnabled: () => dkpEnabled.value,
+  }),
+);
 
 const deleteConfirmOpen = ref(false);
 const deleteTarget = ref<EventHistoryItem | null>(null);
@@ -51,6 +52,7 @@ async function fetchPermissionsAndRoster() {
   try {
     const guild = await guildsApi.getGuildForSettings(guildId.value);
     myPermissionSlugs.value = guild.my_permission_slugs ?? [];
+    dkpEnabled.value = guild.dkp_enabled ?? false;
   } catch (e) {
     myPermissionSlugs.value = [];
     const st = (e as ApiError)?.status;
@@ -143,6 +145,7 @@ async function loadEventsPage() {
   guildEventsAccessNotFound.value = false;
   items.value = [];
   myPermissionSlugs.value = [];
+  dkpEnabled.value = false;
   deleteConfirmOpen.value = false;
   deleteTarget.value = null;
   deleteLoading.value = false;
@@ -167,13 +170,14 @@ watch(guildId, () => {
           <h1 class="text-xl font-semibold">
             События гильдии
           </h1>
-          <Button
-            v-if="canCreate"
-            size="sm"
-            @click="goToCreate"
-          >
-            Добавить событие
-          </Button>
+          <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Button type="button" variant="outlinePrimary" size="sm" @click="titlesAdmin.openModal()">
+              Виды событий
+            </Button>
+            <Button v-if="canCreate" size="sm" @click="goToCreate">
+              Добавить событие
+            </Button>
+          </div>
         </div>
 
         <div>
@@ -289,6 +293,28 @@ watch(guildId, () => {
         />
       </div>
     </div>
+
+    <EventHistoryTitlesDialog
+      v-model:open="titlesAdmin.open"
+      v-model:form="titlesAdmin.form"
+      v-model:edit-form="titlesAdmin.editForm"
+      :loading="titlesAdmin.loading"
+      :list-error="titlesAdmin.listError"
+      :form-error="titlesAdmin.formError"
+      :saving="titlesAdmin.saving"
+      :deleting-id="titlesAdmin.deletingId"
+      :sorted-titles="titlesAdmin.sortedTitles"
+      :editing-id="titlesAdmin.editingId"
+      :create-form-open="titlesAdmin.createFormOpen"
+      :dkp-enabled="dkpEnabled"
+      @open-create="titlesAdmin.openCreateForm()"
+      @cancel-create="titlesAdmin.cancelCreateForm()"
+      @create="titlesAdmin.createTitle()"
+      @start-edit="titlesAdmin.startEdit"
+      @save-edit="titlesAdmin.saveEdit()"
+      @cancel-edit="titlesAdmin.resetEditForm()"
+      @delete="titlesAdmin.deleteTitle"
+    />
   </div>
 </template>
 

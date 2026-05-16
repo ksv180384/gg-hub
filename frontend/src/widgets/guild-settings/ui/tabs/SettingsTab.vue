@@ -17,6 +17,14 @@ import {
 import type { Tag } from '@/shared/api/tagsApi';
 import type { GuildRosterMember } from '@/shared/api/guildsApi';
 
+const DKP_SYSTEM_HELP = `Система очков за активность в событиях гильдии. Участники копят баланс; очки можно учитывать при выдаче предметов из хранилища.
+
+Режимы в «Видах событий»:
+• Фиксированные очки за посещение — каждый участник гильдии получает базу × свой коэффициент.
+• Распределение по участникам — задаётся общий пул события; он делится между участниками пропорционально коэффициентам.
+
+На событии для участника можно указать коэффициент и коррекцию (фиксированное число очков). В карточке участника состава задаётся коэффициент по умолчанию при добавлении в событие.`;
+
 defineProps<{
   // owner/rights
   isOwner: boolean;
@@ -163,7 +171,32 @@ function selectedTags(allTags: Tag[], selectedIds: number[]) {
       </div>
 
       <div class="space-y-2">
-        <Label for="settings-dkp">Система ДКП</Label>
+        <div class="flex items-center gap-1.5">
+          <Label for="settings-dkp">Система ДКП</Label>
+          <Tooltip :content="DKP_SYSTEM_HELP" side="top" class="max-w-md text-left whitespace-pre-line">
+            <button
+              type="button"
+              class="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Как работает система ДКП"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-3.5"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+            </button>
+          </Tooltip>
+        </div>
         <div class="flex items-center gap-2">
           <input
             id="settings-dkp"

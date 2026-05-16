@@ -115,6 +115,26 @@ it('cannot delete event history title used in event history', function () {
     expect(EventHistoryTitle::query()->whereKey($title->id)->exists())->toBeTrue();
 });
 
+it('creates event history title with distribute dkp flag and clears base points', function () {
+    $user = User::factory()->create();
+
+    actingAs($user)
+        ->postJson('/api/v1/event-history-titles', [
+            'name' => 'Weekly raid',
+            'dkp_base_points' => 50,
+            'distribute_dkp_to_participants' => true,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.name', 'Weekly raid')
+        ->assertJsonPath('data.distribute_dkp_to_participants', true)
+        ->assertJsonPath('data.dkp_base_points', null);
+
+    $title = EventHistoryTitle::query()->where('name', 'Weekly raid')->first();
+    expect($title)->not->toBeNull();
+    expect($title->distribute_dkp_to_participants)->toBeTrue();
+    expect($title->dkp_base_points)->toBeNull();
+});
+
 it('deletes unused event history title', function () {
     $user = User::factory()->create();
     $title = EventHistoryTitle::query()->create(['name' => 'Unused title']);

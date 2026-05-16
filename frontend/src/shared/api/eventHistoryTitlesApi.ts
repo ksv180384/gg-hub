@@ -9,12 +9,14 @@ export interface EventHistoryTitleDto {
   id: number;
   name: string;
   dkp_base_points: number | null;
+  distribute_dkp_to_participants?: boolean;
   histories_count?: number;
 }
 
 export type SaveEventHistoryTitlePayload = {
   name: string;
   dkp_base_points?: number | null;
+  distribute_dkp_to_participants?: boolean;
 };
 
 function unwrapTitle(

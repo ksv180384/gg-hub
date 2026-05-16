@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { Button, Input, Label } from '@/shared/ui';
+import { Button, Input, Label, Tooltip } from '@/shared/ui';
 import type { EventHistoryTitleDto } from '@/shared/api/eventHistoryTitlesApi';
 import type { EventHistoryTitleForm } from '@/features/guild-event-history-titles';
+
+const DISTRIBUTE_DKP_TOOLTIP =
+  'Очки ДКП будут добавляться во время создания / редактирования события и будут распределены между участниками события с учётом коэффициентов участников.';
+
+function onDistributeToggle(checked: boolean, target: EventHistoryTitleForm) {
+  if (checked) {
+    target.dkp_base_points = '';
+  }
+}
 
 defineProps<{
   loading: boolean;
@@ -67,11 +76,43 @@ const emit = defineEmits<{
                 min="0"
                 step="1"
                 class="h-9"
-                :disabled="saving"
+                :disabled="saving || form.distribute_dkp_to_participants"
                 placeholder="Не задано"
               />
             </div>
           </div>
+          <div
+            v-if="dkpEnabled"
+            class="flex items-start gap-2 rounded-md border border-border/60 p-2"
+          >
+            <input
+              id="event-title-distribute-dkp"
+              v-model="form.distribute_dkp_to_participants"
+              type="checkbox"
+              class="mt-0.5 h-4 w-4 shrink-0 rounded border-input"
+              :disabled="saving"
+              @change="onDistributeToggle(form.distribute_dkp_to_participants, form)"
+            >
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <Label for="event-title-distribute-dkp" class="font-normal leading-snug">
+                Распределять очки по участникам события
+              </Label>
+              <Tooltip :content="DISTRIBUTE_DKP_TOOLTIP" side="top" class="max-w-sm text-left">
+                <button
+                  type="button"
+                  class="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Подсказка о распределении очков ДКП"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+
           <div class="flex flex-wrap justify-end gap-2">
             <Button variant="outline" :disabled="saving" @click="emit('cancelCreate')">Отмена</Button>
             <Button :disabled="saving" @click="emit('create')">
@@ -129,11 +170,43 @@ const emit = defineEmits<{
                       min="0"
                       step="1"
                       class="h-9"
-                      :disabled="saving"
+                      :disabled="saving || editForm.distribute_dkp_to_participants"
                       placeholder="Не задано"
                     />
                   </div>
                 </div>
+          <div
+            v-if="dkpEnabled"
+            class="flex items-start gap-2 rounded-md border border-border/60 p-2"
+          >
+            <input
+              :id="`event-title-edit-distribute-dkp-${title.id}`"
+              v-model="editForm.distribute_dkp_to_participants"
+              type="checkbox"
+              class="mt-0.5 h-4 w-4 shrink-0 rounded border-input"
+              :disabled="saving"
+              @change="onDistributeToggle(editForm.distribute_dkp_to_participants, editForm)"
+            >
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <Label :for="`event-title-edit-distribute-dkp-${title.id}`" class="font-normal leading-snug">
+                Распределять очки по участникам события
+              </Label>
+              <Tooltip :content="DISTRIBUTE_DKP_TOOLTIP" side="top" class="max-w-sm text-left">
+                <button
+                  type="button"
+                  class="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Подсказка о распределении очков ДКП"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+
                 <div class="mt-3 flex flex-wrap justify-end gap-2">
                   <Button variant="outline" :disabled="saving" @click="emit('cancelEdit')">Отмена</Button>
                   <Button :disabled="saving" @click="emit('saveEdit')">
@@ -148,7 +221,12 @@ const emit = defineEmits<{
                     <div class="truncate text-sm font-medium">{{ title.name }}</div>
                     <div class="text-xs text-muted-foreground">
                       <template v-if="dkpEnabled">
-                        ДКП: {{ title.dkp_base_points ?? '—' }}
+                        <template v-if="title.distribute_dkp_to_participants">
+                          ДКП: распределение по участникам
+                        </template>
+                        <template v-else>
+                          ДКП: {{ title.dkp_base_points ?? '—' }}
+                        </template>
                         <span> · </span>
                       </template>
                       Записей в истории: {{ title.histories_count ?? 0 }}
@@ -157,7 +235,7 @@ const emit = defineEmits<{
                   <div class="flex shrink-0 flex-wrap gap-1">
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
                       class="h-8 w-8 text-muted-foreground hover:text-foreground"
                       aria-label="Изменить"
@@ -182,7 +260,7 @@ const emit = defineEmits<{
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
                       class="h-8 w-8 text-muted-foreground hover:text-destructive"
                       :disabled="(title.histories_count ?? 0) > 0 || deletingId === title.id"

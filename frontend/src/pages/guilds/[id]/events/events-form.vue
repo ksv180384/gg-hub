@@ -38,6 +38,7 @@ const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
 const dkpEnabled = ref(false);
+const distributeDkpToParticipants = ref(false);
 
 const titlesAdmin = reactive(useEventHistoryTitlesAdmin({
   dkpEnabled: () => dkpEnabled.value,
@@ -51,7 +52,9 @@ const activeTab = ref<EventsFormTabId>('information');
 const importParticipantsError = ref('');
 
 const participantsExcelImportHint =
-  'Первый столбец — один ник в строке (как при выгрузке). Совпадение с составом гильдии без учёта регистра; остальные в списке ниже с жёлтой подсветкой.';
+  'Файл Excel: в первом столбце — один ник на строку (тот же формат, что при скачивании списка участников).\n\n'
+  + '• Ник из состава гильдии — участник добавится как член гильдии (регистр букв не важен).\n'
+  + '• Ник не найден в составе — добавится как сторонний; в списке «Приняли участие» такая строка подсвечена жёлтым.';
 
 const form = ref({
   title: '',
@@ -268,6 +271,7 @@ async function loadEventIfEdit() {
     form.value.description = item.description ?? '';
     form.value.occurred_at = item.occurred_at ? toDatetimeLocal(item.occurred_at) : '';
     form.value.dkp_base_points = formatDkpBasePoints(item.dkp?.base_points);
+    distributeDkpToParticipants.value = item.dkp?.distribute_to_participants ?? false;
     form.value.participants = (item.participants ?? []).map((p) => ({
       character_id: p.character_id,
       external_name: p.character_id ? null : p.external_name,
@@ -292,6 +296,7 @@ async function searchTitleSuggestions(query: string) {
       titleSuggestionsError.value = '';
       titleSuggestions.value = await eventHistoryTitlesApi.search(query, 10);
       showTitleSuggestions.value = titleSuggestions.value.length > 0;
+      syncDistributeFlagFromTitleName(query);
     } catch (e: unknown) {
       titleSuggestionsError.value =
         e instanceof Error ? e.message : 'Не удалось загрузить варианты названий.';
@@ -301,10 +306,25 @@ async function searchTitleSuggestions(query: string) {
   }, 200);
 }
 
+function syncDistributeFlagFromTitleName(name: string) {
+  const trimmed = name.trim().toLowerCase();
+  if (!trimmed) {
+    distributeDkpToParticipants.value = false;
+    return;
+  }
+  const match = titleSuggestions.value.find((s) => s.name.trim().toLowerCase() === trimmed);
+  distributeDkpToParticipants.value = match?.distribute_dkp_to_participants ?? false;
+}
+
 function applyTitleSuggestion(suggestion: EventHistoryTitleDto) {
   form.value.title = suggestion.name;
+  distributeDkpToParticipants.value = suggestion.distribute_dkp_to_participants ?? false;
   if (dkpEnabled.value) {
-    form.value.dkp_base_points = formatDkpBasePoints(suggestion.dkp_base_points);
+    if (suggestion.distribute_dkp_to_participants) {
+      form.value.dkp_base_points = '';
+    } else {
+      form.value.dkp_base_points = formatDkpBasePoints(suggestion.dkp_base_points);
+    }
   }
   showTitleSuggestions.value = false;
 }
@@ -492,6 +512,7 @@ onMounted(async () => {
                 v-model:description="form.description"
                 v-model:dkp-base-points="form.dkp_base_points"
                 :dkp-enabled="dkpEnabled"
+                :distribute-dkp-to-participants="distributeDkpToParticipants"
                 :show-event-types-button="!isEdit"
                 :title-suggestions="titleSuggestions"
                 :show-title-suggestions="showTitleSuggestions"
@@ -506,14 +527,16 @@ onMounted(async () => {
               <EventsFormParticipantsTab
                 v-show="activeTab === 'participants'"
                 v-model:external-nickname="form.externalNickname"
+                :guild-id="guildId"
                 :dkp-enabled="dkpEnabled"
+                :distribute-dkp-to-participants="distributeDkpToParticipants"
                 :dkp-base-points="form.dkp_base_points"
+                :guild-participants="guildParticipants"
                 :roster="roster"
                 :loading-roster="loadingRoster"
                 :import-participants-loading="importParticipantsLoading"
                 :import-participants-error="importParticipantsError"
                 :participants-excel-import-hint="participantsExcelImportHint"
-                :guild-participants="guildParticipants"
                 :external-participants="externalParticipants"
                 :has-participants="hasParticipants"
                 :total-participants-count="totalParticipantsCount"

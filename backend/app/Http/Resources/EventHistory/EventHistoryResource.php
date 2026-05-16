@@ -25,6 +25,11 @@ class EventHistoryResource extends JsonResource
             'occurred_at' => $this->occurred_at?->toIso8601String(),
             'dkp' => $guildDkpEnabled ? [
                 'base_points' => $dkpBasePoints,
+                'distribute_to_participants' => (bool) (
+                    $this->distribute_dkp_to_participants
+                    ?? $this->titleReference?->distribute_dkp_to_participants
+                    ?? false
+                ),
             ] : null,
             'participants' => $this->whenLoaded('participants', function () use ($guildDkpEnabled) {
                 return $this->participants->map(function ($participant) use ($guildDkpEnabled) {

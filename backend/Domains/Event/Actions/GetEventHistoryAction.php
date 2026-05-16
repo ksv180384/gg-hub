@@ -13,6 +13,7 @@ class GetEventHistoryAction
             ->where('guild_id', $guild->id)
             ->with([
                 'guild:id,dkp_enabled',
+                'titleReference:id,name,distribute_dkp_to_participants',
                 'participants.character:id,name',
                 'screenshots',
             ])

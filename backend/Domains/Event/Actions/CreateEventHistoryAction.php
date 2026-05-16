@@ -46,7 +46,8 @@ class CreateEventHistoryAction
                     : now(),
                 'dkp_base_points' => array_key_exists('dkp_base_points', $data)
                     ? $data['dkp_base_points']
-                    : $title->dkp_base_points,
+                    : ($title->distribute_dkp_to_participants ? null : $title->dkp_base_points),
+                'distribute_dkp_to_participants' => (bool) $title->distribute_dkp_to_participants,
             ];
 
             /** @var EventHistory $history */
@@ -82,6 +83,7 @@ class CreateEventHistoryAction
 
             $history = $history->load([
                 'guild:id,dkp_enabled',
+                'titleReference:id,distribute_dkp_to_participants',
                 'participants.character:id,name,user_id',
                 'screenshots',
             ]);

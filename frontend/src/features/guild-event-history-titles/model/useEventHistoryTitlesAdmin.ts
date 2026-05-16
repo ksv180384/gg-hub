@@ -2,11 +2,19 @@ import { computed, ref } from 'vue';
 import {
   eventHistoryTitlesApi,
   type EventHistoryTitleDto,
+  type SaveEventHistoryTitlePayload,
 } from '@/shared/api/eventHistoryTitlesApi';
 
 export type EventHistoryTitleForm = {
   name: string;
   dkp_base_points: string;
+  distribute_dkp_to_participants: boolean;
+};
+
+const EMPTY_FORM: EventHistoryTitleForm = {
+  name: '',
+  dkp_base_points: '',
+  distribute_dkp_to_participants: false,
 };
 
 export function useEventHistoryTitlesAdmin(options: { dkpEnabled: () => boolean }) {
@@ -19,22 +27,30 @@ export function useEventHistoryTitlesAdmin(options: { dkpEnabled: () => boolean 
   const titles = ref<EventHistoryTitleDto[]>([]);
   const editingId = ref<number | null>(null);
   const createFormOpen = ref(false);
-  const form = ref<EventHistoryTitleForm>({ name: '', dkp_base_points: '' });
-  const editForm = ref<EventHistoryTitleForm>({ name: '', dkp_base_points: '' });
+  const form = ref<EventHistoryTitleForm>({ ...EMPTY_FORM });
+  const editForm = ref<EventHistoryTitleForm>({ ...EMPTY_FORM });
 
   const sortedTitles = computed(() =>
     [...titles.value].sort((a, b) => a.name.localeCompare(b.name, 'ru')),
   );
 
   function resetCreateForm() {
-    form.value = { name: '', dkp_base_points: '' };
+    form.value = { ...EMPTY_FORM };
     formError.value = '';
   }
 
   function resetEditForm() {
     editingId.value = null;
-    editForm.value = { name: '', dkp_base_points: '' };
+    editForm.value = { ...EMPTY_FORM };
     formError.value = '';
+  }
+
+  function titleFormFromDto(title: EventHistoryTitleDto): EventHistoryTitleForm {
+    return {
+      name: title.name,
+      dkp_base_points: title.dkp_base_points == null ? '' : String(title.dkp_base_points),
+      distribute_dkp_to_participants: title.distribute_dkp_to_participants ?? false,
+    };
   }
 
   function openCreateForm() {
@@ -57,11 +73,14 @@ export function useEventHistoryTitlesAdmin(options: { dkpEnabled: () => boolean 
   }
 
   function buildPayload(source: EventHistoryTitleForm) {
-    const payload: { name: string; dkp_base_points?: number | null } = {
+    const payload: SaveEventHistoryTitlePayload = {
       name: source.name.trim(),
     };
     if (options.dkpEnabled()) {
-      payload.dkp_base_points = parseDkpValue(source.dkp_base_points);
+      payload.distribute_dkp_to_participants = source.distribute_dkp_to_participants;
+      payload.dkp_base_points = source.distribute_dkp_to_participants
+        ? null
+        : parseDkpValue(source.dkp_base_points);
     }
     return payload;
   }
@@ -119,10 +138,7 @@ export function useEventHistoryTitlesAdmin(options: { dkpEnabled: () => boolean 
     createFormOpen.value = false;
     resetCreateForm();
     editingId.value = title.id;
-    editForm.value = {
-      name: title.name,
-      dkp_base_points: title.dkp_base_points == null ? '' : String(title.dkp_base_points),
-    };
+    editForm.value = titleFormFromDto(title);
     formError.value = '';
   }
 

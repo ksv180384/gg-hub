@@ -498,6 +498,54 @@ it('clears user dkp from event when participant is removed on update', function 
         ->exists())->toBeFalse();
 });
 
+it('distributes total event dkp among participants by coefficient', function () {
+    $ctx = seedGuildDkpContext();
+
+    $title = \Domains\Event\Models\EventHistoryTitle::query()->create([
+        'name' => 'Pool raid',
+        'dkp_base_points' => null,
+        'distribute_dkp_to_participants' => true,
+    ]);
+
+    $otherChar = Character::query()->create([
+        'user_id' => $ctx['user']->id,
+        'game_id' => $ctx['guild']->game_id,
+        'localization_id' => $ctx['guild']->localization_id,
+        'server_id' => $ctx['guild']->server_id,
+        'name' => 'Char B',
+        'use_profile_avatar' => false,
+        'is_main' => false,
+    ]);
+    GuildMember::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'character_id' => $otherChar->id,
+        'joined_at' => now(),
+        'dkp_coefficient' => 2,
+    ]);
+
+    $history = app(\Domains\Event\Actions\CreateEventHistoryAction::class)([
+        'guild_id' => $ctx['guild']->id,
+        'title' => $title->name,
+        'occurred_at' => now()->toIso8601String(),
+        'dkp_base_points' => 90,
+        'participants' => [
+            ['character_id' => $ctx['char']->id, 'dkp_coefficient' => 1],
+            ['character_id' => $otherChar->id, 'dkp_coefficient' => 2],
+        ],
+    ]);
+
+    expect($history->distribute_dkp_to_participants)->toBeTrue();
+
+    $ledgerAmounts = GuildDkpLedgerEntry::query()
+        ->where('event_history_id', $history->id)
+        ->where('source', 'event')
+        ->orderBy('amount')
+        ->pluck('amount')
+        ->all();
+
+    expect($ledgerAmounts)->toBe([30, 60]);
+});
+
 it('keeps dkp balance when only event title changes on update', function () {
     $ctx = seedGuildDkpContext();
 

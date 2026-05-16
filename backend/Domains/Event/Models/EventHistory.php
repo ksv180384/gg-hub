@@ -33,6 +33,7 @@ class EventHistory extends Model
         'description',
         'occurred_at',
         'dkp_base_points',
+        'distribute_dkp_to_participants',
     ];
 
     protected function casts(): array
@@ -40,6 +41,7 @@ class EventHistory extends Model
         return [
             'occurred_at' => 'datetime',
             'dkp_base_points' => 'integer',
+            'distribute_dkp_to_participants' => 'boolean',
         ];
     }
 

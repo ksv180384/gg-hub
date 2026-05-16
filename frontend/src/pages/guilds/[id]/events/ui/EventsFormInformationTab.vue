@@ -8,6 +8,7 @@ defineProps<{
   description: string;
   dkpBasePoints: string;
   dkpEnabled: boolean;
+  distributeDkpToParticipants: boolean;
   showEventTypesButton: boolean;
   titleSuggestions: EventHistoryTitleDto[];
   showTitleSuggestions: boolean;
@@ -72,7 +73,7 @@ const emit = defineEmits<{
                   </span>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
                     class="h-6 w-6 text-muted-foreground hover:bg-accent/60"
                     @mousedown.prevent="emit('editTitleSuggestion', s)"
@@ -81,7 +82,7 @@ const emit = defineEmits<{
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
                     class="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     @mousedown.prevent="emit('deleteTitleSuggestion', s)"
@@ -95,6 +96,7 @@ const emit = defineEmits<{
           <Button
             v-if="showEventTypesButton"
             type="button"
+            variant="outline"
             size="sm"
             class="shrink-0"
             @click="emit('openEventTypes')"
@@ -118,7 +120,13 @@ const emit = defineEmits<{
           />
         </div>
         <div v-if="dkpEnabled" class="space-y-2">
-          <Label for="history-dkp-base">Очки ДКП за посещение</Label>
+          <Label for="history-dkp-base">
+            {{
+              distributeDkpToParticipants
+                ? 'Общее количество ДКП события'
+                : 'Очки ДКП за посещение'
+            }}
+          </Label>
           <Input
             id="history-dkp-base"
             :model-value="dkpBasePoints"
