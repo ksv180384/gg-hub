@@ -53,9 +53,7 @@ function openApplication(app: GuildApplicationItem) {
 </script>
 
 <template>
-  <div class="container py-6">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0">
+  <div class="space-y-4">
         <h1 class="mb-4 text-xl font-semibold tracking-tight">Мои заявки и приглашения</h1>
 
         <div v-if="loading" class="flex justify-center py-10">
@@ -109,10 +107,6 @@ function openApplication(app: GuildApplicationItem) {
             </li>
           </ul>
         </template>
-      </div>
-
-      <div class="hidden lg:block" />
-    </div>
   </div>
 </template>
 

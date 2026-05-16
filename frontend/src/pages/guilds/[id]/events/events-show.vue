@@ -87,7 +87,7 @@ onMounted(loadEvent);
 </script>
 
 <template>
-  <div class="container overflow-x-hidden py-6 md:py-8">
+  <div>
     <div class="fixed top-[100px] right-8 z-30 md:hidden">
       <BackIconButton
         aria-label="К списку событий"
@@ -95,11 +95,7 @@ onMounted(loadEvent);
         @click="goBack"
       />
     </div>
-
-    <div
-      class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10"
-    >
-      <div class="min-w-0 space-y-4">
+  <div class="space-y-4">
         <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
           <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
             <BackIconButton
@@ -146,7 +142,6 @@ onMounted(loadEvent);
             </template>
           </div>
         </div>
-      </div>
-    </div>
+  </div>
   </div>
 </template>

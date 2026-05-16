@@ -408,9 +408,7 @@ watch(guildId, async () => {
 
 <template>
   <NotFoundPage v-if="rosterForbiddenRedirect" />
-  <div v-else class="container py-4 md:py-8">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0">
+  <div v-else>
       <div v-if="guildError" class="mb-6 rounded-md bg-destructive/10 p-4 text-destructive">
         {{ guildError }}
       </div>
@@ -678,7 +676,5 @@ watch(guildId, async () => {
           </template>
         </template>
       </template>
-    </div>
-    </div>
   </div>
 </template>

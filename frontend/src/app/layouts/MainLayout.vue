@@ -1,21 +1,31 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { RouterView } from 'vue-router';
-import { Spinner, SiteLogo } from '@/shared/ui';
+import { RouterView, useRoute } from 'vue-router';
+import { Spinner } from '@/shared/ui';
 import { useRouteLoadingStore } from '@/stores/routeLoading';
 import { Header } from '@/widgets/header';
 import { GameSidebar, GameSidebarContent } from '@/widgets/game-sidebar';
+import GgHubJournalBanner from '@/widgets/journal-promo/GgHubJournalBanner.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 
 const auth = useAuthStore();
 const siteContext = useSiteContextStore();
 const routeLoading = useRouteLoadingStore();
+const route = useRoute();
 
 // Боковое меню доступно на игровом субдомене (Персонажи, Гильдия) и на админ-субдомене (Управление),
 // но показывается только для авторизованных пользователей (включая мобильную версию).
 const sidebarAvailable = computed(() => siteContext.isGameSubdomain || siteContext.isAdmin);
 const showSidebar = computed(() => auth.isAuthenticated && sidebarAvailable.value);
+
+const useContentShell = computed(
+  () =>
+    route.meta.contentShell === true
+    || (route.name === 'home' && siteContext.isGameSubdomain),
+);
+
+const showJournalBanner = computed(() => route.meta.journalBanner === true);
 </script>
 
 <template>
@@ -58,7 +68,28 @@ const showSidebar = computed(() => auth.isAuthenticated && sidebarAvailable.valu
             <p class="text-sm text-muted-foreground">Загрузка…</p>
           </div>
         </Transition>
-        <RouterView />
+        <div :class="useContentShell ? 'container py-6 md:py-8' : undefined">
+          <div
+            :class="
+              useContentShell
+                ? 'flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10'
+                : undefined
+            "
+          >
+            <div :class="useContentShell ? 'min-w-0' : undefined">
+              <RouterView />
+              <GgHubJournalBanner
+                v-if="showJournalBanner && route.name !== 'home'"
+                variant="mobile"
+                class="mt-8"
+              />
+            </div>
+            <GgHubJournalBanner
+              v-if="useContentShell && showJournalBanner"
+              variant="desktop"
+            />
+          </div>
+        </div>
       </main>
     </div>
     <footer class="landing-home-footer relative border-t border-border/60" aria-label="Подвал страницы">

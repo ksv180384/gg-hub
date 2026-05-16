@@ -150,9 +150,8 @@ function onViewRecorded(postId: number) {
 
 <template>
   <NotFoundPage v-if="guildJournalNotFound" />
-  <div v-else class="container py-6">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0 space-y-4">
+  <div v-else class="space-y-4">
+    
         <div
           v-if="canModeratePosts"
           class="flex flex-wrap items-center gap-2"
@@ -259,7 +258,5 @@ function onViewRecorded(postId: number) {
             />
           </div>
         </template>
-      </div>
-    </div>
   </div>
 </template>

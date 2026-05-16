@@ -302,9 +302,7 @@ watch(
 </script>
 
 <template>
-  <div class="container py-6 md:py-8">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0">
+  <div class="space-y-4">
         <Card v-if="!game" class="border-destructive/50">
           <CardHeader>
             <CardTitle>Персонажи</CardTitle>
@@ -491,9 +489,5 @@ watch(
             </ul>
           </div>
         </template>
-      </div>
-
-      <div class="hidden lg:block" />
-    </div>
   </div>
 </template>

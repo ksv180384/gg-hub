@@ -48,12 +48,34 @@
 
 ### Связь с историей событий
 
-В `event_histories` хранятся `dkp_base_points`; у участников — `dkp_coefficient` и опциональный `dkp_points_override`. При создании, обновлении или удалении записи истории вызывается `SyncEventHistoryDkpLedgerAction`: старые записи журнала с `source = event` для этого события откатываются и удаляются, затем заново начисляются очки участникам с `character_id` по формуле:
+| Таблица / поле | Назначение |
+|----------------|------------|
+| `event_history_titles` | Глобальный справочник видов событий: `name`, `dkp_base_points`, `distribute_dkp_to_participants`. При режиме распределения `dkp_base_points` в шаблоне хранится как `null`. |
+| `event_histories.dkp_base_points` | База очков для конкретного события (фиксированная ставка за посещение **или** общий пул для распределения). |
+| `event_histories.distribute_dkp_to_participants` | Снимок флага с вида события на момент сохранения; определяет режим расчёта. |
+| `event_history_participants.dkp_coefficient` | Коэффициент участника на этом событии. |
+| `event_history_participants.dkp_points_override` | Коррекция: фиксированное число очков вместо расчёта. |
+| `guild_members.dkp_coefficient` | Коэффициент по умолчанию участника гильдии (по умолчанию `1.00`); подставляется при добавлении в событие, если в запросе коэффициент не передан. |
 
-1. если задан `dkp_points_override` — берётся он;
-2. иначе `round(dkp_base_points * dkp_coefficient)`.
+При создании, обновлении или удалении записи истории вызывается `SyncEventHistoryDkpLedgerAction`: старые записи журнала с `source = event` для этого события откатываются и удаляются, затем заново начисляются очки. Синхронизация выполняется только если у гильдии `dkp_enabled` и у события задано `dkp_base_points`.
 
-Участники только с `external_name` (без персонажа в гильдии) в баланс не попадают.
+**Кто получает очки:** только участники с `character_id` (члены гильдии по персонажу). Участники только с `external_name` (сторонние) в журнал и баланс не попадают.
+
+**Приоритет расчёта для участника** (`CalculateEventParticipantDkpPoints`):
+
+1. если задан `dkp_points_override` — берётся он (целое число ≥ 0);
+2. иначе, если `dkp_base_points` не задан — очков нет;
+3. иначе, если у участника нет `character_id` — очков нет;
+4. иначе — один из двух режимов (флаг `distribute_dkp_to_participants` на событии или у связанного вида):
+
+| Режим | Условие | Формула |
+|-------|---------|---------|
+| Фиксированные очки за посещение | `distribute_dkp_to_participants = false` | `round(dkp_base_points × dkp_coefficient)` |
+| Распределение общего пула | `distribute_dkp_to_participants = true` | `round(dkp_base_points × dkp_coefficient / Σ)`, где сумма Σ считается только по участникам с `character_id` без override |
+
+Коэффициент в запросе события, если передан явно, имеет приоритет над `guild_members.dkp_coefficient` (`ResolveEventParticipantDkpCoefficient`).
+
+**Виды событий:** при выборе вида в форме события подставляются `distribute_dkp_to_participants` и (для фиксированного режима) база очков. Для режима распределения база из вида не подставляется — вводится общий пул на вкладке «Информация» («Общее количество ДКП события»).
 
 ## Права доступа
 
@@ -95,6 +117,30 @@
 | GET | `/dkp/ledger` | Журнал движений ДКП гильдии |
 | GET | `/members/{character}/dkp` | Баланс пользователя-владельца персонажа |
 | POST | `/members/{character}/dkp/adjust` | Ручное изменение (`amount`, опционально `reason`) |
+| PUT/PATCH | `/members/{character}/dkp-coefficient` | Коэффициент по умолчанию в составе (`dkp_coefficient`, право `peredavat-predmety-polzovateliam`) |
+
+### Виды событий (глобальный справочник)
+
+Префикс `/api/v1` (без привязки к гильдии):
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/event-history-titles` | Список видов (`query`, `limit`) |
+| POST | `/event-history-titles` | Создать вид (`name`, `dkp_base_points`, `distribute_dkp_to_participants`) |
+| PUT/PATCH | `/event-history-titles/{id}` | Изменить вид |
+| DELETE | `/event-history-titles/{id}` | Удалить вид |
+
+При `distribute_dkp_to_participants = true` поле `dkp_base_points` в запросе нормализуется в `null` (база задаётся только на конкретном событии).
+
+### История событий гильдии (начисление ДКП)
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| POST | `/guilds/{guild}/event-history` | Создание события; в теле — `dkp_base_points`, участники с `dkp_coefficient` / `dkp_points_override` |
+| PUT/PATCH | `/guilds/{guild}/event-history/{id}` | Обновление; пересчёт журнала по событию |
+| DELETE | `/guilds/{guild}/event-history/{id}` | Удаление; откат начислений по событию |
+
+Журнал ДКП гильдии (`GET /dkp/ledger`) поддерживает фильтры: `user_name`, `occurred_from`, `occurred_to`, `event_history_title_id`, `source`.
 
 ### Выдача предмета и ДКП
 
@@ -111,26 +157,52 @@
 
 ## Пользовательские сценарии (frontend)
 
+### Хранилище и журнал
+
 Маршруты:
 
 - `/guilds/:id/bank` — хранилище (`GuildBankPage`, FSD: `features/guild-bank`, `widgets/guild-bank`);
 - `/guilds/:id/bank/dkp-history` — журнал ДКП;
-- `/guilds/:id/roster/:characterId` — карточка участника: баланс ДКП и ручная корректировка (при правах), список полученных предметов.
+- `/guilds/:id/roster/:characterId` — карточка участника.
 
 На странице хранилища: каталог предметов (тир, остаток, выдано, стоимость ДКП в футере карточки), выбор предмета и история выдач, модалки тиров, создания/редактирования, выдачи и отмены. Ссылка «История ДКП» видна при `dkp_ledger_available`. При выдаче в минус показывается подтверждение с текущим балансом и итогом после списания.
 
 Тиры подгружаются при открытии модалки тиров или формы предмета, а не при первой загрузке страницы.
 
-На ростере: блок «ДКП пользователя в гильдии» при включённой системе; форма изменения (обязательное ненулевое целое `amount`, комментарий по желанию) — при `peredavat-predmety-polzovateliam`.
+### Состав и настройки гильдии
 
-На странице события истории (`events-show`) сохранение блока ДКП приводит к синхронизации журнала на backend (см. выше).
+- `/guilds/:id/settings` — переключатель «Система ДКП» (`dkp_enabled`); подсказка с описанием режимов.
+- `/guilds/:id/roster` — список состава.
+- `/guilds/:id/roster/:characterId` — баланс ДКП, ручная корректировка (при `peredavat-predmety-polzovateliam`), кнопка «Коэф.» для коэффициента по умолчанию, список полученных предметов.
 
-Клиентские API: `frontend/src/shared/api/guildBankApi.ts`, `guildDkpApi.ts`.
+### История событий
+
+Маршруты:
+
+- `/guilds/:id/events` — список; кнопка «Виды событий» (модалка администрирования справочника с ДКП-полями);
+- `/guilds/:id/events/create`, `/guilds/:id/events/:eventHistoryId/edit` — форма (`events-form.vue`, вкладки «Информация», «Участники», «Скриншоты»);
+- `/guilds/:id/events/:eventHistoryId` — просмотр (`events-show.vue`).
+
+**Форма события (при включённом ДКП):**
+
+- вкладка «Информация» — поле «Очки ДКП за посещение» или «Общее количество ДКП события» (в зависимости от режима вида/события);
+- вкладка «Участники» — список «Приняли участие»: участники гильдии (ник — ссылка на карточку в составе, если персонаж в ростере) и сторонние (жёлтая подсветка); для членов гильдии — коэффициент, коррекция и превью итоговых очков; импорт из Excel; добавление сторонних по нику;
+- сохранение формы вызывает синхронизацию журнала на backend.
+
+**Просмотр события:** на вкладке «Информация» — база/пул ДКП; на «Участники» — начисленные очки (+N), подписи «коррекция» / «коэф.»; редактирование ДКП только через форму редактирования, не на странице просмотра.
+
+**Виды событий (модалка):** название; галочка «Распределять очки по участникам события»; при выключенной галочке — «Очки ДКП» для фиксированного режима.
+
+Клиентский расчёт превью совпадает с backend: `frontend/src/shared/lib/calculateEventParticipantDkpPoints.ts`.
+
+Клиентские API: `guildBankApi.ts`, `guildDkpApi.ts`, `eventHistoryApi.ts`, `eventHistoryTitlesApi.ts`.
 
 ## Backend (DDD)
 
 - Домен банка: `backend/Domains/GuildBank/` — модели, actions (списки, CRUD, выдача/отмена), контроллер `GuildBankController`, form requests, JSON resources.
-- Домен ДКП: `backend/Domains/GuildDkp/` — баланс, журнал, списание/возврат при выдаче, синхронизация с событиями, `GuildDkpController`.
+- Домен ДКП: `backend/Domains/GuildDkp/` — баланс, журнал, списание/возврат при выдаче, синхронизация с событиями, `CalculateEventParticipantDkpPoints`, `GuildDkpController`.
+- Домен событий: `backend/Domains/Event/` — история, виды событий, участники.
+- Гильдия: `ResolveEventParticipantDkpCoefficient`, `UpdateGuildMemberDkpCoefficientAction`.
 - Интеграция: `CreateGuildBankItemGrantAction` / `RevokeGuildBankItemGrantAction` вызывают ДКП-actions; `CreateEventHistoryAction`, `UpdateEventHistoryAction`, `DeleteEventHistoryAction` — `SyncEventHistoryDkpLedgerAction`.
 
 Контроллеры не содержат бизнес-логики; валидация в request-классах с понятными сообщениями на русском.
@@ -144,4 +216,8 @@
 
 ## Тесты
 
-Feature-тесты: `backend/tests/Feature/GuildBankAndDkpTest.php`, `GuildDkpLedgerTest.php` (выдача с `dkp_charged`, минус с подтверждением, возврат ДКП, ручная корректировка, журнал, синхронизация с событием).
+Feature-тесты:
+
+- `GuildBankAndDkpTest.php` — банк, выдача с `dkp_charged`, минус с подтверждением, возврат ДКП;
+- `GuildDkpLedgerTest.php` — журнал и фильтры, ручная корректировка, синхронизация с событием, пересчёт при изменении базы/коэффициента/коррекции, распределение пула (например 90 → 30+60), коэффициент в составе;
+- `EventHistoryTitlesTest.php` — виды событий и флаг распределения.

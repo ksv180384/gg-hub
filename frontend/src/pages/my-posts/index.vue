@@ -45,9 +45,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container py-6">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0">
+  <div class="space-y-4">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 class="mb-1 text-3xl font-bold tracking-tight">Мои посты</h1>
@@ -118,10 +116,6 @@ onMounted(() => {
               <span v-else class="text-right text-xs text-muted-foreground">Редактирование недоступно</span>
             </template>
           </PostCardPreview>
-        </div>
-      </div>
-
-      <div class="hidden lg:block" />
-    </div>
+  </div>
   </div>
 </template>

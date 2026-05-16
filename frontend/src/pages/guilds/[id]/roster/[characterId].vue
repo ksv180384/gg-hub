@@ -511,9 +511,7 @@ watch([guildId, characterId], () => loadData());
 
 <template>
   <NotFoundPage v-if="rosterAccessForbiddenRedirect" />
-  <div v-else class="container py-6 md:py-8">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0">
+  <div v-else>
     <!-- Mobile: одна плавающая кнопка справа -->
     <div class="fixed top-[100px] right-8 z-30 md:hidden">
       <BackIconButton
@@ -772,9 +770,6 @@ watch([guildId, characterId], () => loadData());
         </Card>
 
       </div>
-    </div>
-      </div>
-      <div class="hidden lg:block" />
     </div>
 
     <div

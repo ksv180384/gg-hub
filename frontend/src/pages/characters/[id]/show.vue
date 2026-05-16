@@ -130,9 +130,7 @@ watch([() => game.value?.id, characterId], () => {
 </script>
 
 <template>
-  <div class="container py-6 md:py-8">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0 space-y-4">
+  <div class="space-y-4">
         <div v-if="loading" class="flex justify-center py-12">
           <Spinner class="h-8 w-8" />
         </div>
@@ -288,9 +286,5 @@ watch([() => game.value?.id, characterId], () => {
         </ClientOnly>
       </DialogRoot>
         </template>
-      </div>
-
-      <div class="hidden lg:block" />
-    </div>
   </div>
 </template>

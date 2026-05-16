@@ -17,6 +17,10 @@ declare module 'vue-router' {
     requiresAuth?: boolean;
     /** Требуемый permission (slug). Если у пользователя роль Admin — доступ разрешён ко всем (hasPermission в store). */
     permission?: string;
+    /** Узкая колонка контента (42rem) + колонка баннера на lg+ */
+    contentShell?: boolean;
+    /** Показывать промо-баннер GG-HUB в правой колонке (desktop) */
+    journalBanner?: boolean;
   }
 }
 
@@ -48,25 +52,25 @@ const routes: RouteRecordRaw[] = [
       path: '/',
       component: MainLayout,
       children: [
-        { path: '', name: 'home', component: () => import('@/pages/home/index.vue') },
+        { path: '', name: 'home', component: () => import('@/pages/home/index.vue'), meta: { journalBanner: true } },
         {
           path: 'posts/:postId',
           name: 'global-post-show',
           component: () => import('@/pages/posts/show.vue'),
-          meta: { requiresAuth: false },
+          meta: { requiresAuth: false, contentShell: true, journalBanner: true },
         },
         { path: 'guilds', name: 'guilds', component: () => import('@/pages/guilds/index.vue') },
         {
           path: 'applications',
           name: 'user-applications',
           component: () => import('@/pages/applications/index.vue'),
-          meta: { requiresAuth: true, title: 'Мои заявки и приглашения' },
+          meta: { requiresAuth: true, title: 'Мои заявки и приглашения', contentShell: true },
         },
         {
           path: 'guilds/:id/posts',
           name: 'guild-show',
           component: () => import('@/pages/guilds/[id]/index.vue'),
-          meta: { requiresAuth: true },
+          meta: { requiresAuth: true, contentShell: true },
         },
         {
           path: 'guilds/:id/posts/:postId',
@@ -78,13 +82,13 @@ const routes: RouteRecordRaw[] = [
           path: 'guilds/:id/roster/:characterId',
           name: 'guild-roster-member',
           component: () => import('@/pages/guilds/[id]/roster/[characterId].vue'),
-          meta: { requiresAuth: true, title: 'Участник гильдии' },
+          meta: { requiresAuth: true, title: 'Участник гильдии', contentShell: true },
         },
         {
           path: 'guilds/:id/roster',
           name: 'guild-roster',
           component: () => import('@/pages/guilds/[id]/roster/index.vue'),
-          meta: { requiresAuth: true, title: 'Состав гильдии' },
+          meta: { requiresAuth: true, title: 'Состав гильдии', contentShell: true },
         },
         {
           path: 'guilds/:id/bank',
@@ -116,13 +120,13 @@ const routes: RouteRecordRaw[] = [
           path: 'guilds/:id/applications',
           name: 'guild-applications',
           component: () => import('@/pages/guilds/[id]/applications/index.vue'),
-          meta: { requiresAuth: true, title: 'Заявки и приглашения' },
+          meta: { requiresAuth: true, title: 'Заявки и приглашения', contentShell: true },
         },
         {
           path: 'guilds/:id/applications/my/:applicationId',
           name: 'guild-application-my',
           component: () => import('@/pages/guilds/[id]/applications/my/[applicationId].vue'),
-          meta: { requiresAuth: true, title: 'Моя заявка в гильдию' },
+          meta: { requiresAuth: true, title: 'Моя заявка в гильдию', contentShell: true },
         },
         {
           path: 'guilds/:id/applications/:applicationId',
@@ -151,25 +155,25 @@ const routes: RouteRecordRaw[] = [
           path: 'guilds/:id/events',
           name: 'guild-events',
           component: () => import('@/pages/guilds/[id]/events/events.vue'),
-          meta: { requiresAuth: true, title: 'События' },
+          meta: { requiresAuth: true, title: 'События', contentShell: true },
         },
         {
           path: 'guilds/:id/events/:eventHistoryId',
           name: 'guild-events-show',
           component: () => import('@/pages/guilds/[id]/events/events-show.vue'),
-          meta: { requiresAuth: true, title: 'Событие' },
+          meta: { requiresAuth: true, title: 'Событие', contentShell: true },
         },
         {
           path: 'guilds/:id/events/create',
           name: 'guild-events-create',
           component: () => import('@/pages/guilds/[id]/events/events-form.vue'),
-          meta: { requiresAuth: true, title: 'Новое событие' },
+          meta: { requiresAuth: true, title: 'Новое событие', contentShell: true },
         },
         {
           path: 'guilds/:id/events/:eventHistoryId/edit',
           name: 'guild-events-edit',
           component: () => import('@/pages/guilds/[id]/events/events-form.vue'),
-          meta: { requiresAuth: true, title: 'Редактирование события' },
+          meta: { requiresAuth: true, title: 'Редактирование события', contentShell: true },
         },
         {
           path: 'guilds/:id/polls',
@@ -218,19 +222,19 @@ const routes: RouteRecordRaw[] = [
           path: 'my-posts',
           name: 'my-posts',
           component: () => import('@/pages/my-posts/index.vue'),
-          meta: { requiresAuth: true, title: 'Мои посты' },
+          meta: { requiresAuth: true, title: 'Мои посты', contentShell: true },
         },
         {
           path: 'my-posts/create',
           name: 'my-posts-create',
           component: () => import('@/pages/my-posts/create/index.vue'),
-          meta: { requiresAuth: true, title: 'Новый пост' },
+          meta: { requiresAuth: true, title: 'Новый пост', contentShell: true },
         },
         {
           path: 'my-posts/:id/edit',
           name: 'my-posts-edit',
           component: () => import('@/pages/my-posts/[id]/edit.vue'),
-          meta: { requiresAuth: true, title: 'Редактирование поста' },
+          meta: { requiresAuth: true, title: 'Редактирование поста', contentShell: true },
         },
         {
           path: 'change-password',
@@ -240,13 +244,13 @@ const routes: RouteRecordRaw[] = [
           path: 'characters',
           name: 'game-characters',
           component: () => import('@/pages/characters/game-list.vue'),
-          meta: { requiresAuth: true },
+          meta: { requiresAuth: true, contentShell: true },
         },
         {
           path: 'characters/:id',
           name: 'game-character-show',
           component: () => import('@/pages/characters/[id]/show.vue'),
-          meta: { requiresAuth: true },
+          meta: { requiresAuth: true, contentShell: true },
         },
         { path: 'my-characters', name: 'my-characters', component: () => import('@/pages/characters/index.vue') },
         {

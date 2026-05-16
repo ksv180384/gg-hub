@@ -5,7 +5,6 @@ import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import PostComments from './PostComments.vue';
-import GgHubJournalBanner from '@/widgets/journal-promo/GgHubJournalBanner.vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
@@ -140,9 +139,7 @@ onMounted(loadPost);
 </script>
 
 <template>
-  <div class="container py-6 md:py-8">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0 space-y-4">
+  <div class="space-y-4">
         <article
           v-if="loading"
           class="overflow-hidden bg-accent/30 rounded-[calc(var(--radius)-2px)] border shadow-sm"
@@ -212,9 +209,6 @@ onMounted(loadPost);
                 date-type="global"
                 :comments-count="commentsCount ?? post.comments_count"
               />
-
-              <GgHubJournalBanner variant="mobile" class="mt-8" />
-
               <PostComments
                 v-if="post"
                 class="mt-8"
@@ -226,10 +220,5 @@ onMounted(loadPost);
             </div>
           </div>
         </template>
-      </div>
-
-      <GgHubJournalBanner v-if="post" variant="desktop" />
-    </div>
   </div>
 </template>
-

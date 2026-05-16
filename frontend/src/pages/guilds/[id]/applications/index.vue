@@ -134,9 +134,8 @@ watch([nameFilter], () => {
 
 <template>
   <NotFoundPage v-if="applicationsGuildNotFound" />
-  <div v-else class="container py-6">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0 space-y-4">
+  <div v-else class="space-y-4">
+    
         <div class="text-xl font-semibold pb-4">Заявки и приглашения</div>
 
         <div>
@@ -248,8 +247,5 @@ watch([nameFilter], () => {
             </div>
           </template>
         </div>
-      </div>
-    </div>
-
   </div>
 </template>

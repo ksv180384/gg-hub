@@ -81,9 +81,7 @@ function commentsTo(post: Post) {
 </script>
 
 <template>
-  <div class="container py-6">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0 space-y-4">
+  <div class="space-y-4">
         <p v-if="!game?.id" class="text-sm text-muted-foreground">
           Выберите игру для просмотра журнала.
         </p>
@@ -134,9 +132,5 @@ function commentsTo(post: Post) {
             </template>
           </div>
         </template>
-      </div>
-
-      <GgHubJournalBanner v-if="game?.id" variant="desktop" />
-    </div>
   </div>
 </template>

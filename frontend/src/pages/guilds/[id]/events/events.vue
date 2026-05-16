@@ -163,9 +163,8 @@ watch(guildId, () => {
 
 <template>
   <NotFoundPage v-if="guildEventsAccessNotFound" />
-  <div v-else class="container py-6">
-    <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10">
-      <div class="min-w-0 space-y-4">
+  <div v-else class="space-y-4">
+    
         <div class="flex items-center justify-between gap-2">
           <h1 class="text-xl font-semibold">
             События гильдии
@@ -291,8 +290,6 @@ watch(guildId, () => {
           confirm-variant="destructive"
           @confirm="confirmDelete"
         />
-      </div>
-    </div>
 
     <EventHistoryTitlesDialog
       v-model:open="titlesAdmin.open"
