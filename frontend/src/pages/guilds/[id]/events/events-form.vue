@@ -1,16 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  Button,
-  Input,
-  Label,
-  Tooltip,
-} from '@/shared/ui';
+import { Button, Input, BackIconButton } from '@/shared/ui';
 import { guildsApi, type GuildRosterMember } from '@/shared/api/guildsApi';
 import {
   eventHistoryApi,
@@ -26,6 +17,14 @@ import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { parseParticipantNicknamesFromXlsxFile } from '@/shared/lib/eventHistoryParticipantsXlsxImport';
 import { useEventHistoryTitlesAdmin } from '@/features/guild-event-history-titles';
 import { EventHistoryTitlesDialog } from '@/widgets/guild-event-history-titles';
+import EventsFormTabsHeader from './ui/EventsFormTabsHeader.vue';
+import EventsFormInformationTab from './ui/EventsFormInformationTab.vue';
+import EventsFormParticipantsTab from './ui/EventsFormParticipantsTab.vue';
+import EventsFormScreenshotsTab from './ui/EventsFormScreenshotsTab.vue';
+import {
+  type EventsFormParticipant,
+  type EventsFormTabId,
+} from './events-form-types';
 
 const route = useRoute();
 const router = useRouter();
@@ -47,21 +46,19 @@ const titlesAdmin = reactive(useEventHistoryTitlesAdmin({
 const roster = ref<GuildRosterMember[]>([]);
 const loadingRoster = ref(false);
 
-const participantsXlsxInputRef = ref<HTMLInputElement | null>(null);
 const importParticipantsLoading = ref(false);
+const activeTab = ref<EventsFormTabId>('information');
 const importParticipantsError = ref('');
 
 const participantsExcelImportHint =
   'Первый столбец — один ник в строке (как при выгрузке). Совпадение с составом гильдии без учёта регистра; остальные в списке ниже с жёлтой подсветкой.';
-
-type Participant = { character_id?: number | null; external_name?: string | null };
 
 const form = ref({
   title: '',
   description: '',
   occurred_at: '',
   dkp_base_points: '',
-  participants: [] as Participant[],
+  participants: [] as EventsFormParticipant[],
   externalNickname: '',
   screenshots: [] as { url: string; title: string }[],
 });
@@ -146,13 +143,24 @@ async function loadRoster() {
   }
 }
 
+function participantDkpFromRoster(characterId: number): Pick<EventsFormParticipant, 'dkp_coefficient' | 'dkp_points_override'> {
+  const member = roster.value.find((m) => m.character_id === characterId);
+  return {
+    dkp_coefficient: member?.dkp_coefficient ?? 1,
+    dkp_points_override: null,
+  };
+}
+
 function toggleGuildParticipant(characterId: number) {
   const idx = form.value.participants.findIndex((p) => p.character_id === characterId);
   if (idx !== -1) {
     form.value.participants.splice(idx, 1);
     return;
   }
-  form.value.participants.push({ character_id: characterId });
+  form.value.participants.push({
+    character_id: characterId,
+    ...participantDkpFromRoster(characterId),
+  });
 }
 
 function addExternalParticipant() {
@@ -160,9 +168,14 @@ function addExternalParticipant() {
   if (!nick) return;
 
   const member = findRosterMemberByNickname(nick);
-  const participant: Participant = member
-    ? { character_id: member.character_id, external_name: null }
-    : { character_id: null, external_name: nick };
+  const participant: EventsFormParticipant = member
+    ? {
+        character_id: member.character_id,
+        external_name: null,
+        dkp_coefficient: member.dkp_coefficient ?? 1,
+        dkp_points_override: null,
+      }
+    : { character_id: null, external_name: nick, dkp_coefficient: 1, dkp_points_override: null };
 
   const key = participantKey(participant);
   if (form.value.participants.some((p) => participantKey(p) === key)) {
@@ -174,11 +187,11 @@ function addExternalParticipant() {
   form.value.externalNickname = '';
 }
 
-function removeParticipant(p: Participant) {
+function removeParticipant(p: EventsFormParticipant) {
   form.value.participants = form.value.participants.filter((x) => x !== p);
 }
 
-function participantKey(p: Participant): string {
+function participantKey(p: EventsFormParticipant): string {
   if (p.character_id != null) {
     return `c:${p.character_id}`;
   }
@@ -191,12 +204,8 @@ function findRosterMemberByNickname(raw: string): GuildRosterMember | undefined 
   return roster.value.find((m) => m.name.trim().toLowerCase() === q);
 }
 
-function openParticipantsXlsxPicker() {
-  importParticipantsError.value = '';
-  participantsXlsxInputRef.value?.click();
-}
-
 async function onParticipantsXlsxChange(ev: Event) {
+  importParticipantsError.value = '';
   const input = ev.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
@@ -214,9 +223,14 @@ async function onParticipantsXlsxChange(ev: Event) {
     let added = 0;
     for (const nick of nicknames) {
       const member = findRosterMemberByNickname(nick);
-      const p: Participant = member
-        ? { character_id: member.character_id, external_name: null }
-        : { character_id: null, external_name: nick.trim() };
+      const p: EventsFormParticipant = member
+        ? {
+            character_id: member.character_id,
+            external_name: null,
+            dkp_coefficient: member.dkp_coefficient ?? 1,
+            dkp_points_override: null,
+          }
+        : { character_id: null, external_name: nick.trim(), dkp_coefficient: 1, dkp_points_override: null };
       const key = participantKey(p);
       if (existing.has(key)) continue;
       existing.add(key);
@@ -257,6 +271,8 @@ async function loadEventIfEdit() {
     form.value.participants = (item.participants ?? []).map((p) => ({
       character_id: p.character_id,
       external_name: p.character_id ? null : p.external_name,
+      dkp_coefficient: p.dkp?.coefficient ?? 1,
+      dkp_points_override: p.dkp?.points_override ?? null,
     }));
     form.value.screenshots = (item.screenshots ?? []).map((s) => ({
       url: s.url,
@@ -375,10 +391,20 @@ async function submit() {
     title: form.value.title.trim(),
     description: form.value.description.trim() || null,
     occurred_at: fromDatetimeLocal(form.value.occurred_at),
-    participants: form.value.participants.map((p) => ({
-      character_id: p.character_id ?? null,
-      external_name: p.external_name ?? null,
-    })),
+    participants: form.value.participants.map((p) => {
+      const base = {
+        character_id: p.character_id ?? null,
+        external_name: p.external_name ?? null,
+      };
+      if (!dkpEnabled.value) {
+        return base;
+      }
+      return {
+        ...base,
+        dkp_coefficient: p.dkp_coefficient ?? 1,
+        dkp_points_override: p.dkp_points_override ?? null,
+      };
+    }),
     screenshots: form.value.screenshots
       .map((s, index) => ({
         url: s.url.trim(),
@@ -424,318 +450,107 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container py-6">
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-      <h1 class="text-xl font-semibold">
-        {{ isEdit ? 'Редактирование события' : 'Новое событие' }}
-      </h1>
-      <div class="flex flex-wrap items-center gap-2">
-        <Button
-          v-if="!isEdit"
-          type="button"
-          size="sm"
-          @click="titlesAdmin.openModal()"
-        >
-          Виды событий
-        </Button>
-        <Button variant="outline" size="sm" @click="goBack">
-          Назад к событиям
-        </Button>
-      </div>
+  <div class="container overflow-x-hidden py-6 md:py-8">
+    <div class="fixed top-[100px] right-8 z-30 md:hidden">
+      <BackIconButton
+        aria-label="К событиям"
+        title="К событиям"
+        @click="goBack"
+      />
     </div>
 
-    <div class="flex flex-col gap-4 lg:flex-row">
-      <!-- Левая колонка: делаем уже на десктопе -->
-      <div class="w-full lg:max-w-md lg:flex-none space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle class="text-base">Основная информация</CardTitle>
-          </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="space-y-2 relative">
-              <Label for="history-title">Название *</Label>
-              <Input
-                id="history-title"
-                v-model="form.title"
-                type="text"
-                maxlength="255"
-                placeholder="Название события"
-                autocomplete="off"
-                @input="searchTitleSuggestions(form.title)"
-                @focus="searchTitleSuggestions(form.title)"
-                @blur="showTitleSuggestions = false"
-              />
-              <div
-                v-if="showTitleSuggestions && titleSuggestions.length"
-                class="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md"
-              >
-                <ul class="max-h-56 overflow-y-auto py-1 text-sm">
-                  <li
-                    v-for="s in titleSuggestions"
-                    :key="s.id"
-                    class="flex items-center gap-2 px-3 py-1 hover:bg-accent"
-                  >
-                    <span
-                      class="flex-1 cursor-pointer truncate"
-                      @mousedown.prevent="applyTitleSuggestion(s)"
-                    >
-                      {{ s.name }}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      class="h-6 w-6 text-muted-foreground hover:bg-accent/60"
-                      @mousedown.prevent="startEditTitleSuggestion(s)"
-                    >
-                      ✎
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      class="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      @mousedown.prevent="startDeleteTitleSuggestion(s)"
-                    >
-                      ✕
-                    </Button>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <Label for="history-occurred-at">Время проведения *</Label>
-              <Input
-                id="history-occurred-at"
-                v-model="form.occurred_at"
-                type="datetime-local"
-              />
-            </div>
-            <div v-if="dkpEnabled" class="space-y-2">
-              <Label for="history-dkp-base">Очки ДКП за посещение</Label>
-              <Input
-                id="history-dkp-base"
-                v-model="form.dkp_base_points"
-                type="number"
-                min="0"
-                step="1"
-                placeholder="Не задано"
-              />
-            </div>
-            <div class="space-y-2">
-              <Label for="history-description">Описание</Label>
-              <textarea
-                id="history-description"
-                v-model="form.description"
-                rows="4"
-                class="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                placeholder="Описание события (необязательно)"
-              />
-            </div>
-          </CardContent>
-        </Card>
+    <div
+      class="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10"
+    >
+      <div class="min-w-0 space-y-4">
+        <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">
+          <div class="sticky top-[100px] z-30 hidden shrink-0 self-start md:block">
+            <BackIconButton
+              aria-label="К событиям"
+              title="К событиям"
+              @click="goBack"
+            />
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle class="text-base">Скриншоты</CardTitle>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div
-              v-for="(shot, index) in form.screenshots"
-              :key="index"
-              class="flex flex-col gap-2 rounded-md border p-2 md:flex-row md:items-center"
-            >
-              <div class="flex-1 space-y-1">
-                <Input
-                  v-model="shot.url"
-                  type="url"
-                  placeholder="Ссылка на скриншот *"
-                />
-                <Input
-                  v-model="shot.title"
-                  type="text"
-                  placeholder="Название скриншота (необязательно)"
-                />
-              </div>
-              <div class="flex justify-end md:items-start md:justify-center md:pl-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  @click="removeScreenshotRow(index)"
-                >
-                  ✕
+          <div class="min-w-0 w-full flex-1">
+            <div class="mb-4 space-y-1">
+              <h1 class="text-xl font-semibold">
+                {{ isEdit ? 'Редактирование события' : 'Новое событие' }}
+              </h1>
+              <p v-if="isEdit" class="text-sm text-muted-foreground">
+                Вносите изменения и сохраняйте для обновления события
+              </p>
+            </div>
+
+            <EventsFormTabsHeader v-model:active-tab="activeTab" />
+
+            <div class="space-y-4">
+              <EventsFormInformationTab
+                v-show="activeTab === 'information'"
+                v-model:title="form.title"
+                v-model:occurred-at="form.occurred_at"
+                v-model:description="form.description"
+                v-model:dkp-base-points="form.dkp_base_points"
+                :dkp-enabled="dkpEnabled"
+                :show-event-types-button="!isEdit"
+                :title-suggestions="titleSuggestions"
+                :show-title-suggestions="showTitleSuggestions"
+                @search-title-suggestions="searchTitleSuggestions"
+                @hide-title-suggestions="showTitleSuggestions = false"
+                @apply-title-suggestion="applyTitleSuggestion"
+                @edit-title-suggestion="startEditTitleSuggestion"
+                @delete-title-suggestion="startDeleteTitleSuggestion"
+                @open-event-types="titlesAdmin.openModal()"
+              />
+
+              <EventsFormParticipantsTab
+                v-show="activeTab === 'participants'"
+                v-model:external-nickname="form.externalNickname"
+                :dkp-enabled="dkpEnabled"
+                :dkp-base-points="form.dkp_base_points"
+                :roster="roster"
+                :loading-roster="loadingRoster"
+                :import-participants-loading="importParticipantsLoading"
+                :import-participants-error="importParticipantsError"
+                :participants-excel-import-hint="participantsExcelImportHint"
+                :guild-participants="guildParticipants"
+                :external-participants="externalParticipants"
+                :has-participants="hasParticipants"
+                :total-participants-count="totalParticipantsCount"
+                :is-member-selected="isMemberSelected"
+                @add-external-participant="addExternalParticipant"
+                @participants-xlsx-change="onParticipantsXlsxChange"
+                @remove-participant="removeParticipant"
+                @toggle-guild-participant="toggleGuildParticipant"
+              />
+
+              <EventsFormScreenshotsTab
+                v-show="activeTab === 'screenshots'"
+                v-model:screenshots="form.screenshots"
+                @add-screenshot-row="addScreenshotRow"
+                @remove-screenshot-row="removeScreenshotRow"
+              />
+
+              <div class="flex flex-wrap justify-end gap-2 border-t pt-4">
+                <Button type="button" variant="outline" :disabled="saving" @click="goBack">
+                  Отмена
+                </Button>
+                <Button type="button" :disabled="saving" @click="submit">
+                  {{
+                    saving
+                      ? 'Сохранение…'
+                      : isEdit
+                        ? 'Сохранить изменения'
+                        : 'Создать'
+                  }}
                 </Button>
               </div>
+
+              <p v-if="error" class="text-sm text-destructive">
+                {{ error }}
+              </p>
             </div>
-            <Button type="button" variant="outline" size="sm" @click="addScreenshotRow">
-              Добавить скриншот
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div class="flex justify-end gap-2">
-          <Button type="button" variant="outline" :disabled="saving" @click="goBack">
-            Отмена
-          </Button>
-          <Button type="button" :disabled="saving" @click="submit">
-            {{ saving ? 'Сохранение…' : isEdit ? 'Сохранить' : 'Создать' }}
-          </Button>
-        </div>
-
-        <p v-if="error" class="text-sm text-destructive">
-          {{ error }}
-        </p>
-      </div>
-
-      <!-- Правая колонка: шире и читаемее на десктопе -->
-      <div class="w-full lg:flex-1 shrink-0">
-        <div class="space-y-4 lg:space-y-0 lg:flex lg:flex-row lg:gap-4">
-          <Card class="lg:flex-1">
-            <CardHeader>
-              <CardTitle class="text-base">Участники события</CardTitle>
-            </CardHeader>
-            <CardContent class="space-y-3">
-              <div class="space-y-2">
-                <Label for="external-nick">Добавить стороннего участника</Label>
-                <div class="flex flex-wrap gap-2">
-                  <Input
-                    id="external-nick"
-                    v-model="form.externalNickname"
-                    type="text"
-                    placeholder="Ник участника"
-                    class="min-w-0 flex-1"
-                  />
-                  <Button type="button" size="sm" @click="addExternalParticipant">
-                    Добавить
-                  </Button>
-                  <input
-                    ref="participantsXlsxInputRef"
-                    type="file"
-                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    class="sr-only"
-                    @change="onParticipantsXlsxChange"
-                  />
-                  <Tooltip
-                    :content="participantsExcelImportHint"
-                    side="top"
-                    class="max-w-sm text-left"
-                  >
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      :disabled="importParticipantsLoading || loadingRoster"
-                      class="gap-1.5"
-                      @click="openParticipantsXlsxPicker"
-                    >
-                      {{ importParticipantsLoading ? 'Читаем…' : 'Загрузить из Excel' }}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 16v-4" />
-                        <path d="M12 8h.01" />
-                      </svg>
-                    </Button>
-                  </Tooltip>
-                </div>
-                <p v-if="importParticipantsError" class="text-xs text-destructive">
-                  {{ importParticipantsError }}
-                </p>
-              </div>
-
-              <div class="space-y-2">
-                <p class="text-xs font-medium text-muted-foreground">
-                  Приняли участие
-                  <span
-                    v-if="totalParticipantsCount"
-                    class="font-semibold text-foreground"
-                  >
-                    ({{ totalParticipantsCount }})
-                  </span>
-                  :
-                </p>
-                <div v-if="!hasParticipants" class="text-xs text-muted-foreground">
-                  Пока никто не добавлен.
-                </div>
-                <ul v-else class="space-y-1 text-xs">
-                  <li
-                    v-for="p in guildParticipants"
-                    :key="`char-${p.character_id}`"
-                    class="flex items-center justify-between gap-2 rounded border px-2 py-1"
-                  >
-                    <span>
-                      {{
-                        roster.find((m) => m.character_id === p.character_id)?.name ||
-                        `Персонаж #${p.character_id}`
-                      }}
-                    </span>
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant="ghost"
-                      class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      @click="removeParticipant(p)"
-                    >
-                      ✕
-                    </Button>
-                  </li>
-                  <li
-                    v-for="p in externalParticipants"
-                    :key="`ext-${p.external_name}`"
-                    class="flex items-center justify-between gap-2 rounded border border-amber-500/50 bg-amber-500/15 px-2 py-1 text-amber-950 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100"
-                  >
-                    <span>{{ p.external_name }}</span>
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant="ghost"
-                      class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      @click="removeParticipant(p)"
-                    >
-                      ✕
-                    </Button>
-                  </li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card class="lg:flex-1">
-            <CardHeader>
-              <CardTitle class="text-base">Состав гильдии</CardTitle>
-            </CardHeader>
-            <CardContent class="space-y-2">
-              <p v-if="loadingRoster" class="text-xs text-muted-foreground">
-                Загрузка состава...
-              </p>
-              <p v-else-if="!roster.length" class="text-xs text-muted-foreground">
-                Нет данных о составе.
-              </p>
-              <ul v-else class="max-h-[320px] space-y-1 overflow-y-auto text-xs">
-                <li
-                  v-for="member in roster"
-                  :key="member.character_id"
-                  :class="[
-                    'flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 transition-colors',
-                    isMemberSelected(member) ? 'bg-emerald-500/10' : 'hover:bg-accent'
-                  ]"
-                  @click="toggleGuildParticipant(member.character_id)"
-                >
-                  <span class="truncate">{{ member.name }}</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
+          </div>
         </div>
       </div>
     </div>

@@ -32,6 +32,7 @@ class GuildRosterMemberResource extends JsonResource
                     'slug' => $role->slug,
                 ] : null;
             }),
+            'dkp_coefficient' => (float) ($this->dkp_coefficient ?? 1),
             'tags' => $character ? TagResource::collection($character->characterGuildTags) : [],
             'personal_tags' => $character ? TagResource::collection($character->tags) : [],
         ];

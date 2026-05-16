@@ -292,6 +292,8 @@ export interface GuildRosterMember {
     image_thumb?: string | null;
   }[];
   guild_role: { id: number; name: string; slug: string } | null;
+  /** Коэффициент ДКП участника в гильдии (по умолчанию 1). */
+  dkp_coefficient?: number;
   /** Теги в контексте гильдии (character_guild_tag). */
   tags: {
     id: number;
@@ -699,6 +701,7 @@ export const guildsApi = {
     can_edit_guild_tags: boolean;
     can_create_guild_tag: boolean;
     can_delete_guild_tag: boolean;
+    can_manage_dkp_coefficient: boolean;
   }> {
     const res = await http.fetchGet<{
       data: GuildRosterMember;
@@ -707,6 +710,7 @@ export const guildsApi = {
       can_edit_guild_tags: boolean;
       can_create_guild_tag: boolean;
       can_delete_guild_tag: boolean;
+      can_manage_dkp_coefficient: boolean;
     }>(`/guilds/${guildId}/roster/${characterId}`);
     throwOnError(res, 'Ошибка загрузки данных участника');
     const raw = res.data as {
@@ -716,6 +720,7 @@ export const guildsApi = {
       can_edit_guild_tags?: boolean;
       can_create_guild_tag?: boolean;
       can_delete_guild_tag?: boolean;
+      can_manage_dkp_coefficient?: boolean;
     } | null;
     return {
       data: raw?.data ?? ({} as GuildRosterMember),
@@ -724,7 +729,25 @@ export const guildsApi = {
       can_edit_guild_tags: raw?.can_edit_guild_tags ?? false,
       can_create_guild_tag: raw?.can_create_guild_tag ?? false,
       can_delete_guild_tag: raw?.can_delete_guild_tag ?? false,
+      can_manage_dkp_coefficient: raw?.can_manage_dkp_coefficient ?? false,
     };
+  },
+
+  async updateGuildMemberDkpCoefficient(
+    guildId: number,
+    characterId: number,
+    dkpCoefficient: number
+  ): Promise<GuildRosterMember> {
+    const res = await http.fetchPut<{ data: GuildRosterMember; message?: string }>(
+      `/guilds/${guildId}/members/${characterId}/dkp-coefficient`,
+      { dkp_coefficient: dkpCoefficient }
+    );
+    throwOnError(res, 'Не удалось сохранить коэффициент ДКП.');
+    const raw = res.data as { data?: GuildRosterMember } | GuildRosterMember | null;
+    if (raw && typeof raw === 'object' && 'data' in raw && raw.data) {
+      return raw.data;
+    }
+    return raw as GuildRosterMember;
   },
 
   /**

@@ -6,6 +6,7 @@ use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryParticipant;
 use Domains\Event\Models\EventHistoryScreenshot;
 use Domains\Event\Models\EventHistoryTitle;
+use Domains\Guild\Support\ResolveEventParticipantDkpCoefficient;
 use Domains\GuildDkp\Actions\SyncEventHistoryDkpLedgerAction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,7 @@ class UpdateEventHistoryAction
 {
     public function __construct(
         private SyncEventHistoryDkpLedgerAction $syncEventHistoryDkpLedgerAction,
+        private ResolveEventParticipantDkpCoefficient $resolveEventParticipantDkpCoefficient,
     ) {}
     /**
      * @param  array{
@@ -74,7 +76,7 @@ class UpdateEventHistoryAction
                         'event_history_id' => $history->id,
                         'character_id' => $participant['character_id'] ?? null,
                         'external_name' => $participant['external_name'] ?? null,
-                        'dkp_coefficient' => $participant['dkp_coefficient'] ?? 1,
+                        'dkp_coefficient' => ($this->resolveEventParticipantDkpCoefficient)((int) $history->guild_id, $participant),
                         'dkp_points_override' => $participant['dkp_points_override'] ?? null,
                     ]);
                 }

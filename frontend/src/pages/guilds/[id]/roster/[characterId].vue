@@ -68,6 +68,11 @@ const dkpAdjustAmount = ref('');
 const dkpAdjustReason = ref('');
 const dkpAdjustSaving = ref(false);
 const dkpAdjustError = ref<string | null>(null);
+const canManageDkpCoefficient = ref(false);
+const dkpCoefficientDialogOpen = ref(false);
+const dkpCoefficientValue = ref('1');
+const dkpCoefficientSaving = ref(false);
+const dkpCoefficientError = ref<string | null>(null);
 
 const GUILD_ROLE_SLUG_LEADER = 'leader';
 
@@ -195,6 +200,7 @@ async function loadData() {
     canEditGuildTags.value = rosterMemberRes.can_edit_guild_tags;
     canCreateGuildTag.value = rosterMemberRes.can_create_guild_tag;
     canDeleteGuildTag.value = rosterMemberRes.can_delete_guild_tag;
+    canManageDkpCoefficient.value = rosterMemberRes.can_manage_dkp_coefficient;
     selectedRoleId.value = rosterMemberRes.data.guild_role
       ? String(rosterMemberRes.data.guild_role.id)
       : '';
@@ -273,6 +279,44 @@ function closeDkpAdjustDialog() {
   if (dkpAdjustSaving.value) return;
   dkpAdjustDialogOpen.value = false;
   dkpAdjustError.value = null;
+}
+
+function openDkpCoefficientDialog() {
+  if (!canManageDkpCoefficient.value || !member.value) return;
+  dkpCoefficientError.value = null;
+  dkpCoefficientValue.value = String(member.value.dkp_coefficient ?? 1);
+  dkpCoefficientDialogOpen.value = true;
+}
+
+function closeDkpCoefficientDialog() {
+  if (dkpCoefficientSaving.value) return;
+  dkpCoefficientDialogOpen.value = false;
+  dkpCoefficientError.value = null;
+}
+
+async function submitDkpCoefficient() {
+  if (!guildId.value || !characterId.value || !member.value || dkpCoefficientSaving.value) return;
+  dkpCoefficientError.value = null;
+  const value = Number(dkpCoefficientValue.value.trim());
+  if (!Number.isFinite(value) || value < 0) {
+    dkpCoefficientError.value = 'Укажите коэффициент не меньше 0.';
+    return;
+  }
+  dkpCoefficientSaving.value = true;
+  try {
+    const updated = await guildsApi.updateGuildMemberDkpCoefficient(
+      guildId.value,
+      characterId.value,
+      value
+    );
+    member.value = { ...member.value, dkp_coefficient: updated.dkp_coefficient ?? value };
+    dkpCoefficientDialogOpen.value = false;
+  } catch (e: unknown) {
+    dkpCoefficientError.value =
+      e instanceof Error ? e.message : 'Не удалось сохранить коэффициент ДКП.';
+  } finally {
+    dkpCoefficientSaving.value = false;
+  }
 }
 
 async function submitDkpAdjust(direction: 'credit' | 'debit') {
@@ -563,25 +607,42 @@ watch([guildId, characterId], () => loadData());
                     <p v-if="roleError" class="text-xs text-destructive">{{ roleError }}</p>
                   </div>
                 </template>
+                <div
+                  v-if="dkpEnabled"
+                  class="mt-3 flex flex-wrap items-center gap-2"
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    class="h-8 tabular-nums"
+                    :disabled="!canManageDkpCoefficient"
+                    :title="
+                      canManageDkpCoefficient
+                        ? 'Коэффициент ДКП для событий'
+                        : 'Коэффициент ДКП (только просмотр)'
+                    "
+                    @click="openDkpCoefficientDialog"
+                  >
+                    Коэф. {{ member.dkp_coefficient ?? 1 }}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    class="h-8"
+                    :disabled="dkpBalanceLoading"
+                    :title="canManageDkp ? 'Изменить очки ДКП' : 'Баланс очков ДКП участника'"
+                    @click="openDkpAdjustDialog"
+                  >
+                    <span>Очки ДКП</span>
+                    <span class="ml-1.5 font-semibold tabular-nums">
+                      {{ dkpBalanceLoading ? '…' : dkpBalance ?? 0 }}
+                    </span>
+                  </Button>
+                </div>
               </div>
             </div>
-            <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <div v-if="canExclude" class="shrink-0">
               <Button
-                v-if="dkpEnabled"
-                variant="outline"
-                size="sm"
-                class="h-8"
-                :disabled="dkpBalanceLoading"
-                :title="canManageDkp ? 'Изменить очки ДКП' : 'Баланс очков ДКП участника'"
-                @click="openDkpAdjustDialog"
-              >
-                <span>Очки ДКП</span>
-                <span class="ml-1.5 font-semibold tabular-nums">
-                  {{ dkpBalanceLoading ? '…' : dkpBalance ?? 0 }}
-                </span>
-              </Button>
-              <Button
-                v-if="canExclude"
                 variant="destructive"
                 size="sm"
                 :disabled="excluding"
@@ -714,6 +775,49 @@ watch([guildId, characterId], () => loadData());
     </div>
       </div>
       <div class="hidden lg:block" />
+    </div>
+
+    <div
+      v-if="dkpCoefficientDialogOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      @click.self="closeDkpCoefficientDialog"
+    >
+      <div class="w-full max-w-md rounded-xl border border-border bg-card text-card-foreground shadow-lg">
+        <div class="border-b border-border px-4 py-3">
+          <div class="text-base font-semibold">Коэффициент ДКП</div>
+          <p v-if="member" class="mt-0.5 truncate text-xs text-muted-foreground">
+            {{ member.name }} · для расчёта очков на событиях
+          </p>
+        </div>
+        <div class="space-y-4 px-4 py-4">
+          <div class="space-y-2">
+            <Label for="dkp-coefficient-value">Коэффициент *</Label>
+            <Input
+              id="dkp-coefficient-value"
+              v-model="dkpCoefficientValue"
+              type="number"
+              min="0"
+              step="0.1"
+              class="h-9"
+              placeholder="1"
+              :disabled="dkpCoefficientSaving"
+              required
+            />
+            <p class="text-xs text-muted-foreground">
+              По умолчанию 1. Подставляется при добавлении участника в событие.
+            </p>
+          </div>
+          <p v-if="dkpCoefficientError" class="text-sm text-destructive">{{ dkpCoefficientError }}</p>
+        </div>
+        <div class="flex flex-col-reverse gap-2 border-t border-border px-4 py-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" :disabled="dkpCoefficientSaving" @click="closeDkpCoefficientDialog">
+            Отмена
+          </Button>
+          <Button :disabled="dkpCoefficientSaving" @click="submitDkpCoefficient">
+            {{ dkpCoefficientSaving ? 'Сохранение…' : 'Сохранить' }}
+          </Button>
+        </div>
+      </div>
     </div>
 
     <div

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\GuildFilterRequest;
 use App\Http\Requests\Guild\StoreGuildRequest;
 use App\Http\Requests\Guild\StoreGuildTagRequest;
+use App\Http\Requests\Guild\UpdateGuildMemberDkpCoefficientRequest;
 use App\Http\Requests\Guild\UpdateGuildMemberRoleRequest;
 use App\Http\Requests\Guild\UpdateGuildRosterMemberTagsRequest;
 use App\Http\Requests\Guild\UpdateGuildRequest;
@@ -28,6 +29,7 @@ use Domains\Guild\Actions\LeaveGuildAction;
 use Domains\Guild\Actions\UpdateGuildAction;
 use Domains\Guild\Actions\SyncGuildRosterMemberTagsAction;
 use Domains\Character\Models\Character;
+use Domains\Guild\Actions\UpdateGuildMemberDkpCoefficientAction;
 use Domains\Guild\Actions\UpdateGuildMemberRoleAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
@@ -49,6 +51,7 @@ class GuildController extends Controller
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
         private LeaveGuildAction $leaveGuildAction,
         private UpdateGuildMemberRoleAction $updateGuildMemberRoleAction,
+        private UpdateGuildMemberDkpCoefficientAction $updateGuildMemberDkpCoefficientAction,
         private SyncGuildRosterMemberTagsAction $syncGuildRosterMemberTagsAction,
         private CreateTagAction $createTagAction,
         private DeleteTagAction $deleteTagAction
@@ -119,6 +122,8 @@ class GuildController extends Controller
         $canEditGuildTags = $permissionSlugs->contains('izmeniat-tegi-polzovatelei-gildii');
         $canCreateGuildTag = $permissionSlugs->contains('dobavliat-teg-gildii');
         $canDeleteGuildTag = $permissionSlugs->contains('udaliat-teg-gildii');
+        $canManageDkpCoefficient = $guild->dkp_enabled
+            && $permissionSlugs->contains('peredavat-predmety-polzovateliam');
 
         return response()->json([
             'data' => $result->toArray($request),
@@ -127,6 +132,27 @@ class GuildController extends Controller
             'can_edit_guild_tags' => $canEditGuildTags,
             'can_create_guild_tag' => $canCreateGuildTag,
             'can_delete_guild_tag' => $canDeleteGuildTag,
+            'can_manage_dkp_coefficient' => $canManageDkpCoefficient,
+        ]);
+    }
+
+    /**
+     * Коэффициент ДКП участника гильдии. Право peredavat-predmety-polzovateliam, DKP включён.
+     */
+    public function updateMemberDkpCoefficient(
+        UpdateGuildMemberDkpCoefficientRequest $request,
+        Guild $guild,
+        int $character
+    ): JsonResponse {
+        $member = ($this->updateGuildMemberDkpCoefficientAction)(
+            $guild,
+            $character,
+            (float) $request->validated('dkp_coefficient')
+        );
+
+        return response()->json([
+            'message' => 'Коэффициент ДКП обновлён.',
+            'data' => (new GuildRosterMemberResource($member))->toArray($request),
         ]);
     }
 

@@ -309,3 +309,214 @@ it('syncs event history dkp into user balance and ledger', function () {
         ->where('event_history_participant_id', $participant->id)
         ->value('amount'))->toBe(10);
 });
+
+it('updates guild member dkp coefficient', function () {
+    $ctx = seedGuildDkpContext();
+
+    actingAs($ctx['user'])
+        ->putJson("/api/v1/guilds/{$ctx['guild']->id}/members/{$ctx['char']->id}/dkp-coefficient", [
+            'dkp_coefficient' => 1.5,
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.dkp_coefficient', 1.5);
+
+    expect((float) GuildMember::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('character_id', $ctx['char']->id)
+        ->value('dkp_coefficient'))->toBe(1.5);
+});
+
+it('exposes can manage dkp coefficient on roster member', function () {
+    $ctx = seedGuildDkpContext();
+
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/roster/{$ctx['char']->id}")
+        ->assertSuccessful()
+        ->assertJsonPath('can_manage_dkp_coefficient', true)
+        ->assertJsonPath('data.dkp_coefficient', 1);
+});
+
+it('forbids updating guild member dkp coefficient without permission', function () {
+    $ctx = seedGuildDkpContext();
+
+    $role = GuildRole::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'name' => 'Member',
+        'slug' => 'member',
+    ]);
+    GuildMember::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('character_id', $ctx['char']->id)
+        ->update(['guild_role_id' => $role->id]);
+    $ctx['guild']->update(['leader_character_id' => null]);
+
+    actingAs($ctx['user'])
+        ->putJson("/api/v1/guilds/{$ctx['guild']->id}/members/{$ctx['char']->id}/dkp-coefficient", [
+            'dkp_coefficient' => 2,
+        ])
+        ->assertForbidden();
+});
+
+it('uses guild member dkp coefficient when creating event history', function () {
+    $ctx = seedGuildDkpContext();
+
+    GuildMember::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('character_id', $ctx['char']->id)
+        ->update(['dkp_coefficient' => 2.5]);
+
+    $history = app(\Domains\Event\Actions\CreateEventHistoryAction::class)([
+        'guild_id' => $ctx['guild']->id,
+        'title' => 'Raid',
+        'occurred_at' => now()->toIso8601String(),
+        'dkp_base_points' => 10,
+        'participants' => [
+            ['character_id' => $ctx['char']->id],
+        ],
+    ]);
+
+    expect((float) EventHistoryParticipant::query()
+        ->where('event_history_id', $history->id)
+        ->value('dkp_coefficient'))->toBe(2.5);
+});
+
+it('recalculates user dkp balance when event history base points change on update', function () {
+    $ctx = seedGuildDkpContext();
+
+    $history = app(\Domains\Event\Actions\CreateEventHistoryAction::class)([
+        'guild_id' => $ctx['guild']->id,
+        'title' => 'Raid',
+        'occurred_at' => now()->toIso8601String(),
+        'dkp_base_points' => 10,
+        'participants' => [
+            ['character_id' => $ctx['char']->id, 'dkp_coefficient' => 1],
+        ],
+    ]);
+
+    expect(GuildUserDkpBalance::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('user_id', $ctx['user']->id)
+        ->value('balance'))->toBe(10);
+
+    app(\Domains\Event\Actions\UpdateEventHistoryAction::class)($history, [
+        'dkp_base_points' => 20,
+        'participants' => [
+            ['character_id' => $ctx['char']->id, 'dkp_coefficient' => 1],
+        ],
+    ]);
+
+    expect(GuildUserDkpBalance::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('user_id', $ctx['user']->id)
+        ->value('balance'))->toBe(20);
+
+    expect(GuildDkpLedgerEntry::query()
+        ->where('event_history_id', $history->id)
+        ->where('source', 'event')
+        ->value('amount'))->toBe(20);
+});
+
+it('recalculates user dkp balance when participant coefficient changes on update', function () {
+    $ctx = seedGuildDkpContext();
+
+    $history = app(\Domains\Event\Actions\CreateEventHistoryAction::class)([
+        'guild_id' => $ctx['guild']->id,
+        'title' => 'Raid',
+        'occurred_at' => now()->toIso8601String(),
+        'dkp_base_points' => 10,
+        'participants' => [
+            ['character_id' => $ctx['char']->id, 'dkp_coefficient' => 1],
+        ],
+    ]);
+
+    app(\Domains\Event\Actions\UpdateEventHistoryAction::class)($history, [
+        'participants' => [
+            ['character_id' => $ctx['char']->id, 'dkp_coefficient' => 2],
+        ],
+    ]);
+
+    expect(GuildUserDkpBalance::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('user_id', $ctx['user']->id)
+        ->value('balance'))->toBe(20);
+});
+
+it('recalculates user dkp balance when override is applied on update', function () {
+    $ctx = seedGuildDkpContext();
+
+    $history = app(\Domains\Event\Actions\CreateEventHistoryAction::class)([
+        'guild_id' => $ctx['guild']->id,
+        'title' => 'Raid',
+        'occurred_at' => now()->toIso8601String(),
+        'dkp_base_points' => 10,
+        'participants' => [
+            ['character_id' => $ctx['char']->id, 'dkp_coefficient' => 1],
+        ],
+    ]);
+
+    app(\Domains\Event\Actions\UpdateEventHistoryAction::class)($history, [
+        'participants' => [
+            [
+                'character_id' => $ctx['char']->id,
+                'dkp_coefficient' => 1,
+                'dkp_points_override' => 7,
+            ],
+        ],
+    ]);
+
+    expect(GuildUserDkpBalance::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('user_id', $ctx['user']->id)
+        ->value('balance'))->toBe(7);
+});
+
+it('clears user dkp from event when participant is removed on update', function () {
+    $ctx = seedGuildDkpContext();
+
+    $history = app(\Domains\Event\Actions\CreateEventHistoryAction::class)([
+        'guild_id' => $ctx['guild']->id,
+        'title' => 'Raid',
+        'occurred_at' => now()->toIso8601String(),
+        'dkp_base_points' => 10,
+        'participants' => [
+            ['character_id' => $ctx['char']->id, 'dkp_coefficient' => 1],
+        ],
+    ]);
+
+    app(\Domains\Event\Actions\UpdateEventHistoryAction::class)($history, [
+        'participants' => [],
+    ]);
+
+    expect(GuildUserDkpBalance::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('user_id', $ctx['user']->id)
+        ->value('balance'))->toBe(0);
+
+    expect(GuildDkpLedgerEntry::query()
+        ->where('event_history_id', $history->id)
+        ->where('source', 'event')
+        ->exists())->toBeFalse();
+});
+
+it('keeps dkp balance when only event title changes on update', function () {
+    $ctx = seedGuildDkpContext();
+
+    $history = app(\Domains\Event\Actions\CreateEventHistoryAction::class)([
+        'guild_id' => $ctx['guild']->id,
+        'title' => 'Raid',
+        'occurred_at' => now()->toIso8601String(),
+        'dkp_base_points' => 10,
+        'participants' => [
+            ['character_id' => $ctx['char']->id, 'dkp_coefficient' => 1],
+        ],
+    ]);
+
+    app(\Domains\Event\Actions\UpdateEventHistoryAction::class)($history->fresh(), [
+        'title' => 'Raid renamed',
+    ]);
+
+    expect(GuildUserDkpBalance::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('user_id', $ctx['user']->id)
+        ->value('balance'))->toBe(10);
+});

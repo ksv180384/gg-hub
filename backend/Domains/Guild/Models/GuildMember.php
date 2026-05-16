@@ -13,6 +13,7 @@ class GuildMember extends Model
         'guild_id',
         'character_id',
         'guild_role_id',
+        'dkp_coefficient',
         'joined_at',
     ];
 
@@ -20,6 +21,7 @@ class GuildMember extends Model
     {
         return [
             'joined_at' => 'datetime',
+            'dkp_coefficient' => 'decimal:2',
         ];
     }
 
