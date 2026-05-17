@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useThemeStore } from '@/stores/theme';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button } from '@/shared/ui';
 import { RouterLink } from 'vue-router';
 import { usePageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 import { recordLandingCtaClick, type LandingCtaButton } from '@/shared/api/landingApi';
@@ -11,12 +11,20 @@ import { gamesApi } from '@/shared/api/gamesApi';
 import {
   HOME_PAGE_SEO_TITLE,
   HOME_PAGE_SEO_DESCRIPTION,
-  HOME_PAGE_SEO_KEYWORDS,
   HOME_PAGE_LEAD,
   HOME_HERO_IMAGE_PATH,
   HOME_FAQ_ITEMS,
+  HOME_FAQ_SECTION_HEADING,
+  HOME_CAPABILITIES_HEADING,
+  HOME_CAPABILITIES_ITEMS,
+  HOME_SEO_INTRO_HEADING,
+  HOME_SEO_INTRO_PARAGRAPHS,
+  HOME_SEO_INTRO_CTA_LABEL,
+  HOME_DISCORD_BLOCK_HEADING,
+  HOME_DISCORD_BLOCK_PARAGRAPHS,
   buildHomeCanonicalUrl,
   buildHomeJsonLdGraph,
+  resolveOgImageUrl,
 } from '@/seo/homePageSeo';
 
 const siteOrigin = getSiteOrigin();
@@ -33,14 +41,15 @@ const sameAsList = sameAsRaw
   : [];
 const contactEmailEnv = (import.meta.env.VITE_ORG_CONTACT_EMAIL as string | undefined)?.trim();
 
+const resolvedOgImage = resolveOgImageUrl(siteOrigin, ogImageEnv);
+
 usePageSeo({
   title: HOME_PAGE_SEO_TITLE,
   description: HOME_PAGE_SEO_DESCRIPTION,
   canonicalUrl,
-  keywords: HOME_PAGE_SEO_KEYWORDS,
-  ogImageUrl: ogImageEnv || undefined,
+  ogImageUrl: resolvedOgImage,
   jsonLd: buildHomeJsonLdGraph(siteOrigin, {
-    ogImageUrl: ogImageEnv,
+    ogImageUrl: resolvedOgImage,
     logoUrl: logoUrlEnv,
     sameAs: sameAsList.length ? sameAsList : undefined,
     contactEmail: contactEmailEnv,
@@ -48,16 +57,16 @@ usePageSeo({
 });
 
 const heroImageAlt =
-  'Управление гильдией в MMORPG на платформе gg-hub: Throne and Liberty, Aion 2 — ростер, рейды, календарь событий, заявки и блог гильдии';
+  'Управление гильдией в MMORPG на платформе gg-hub: ростер, рейды, календарь, хранилище, ДКП, заявки и блог гильдии';
 const homeCtaImagePath = '/assets/images/2.webp';
 const homeCtaImageAlt = '';
 
-const games = ref<
-  { name: string; slug: string; id?: number }[]
->([
+const gamesFallback = [
   { name: 'Throne and Liberty', slug: 'throne-and-liberty' },
   { name: 'Aion 2', slug: 'aion-2' },
-]);
+] as const;
+
+const games = ref<{ name: string; slug: string; id?: number }[]>([...gamesFallback]);
 
 /** Частицы «маны» для фона средней части лендинга (MMORPG, не hero и не нижний CTA) */
 const landingMidFantasyMotes = Array.from({ length: 26 }, (_, i) => {
@@ -75,12 +84,14 @@ const landingMidFantasyMotes = Array.from({ length: 26 }, (_, i) => {
 onMounted(async () => {
   try {
     const list = await gamesApi.getGames();
-    games.value = games.value.map((g) => {
-      const found = list.find((x) => x.slug === g.slug);
-      return found ? { ...g, id: found.id } : g;
-    });
+    const active = list.filter((g) => g.is_active);
+    if (active.length > 0) {
+      games.value = active.map((g) => ({ name: g.name, slug: g.slug, id: g.id }));
+    } else {
+      games.value = [...gamesFallback];
+    }
   } catch {
-    /* остаётся список без id — ссылки ведут на /guilds */
+    games.value = [...gamesFallback];
   }
 });
 
@@ -95,71 +106,136 @@ const playerBenefits = [
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`,
     title: 'Найди свою гильдию',
-    desc: 'Продвинутые фильтры по игре, серверу, классу, стилю игры и расписанию. Никаких случайных инвайтов — только осознанный выбор.',
+    desc: 'Каталог с фильтрами по игре и серверу, карточка гильдии и публичная форма заявки — выбирай осознанно, без случайных инвайтов.',
   },
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
     title: 'Единый профиль игрока',
-    desc: 'Все твои персонажи из разных игр — в одном месте. История гильдий, достижения, классы и серверы.',
+    desc: 'Все персонажи из разных MMORPG на одном аккаунте: игра, сервер, класс и теги.',
   },
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
     title: 'Будь в курсе',
-    desc: 'Лента новостей, анонсы рейдов и ивентов, оповещения — ничего не пропустишь, даже когда не в игре.',
+    desc: 'Лента постов, календарь гильдии, in-app уведомления и опционально Discord — не пропустишь рейд или решение офицеров.',
   },
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`,
-    title: 'Кросс-игровые связи',
-    desc: 'Играешь в несколько ММО? Твоя репутация и связи сохраняются при переходе между играми.',
+    title: 'Кросс-игровой аккаунт',
+    desc: 'Играешь в несколько MMO — переключай игру в шапке сайта, веди отдельных персонажей и гильдии без новых регистраций.',
   },
 ];
 
 const guildBenefits = [
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>`,
-    title: 'Управление составом',
-    desc: 'Ростер, роли, права доступа — полный контроль. Офицеры и лидеры видят всё в одном месте.',
+    title: 'Состав и роли',
+    desc: 'Лидер видит весь ростер, роли и активность. Офицер работает только в разделах, к которым выданы права.',
   },
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`,
-    title: 'Календарь событий',
-    desc: 'Рейды, ивенты, PvP-активности — планируйте расписание с записью и напоминаниями.',
+    title: 'Календарь и история',
+    desc: 'Офицер добавляет разовые и повторяющиеся события, собирает участников и фиксирует посещение с начислением ДКП.',
   },
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>`,
     title: 'Заявки и рекрутинг',
-    desc: 'Настраиваемые анкеты, автоматический приём по классам, комментарии офицеров к каждой заявке.',
+    desc: 'Лидер настраивает анкету: ник, класс, сервер, опыт, прайм-тайм. Офицеры обсуждают заявку, голосуют и принимают решение.',
+  },
+  {
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 11.73V22"/><path d="M12 22V11.76l8.7-5.09"/></svg>`,
+    title: 'Хранилище и ДКП',
+    desc: 'Казначей добавляет предмет, выбирает участника и причину выдачи — операция попадает в журнал, ДКП списывается при необходимости.',
+  },
+  {
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>`,
+    title: 'Рейды',
+    desc: 'Рейд-лид создаёт рейд, добавляет группы и слоты, распределяет персонажей. Участники с открытой страницей видят обновления без скриншотов.',
   },
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
-    title: 'Блог и новости',
-    desc: 'Внутренние посты, гайды, отчёты о рейдах — ведите летопись гильдии и привлекайте новых игроков.',
+    title: 'Блог и опросы',
+    desc: 'Публикуйте новости гильдии и проводите голосования по составу, луту и правилам — игроки видят ленту в интерфейсе гильдии.',
   },
 ];
 
-const stats = [
-  { value: 3, label: 'Поддерживаемых игры' },
-  { value: 0, label: 'Персонажей на аккаунт', display: '∞' },
-  { value: 24, label: 'Доступ к платформе', display: '24/7' },
+const roleScenarios = [
+  { role: 'Лидер', text: 'Контроль состава, роли, заявки и настройки ДКП.' },
+  { role: 'Офицер', text: 'Обработка заявок, рейды, банк и события в рамках выданных прав.' },
+  { role: 'Рейд-лид', text: 'Сбор состава по слотам и фиксация посещения.' },
+  { role: 'Казначей', text: 'Выдача предметов и ведение ДКП без отдельных таблиц.' },
+  { role: 'Игрок', text: 'Поиск гильдии, анкета, календарь, уведомления и персонажи.' },
+];
+
+const platformHighlights = [
+  { value: '0 ₽', label: 'Стоимость для гильдий и игроков' },
+  { value: '24/7', label: 'Доступ через браузер' },
+  { value: '∞', label: 'Персонажей на одном аккаунте' },
 ];
 
 const features = [
-  { title: 'Управление гильдией', desc: 'Ростер, роли и права доступа офицеров — полный контроль над составом и структурой гильдии в одном интерфейсе.' },
-  { title: 'Заявки и анкеты', desc: 'Кастомные анкеты для вступления с привязкой персонажей, классов и серверов. Комментарии офицеров и история заявок.' },
-  { title: 'Рейды', desc: 'Формируй составы рейдов из участников гильдии с распределением по ролям.' },
-  { title: 'Календарь', desc: 'Разовые, ежедневные, еженедельные, ежемесячные события с записью и напоминаниями.' },
-  { title: 'Блог гильдии', desc: 'Гильдейские, игровые и общие посты. Единая лента с фильтрацией и приоритетами.' },
-  { title: 'Голосования', desc: 'Опросы внутри гильдии для принятия коллективных решений.' },
+  {
+    title: 'Каталог гильдий',
+    desc: 'Игрок фильтрует список по игре и серверу, открывает карточку и подаёт заявку — без регистрации можно только просматривать каталог.',
+  },
+  {
+    title: 'Состав и права',
+    desc: 'Лидер видит весь состав и роли; офицеру выдают права только на нужные разделы — заявки, рейды или хранилище.',
+  },
+  {
+    title: 'Заявки и приглашения',
+    desc: 'Офицер принимает заявку после обсуждения в комментариях и голосования; игрок отслеживает статус в личном кабинете.',
+  },
+  {
+    title: 'Календарь событий',
+    desc: 'Офицер создаёт разовые и повторяющиеся события; участники отмечают участие, приходят напоминания в Discord.',
+  },
+  {
+    title: 'История событий',
+    desc: 'После рейда фиксируется посещаемость, прикрепляются скриншоты; очки ДКП начисляются по шаблону события.',
+  },
+  {
+    title: 'Рейды',
+    desc: 'Рейд-лид собирает состав по слотам из персонажей гильдии; изменения видят все, у кого открыта страница рейда.',
+  },
+  {
+    title: 'Хранилище и ДКП',
+    desc: 'Казначей выдаёт предмет и при необходимости списывает ДКП; в журнале сохраняется причина и баланс участника.',
+  },
+  {
+    title: 'Блог и журнал',
+    desc: 'Игрок видит новости гильдии и игры; лидер публикует посты и модерирует комментарии.',
+  },
+  {
+    title: 'Опросы и уведомления',
+    desc: 'Голосования по решениям гильдии; in-app уведомления и push в браузере о заявках и событиях.',
+  },
 ];
 
 const steps = [
   {
     num: '01',
-    title: 'Создай профиль',
-    desc: 'Регистрация откроется вместе с релизом; следи за обновлениями. Позже — персонажи, игра, сервер, класс.',
+    title: 'Создайте аккаунт и персонажа',
+    desc: 'Укажите игру, сервер, класс и ник. На одном аккаунте можно вести несколько персонажей.',
+    link: { to: '/register', label: 'Регистрация' },
   },
-  { num: '02', title: 'Найди гильдию', desc: 'Уже сейчас смотри каталог и фильтры по игре и серверу или подай заявку позже.' },
-  { num: '03', title: 'Играй вместе', desc: 'Рейды, календарь, блог гильдии — по мере запуска функций на платформе.' },
+  {
+    num: '02',
+    title: 'Найдите или создайте гильдию',
+    desc: 'Игрок подаёт заявку через каталог, лидер создаёт гильдию, описание, роли и анкету.',
+    link: { to: '/guilds', label: 'Каталог гильдий' },
+  },
+  {
+    num: '03',
+    title: 'Настройте управление',
+    desc: 'Назначьте офицеров, выдайте права, добавьте события, рейды и правила ДКП.',
+    link: null,
+  },
+  {
+    num: '04',
+    title: 'Ведите активность гильдии',
+    desc: 'Фиксируйте посещения, распределяйте лут, ведите хранилище, публикуйте новости и проводите голосования.',
+    link: null,
+  },
 ];
 
 // --- Scroll-reveal ---
@@ -208,32 +284,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => observer?.disconnect());
-
-// --- Animated counters ---
-const animatedStats = ref(stats.map(() => 0));
-const statsRevealed = ref(false);
-
-function animateCounters() {
-  if (statsRevealed.value) return;
-  statsRevealed.value = true;
-  stats.forEach((s, i) => {
-    if (s.display) {
-      animatedStats.value[i] = s.value;
-      return;
-    }
-    const target = s.value;
-    const duration = 1200;
-    const start = performance.now();
-    function tick(now: number) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      animatedStats.value[i] = Math.round(eased * target);
-      if (progress < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  });
-}
 
 // --- Parallax for hero decorations ---
 const mouseX = ref(0);
@@ -345,7 +395,6 @@ watch(isDark, () => {
     id="main-content"
     class="landing-page-root overflow-x-hidden text-foreground"
     :style="{ backgroundColor: landingScrollBg }"
-    aria-label="Платформа для управления гильдией в MMORPG"
     aria-labelledby="landing-hero-heading"
   >
     <!-- Hero -->
@@ -389,7 +438,6 @@ watch(isDark, () => {
 
           <p
             class="hero-slogan text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
-            aria-hidden="true"
           >
             <span class="hero-gradient-text">Твоя гильдия</span><br />
             <span class="hero-gradient-text-next">Твоя команда</span>
@@ -402,13 +450,15 @@ watch(isDark, () => {
           </p>
 
           <div class="flex flex-wrap justify-center gap-3 sm:gap-4">
-            <button
-              type="button"
-              class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
-              @click="openLandingCtaModal('start_free')"
+            <RouterLink
+              to="/register"
+              title="Регистрация на gg-hub"
+              aria-label="Начать бесплатно — перейти к регистрации"
+              class="landing-cta-btn landing-cta-btn--lead hero-btn inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-semibold no-underline transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
+              @click="void recordLandingCtaClick('start_free').catch(() => {})"
             >
               <span class="relative z-[1]">Начать бесплатно</span>
-            </button>
+            </RouterLink>
             <RouterLink
               to="/guilds"
               title="Перейти к каталогу гильдий и инструментам управления гильдией"
@@ -500,18 +550,93 @@ watch(isDark, () => {
       </div>
 
       <div class="relative z-[1]">
+    <section
+      :ref="setRef('capabilities')"
+      class="container py-12 md:py-16"
+      aria-labelledby="section-capabilities-heading"
+    >
+      <div
+        :ref="setRef('capabilities-header')"
+        data-reveal-id="capabilities-header"
+        class="mx-auto max-w-3xl text-center transition-opacity duration-700"
+        :class="show('capabilities-header') ? 'opacity-100' : 'opacity-0'"
+      >
+        <h2 id="section-capabilities-heading" class="text-2xl font-bold tracking-tight text-pretty sm:text-3xl">
+          {{ HOME_CAPABILITIES_HEADING }}
+        </h2>
+        <p class="mt-4 text-base text-muted-foreground leading-relaxed text-pretty md:text-lg">
+          Платформа для лидеров, офицеров и игроков — основные модули в одном интерфейсе.
+        </p>
+      </div>
+      <div
+        :ref="setRef('capabilities-cards')"
+        data-reveal-id="capabilities-cards"
+        class="mx-auto mt-10 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <Card
+          v-for="(item, i) in HOME_CAPABILITIES_ITEMS"
+          :key="item.title"
+          class="transition-opacity duration-500"
+          :class="show('capabilities-cards') ? 'opacity-100' : 'opacity-0'"
+          :style="{ transitionDelay: `${i * 80}ms` }"
+        >
+          <CardHeader>
+            <CardTitle class="text-base">{{ item.title }}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p class="text-sm text-muted-foreground leading-relaxed">{{ item.desc }}</p>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+
+    <section
+      :ref="setRef('seo-intro')"
+      class="container py-12 md:py-16"
+      aria-labelledby="seo-intro-heading"
+    >
+      <article
+        class="mx-auto max-w-3xl transition-opacity duration-700"
+        :class="show('seo-intro') ? 'opacity-100' : 'opacity-0'"
+      >
+        <h2 id="seo-intro-heading" class="text-2xl font-bold tracking-tight text-pretty sm:text-3xl">
+          {{ HOME_SEO_INTRO_HEADING }}
+        </h2>
+        <p
+          v-for="(paragraph, idx) in HOME_SEO_INTRO_PARAGRAPHS"
+          :key="idx"
+          class="mt-4 text-base text-muted-foreground leading-relaxed text-pretty md:text-lg"
+        >
+          {{ paragraph }}
+        </p>
+        <p class="mt-6">
+          <RouterLink
+            to="/guilds"
+            :title="HOME_SEO_INTRO_CTA_LABEL"
+            class="inline-flex font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+          >
+            {{ HOME_SEO_INTRO_CTA_LABEL }} →
+          </RouterLink>
+        </p>
+      </article>
+    </section>
+
     <!-- Games ticker -->
     <section
       :ref="setRef('games')"
       class="overflow-hidden bg-background/95 backdrop-blur-sm dark:bg-background/90"
-      aria-label="Поддерживаемые игры"
+      aria-labelledby="section-games-heading"
     >
       <div class="container py-10">
-        <div class="flex flex-wrap items-center justify-center gap-6 md:gap-12">
+        <h2 id="section-games-heading" class="mx-auto mb-8 max-w-3xl text-center text-xl font-semibold tracking-tight text-pretty sm:text-2xl">
+          Поддерживаемые MMORPG
+        </h2>
+        <div class="flex flex-wrap items-center justify-center gap-6 md:gap-12" role="list">
           <RouterLink
             v-for="(game, i) in games"
             :key="game.slug"
             :to="guildsLinkForGame(game)"
+            role="listitem"
             class="text-lg font-semibold text-foreground/75 underline-offset-4 transition-opacity hover:text-foreground hover:scale-110 hover:underline md:text-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
             :class="show('games') ? 'opacity-100' : 'opacity-0'"
             :style="{ transitionDelay: `${200 + i * 150}ms`, transitionDuration: '600ms' }"
@@ -520,10 +645,27 @@ watch(isDark, () => {
           </RouterLink>
         </div>
         <p class="mx-auto mt-8 max-w-3xl text-pretty text-center text-base text-muted-foreground leading-relaxed md:text-lg">
-          gg-hub — это управление гильдией в MMORPG без компромиссов. Собираем в одном месте инструменты
-          для управления гильдией: ростер и роли, заявки и анкеты, календарь рейдов, блог и голосования.
-          Платформа работает для сообществ Throne and Liberty и Aion 2.
+          <strong class="font-semibold text-foreground">gg-hub</strong> — бесплатная платформа для
+          <strong class="font-semibold text-foreground">ведения гильдии</strong>:
+          ростер, заявки, календарь, рейды, хранилище, ДКП и блог в одном интерфейсе.
+          Список игр расширяется в админке; выше — сообщества, которые уже ведут гильдии на платформе.
         </p>
+
+        <ul
+          class="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-3"
+          aria-label="Ключевые показатели платформы"
+        >
+          <li
+            v-for="(item, i) in platformHighlights"
+            :key="item.label"
+            class="rounded-lg border border-border/80 bg-card/80 px-4 py-5 text-center backdrop-blur-sm transition-opacity duration-600"
+            :class="show('games') ? 'opacity-100' : 'opacity-0'"
+            :style="{ transitionDelay: `${300 + i * 100}ms` }"
+          >
+            <p class="text-2xl font-bold tracking-tight text-primary md:text-3xl">{{ item.value }}</p>
+            <p class="mt-1 text-sm text-muted-foreground leading-snug">{{ item.label }}</p>
+          </li>
+        </ul>
       </div>
     </section>
 
@@ -563,10 +705,10 @@ watch(isDark, () => {
         :class="show('players-header') ? 'opacity-100' : 'opacity-0'"
       >
         <h2 id="section-players-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
-          Забудь о хаосе в поиске гильдии
+          Для игроков
         </h2>
-        <p class="mt-4 text-lg text-muted-foreground">
-          Больше не нужно листать форумы и Discord-каналы. Всё, что нужно игроку — здесь.
+        <p class="mt-4 text-lg text-muted-foreground text-pretty">
+          Каталог гильдий, заявки с анкетой, персонажи в разных играх и лента новостей — без бесконечного поиска по Discord и форумам.
         </p>
       </div>
 
@@ -630,17 +772,35 @@ watch(isDark, () => {
         :class="show('guild-header') ? 'opacity-100' : 'opacity-0'"
       >
         <h2 id="section-guilds-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
-          Управление гильдией — все инструменты лидера в одном месте
+          Для лидеров и офицеров
         </h2>
-        <p class="mt-4 text-lg text-muted-foreground">
-          Полный набор функций для управления гильдией: ростер, заявки, рейды, календарь, блог и голосования. Инструменты, которых не хватает в самой игре и в Discord — всё для лидеров и офицеров.
+        <p class="mt-4 text-lg text-muted-foreground text-pretty">
+          Лидеры и офицеры ведут состав, заявки, рейды, хранилище и ДКП — каждый в рамках выданных прав, без таблиц и хаоса в каналах.
         </p>
       </div>
+
+      <ul
+        :ref="setRef('role-scenarios')"
+        data-reveal-id="role-scenarios"
+        class="mx-auto mt-8 flex max-w-4xl flex-wrap justify-center gap-2 transition-opacity duration-700 sm:gap-3"
+        :class="show('role-scenarios') ? 'opacity-100' : 'opacity-0'"
+        aria-label="Роли в гильдии на gg-hub"
+      >
+        <li
+          v-for="(s, i) in roleScenarios"
+          :key="s.role"
+          class="rounded-full border border-border/80 bg-card/80 px-3 py-1.5 text-sm backdrop-blur-sm sm:px-4"
+          :style="{ transitionDelay: `${i * 60}ms` }"
+        >
+          <span class="font-medium text-foreground">{{ s.role }}:</span>
+          <span class="text-muted-foreground"> {{ s.text }}</span>
+        </li>
+      </ul>
 
       <div
         :ref="setRef('guild-cards')"
         data-reveal-id="guild-cards"
-        class="mx-auto mt-12 grid max-w-5xl gap-6 sm:grid-cols-2"
+        class="mx-auto mt-12 grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-3"
       >
         <Card
           v-for="(b, i) in guildBenefits"
@@ -694,19 +854,18 @@ watch(isDark, () => {
         class="mx-auto max-w-3xl text-center transition-opacity duration-700"
         :class="show('steps-header') ? 'opacity-100' : 'opacity-0'"
       >
-        <Badge variant="secondary" class="mb-4">Как это работает</Badge>
         <h2 id="section-steps-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
-          Управление гильдией в три шага
+          Как работает gg-hub
         </h2>
-        <p class="mt-4 text-lg text-muted-foreground">
-          От создания профиля до ежедневного управления гильдией — простой путь к своей команде.
+        <p class="mt-4 text-lg text-muted-foreground text-pretty">
+          От регистрации до ведения рейдов, хранилища и ДКП — четыре понятных шага.
         </p>
       </div>
 
       <div
         :ref="setRef('steps')"
         data-reveal-id="steps"
-        class="mx-auto mt-12 grid max-w-4xl gap-8 md:grid-cols-3"
+        class="mx-auto mt-12 grid max-w-5xl gap-8 sm:grid-cols-2 lg:grid-cols-4"
       >
         <div
           v-for="(step, i) in steps"
@@ -727,7 +886,14 @@ watch(isDark, () => {
             :style="{ transitionDelay: `${400 + i * 200}ms`, transitionDuration: '800ms' }"
           />
           <h3 class="mt-5 text-lg font-semibold transition-colors duration-300 group-hover:text-primary">{{ step.title }}</h3>
-          <p class="mt-2 text-sm text-muted-foreground leading-relaxed">{{ step.desc }}</p>
+          <p class="mt-2 text-sm text-muted-foreground leading-relaxed text-pretty">{{ step.desc }}</p>
+          <RouterLink
+            v-if="step.link"
+            :to="step.link.to"
+            class="mt-3 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+          >
+            {{ step.link.label }} →
+          </RouterLink>
         </div>
       </div>
     </section>
@@ -763,8 +929,11 @@ watch(isDark, () => {
         :class="show('features-header') ? 'opacity-100' : 'opacity-0'"
       >
         <h2 id="section-features-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
-          Всё для жизни гильдии
+          Инструменты для лидера и офицеров
         </h2>
+        <p class="mt-4 text-lg text-muted-foreground text-pretty">
+          Модули gg-hub, которые закрывают ежедневные задачи лидера и офицеров — подробности в разделе гильдии после входа.
+        </p>
       </div>
 
       <div
@@ -812,7 +981,30 @@ watch(isDark, () => {
       </div>
     </div>
 
-    <!-- FAQ: управление гильдией -->
+    <!-- Почему не Discord -->
+    <section
+      :ref="setRef('discord-block')"
+      class="container py-12 md:py-16"
+      aria-labelledby="section-discord-heading"
+    >
+      <article
+        class="mx-auto max-w-3xl transition-opacity duration-700"
+        :class="show('discord-block') ? 'opacity-100' : 'opacity-0'"
+      >
+        <h2 id="section-discord-heading" class="text-2xl font-bold tracking-tight text-pretty sm:text-3xl">
+          {{ HOME_DISCORD_BLOCK_HEADING }}
+        </h2>
+        <p
+          v-for="(paragraph, idx) in HOME_DISCORD_BLOCK_PARAGRAPHS"
+          :key="idx"
+          class="mt-4 text-base text-muted-foreground leading-relaxed text-pretty md:text-lg"
+        >
+          {{ paragraph }}
+        </p>
+      </article>
+    </section>
+
+    <!-- FAQ -->
     <section
       class="container py-16 md:py-24"
       aria-labelledby="section-faq-heading"
@@ -826,10 +1018,10 @@ watch(isDark, () => {
         :class="show('faq-header') ? 'opacity-100' : 'opacity-0'"
       >
         <h2 id="section-faq-heading" class="text-3xl font-bold tracking-tight sm:text-4xl">
-          Частые вопросы про управление гильдией
+          {{ HOME_FAQ_SECTION_HEADING }}
         </h2>
-        <p class="mt-4 text-lg text-muted-foreground">
-          Коротко о том, как устроено управление гильдией в gg-hub и для кого подходит платформа.
+        <p class="mt-4 text-lg text-muted-foreground text-pretty">
+          Ответы о платформе gg-hub, регистрации, играх, ДКП и отличии от Discord.
         </p>
       </div>
 
@@ -938,18 +1130,16 @@ watch(isDark, () => {
             <h2 class="landing-cta-title text-pretty px-2 text-2xl leading-tight sm:text-3xl md:text-4xl lg:text-[2.75rem]">
               Готов найти свою команду?
             </h2>
-            <p class="landing-cta-lead max-w-2xl px-2 text-base leading-relaxed text-white/95 md:text-lg">
-              Следи за запуском: бесплатная платформа для игроков и гильдий. Развивай сообщество в Throne and Liberty
-              и Aion 2.
+            <p class="landing-cta-lead max-w-2xl px-2 text-base leading-relaxed text-white/95 md:text-lg text-pretty">
+              Бесплатная платформа для MMORPG-сообществ: зарегистрируйся, создай гильдию или подай заявку в каталоге — и веди состав на gg-hub.ru.
             </p>
             <div class="mt-2 flex flex-wrap justify-center gap-3 sm:gap-4">
-              <button
-                type="button"
-                class="landing-cta-btn landing-cta-btn--lead hero-btn rounded-md px-7 py-3 text-base font-semibold transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
-                @click="openLandingCtaModal('create_account')"
+              <RouterLink
+                to="/register"
+                class="landing-cta-btn landing-cta-btn--lead hero-btn inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-semibold no-underline transition-[background-color,box-shadow,filter] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a54a]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-8"
               >
-                <span class="relative z-[1]">Создать аккаунт</span>
-              </button>
+                <span class="relative z-[1]">Создать гильдию бесплатно</span>
+              </RouterLink>
               <RouterLink
                 to="/guilds"
                 title="Каталог гильдий MMORPG и инструменты управления гильдией"
