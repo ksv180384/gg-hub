@@ -2,6 +2,8 @@
 
 Структура backend построена по принципам **Domain-Driven Design**. Каждый домен — отдельный bounded context.
 
+Полная документация: [docs/04-backend.md](../../docs/04-backend.md), [docs/09-baza-dannyh.md](../../docs/09-baza-dannyh.md).
+
 ## Расположение
 
 Папка `Domains` находится в **корне Laravel-приложения** (рядом с `app/`), namespace: `Domains\*`.
@@ -10,80 +12,59 @@
 
 | Домен | Описание | Основные сущности |
 |-------|----------|-------------------|
-| **Game** | Справочники игр (админка) | Game, Localization, Server |
-| **Character** | Персонажи пользователя | Character (user + game + localization + server) |
-| **Guild** | Гильдии | Guild, GuildMember, GuildApplication |
-| **Access** | Права и роли | Role, Permission (сайт), GuildRole (гильдия) |
-| **Post** | Посты | Post (scope: guild / game / global) |
-| **Raid** | Рейды | Raid, участники (character) |
-| **Event** | Эвенты и календарь | Event, EventParticipant, EventScreenshot, recurrence |
+| **Access** | Права и роли сайта и гильдии | `Role`, `Permission`, `PermissionGroup`, `GuildRole` |
+| **Character** | Персонажи пользователя | `Character` |
+| **Event** | Календарь и история событий (DKP) | `Event`, `EventHistory`, `EventHistoryTitle`, участники, скриншоты |
+| **Game** | Справочники игр | `Game`, `Localization`, `Server` |
+| **Guild** | Гильдии, состав, заявки | `Guild`, `GuildMember`, `GuildApplication`, форма заявки |
+| **GuildBank** | Хранилище гильдии | `GuildBankItem`, `GuildBankItemTier`, `GuildBankItemGrant` |
+| **GuildDkp** | ДКП: балансы и журнал | `GuildUserDkpBalance`, `GuildDkpLedgerEntry` |
+| **Poll** | Голосования гильдии | `Poll`, `PollOption`, `PollVote` |
+| **Post** | Посты и комментарии | `Post`, `PostComment`, `PostView` |
+| **Raid** | Рейды и состав | `Raid`, участники (character) |
+| **Tag** | Теги (личные / гильдейские / общие) | `Tag` |
+| **User** | Вспомогательная логика пользователя | Actions без собственной модели (`User` в `app/Models`) |
 
 ## Правила
 
 - **Один аккаунт (User)** может состоять в разных гильдиях (через разных персонажей).
 - **Один персонаж** — только в одной гильдии в контексте игры/локации/сервера.
-- **Роли**: у сайта — Role + Permission; у гильдии — GuildRole с привязкой прав (Permission).
-- **Посты**: видимость по scope_type — гильдия, игра или глобальный.
-- **Эвенты**: разовые (once), ежедневные (daily), еженедельные (weekly), ежемесячные (monthly).
+- **Роли**: у сайта — `Role` + `Permission`; у гильдии — `GuildRole` с привязкой прав (`Permission` scope=guild).
+- **Посты**: видимость по scope — гильдия, игра или глобальный.
+- **Эвенты календаря**: разовые, ежедневные, еженедельные, ежемесячные.
+- **ДКП**: на пользователя в гильдии; синхронизация с историей событий — `SyncEventHistoryDkpLedgerAction`.
 
 ## Структура домена (типовая)
 
 ```
 Domains/
   <DomainName>/
-    Actions/     # Сценарии применения (use cases)
-    Enums/       # Перечисления домена
-    Models/      # Eloquent-модели (сущности)
-    Events/      # Доменные события (при необходимости)
-    Exceptions/  # Доменные исключения (при необходимости)
+    Actions/     # Сценарии (__invoke)
+    Enums/
+    Models/
+    Rules/       # при необходимости
+    Events/
+    Exceptions/
 ```
 
 ## Связи между доменами
 
-- `Character` → User, Game, Localization, Server; один `GuildMember` (гильдия).
-- `Guild` → Game, Localization, Server; `GuildMember`, `GuildApplication`, `GuildRole` (Access).
-- `Post` → User; scope: guild_id/game_id или global (scope_id = null).
+- `Character` → User, Game, Localization, Server; `GuildMember`.
+- `Guild` → Game; заявки, роли, теги; `dkp_enabled`.
+- `GuildBank` + `GuildDkp` — выдача предметов списывает/возвращает DKP.
+- `Event` → `GuildDkp` при сохранении истории событий.
+- `Post` → User; scope guild/game/global.
 - `Raid` → Guild; участники — Character.
-- `Event` → Guild; участники — Character; скриншоты — EventScreenshot; recurrence — разовый/ежедневный/еженедельный/ежемесячный.
 
-Миграции — в `database/migrations`. HTTP-слой — в `app/Http`. Запросы к БД вынесены в **репозитории** (см. ниже).
+Миграции — `database/migrations`. HTTP — `app/Http`. Репозитории — `app/Contracts/Repositories`, `app/Repositories/Eloquent`.
 
----
+## Репозитории
 
-## Репозитории (запросы к БД)
+- **Интерфейсы**: `app/Contracts/Repositories/`
+- **Реализации**: `app/Repositories/Eloquent/`
 
-Вся работа с БД переиспользуется через репозитории:
+Привязка в `AppServiceProvider::register()`.
 
-- **Интерфейсы**: `app/Contracts/Repositories/` (например, `GameRepositoryInterface`).
-- **Реализации**: `app/Repositories/Eloquent/` (например, `EloquentGameRepository`).
+## Контроллеры
 
-Контроллеры и Actions получают репозитории через DI и не обращаются к моделям напрямую для выборок и создания. Привязка интерфейса к реализации — в `AppServiceProvider::register()`.
-
----
-
-## Где лежат контроллеры
-
-Контроллеры относятся к **слою ввода (HTTP)**, а не к домену, поэтому они находятся в **`app/Http/Controllers`**.
-
-Рекомендуемая структура:
-
-```
-app/Http/
-  Controllers/
-    Controller.php           # Базовый контроллер
-    Api/                     # API для фронта
-      GameController.php
-      LocalizationController.php
-      ServerController.php
-      CharacterController.php
-      GuildController.php
-      GuildApplicationController.php
-      PostController.php
-      RaidController.php
-      EventController.php
-    Admin/                   # Админка (игры, локализации, сервера, роли)
-      GameController.php
-      ...
-```
-
-Контроллеры только принимают запрос, вызывают **Actions** из доменов и возвращают ответ. Бизнес-логика остаётся в `Domains/*/Actions` и моделях.
+`app/Http/Controllers/Api/` — только маршрутизация: Request → Action → Resource.

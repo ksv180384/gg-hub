@@ -4,6 +4,7 @@ namespace App\Actions\Fortify;
 
 use App\Models\User;
 use Domains\Access\Models\Role;
+use Domains\User\Actions\ResolveRegistrationUserNameFromEmailAction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -23,7 +24,9 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        Validator::make($input, [
+        $nameInput = trim((string) ($input['name'] ?? ''));
+
+        $rules = [
             'name' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'required',
@@ -33,7 +36,15 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'password' => $this->passwordRules(),
-        ], [
+        ];
+
+        if ($nameInput !== '') {
+            $rules['name'][] = Rule::unique(User::class, 'name');
+        }
+
+        Validator::make($input, $rules, [
+            'name.unique' => 'Пользователь с таким именем уже зарегистрирован. Выберите другое имя.',
+            'name.max' => 'Имя не должно быть длиннее 255 символов.',
             'email.required' => 'Укажите email.',
             'email.email' => 'Введите корректный email-адрес.',
             'email.unique' => 'Пользователь с таким email уже зарегистрирован.',
@@ -41,12 +52,15 @@ class CreateNewUser implements CreatesNewUsers
             'password.confirmed' => 'Пароли не совпадают.',
         ])->validate();
 
-        $email = (string) ($input['email'] ?? '');
-        $name = trim((string) ($input['name'] ?? ''));
+        $email = Str::lower((string) ($input['email'] ?? ''));
+
+        $name = $nameInput !== ''
+            ? Str::limit($nameInput, 255, '')
+            : app(ResolveRegistrationUserNameFromEmailAction::class)($email);
 
         $user = User::create([
-            'name' => Str::limit($name, 255, ''),
-            'email' => Str::lower($email),
+            'name' => $name,
+            'email' => $email,
             'password' => Hash::make((string) ($input['password'] ?? '')),
         ]);
 

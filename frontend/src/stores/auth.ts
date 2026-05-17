@@ -76,7 +76,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = data.user ?? null;
       return data;
     } catch (e: unknown) {
-      error.value = getErrorMessage(e, { fallback: 'Ошибка регистрации' });
+      error.value = getErrorMessage(e, { fields: ['name', 'email'], fallback: 'Ошибка регистрации' });
       throw e;
     } finally {
       loading.value = false;

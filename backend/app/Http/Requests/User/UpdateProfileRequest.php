@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\User;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,7 +19,12 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['nullable', 'string', 'max:255'],
+            'name' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique(User::class, 'name')->ignore($this->user()?->id),
+            ],
             'timezone' => ['nullable', 'string', 'max:50', 'timezone'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
         ];
@@ -30,6 +36,7 @@ class UpdateProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'name.unique' => 'Пользователь с таким именем уже зарегистрирован. Выберите другое имя.',
             'name.max' => 'Имя не должно превышать 255 символов.',
             'timezone.timezone' => 'Укажите корректный часовой пояс.',
             'avatar.image' => 'Файл должен быть изображением.',

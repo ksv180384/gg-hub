@@ -12,10 +12,12 @@ import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import { Button, Input, Label, Card, CardContent, Separator, SiteLogo } from '@/shared/ui';
 import SocialAuthButtons from '@/shared/ui/SocialAuthButtons.vue';
 import { useAuthStore } from '@/stores/auth';
+import AuthAsidePanel from '../AuthAsidePanel.vue';
 
 const router = useRouter();
 const auth = useAuthStore();
 
+const name = ref('');
 const email = ref('');
 const password = ref('');
 const passwordConfirmation = ref('');
@@ -72,6 +74,7 @@ async function onSubmit(e: Event) {
   }
   try {
     const data = await auth.register({
+      name: name.value.trim() || undefined,
       email: email.value,
       password: password.value,
       password_confirmation: passwordConfirmation.value,
@@ -159,6 +162,17 @@ async function onResend() {
               <form class="flex flex-col gap-4" @submit="onSubmit">
                 <p v-if="auth.error" class="text-sm text-destructive">{{ auth.error }}</p>
                 <div class="space-y-2">
+                  <Label for="name">Имя</Label>
+                  <Input
+                    id="name"
+                    v-model="name"
+                    type="text"
+                    autocomplete="name"
+                    placeholder="Как вас называть в сообществе"
+                    maxlength="255"
+                  />
+                </div>
+                <div class="space-y-2">
                   <Label for="email">Email <span class="text-destructive" aria-hidden="true">*</span></Label>
                   <Input id="email" v-model="email" type="email" placeholder="you@example.com" required />
                 </div>
@@ -244,14 +258,9 @@ async function onResend() {
         </div>
       </div>
     </div>
-    <div class="relative hidden bg-muted lg:block">
-      <div class="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-primary/5" />
-      <div class="absolute inset-0 flex items-center justify-center p-12">
-        <p class="max-w-md text-center text-lg text-muted-foreground">
-          Создавайте гильдии, публикуйте новости и находите тиммейтов для рейдов и PvP.
-        </p>
-      </div>
-    </div>
+    <AuthAsidePanel
+      tagline="Создавайте гильдии, публикуйте новости и находите тиммейтов для рейдов и PvP."
+    />
 
     <DialogRoot
       :open="legalModalType !== null"

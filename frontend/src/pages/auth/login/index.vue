@@ -4,6 +4,7 @@ import { useRouter, useRoute, RouterLink } from 'vue-router';
 import { Button, Input, Label, Card, CardContent, Separator, SiteLogo } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
 import SocialAuthButtons from '@/shared/ui/SocialAuthButtons.vue';
+import AuthAsidePanel from '../AuthAsidePanel.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -137,13 +138,8 @@ async function onSubmit(e: Event) {
         </div>
       </div>
     </div>
-    <div class="relative hidden bg-muted lg:block">
-      <div class="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-primary/5" />
-      <div class="absolute inset-0 flex items-center justify-center p-12">
-        <p class="max-w-md text-center text-lg text-muted-foreground">
-          Присоединяйтесь к тысячам игроков. Находите гильдии, участвуйте в рейдах и следите за новостями мира MMORPG.
-        </p>
-      </div>
-    </div>
+    <AuthAsidePanel
+      tagline="Присоединяйтесь к другим игрокам. Находите гильдии, участвуйте в рейдах."
+    />
   </div>
 </template>
