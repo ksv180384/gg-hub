@@ -22,7 +22,6 @@ const emit = defineEmits<{
   (e: 'notificationChange', key: DiscordNotificationKey, value: boolean): void;
 }>();
 
-/** Слоты под скриншоты инструкции. Изображения добавляются по этим путям позже. */
 const failedImages = ref<Record<string, boolean>>({});
 function onImageError(src: string) {
   failedImages.value = { ...failedImages.value, [src]: true };
@@ -30,27 +29,27 @@ function onImageError(src: string) {
 
 const INSTRUCTION_STEPS: { src: string; alt: string; text: string }[] = [
   {
-    src: '/discord-instruction/step-1.png',
-    alt: 'Шаг 1: открыть настройки сервера',
-    text: 'Зайдите в настройки сервера.',
+    src: '/assets/images/discord_1.jpg',
+    alt: 'Шаг 1: открыть настройки канала',
+    text: 'Зайдите в настройки канала.',
   },
   {
-    src: '/discord-instruction/step-2.png',
+    src: '/assets/images/discord_2.jpg',
     alt: 'Шаг 2: открыть «Интеграции»',
     text: 'Выберите пункт «Интеграция», потом «Посмотреть вебхуки».',
   },
   {
-    src: '/discord-instruction/step-3.png',
+    src: '/assets/images/discord_3.jpg',
     alt: 'Шаг 3: создать новый вебхук',
     text: 'Создайте новый вебхук.',
   },
   {
-    src: '/discord-instruction/step-4.png',
+    src: '/assets/images/discord_4.jpg',
     alt: 'Шаг 4: настроить вебхук',
     text: 'Выберите аватар вебхуку, задайте название, канал в котором хотите получать оповещения.',
   },
   {
-    src: '/discord-instruction/step-5.png',
+    src: '/assets/images/discord_5.jpg',
     alt: 'Шаг 5: скопировать URL',
     text: 'Скопируйте URL вебхука и добавьте его на сайт и сохраните. Выберите оповещения, которые хотите получать с сайта.',
   },
