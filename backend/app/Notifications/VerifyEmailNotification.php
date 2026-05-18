@@ -23,14 +23,16 @@ class VerifyEmailNotification extends Notification implements ShouldQueue
     {
         $verificationUrl = $this->verificationUrl($notifiable);
 
+        $appName = Config::get('app.name', 'gg-hub');
+
         return (new MailMessage())
-            ->subject('Подтверждение email — '.Config::get('app.name'))
+            ->subject('Подтверждение email — '.$appName)
             ->greeting('Здравствуйте, '.$notifiable->name.'!')
-            ->line('Благодарим за регистрацию. Для завершения создания аккаунта подтвердите ваш email-адрес, нажав на кнопку ниже.')
+            ->line('Спасибо за регистрацию на '.$appName.'. Чтобы завершить создание аккаунта, подтвердите email — нажмите кнопку ниже.')
             ->action('Подтвердить email', $verificationUrl)
-            ->line('Ссылка действительна в течение 60 минут.')
-            ->line('Если вы не создавали аккаунт, просто проигнорируйте это письмо.')
-            ->salutation('С уважением, команда '.Config::get('app.name'));
+            ->line('Ссылка действительна 60 минут.')
+            ->line('Если вы не регистрировались на сайте, просто проигнорируйте это письмо.')
+            ->salutation('С уважением, команда '.$appName);
     }
 
     protected function verificationUrl(mixed $notifiable): string

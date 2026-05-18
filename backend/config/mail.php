@@ -122,4 +122,16 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Branding (transactional emails)
+    |--------------------------------------------------------------------------
+    */
+
+    'logo' => env('MAIL_LOGO_URL'),
+
+    'logo_path' => env('MAIL_LOGO_PATH', public_path('images/mail/gg-hub-logo.png')),
+
+    'logo_alt' => env('MAIL_LOGO_ALT', 'gg-hub'),
+
 ];

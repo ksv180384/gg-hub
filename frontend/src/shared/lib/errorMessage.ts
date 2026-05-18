@@ -15,6 +15,9 @@ export interface GetErrorMessageOptions {
 
 const DEFAULT_FALLBACK = 'Ошибка';
 
+/** Сообщения axios/сети, которые не показываем пользователю. */
+const GENERIC_HTTP_MESSAGE = /^(?:Request failed with status code \d+|Network Error|timeout of \d+ms exceeded)$/i;
+
 /**
  * Извлекает читаемое сообщение из ошибки API (catch (e: unknown)).
  * Поддерживает errors[field][0] и message.
@@ -40,6 +43,9 @@ export function getErrorMessage(
     if (first?.trim()) return first;
   }
 
-  if (err.message?.trim()) return err.message;
+  const message = err.message?.trim();
+  if (message && !GENERIC_HTTP_MESSAGE.test(message)) {
+    return message;
+  }
   return fallback;
 }

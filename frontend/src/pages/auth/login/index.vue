@@ -23,9 +23,10 @@ const socialError = computed(() => {
 
 const emailVerified = computed(() => route.query.verified === '1');
 
-const needsVerification = computed(() =>
-  !!auth.error && auth.error.includes('подтвердить email'),
-);
+const needsVerification = computed(() => {
+  const msg = auth.error?.toLowerCase() ?? '';
+  return msg.includes('подтвердить email') || msg.includes('подтвержден');
+});
 
 async function onResendVerification() {
   if (!email.value) return;

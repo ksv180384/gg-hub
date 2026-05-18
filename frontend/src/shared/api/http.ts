@@ -75,15 +75,33 @@ const httpClient = ({ baseUrl, defaultHeaders }: HttpConfig): HttpClient => {
           status,
         };
       }
-      // Ошибка с полями status и message напрямую (без err.response)
-      const errObj = err as { status?: number; message?: string; data?: unknown };
+      // Ошибка после axios-перехватчика (без err.response): сохраняем тело ответа и errors
+      const errObj = err as {
+        status?: number;
+        message?: string;
+        data?: unknown;
+        errors?: Record<string, string[]>;
+      };
       if (errObj && typeof errObj === 'object' && typeof errObj.status === 'number') {
         const status = errObj.status;
-        const data =
-          errObj.data != null && typeof errObj.data === 'object' && ('message' in errObj.data || 'errors' in errObj.data)
-            ? (errObj.data as T)
-            : ({ message: typeof errObj.message === 'string' ? errObj.message : 'Ошибка' } as T);
-        return { data, status };
+        if (
+          errObj.data != null
+          && typeof errObj.data === 'object'
+          && ('message' in errObj.data || 'errors' in errObj.data)
+        ) {
+          return { data: errObj.data as T, status };
+        }
+        const payload: Record<string, unknown> = {};
+        if (typeof errObj.message === 'string' && errObj.message) {
+          payload.message = errObj.message;
+        }
+        if (errObj.errors) {
+          payload.errors = errObj.errors;
+        }
+        if (Object.keys(payload).length > 0) {
+          return { data: payload as T, status };
+        }
+        return { data: null, status };
       }
       return { data: null, status: 500 };
     }

@@ -2,6 +2,7 @@ import type { AxiosInstance } from 'axios';
 import { getActivePinia } from 'pinia';
 import type { Router } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { getErrorMessage as getApiErrorMessage } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
 
 /**
@@ -39,10 +40,17 @@ export function attachHttpResponseInterceptor(
       }
       const data = error.response?.data;
       const err = new Error(
-        (data as { message?: string })?.message || error.message,
-      ) as Error & { status?: number; errors?: Record<string, string[]> };
+        getApiErrorMessage(data, error.message || 'Ошибка'),
+      ) as Error & {
+        status?: number;
+        errors?: Record<string, string[]>;
+        data?: unknown;
+      };
       err.status = error.response?.status;
-      err.errors = (data as { errors?: Record<string, string[]> })?.errors;
+      err.data = data;
+      if (data != null && typeof data === 'object' && 'errors' in data) {
+        err.errors = (data as { errors?: Record<string, string[]> }).errors;
+      }
       return Promise.reject(err);
     },
   );
