@@ -258,7 +258,7 @@ function onDeleteClick(tag: Tag) {
         :reset-search-term-on-blur="true"
       >
         <ComboboxAnchor
-          class="flex h-9 w-full min-w-0 cursor-text items-center gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm ring-offset-background transition-colors focus-within:ring-1 focus-within:ring-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+          class="flex h-9 w-full min-w-0 cursor-text items-center gap-1 rounded-md border border-border bg-muted/25 px-3 py-2 text-sm text-foreground shadow-none transition-colors duration-150 hover:border-primary/25 hover:bg-background focus-within:border-primary/45 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/15 data-[disabled]:pointer-events-none data-[disabled]:bg-muted/40 data-[disabled]:opacity-70"
           @pointerdown="onTagAnchorPointerDown"
         >
           <ComboboxInput
@@ -270,7 +270,7 @@ function onDeleteClick(tag: Tag) {
             maxlength="20"
           />
           <ComboboxTrigger
-            class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none"
+            class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent/70 hover:text-foreground disabled:pointer-events-none"
             aria-label="Открыть список тегов"
             @mousedown="onTagChevronMouseDown"
           >
@@ -285,7 +285,7 @@ function onDeleteClick(tag: Tag) {
             side="bottom"
             align="start"
             :side-offset="4"
-            class="z-50 flex max-h-[min(24rem,var(--radix-combobox-content-available-height))] w-[var(--radix-combobox-anchor-width)] flex-col overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
+            class="z-50 flex max-h-[min(24rem,var(--radix-combobox-content-available-height))] w-[var(--radix-combobox-anchor-width)] flex-col overflow-hidden rounded-lg border border-border/80 bg-popover p-0 text-popover-foreground shadow-lg shadow-black/5 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
             @open-auto-focus="(e: Event) => e.preventDefault()"
           >
             <ComboboxViewport
@@ -298,7 +298,7 @@ function onDeleteClick(tag: Tag) {
                 v-if="showTagCreateOption"
                 :value="tagCreateOptionValue"
                 :text-value="tagSearchTrimmed"
-                class="relative cursor-default select-none rounded-sm px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                class="relative cursor-default select-none rounded-md px-2.5 py-2 text-sm outline-none transition-colors data-[highlighted]:bg-accent/70 data-[highlighted]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
               >
                 <span class="text-muted-foreground">Создать</span>
                 «{{ tagSearchTrimmed }}»
@@ -306,12 +306,12 @@ function onDeleteClick(tag: Tag) {
               <div
                 v-for="tag in tagsNotSelectedFiltered"
                 :key="tag.id"
-                class="flex w-full min-w-0 items-stretch rounded-sm transition-colors hover:bg-accent hover:text-accent-foreground has-[[data-highlighted]]:bg-accent has-[[data-highlighted]]:text-accent-foreground"
+                class="flex w-full min-w-0 items-stretch rounded-md transition-colors hover:bg-accent/70 hover:text-foreground has-[[data-highlighted]]:bg-accent/70 has-[[data-highlighted]]:text-foreground"
               >
                 <ComboboxItem
                   :value="String(tag.id)"
                   :text-value="tag.name"
-                  class="relative min-w-0 flex-1 cursor-default select-none rounded-sm py-1.5 pl-2 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-transparent data-[highlighted]:text-inherit"
+                  class="relative min-w-0 flex-1 cursor-default select-none rounded-md py-2 pl-2.5 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-transparent data-[highlighted]:text-inherit"
                 >
                   <span class="block truncate">{{ tag.name }}</span>
                 </ComboboxItem>
@@ -321,7 +321,7 @@ function onDeleteClick(tag: Tag) {
                 >
                   <button
                     type="button"
-                    class="inline-flex shrink-0 rounded p-1 text-destructive outline-none hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
+                    class="inline-flex shrink-0 rounded-md p-1 text-destructive outline-none hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-primary/15"
                     title="Удалить тег"
                     aria-label="Удалить тег"
                     @click.stop.prevent="onDeleteClick(tag)"
@@ -347,7 +347,7 @@ function onDeleteClick(tag: Tag) {
               <template v-if="!addingNewTag">
                 <button
                   type="button"
-                  class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground"
+                  class="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted-foreground outline-none transition-colors hover:bg-accent/70 hover:text-foreground"
                   @mousedown.prevent
                   @click="startAddingNewTag"
                 >

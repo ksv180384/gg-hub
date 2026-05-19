@@ -4,12 +4,13 @@ import {
   SelectItemIndicator,
   SelectItemText,
 } from 'radix-vue';
+import type { ClassValue } from 'clsx';
 import { cn } from '@/shared/lib/utils';
 
 interface Props {
   value: string;
   disabled?: boolean;
-  class?: string;
+  class?: ClassValue;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -22,7 +23,7 @@ const props = withDefaults(defineProps<Props>(), {
     :value="props.value"
     :disabled="props.disabled"
     :class="cn(
-      'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      'relative flex w-full cursor-default select-none items-center rounded-md py-2 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent/70 focus:text-foreground data-[highlighted]:bg-accent/70 data-[highlighted]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       props.class
     )"
   >

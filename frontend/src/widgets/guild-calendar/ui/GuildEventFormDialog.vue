@@ -73,7 +73,7 @@ function onOpenUpdate(v: boolean) {
               <select
                 id="event-character"
                 v-model.number="form.character_id"
-                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                class="flex h-9 w-full rounded-lg border border-border/80 bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-all duration-150 hover:border-primary/25 focus-visible:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15 disabled:cursor-not-allowed disabled:bg-muted/40 disabled:opacity-70"
                 :disabled="props.loadingMyCharacters"
               >
                 <option :value="0">
@@ -106,7 +106,7 @@ function onOpenUpdate(v: boolean) {
                 id="event-desc"
                 v-model="form.description"
                 rows="3"
-                class="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                class="flex min-h-20 w-full rounded-lg border border-border/80 bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-all duration-150 placeholder:text-muted-foreground hover:border-primary/25 focus-visible:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15 disabled:cursor-not-allowed disabled:bg-muted/40 disabled:opacity-70"
                 placeholder="Описание (необязательно)"
               />
             </div>
@@ -125,7 +125,7 @@ function onOpenUpdate(v: boolean) {
               <select
                 id="event-recurrence"
                 v-model="form.recurrence"
-                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                class="flex h-9 w-full rounded-lg border border-border/80 bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-all duration-150 hover:border-primary/25 focus-visible:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15 disabled:cursor-not-allowed disabled:bg-muted/40 disabled:opacity-70"
               >
                 <option value="once">Один раз</option>
                 <option value="daily">Ежедневно</option>

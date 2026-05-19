@@ -5,7 +5,7 @@ import { Button, Input, Label, Select, Spinner, type SelectOption } from '@/shar
 import { BackIconButton } from '@/shared/ui';
 import { ResponsiveFiltersToolbar } from '@/widgets/responsive-filters-toolbar';
 import { formatBankDateTime } from '@/features/guild-bank';
-import { formatLedgerDescription, useGuildDkpLedger } from '@/features/guild-dkp';
+import { formatLedgerDescription, formatLedgerSourceLabel, useGuildDkpLedger } from '@/features/guild-dkp';
 
 const router = useRouter();
 const model = reactive(useGuildDkpLedger());
@@ -29,26 +29,37 @@ function goBackToBank() {
 </script>
 
 <template>
-  <div class="container py-6 md:py-8 overflow-x-hidden">
-    <div class="min-w-0 w-full max-w-3xl space-y-4">
-      <div class="flex flex-wrap items-center gap-2">
-        <BackIconButton
-          title="К хранилищу гильдии"
-          aria-label="К хранилищу гильдии"
-          @click="goBackToBank"
-        />
-        <h1 class="text-xl font-semibold">История ДКП</h1>
+  <div class="container overflow-x-hidden py-8 md:py-12">
+    <div class="min-w-0 w-full max-w-[816px] space-y-5">
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <BackIconButton
+            title="К хранилищу гильдии"
+            aria-label="К хранилищу гильдии"
+            @click="goBackToBank"
+          />
+          <h1 class="text-2xl font-bold tracking-tight">История ДКП</h1>
+        </div>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Все начисления, списания и ручные корректировки очков гильдии
+        </p>
       </div>
 
       <p v-if="model.loading && !model.hasLoadedOnce" class="text-sm text-muted-foreground">Загрузка…</p>
-      <p v-else-if="model.error" class="text-sm text-destructive">{{ model.error }}</p>
+      <div
+        v-else-if="model.error"
+        class="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+      >
+        {{ model.error }}
+      </div>
 
       <template v-else-if="model.dkpEnabled">
         <ResponsiveFiltersToolbar
           v-model:name="model.userNameFilter"
-          class="mb-2"
+          card-class="rounded-lg border-border/80 bg-background shadow-sm"
+          card-content-class="p-4"
           name-label="Ник пользователя"
-          name-placeholder="Поиск по нику..."
+          name-placeholder="Поиск по нику"
           desktop-extra-filters-trigger
           desktop-row-class="flex-nowrap items-end"
           :extra-filters-active="model.ledgerExtraFiltersActive"
@@ -87,7 +98,7 @@ function goBackToBank() {
                 v-model="model.eventTitleFilter"
                 :options="eventTitleSelectOptions"
                 placeholder="Все события"
-                trigger-class="min-h-8 w-full"
+                trigger-class="h-8 w-full"
               />
             </div>
             <div class="grid gap-1.5">
@@ -97,7 +108,7 @@ function goBackToBank() {
                 v-model="model.sourceFilter"
                 :options="sourceSelectOptions"
                 placeholder="Все источники"
-                trigger-class="min-h-8 w-full"
+                trigger-class="h-8 w-full"
               />
             </div>
           </template>
@@ -129,7 +140,7 @@ function goBackToBank() {
                 v-model="model.eventTitleFilter"
                 :options="eventTitleSelectOptions"
                 placeholder="Все события"
-                trigger-class="min-h-8 w-full"
+                trigger-class="h-8 w-full"
               />
             </div>
             <div class="grid gap-1.5">
@@ -139,7 +150,7 @@ function goBackToBank() {
                 v-model="model.sourceFilter"
                 :options="sourceSelectOptions"
                 placeholder="Все источники"
-                trigger-class="min-h-8 w-full"
+                trigger-class="h-8 w-full"
               />
             </div>
           </template>
@@ -158,20 +169,27 @@ function goBackToBank() {
 
           <p
             v-if="!model.filtersLoading && !model.entries.length"
-            class="text-sm text-muted-foreground"
+            class="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground"
           >
             {{ model.hasActiveFilters ? 'Ничего не найдено по заданным фильтрам.' : 'Пока нет движений ДКП.' }}
           </p>
 
-          <ul v-else-if="model.entries.length" class="space-y-2">
+          <ul v-else-if="model.entries.length" class="overflow-hidden rounded-lg border border-border bg-background shadow-sm">
             <li
               v-for="entry in model.entries"
               :key="entry.id"
-              class="rounded-xl border border-border bg-card px-3 py-3"
+              class="border-b border-border px-4 py-3 last:border-b-0"
             >
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm font-medium">{{ formatLedgerDescription(entry) }}</div>
+                  <div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span class="min-w-0 truncate text-sm font-medium text-foreground">
+                      {{ formatLedgerDescription(entry) }}
+                    </span>
+                    <span class="text-xs text-muted-foreground">
+                      {{ formatLedgerSourceLabel(entry.source) }}
+                    </span>
+                  </div>
                   <div class="mt-1 text-xs text-muted-foreground">
                     {{ formatBankDateTime(entry.occurred_at) }}
                     <span v-if="entry.user?.name"> · {{ entry.user.name }}</span>
@@ -179,8 +197,8 @@ function goBackToBank() {
                   </div>
                 </div>
                 <div
-                  class="shrink-0 text-sm font-semibold"
-                  :class="entry.amount >= 0 ? 'text-emerald-600' : 'text-destructive'"
+                  class="inline-flex h-7 shrink-0 items-center justify-center rounded-md px-2.5 text-sm font-semibold tabular-nums"
+                  :class="entry.amount >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-destructive/10 text-destructive'"
                 >
                   {{ entry.amount >= 0 ? '+' : '' }}{{ entry.amount }}
                 </div>
@@ -198,7 +216,7 @@ function goBackToBank() {
             <Button
               v-if="model.canLoadMoreLedger"
               variant="outline"
-              size="sm"
+              class="h-9"
               :disabled="model.ledgerLoadingMore"
               @click="model.loadMoreLedger()"
             >

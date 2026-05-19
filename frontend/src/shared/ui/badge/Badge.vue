@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { cva, type VariantProps } from 'class-variance-authority';
+import type { ClassValue } from 'clsx';
 import { cn } from '@/shared/lib/utils';
 
 const badgeVariants = cva(
@@ -23,7 +24,7 @@ type BadgeVariants = VariantProps<typeof badgeVariants>;
 
 interface Props {
   variant?: BadgeVariants['variant'];
-  class?: string;
+  class?: ClassValue;
 }
 
 const props = withDefaults(defineProps<Props>(), {

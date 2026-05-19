@@ -349,7 +349,7 @@ watch(
                   search-placeholder="Поиск локализации..."
                   empty-text="Нет локализаций"
                   :disabled="loadingFilterOptions || !filterLocalizations.length"
-                  trigger-class="min-h-8 w-full min-w-0"
+                  trigger-class="h-8 w-full min-w-0"
                   @update:model-value="onLocalizationsChange"
                 />
               </div>
@@ -362,7 +362,7 @@ watch(
                   search-placeholder="Поиск сервера..."
                   empty-text="Нет серверов"
                   :disabled="!filterServers.length"
-                  trigger-class="min-h-8 w-full min-w-0"
+                  trigger-class="h-8 w-full min-w-0"
                   @update:model-value="onServersChange"
                 />
               </div>
@@ -377,7 +377,7 @@ watch(
                   search-placeholder="Поиск классов..."
                   empty-text="Нет классов"
                   :disabled="loadingFilterOptions || !filterGameClasses.length"
-                  trigger-class="min-h-8 w-full min-w-0"
+                  trigger-class="h-8 w-full min-w-0"
                   display-mode="badges"
                   @update:model-value="onGameClassesChange"
                 />
@@ -391,7 +391,7 @@ watch(
                   search-placeholder="Поиск тега..."
                   empty-text="Нет общих тегов"
                   :disabled="!commonTags.length"
-                  trigger-class="min-h-8 w-full min-w-0"
+                  trigger-class="h-8 w-full min-w-0"
                   display-mode="badges"
                   @update:model-value="onCommonTagsChange"
                 />
@@ -407,7 +407,7 @@ watch(
                   search-placeholder="Поиск локализации..."
                   empty-text="Нет локализаций"
                   :disabled="loadingFilterOptions || !filterLocalizations.length"
-                  trigger-class="min-h-8 w-full min-w-0"
+                  trigger-class="h-8 w-full min-w-0"
                   @update:model-value="onLocalizationsChange"
                 />
               </div>
@@ -420,7 +420,7 @@ watch(
                   search-placeholder="Поиск сервера..."
                   empty-text="Нет серверов"
                   :disabled="!filterServers.length"
-                  trigger-class="min-h-8 w-full min-w-0"
+                  trigger-class="h-8 w-full min-w-0"
                   @update:model-value="onServersChange"
                 />
               </div>
@@ -437,7 +437,7 @@ watch(
                   search-placeholder="Поиск классов..."
                   empty-text="Нет классов"
                   :disabled="loadingFilterOptions || !filterGameClasses.length"
-                  trigger-class="min-h-8 w-full min-w-0"
+                  trigger-class="h-8 w-full min-w-0"
                   display-mode="badges"
                   @update:model-value="onGameClassesChange"
                 />
@@ -451,7 +451,7 @@ watch(
                   search-placeholder="Поиск тега..."
                   empty-text="Нет общих тегов"
                   :disabled="!commonTags.length"
-                  trigger-class="min-h-8 w-full min-w-0"
+                  trigger-class="h-8 w-full min-w-0"
                   display-mode="badges"
                   @update:model-value="onCommonTagsChange"
                 />

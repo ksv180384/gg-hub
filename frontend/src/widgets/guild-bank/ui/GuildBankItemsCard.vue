@@ -36,48 +36,64 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <Card>
-    <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0 p-2">
+  <Card class="rounded-lg border-border bg-background shadow-sm">
+    <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0 p-3 pb-2">
       <CardTitle class="text-base">Предметы</CardTitle>
       <div v-if="canAddItems" class="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" @click="emit('openTiers')">Тиры</Button>
-        <Button size="sm" @click="emit('create')">Добавить</Button>
+        <Button class="h-9" variant="outline" @click="emit('openTiers')">Тиры</Button>
+        <Button class="h-9" @click="emit('create')">Добавить</Button>
       </div>
     </CardHeader>
-    <CardContent class="space-y-2 px-2 pb-2 pt-0">
+    <CardContent class="space-y-3 px-3 pb-3 pt-0">
       <p v-if="!items.length" class="text-sm text-muted-foreground">Пока нет предметов.</p>
-      <div v-else class="space-y-2">
-        <Input
-          v-model="itemsSearch"
-          type="text"
-          placeholder="Поиск по названию..."
-          class="h-9"
-        />
+      <div v-else class="space-y-3">
+        <label class="relative block">
+          <svg
+            class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <Input
+            v-model="itemsSearch"
+            type="text"
+            placeholder="Поиск по названию"
+            class="h-9 pl-9"
+          />
+        </label>
 
         <p v-if="filteredItems.length === 0" class="text-sm text-muted-foreground">
           Ничего не найдено.
         </p>
 
-        <ul v-else class="space-y-2">
+        <ul v-else class="overflow-hidden rounded-lg border border-border bg-background">
           <li
             v-for="item in filteredItems"
             :key="item.id"
             :class="[
-              'overflow-hidden rounded-xl border bg-card transition-colors cursor-pointer',
-              item.tier?.color && 'border-l-4',
+              'cursor-pointer overflow-hidden border-b border-b-border bg-background transition-colors last:border-b-0',
+              item.tier?.color ? 'border-l-4' : 'border-l-0',
               item.id === selectedItemId
-                ? 'border-primary/70 shadow-sm'
-                : 'border-border hover:border-border/80 hover:bg-accent/20',
+                ? 'bg-primary/5 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.45)]'
+                : 'hover:bg-muted/20',
             ]"
             :style="item.tier?.color ? { borderLeftColor: item.tier.color } : undefined"
             @click="emit('select', item.id)"
           >
-            <div class="flex items-start justify-between gap-2 px-3 py-3">
+            <div class="flex items-start justify-between gap-2 px-4 py-3">
               <div class="min-w-0 flex-1">
                 <div class="truncate text-sm font-semibold leading-tight">{{ item.name }}</div>
                 <div v-if="item.tier" class="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <span
-                    class="inline-flex rounded-full px-1.5 py-0 text-[10px] font-medium leading-4"
+                    class="inline-flex min-w-5 justify-center rounded-full px-1.5 py-0 text-[10px] font-medium leading-5"
                     :style="item.tier.color ? { backgroundColor: item.tier.color, color: '#fff' } : undefined"
                     :class="!item.tier.color && 'bg-white text-foreground border border-border'"
                   >
@@ -95,7 +111,7 @@ const emit = defineEmits<{
                   type="button"
                   variant="ghost"
                   size="icon"
-                  class="h-8 w-8 shrink-0 cursor-pointer inline-flex items-center justify-center"
+                  class="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground"
                   title="Добавить предметы"
                   aria-label="Добавить предметы"
                   @click="emit('restock', item)"
@@ -125,7 +141,7 @@ const emit = defineEmits<{
                       type="button"
                       variant="ghost"
                       size="icon"
-                      class="h-8 w-8 cursor-pointer inline-flex items-center justify-center"
+                      class="inline-flex h-8 w-8 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground"
                       aria-label="Действия с предметом"
                       title="Действия"
                     >
@@ -165,7 +181,7 @@ const emit = defineEmits<{
               </div>
             </div>
 
-            <div class="border-t border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            <div class="border-t border-border/80 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
               <span>Осталось: {{ item.quantity ?? '∞' }}</span>
               <span> · </span>
               <span>Выдано: {{ item.grants_count ?? 0 }}</span>

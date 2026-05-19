@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { DropdownMenuSubTrigger as Root } from 'radix-vue';
+import type { ClassValue } from 'clsx';
 import { cn } from '@/shared/lib/utils';
 
 interface Props {
-  class?: string;
+  class?: ClassValue;
   disabled?: boolean;
 }
 
@@ -14,7 +15,7 @@ const props = defineProps<Props>();
   <Root
     :disabled="props.disabled"
     :class="cn(
-      'flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent data-[state=open]:bg-accent',
+      'flex cursor-default select-none items-center rounded-md px-2.5 py-2 text-sm outline-none transition-colors focus:bg-accent/70 data-[state=open]:bg-accent/70',
       props.class
     )"
   >

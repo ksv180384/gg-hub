@@ -27,6 +27,8 @@ const leaderName = computed(() => props.guild.leader?.name ?? '—');
 const serverName = computed(() => props.guild.server?.name ?? '—');
 const localizationName = computed(() => props.guild.localization?.name ?? '—');
 const gameName = computed(() => props.guild.game?.name ?? '—');
+const guildInitial = computed(() => props.guild.name.trim().charAt(0).toUpperCase() || 'G');
+const visibleTags = computed(() => (props.guild.tags ?? []).slice(0, 3));
 
 function goToApplication() {
   router.push({ name: 'guild-application-form', params: { id: String(props.guild.id) } });
@@ -40,68 +42,74 @@ function goToDetails() {
 
 <template>
   <article
-    class="guild-card flex w-80 flex-shrink-0 flex-col overflow-hidden rounded-[2rem] bg-background p-2 font-sans shadow-[0_0_0_4px_rgba(0,0,0,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:shadow-[0_0_0_4px_rgba(255,255,255,0.12)]"
+    class="guild-card flex min-h-[12.5rem] w-full flex-col rounded-lg border border-border bg-background p-4 font-sans shadow-sm transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     tabindex="0"
   >
-    <!-- Изображение гильдии -->
-    <div class="guild-card__img-wrap relative aspect-square w-full overflow-hidden rounded-[1.5rem]">
-      <Badge
-        v-if="listMode && guild.is_recruiting"
-        variant="outline"
-        class="absolute right-2 top-2 z-10 border-white/50 bg-black/40 text-white backdrop-blur-sm"
-      >
-        Набор
-      </Badge>
-      <img
-        v-if="logoUrl"
-        :src="logoUrl"
-        :alt="guild.name"
-        class="guild-card__img block h-full w-full object-cover object-[50%_10%]"
-      />
+    <div class="flex items-start gap-4">
+      <div class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/40">
+        <img
+          v-if="logoUrl"
+          :src="logoUrl"
+          :alt="guild.name"
+          class="block h-full w-full object-cover"
+        />
+        <div
+          v-else
+          class="flex h-full w-full items-center justify-center bg-primary/10 text-primary"
+        >
+          <span class="text-2xl font-semibold">{{ guildInitial }}</span>
+        </div>
+      </div>
       <div
-        v-else
-        class="guild-card__img guild-card__img--placeholder flex h-full w-full items-center justify-center bg-muted text-muted-foreground"
+        class="min-w-0 flex-1 pt-0.5"
       >
-        <span class="text-4xl font-semibold">{{ guild.name.charAt(0) }}</span>
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 class="min-w-0 truncate text-base font-semibold leading-6 text-foreground">
+            {{ guild.name }}
+          </h2>
+          <Badge
+            v-if="listMode && guild.is_recruiting"
+            variant="outline"
+            class="h-6 border-primary/25 bg-primary/10 px-2 text-xs font-medium text-primary"
+          >
+            Набор
+          </Badge>
+        </div>
+        <p
+          v-if="showGameName && guild.game"
+          class="mt-0.5 truncate text-xs font-medium text-muted-foreground"
+        >
+          {{ gameName }}
+        </p>
+        <div class="mt-3 space-y-1 text-sm text-muted-foreground">
+          <p class="m-0 leading-5">
+            <span>Лидер гильдии: </span>
+            <span class="font-medium text-foreground">{{ leaderName }}</span>
+          </p>
+          <p class="m-0 leading-5">
+            <span>Сервер: </span>
+            <span class="font-medium text-foreground">{{ serverName }}</span>
+          </p>
+          <p class="m-0 leading-5">
+            <span>Локализация: </span>
+            <span class="font-medium text-foreground">{{ localizationName }}</span>
+          </p>
+        </div>
       </div>
     </div>
 
-    <!-- Секция с информацией -->
-    <section class="guild-card__section flex flex-1 flex-col rounded-b-[1.5rem] px-3 pb-3 pt-4">
-      <h2 class="guild-card__section-title mb-1.5 mt-0 font-semibold text-foreground">
-        {{ guild.name }}
-      </h2>
-      <p
-        v-if="showGameName && guild.game"
-        class="mb-1 text-xs font-medium text-muted-foreground"
-      >
-        {{ gameName }}
-      </p>
-      <div class="guild-card__info space-y-0.5 text-sm text-muted-foreground">
-        <p class="m-0 leading-tight">
-          <span class="font-medium text-foreground/90">Лидер гильдии:</span>
-          {{ leaderName }}
-        </p>
-        <p class="m-0 leading-tight">
-          <span class="font-medium text-foreground/90">Сервер:</span>
-          {{ serverName }}
-        </p>
-        <p class="m-0 leading-tight">
-          <span class="font-medium text-foreground/90">Локализатор:</span>
-          {{ localizationName }}
-        </p>
-      </div>
-      <div v-if="guild.tags?.length" class="mt-2 flex flex-wrap items-center gap-1">
+    <section class="mt-3 flex flex-1 flex-col">
+      <div v-if="visibleTags.length" class="flex flex-wrap items-center gap-1">
         <Badge
-          v-for="tag in guild.tags"
+          v-for="tag in visibleTags"
           :key="tag.id"
           variant="outline"
-          class="text-xs font-normal"
+          class="h-6 px-2 text-xs font-normal"
         >
           {{ tag.name }}
         </Badge>
       </div>
-      <div class="mt-2 flex flex-1 flex-wrap items-end justify-between gap-2">
+      <div class="mt-4 flex flex-1 flex-wrap items-end justify-between gap-2">
         <span
           v-if="guild.members_count != null"
           class="flex items-center gap-1.5 text-xs text-muted-foreground"
@@ -120,7 +128,7 @@ function goToDetails() {
             <Button
               v-if="guild.is_recruiting"
               size="sm"
-              class="shrink-0 rounded-xl rounded-br-2xl rounded-tr-2xl px-4"
+              class="h-8 shrink-0 px-4"
               @click="goToApplication"
             >
               Подать заявку
@@ -129,7 +137,7 @@ function goToDetails() {
               <Button
                 size="icon"
                 variant="outline"
-                class="h-8 w-8 shrink-0 rounded-xl"
+                class="h-8 w-8 shrink-0"
                 aria-label="Подробнее"
                 @click="goToDetails"
               >
@@ -144,7 +152,7 @@ function goToDetails() {
             <Button
               v-if="guild.is_recruiting"
               size="sm"
-              class="shrink-0 rounded-xl rounded-br-2xl rounded-tr-2xl px-4"
+              class="h-8 shrink-0 px-4"
               @click="goToApplication"
             >
               Вступить
@@ -154,7 +162,7 @@ function goToDetails() {
               size="sm"
               variant="secondary"
               disabled
-              class="shrink-0 rounded-xl rounded-br-2xl rounded-tr-2xl px-4"
+              class="h-8 shrink-0 px-4"
             >
               Набор закрыт
             </Button>
@@ -164,9 +172,3 @@ function goToDetails() {
     </section>
   </article>
 </template>
-
-<style scoped>
-.guild-card {
-  min-height: 28rem;
-}
-</style>

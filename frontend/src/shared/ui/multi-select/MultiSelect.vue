@@ -154,13 +154,13 @@ function clearAll() {
         type="button"
         :disabled="disabled"
         :class="cn(
-          'flex min-w-[120px] justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm font-normal text-foreground shadow-sm transition-colors',
+          'flex min-w-[120px] justify-between gap-2 rounded-md border border-border bg-muted/25 px-3 text-sm font-normal text-foreground shadow-none transition-colors duration-150',
           badgesTriggerMultiline
             ? 'min-h-8 h-auto items-start py-1.5'
             : 'h-8 items-center py-1.5',
-          'hover:bg-accent hover:text-accent-foreground',
-          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-          'disabled:pointer-events-none disabled:opacity-50',
+          'hover:border-primary/25 hover:bg-background',
+          'focus-visible:outline-none focus-visible:border-primary/45 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/15',
+          'disabled:pointer-events-none disabled:bg-muted/40 disabled:opacity-70',
           'data-[placeholder]:text-muted-foreground',
           triggerClass
         )"
@@ -224,7 +224,7 @@ function clearAll() {
           </template>
         </span>
         <svg
-          :class="cn('h-4 w-4 shrink-0 opacity-50', badgesTriggerMultiline && 'mt-0.5 self-center')"
+          :class="cn('h-4 w-4 shrink-0 text-muted-foreground', badgesTriggerMultiline && 'mt-0.5 self-center')"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -240,23 +240,23 @@ function clearAll() {
         :side-offset="4"
         class="p-0"
         :class="cn(
-          'z-50 max-h-[280px] min-w-[200px] overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-md',
+          'z-50 max-h-[280px] min-w-[200px] overflow-hidden rounded-lg border border-border/80 bg-popover p-0 text-popover-foreground shadow-lg shadow-black/5',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
         )"
       >
-        <div class="border-b p-2">
+        <div class="border-b border-border/80 p-2">
           <input
             ref="searchInputRef"
             v-model="searchQuery"
             type="text"
             :placeholder="searchPlaceholder"
-            class="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            class="flex h-8 w-full rounded-lg border border-border/80 bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-all placeholder:text-muted-foreground hover:border-primary/25 focus-visible:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15"
             @keydown.stop
           >
         </div>
-        <div v-if="!hideActions" class="flex gap-1 border-b px-2 py-1.5 text-xs">
+        <div v-if="!hideActions" class="flex gap-1 border-b border-border/80 px-2 py-1.5 text-xs">
           <button
             type="button"
             class="text-primary hover:underline"
@@ -283,7 +283,7 @@ function clearAll() {
             v-for="opt in filteredOptions"
             :key="String(opt.value)"
             :class="cn(
-              'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent',
+              'flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-accent/70',
               (opt.disabled || (selectionAtMax && !selectedSet.has(opt.value))) &&
                 'cursor-not-allowed opacity-50',
             )"

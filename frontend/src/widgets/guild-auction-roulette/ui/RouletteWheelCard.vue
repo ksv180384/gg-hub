@@ -200,6 +200,7 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
               :display-key="model.winnerDisplayKey"
               :winner-name="model.wheelSpinResult"
               :wheel-center-top-px="WINNER_OVERLAY_CENTER_TOP_PX"
+              @dismiss="model.dismissWheelWinnerBanner"
             />
           </div>
         </div>

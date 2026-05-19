@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import type { ClassValue } from 'clsx';
 import { cn } from '@/shared/lib/utils';
 
 interface Props {
   for?: string;
-  class?: string;
+  class?: ClassValue;
 }
 
 const props = defineProps<Props>();

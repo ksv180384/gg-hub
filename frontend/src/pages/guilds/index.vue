@@ -502,10 +502,14 @@ watch(filterGameId, async () => {
 
 <template>
   <div class="container py-8 md:py-12">
-    <div class="mx-auto max-w-5xl">
+    <div class="mx-auto max-w-[1040px]">
       <div class="mb-2 flex flex-wrap items-center justify-between gap-4">
         <h1 class="text-3xl font-bold tracking-tight">Гильдии</h1>
-        <Button v-if="authStore.isAuthenticated" @click="router.push({ name: 'guilds-create' })">
+        <Button
+          v-if="authStore.isAuthenticated"
+          class="h-9"
+          @click="router.push({ name: 'guilds-create' })"
+        >
           Создать гильдию
         </Button>
       </div>
@@ -520,9 +524,13 @@ watch(filterGameId, async () => {
 
       <ResponsiveFiltersToolbar
         v-model:name="filterName"
-        class="mb-6"
+        class="mb-3"
+        card-class="rounded-lg border-border/80 bg-background shadow-sm"
+        card-content-class="p-4"
+        desktop-row-class="items-end"
+        desktop-name-wrap-class="min-w-[9rem] flex-[1.2]"
         name-label="Название"
-        name-placeholder="Поиск по названию..."
+        name-placeholder="Поиск по названию"
         :extra-filters-active="guildsExtraFiltersActive"
         :extra-filters-title="guildsExtraFiltersUiTitle"
         :popover-trigger-title="guildsExtraFiltersUiTitle"
@@ -543,7 +551,7 @@ watch(filterGameId, async () => {
                 :options="gameOptions"
                 placeholder="Игра"
                 :disabled="loadingFilterOptions || !games.length"
-                trigger-class="min-h-8 w-full"
+                trigger-class="h-8 w-full"
               />
             </div>
           </template>
@@ -556,7 +564,7 @@ watch(filterGameId, async () => {
               search-placeholder="Поиск локализации..."
               empty-text="Нет локализаций"
               :disabled="loadingFilterOptions || !filterLocalizations.length"
-              trigger-class="min-h-8 w-full min-w-0"
+              trigger-class="h-8 w-full min-w-0"
               @update:model-value="onLocalizationsChange"
             />
           </div>
@@ -573,7 +581,7 @@ watch(filterGameId, async () => {
                   : 'Нет серверов'
               "
               :disabled="loadingFilterOptions || !filterLocalizations.length"
-              trigger-class="min-h-8 w-full min-w-0"
+              trigger-class="h-8 w-full min-w-0"
               @update:model-value="onServersChange"
             />
           </div>
@@ -584,7 +592,7 @@ watch(filterGameId, async () => {
               v-model="filterRecruiting"
               :options="recruitingOptions"
               placeholder="Любой"
-              trigger-class="min-h-8 w-full"
+              trigger-class="h-8 w-full"
             />
           </div>
           <div class="grid gap-1.5">
@@ -596,7 +604,7 @@ watch(filterGameId, async () => {
               search-placeholder="Поиск тега..."
               empty-text="Нет тегов"
               :disabled="!tagMultiOptions.length"
-              trigger-class="min-h-8 w-full min-w-0"
+              trigger-class="h-8 w-full min-w-0"
               display-mode="badges"
               @update:model-value="onTagsChange"
             />
@@ -612,7 +620,7 @@ watch(filterGameId, async () => {
                 :options="gameOptions"
                 placeholder="Игра"
                 :disabled="loadingFilterOptions || !games.length"
-                trigger-class="min-h-8 w-full"
+                trigger-class="h-8 w-full"
               />
             </div>
           </template>
@@ -625,7 +633,7 @@ watch(filterGameId, async () => {
               search-placeholder="Поиск локализации..."
               empty-text="Нет локализаций"
               :disabled="loadingFilterOptions || !filterLocalizations.length"
-              trigger-class="min-h-8 w-full min-w-0"
+              trigger-class="h-8 w-full min-w-0"
               @update:model-value="onLocalizationsChange"
             />
           </div>
@@ -642,7 +650,7 @@ watch(filterGameId, async () => {
                   : 'Нет серверов'
               "
               :disabled="loadingFilterOptions || !filterLocalizations.length"
-              trigger-class="min-h-8 w-full min-w-0"
+              trigger-class="h-8 w-full min-w-0"
               @update:model-value="onServersChange"
             />
           </div>
@@ -653,7 +661,7 @@ watch(filterGameId, async () => {
               v-model="filterRecruiting"
               :options="recruitingOptions"
               placeholder="Любой"
-              trigger-class="min-h-8 w-full"
+              trigger-class="h-8 w-full"
             />
           </div>
           <div class="grid min-w-[9rem] flex-1 basis-0 gap-1.5 min-[480px]:min-w-[10rem]">
@@ -665,7 +673,7 @@ watch(filterGameId, async () => {
               search-placeholder="Поиск тега..."
               empty-text="Нет тегов"
               :disabled="!tagMultiOptions.length"
-              trigger-class="min-h-8 w-full min-w-0"
+              trigger-class="h-8 w-full min-w-0"
               display-mode="badges"
               @update:model-value="onTagsChange"
             />
@@ -699,7 +707,7 @@ watch(filterGameId, async () => {
 
         <div
           v-else-if="visibleGuilds.length === 0"
-          class="rounded-lg border border-dashed p-8 text-center text-muted-foreground"
+          class="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground"
         >
           По выбранным критериям гильдий не найдено.
           <template v-if="authStore.isAuthenticated"> Создайте свою.</template>
@@ -707,15 +715,15 @@ watch(filterGameId, async () => {
 
         <div
           v-else
-          class="grid justify-items-center gap-6 pt-8 sm:grid-cols-2 sm:justify-items-stretch lg:grid-cols-3"
+          class="grid gap-4 pt-2 md:grid-cols-2"
         >
-        <GuildCard
-          v-for="(g, i) in (visibleGuilds as Guild[])"
-          :key="g.id"
-          :guild="g"
-          list-mode
-          :show-game-name="!isGameSubdomain"
-          class="animate-in fade-in slide-in-from-bottom-3"
+          <GuildCard
+            v-for="(g, i) in (visibleGuilds as Guild[])"
+            :key="g.id"
+            :guild="g"
+            list-mode
+            :show-game-name="!isGameSubdomain"
+            class="animate-in fade-in slide-in-from-bottom-3"
             :style="{ animationDelay: `${i * 80}ms`, animationDuration: '400ms', animationFillMode: 'backwards' }"
           />
         </div>

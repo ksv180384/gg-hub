@@ -36,6 +36,16 @@ function statusLabel(status: string) {
   return status;
 }
 
+function statusClass(status: string) {
+  if (status === 'pending' || status === 'invitation') {
+    return 'text-green-700 dark:text-green-400';
+  }
+  if (status === 'rejected' || status === 'revoked' || status === 'withdrawn') {
+    return 'text-muted-foreground';
+  }
+  return 'text-foreground';
+}
+
 function goToApplication(appId: number) {
   router.push({ name: 'guild-application-show', params: { id: String(guildId.value), applicationId: String(appId) } });
 }
@@ -59,6 +69,15 @@ const applicationsExtraFiltersActive = computed(() => statusFilter.value !== 'al
 function resetApplicationsFilters() {
   nameFilter.value = '';
   statusFilter.value = 'all';
+}
+
+function formatApplicationDate(value: string | null | undefined): string {
+  if (!value) return '';
+  return new Date(value).toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 async function loadApplications(mode: 'initial' | 'filters' = 'initial') {
@@ -122,130 +141,162 @@ watch(guildId, () => {
 }, { immediate: true });
 
 watch([statusFilter], () => {
-  // статус меняется редко — без debounce
   loadApplications('filters');
 });
 
 watch([nameFilter], () => {
-  // ввод имени — с debounce, чтобы не спамить сервер
   scheduleReloadWithFilters();
 });
 </script>
 
 <template>
   <NotFoundPage v-if="applicationsGuildNotFound" />
-  <div v-else class="space-y-4">
-    
-        <div class="text-xl font-semibold pb-4">Заявки и приглашения</div>
+  <div v-else class="max-w-[720px] space-y-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
+        <h1 class="text-xl font-semibold tracking-normal text-foreground">
+          Заявки и приглашения
+        </h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Входящие заявки, отправленные приглашения и решения по составу
+        </p>
+      </div>
+    </div>
 
-        <div>
-          <div v-if="loading && !hasLoadedOnce" class="flex justify-center py-12">
-            <Spinner class="h-8 w-8" />
+    <div v-if="loading && !hasLoadedOnce" class="flex justify-center rounded-lg border border-border bg-card py-12">
+      <Spinner class="h-8 w-8" />
+    </div>
+
+    <template v-else-if="noAccess">
+      <p class="rounded-lg border border-border bg-card px-4 py-5 text-sm text-muted-foreground">
+        У вас недостаточно прав для просмотра заявок в гильдию.
+      </p>
+    </template>
+
+    <template v-else-if="error">
+      <div class="rounded-lg border border-border bg-card px-4 py-5">
+        <p class="text-sm text-destructive">{{ error }}</p>
+        <Button
+          variant="outline"
+          class="mt-4"
+          @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })"
+        >
+          К гильдии
+        </Button>
+      </div>
+    </template>
+
+    <template v-else>
+      <ResponsiveFiltersToolbar
+        v-model:name="nameFilter"
+        name-label="Имя персонажа"
+        name-placeholder="Поиск по имени..."
+        :extra-filters-active="applicationsExtraFiltersActive"
+        :active-filters-count="applicationsExtraFiltersActive ? 1 : 0"
+        extra-filters-title="Статус"
+        popover-trigger-title="Статус"
+        popover-trigger-aria-label="Открыть фильтр: статус"
+        reset-button-title="Сбросить фильтр"
+        reset-button-aria-label="Сбросить фильтр"
+        name-mobile-input-id="guild-app-filter-name-mobile"
+        name-desktop-input-id="guild-app-filter-name-desktop"
+        card-class="border-0 bg-transparent shadow-none"
+        card-content-class="p-0"
+        desktop-row-class="items-end"
+        desktop-name-wrap-class="min-w-0 flex-1"
+        @reset="resetApplicationsFilters"
+      >
+        <template #extra-filters>
+          <div class="grid gap-1.5">
+            <Label for="guild-app-filter-status-mobile">Статус</Label>
+            <Select
+              id="guild-app-filter-status-mobile"
+              v-model="statusFilter"
+              :options="statusSelectOptions"
+              placeholder="Все статусы"
+              trigger-class="h-8 w-full"
+            />
           </div>
+        </template>
+        <template #desktop-filters>
+          <div class="grid w-44 shrink-0 gap-1.5">
+            <Label for="guild-app-filter-status-desktop">Статус</Label>
+            <Select
+              id="guild-app-filter-status-desktop"
+              v-model="statusFilter"
+              :options="statusSelectOptions"
+              placeholder="Все статусы"
+              trigger-class="h-8 w-full"
+            />
+          </div>
+        </template>
+      </ResponsiveFiltersToolbar>
 
-          <template v-else-if="noAccess">
-            <p class="text-muted-foreground mb-4">
-              У вас недостаточно прав для просмотра заявок в гильдию.
-            </p>
-          </template>
-
-          <template v-else-if="error">
-            <p class="text-destructive">{{ error }}</p>
-            <Button variant="outline" class="mt-4" @click="router.push({ name: 'guild-show', params: { id: String(guildId) } })">
-              К гильдии
-            </Button>
-          </template>
-
-          <template v-else>
-            <ResponsiveFiltersToolbar
-              v-model:name="nameFilter"
-              class="mb-6"
-              name-label="Имя персонажа"
-              name-placeholder="Поиск по имени..."
-              :extra-filters-active="applicationsExtraFiltersActive"
-              extra-filters-title="Статус"
-              popover-trigger-title="Статус"
-              popover-trigger-aria-label="Открыть фильтр: статус"
-              reset-button-title="Сбросить фильтр"
-              reset-button-aria-label="Сбросить фильтр"
-              name-mobile-input-id="guild-app-filter-name-mobile"
-              name-desktop-input-id="guild-app-filter-name-desktop"
-              @reset="resetApplicationsFilters"
-            >
-              <template #extra-filters>
-                <div class="grid gap-1.5">
-                  <Label for="guild-app-filter-status-mobile">Статус</Label>
-                  <Select
-                    id="guild-app-filter-status-mobile"
-                    v-model="statusFilter"
-                    :options="statusSelectOptions"
-                    placeholder="Все статусы"
-                    trigger-class="min-h-8 w-full"
-                  />
-                </div>
-              </template>
-              <template #desktop-filters>
-                <div class="grid w-36 shrink-0 gap-1.5 sm:w-40">
-                  <Label for="guild-app-filter-status-desktop">Статус</Label>
-                  <Select
-                    id="guild-app-filter-status-desktop"
-                    v-model="statusFilter"
-                    :options="statusSelectOptions"
-                    placeholder="Все статусы"
-                    trigger-class="min-h-8 w-full"
-                  />
-                </div>
-              </template>
-            </ResponsiveFiltersToolbar>
-
-            <div class="relative min-h-[120px]">
-              <div
-                v-if="filtersLoading"
-                class="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-muted/70 px-2 py-0.5"
-                aria-busy="true"
-                aria-live="polite"
-              >
-                <Spinner class="h-3 w-3 shrink-0 text-muted-foreground" />
-                <span class="text-xs text-muted-foreground">Загрузка…</span>
-              </div>
-
-              <p v-if="!filtersLoading && applications.length === 0" class="text-muted-foreground">
-                {{ hasActiveFilters ? 'Ничего не найдено по заданным фильтрам.' : 'Заявок пока нет.' }}
-              </p>
-              <ul v-else-if="applications.length > 0" class="space-y-2">
-              <li
-                v-for="app in applications"
-                :key="app.id"
-                role="button"
-                tabindex="0"
-                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                @click="goToApplication(app.id)"
-                @keydown.enter.prevent="goToApplication(app.id)"
-                @keydown.space.prevent="goToApplication(app.id)"
-              >
-                <div class="min-w-0">
-                  <p class="font-medium">{{ app.character?.name ?? '—' }}</p>
-                  <p class="text-sm">
-                    <span
-                      :class="
-                        app.status === 'pending' || app.status === 'invitation'
-                          ? 'font-medium text-green-600 dark:text-green-400'
-                          : 'text-muted-foreground'
-                      "
-                    >
-                      {{ statusLabel(app.status) }}
-                    </span>
-                    <template v-if="app.created_at">
-                      <span class="text-muted-foreground">
-                        · {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
-                      </span>
-                    </template>
-                  </p>
-                </div>
-              </li>
-            </ul>
-            </div>
-          </template>
+      <div class="relative min-h-[120px]">
+        <div
+          v-if="filtersLoading"
+          class="absolute left-1/2 top-2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-md border border-border bg-popover px-2.5 py-1 shadow-lg shadow-black/5"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <Spinner class="h-3 w-3 shrink-0 text-muted-foreground" />
+          <span class="text-xs text-muted-foreground">Загрузка...</span>
         </div>
+
+        <p
+          v-if="!filtersLoading && applications.length === 0"
+          class="rounded-lg border border-border bg-card px-4 py-5 text-sm text-muted-foreground"
+        >
+          {{ hasActiveFilters ? 'Ничего не найдено по заданным фильтрам.' : 'Заявок пока нет.' }}
+        </p>
+
+        <ul
+          v-else-if="applications.length > 0"
+          class="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+          :class="{ 'opacity-60': filtersLoading }"
+        >
+          <li
+            v-for="app in applications"
+            :key="app.id"
+            role="button"
+            tabindex="0"
+            class="group flex items-center justify-between gap-3 border-b border-border/80 px-4 py-3 transition-colors last:border-b-0 hover:bg-accent/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15"
+            @click="goToApplication(app.id)"
+            @keydown.enter.prevent="goToApplication(app.id)"
+            @keydown.space.prevent="goToApplication(app.id)"
+          >
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-foreground group-hover:text-primary">
+                {{ app.character?.name ?? '—' }}
+              </p>
+              <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5">
+                <span class="font-medium" :class="statusClass(app.status)">
+                  {{ statusLabel(app.status) }}
+                </span>
+                <template v-if="app.created_at">
+                  <span class="text-muted-foreground/45" aria-hidden="true">·</span>
+                  <span class="text-muted-foreground">
+                    {{ formatApplicationDate(app.created_at) }}
+                  </span>
+                </template>
+              </p>
+            </div>
+            <svg
+              class="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </li>
+        </ul>
+      </div>
+    </template>
   </div>
 </template>

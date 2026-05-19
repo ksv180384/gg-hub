@@ -16,34 +16,43 @@ const model = reactive(useGuildBank());
 </script>
 
 <template>
-  <div class="container py-6 md:py-8 overflow-x-hidden">
-    <div class="min-w-0 w-full space-y-4">
-      <div class="max-w-2xl">
-        <div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h1 class="text-xl font-semibold">Хранилище гильдии</h1>
-          <p
-            v-if="model.dkpEnabled"
-            class="text-sm text-muted-foreground"
-            aria-label="Ваши очки ДКП"
-          >
-            ДКП:
-            <span class="ml-1 font-semibold tabular-nums text-foreground">
-              {{ model.myDkpBalance ?? 0 }}
-            </span>
-          </p>
-          <RouterLink
-            v-if="model.dkpLedgerAvailable"
-            :to="{ name: 'guild-bank-dkp-history', params: { id: model.guildId } }"
-            class="text-sm text-primary hover:underline"
-          >
-            История ДКП
-          </RouterLink>
+  <div class="container overflow-x-hidden py-8 md:py-12">
+    <div class="min-w-0 w-full">
+      <div class="max-w-[816px]">
+        <div class="mb-5">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 class="text-2xl font-bold tracking-tight">Хранилище гильдии</h1>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p class="text-sm text-muted-foreground">
+              Предметы, выдачи и складские операции гильдии
+            </p>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <p
+                v-if="model.dkpEnabled"
+                class="text-sm text-muted-foreground"
+                aria-label="Ваши очки ДКП"
+              >
+                ДКП:
+                <span class="ml-1 font-semibold tabular-nums text-foreground">
+                  {{ model.myDkpBalance ?? 0 }}
+                </span>
+              </p>
+              <RouterLink
+                v-if="model.dkpLedgerAvailable"
+                :to="{ name: 'guild-bank-dkp-history', params: { id: model.guildId } }"
+                class="text-sm text-primary hover:underline"
+              >
+                История ДКП
+              </RouterLink>
+            </div>
+          </div>
         </div>
 
         <p v-if="model.loading" class="text-sm text-muted-foreground">Загрузка…</p>
         <p v-else-if="model.error" class="text-sm text-destructive">{{ model.error }}</p>
 
-        <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-[420px_380px]">
           <GuildBankItemsCard
             v-model:items-search="model.itemsSearch"
             :items="model.items"

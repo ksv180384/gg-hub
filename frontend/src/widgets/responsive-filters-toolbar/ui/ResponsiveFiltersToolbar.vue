@@ -72,13 +72,29 @@ const moreFiltersOpenDesktop = ref(false);
         <div class="flex w-full min-w-0 items-end gap-2 md:hidden">
           <div class="grid min-w-0 flex-1 gap-1.5">
             <Label :for="nameMobileInputId">{{ nameLabel }}</Label>
-            <Input
-              :id="nameMobileInputId"
-              v-model="name"
-              type="text"
-              :placeholder="namePlaceholder || undefined"
-              class="h-8"
-            />
+            <label class="relative block">
+              <svg
+                class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <Input
+                :id="nameMobileInputId"
+                v-model="name"
+                type="text"
+                :placeholder="namePlaceholder || undefined"
+                class="h-8 pl-9"
+              />
+            </label>
           </div>
           <PopoverRoot v-model:open="moreFiltersOpenMobile">
             <PopoverTrigger as-child>
@@ -130,7 +146,7 @@ const moreFiltersOpenDesktop = ref(false);
                   align="end"
                   :side-offset="8"
                   :class="cn(
-                    'z-50 w-[min(calc(100vw-2rem),22rem)] max-h-[min(85vh,32rem)] overflow-y-auto rounded-md border bg-popover p-3 text-popover-foreground shadow-md',
+                    'z-50 w-[min(calc(100vw-2rem),22rem)] max-h-[min(85vh,32rem)] overflow-y-auto rounded-lg border border-border/80 bg-popover p-3 text-popover-foreground shadow-lg shadow-black/5',
                     'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
                     'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
                     'data-[side=bottom]:slide-in-from-top-2',
@@ -179,13 +195,29 @@ const moreFiltersOpenDesktop = ref(false);
         >
           <div :class="cn('grid gap-1.5', desktopNameWrapClass)">
             <Label :for="nameDesktopInputId">{{ nameLabel }}</Label>
-            <Input
-              :id="nameDesktopInputId"
-              v-model="name"
-              type="text"
-              :placeholder="namePlaceholder || undefined"
-              class="h-8"
-            />
+            <label class="relative block">
+              <svg
+                class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <Input
+                :id="nameDesktopInputId"
+                v-model="name"
+                type="text"
+                :placeholder="namePlaceholder || undefined"
+                class="h-8 pl-9"
+              />
+            </label>
           </div>
           <slot name="desktop-filters" />
           <div class="flex shrink-0 gap-2">
@@ -239,7 +271,7 @@ const moreFiltersOpenDesktop = ref(false);
                     align="end"
                     :side-offset="8"
                     :class="cn(
-                      'z-50 w-[min(calc(100vw-2rem),22rem)] max-h-[min(85vh,32rem)] overflow-y-auto rounded-md border bg-popover p-3 text-popover-foreground shadow-md',
+                      'z-50 w-[min(calc(100vw-2rem),22rem)] max-h-[min(85vh,32rem)] overflow-y-auto rounded-lg border border-border/80 bg-popover p-3 text-popover-foreground shadow-lg shadow-black/5',
                       'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
                       'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
                       'data-[side=bottom]:slide-in-from-top-2',

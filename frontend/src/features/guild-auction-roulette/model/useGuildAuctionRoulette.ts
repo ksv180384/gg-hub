@@ -256,8 +256,10 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
   /** Результат рулетки — показываем в шапке карточки (справа). */
   const wheelSpinResult = ref<string | null>(null);
   const winnerDisplayKey = ref(0);
+  const winnerBannerDismissed = ref(false);
 
   const showWheelWinnerBanner = computed(() => {
+    if (winnerBannerDismissed.value) return false;
     const name = wheelSpinResult.value?.trim();
     if (!name) return false;
     const opts = wheelOptions.value;
@@ -267,6 +269,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
 
   function onSpinWheelResult(value: string | null) {
     wheelSpinResult.value = value;
+    winnerBannerDismissed.value = false;
     const opts = wheelOptions.value;
     const placeholder = opts.length === 1 && opts[0] === WHEEL_EMPTY_PLACEHOLDER;
     if (value?.trim() && !placeholder) {
@@ -274,8 +277,13 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     }
   }
 
+  function dismissWheelWinnerBanner() {
+    winnerBannerDismissed.value = true;
+  }
+
   function onSpinWheelStart() {
     wheelSpinResult.value = null;
+    winnerBannerDismissed.value = false;
   }
 
   watch(wheelOptions, (opts) => {
@@ -532,6 +540,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     winnerDisplayKey,
     showWheelWinnerBanner,
     onSpinWheelResult,
+    dismissWheelWinnerBanner,
     onSpinWheelStart,
     wheelSpinDurationSeconds,
     wheelSpinDurationMs,

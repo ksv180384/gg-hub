@@ -1,1 +1,5 @@
-export { formatLedgerDescription, useGuildDkpLedger } from './model/useGuildDkpLedger';
+export {
+  formatLedgerDescription,
+  formatLedgerSourceLabel,
+  useGuildDkpLedger,
+} from './model/useGuildDkpLedger';

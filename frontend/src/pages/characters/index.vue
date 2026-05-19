@@ -106,7 +106,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container py-6">
+  <div class="container py-8 md:py-12">
     <Card v-if="!game" class="border-0 shadow-none">
       <CardHeader>
         <CardTitle>Мои персонажи</CardTitle>
@@ -157,69 +157,79 @@ onMounted(() => {
     </Card>
 
     <template v-else>
-      <div class="mb-4 flex min-w-0 items-center justify-between gap-3">
-        <h1 class="min-w-0 truncate text-base font-semibold sm:text-lg">
-          Ваши персонажи в {{ game.name }}
-        </h1>
-        <RouterLink :to="{ name: 'my-characters-create' }">
-          <Button class="min-h-11 min-w-[44px] shrink-0 touch-manipulation">
-            Добавить персонажа
-          </Button>
-        </RouterLink>
-      </div>
+      <div class="mx-auto max-w-[1040px]">
+        <div class="mb-5 flex min-w-0 flex-wrap items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h1 class="min-w-0 truncate text-2xl font-bold tracking-tight">
+              Ваши персонажи
+            </h1>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Персонажи в {{ game.name }} для заявок, состава и активности в гильдиях
+            </p>
+          </div>
+          <RouterLink :to="{ name: 'my-characters-create' }">
+            <Button class="h-9 min-w-[44px] shrink-0 touch-manipulation">
+              Добавить персонажа
+            </Button>
+          </RouterLink>
+        </div>
 
-      <Card class="border-0 shadow-none">
-        <CardContent class="px-0 pb-0 pt-0">
-          <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
-          <p v-else-if="characters.length === 0" class="text-sm text-muted-foreground">
-            Нет персонажей. Нажмите «Добавить персонажа», чтобы создать первого.
-          </p>
-          <template v-else>
-            <TooltipProvider>
-              <ul class="flex flex-wrap justify-around gap-3">
-                <CharacterCard
-                  v-for="c in characters"
-                  :key="c.id"
-                  :character="c"
-                >
-                  <template #actions>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger as-child>
-                        <UiButton
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          class="h-10 w-10 shrink-0 min-h-10 min-w-10 touch-manipulation"
-                          aria-label="Действия"
-                          title="Действия"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                            <circle cx="12" cy="5" r="2" />
-                            <circle cx="12" cy="12" r="2" />
-                            <circle cx="12" cy="19" r="2" />
-                          </svg>
-                        </UiButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" class="min-w-44">
-                        <DropdownMenuItem @click="openEdit(c)">
-                          Редактировать
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          class="text-destructive focus:text-destructive"
-                          :disabled="deletingId === c.id"
-                          @click="openDeleteDialog(c)"
-                        >
-                          Удалить
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </template>
-                </CharacterCard>
-              </ul>
-            </TooltipProvider>
-          </template>
-        </CardContent>
-      </Card>
+        <Card class="border-0 shadow-none">
+          <CardContent class="px-0 pb-0 pt-0">
+            <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
+            <p
+              v-else-if="characters.length === 0"
+              class="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground"
+            >
+              Нет персонажей. Нажмите «Добавить персонажа», чтобы создать первого.
+            </p>
+            <template v-else>
+              <TooltipProvider>
+                <ul class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <CharacterCard
+                    v-for="c in characters"
+                    :key="c.id"
+                    :character="c"
+                  >
+                    <template #actions>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                          <UiButton
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            class="h-10 w-10 shrink-0 min-h-10 min-w-10 touch-manipulation"
+                            aria-label="Действия"
+                            title="Действия"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                              <circle cx="12" cy="5" r="2" />
+                              <circle cx="12" cy="12" r="2" />
+                              <circle cx="12" cy="19" r="2" />
+                            </svg>
+                          </UiButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="min-w-44">
+                          <DropdownMenuItem @click="openEdit(c)">
+                            Редактировать
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            class="text-destructive focus:text-destructive"
+                            :disabled="deletingId === c.id"
+                            @click="openDeleteDialog(c)"
+                          >
+                            Удалить
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </template>
+                  </CharacterCard>
+                </ul>
+              </TooltipProvider>
+            </template>
+          </CardContent>
+        </Card>
+      </div>
 
       <ConfirmDialog
         :open="deleteDialogOpen"

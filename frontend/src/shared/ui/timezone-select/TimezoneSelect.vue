@@ -63,13 +63,13 @@ function select(tz: string) {
     <PopoverTrigger
       :id="id"
       :class="cn(
-        'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+        'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-border bg-muted/25 px-3 py-2 text-sm text-foreground shadow-none transition-colors duration-150 placeholder:text-muted-foreground hover:border-primary/25 hover:bg-background focus:outline-none focus:border-primary/45 focus:bg-background focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:bg-muted/40 disabled:opacity-70 [&>span]:line-clamp-1',
         props.class
       )"
       type="button"
     >
       <span class="truncate text-left">{{ displayLabel }}</span>
-      <span class="ml-2 shrink-0 opacity-50" aria-hidden="true">
+      <span class="ml-2 shrink-0 text-muted-foreground" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m6 9 6 6 6-6" />
         </svg>
@@ -82,13 +82,13 @@ function select(tz: string) {
         align="start"
         :side-offset="4"
         :class="cn(
-          'z-50 w-[var(--radix-popover-trigger-width)] max-h-[min(20rem,var(--radix-popover-content-available-height))] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md',
+          'z-50 w-[var(--radix-popover-trigger-width)] max-h-[min(20rem,var(--radix-popover-content-available-height))] overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-lg shadow-black/5',
           'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
           'data-[side=bottom]:slide-in-from-top-2'
         )"
       >
-        <div class="p-1.5 border-b">
+        <div class="border-b border-border/80 p-1.5">
           <Input
             ref="searchInputRef"
             v-model="search"
@@ -104,8 +104,8 @@ function select(tz: string) {
             :key="tz"
             type="button"
             :class="cn(
-              'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
-              modelValue === tz && 'bg-accent text-accent-foreground'
+              'relative flex w-full cursor-default select-none items-center rounded-md px-2.5 py-2 text-sm outline-none transition-colors hover:bg-accent/70 hover:text-foreground',
+              modelValue === tz && 'bg-accent/70 text-foreground'
             )"
             @click="select(tz)"
           >

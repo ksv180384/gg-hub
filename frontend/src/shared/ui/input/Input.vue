@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import type { ClassValue } from 'clsx';
 import { cn } from '@/shared/lib/utils';
 
 interface Props {
-  class?: string;
+  class?: ClassValue;
   type?: string;
   modelValue?: string;
 }
@@ -34,7 +35,7 @@ const passwordToggleLabel = computed(() =>
 
 const inputClass = computed(() =>
   cn(
-    'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+    'flex h-9 w-full rounded-md border border-border bg-muted/25 px-3 py-1 text-base text-foreground shadow-none transition-colors duration-150 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground hover:border-primary/25 hover:bg-background focus-visible:border-primary/45 focus-visible:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15 disabled:cursor-not-allowed disabled:bg-muted/40 disabled:opacity-70 md:text-sm',
     isPasswordType.value && 'pr-10',
     props.class,
   ),
@@ -60,7 +61,7 @@ defineExpose({
     >
     <button
       type="button"
-      class="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-r-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      class="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15"
       :aria-label="passwordToggleLabel"
       :aria-pressed="showPassword"
       @click="togglePasswordVisibility"

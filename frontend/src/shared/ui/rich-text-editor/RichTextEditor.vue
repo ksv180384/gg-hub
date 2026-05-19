@@ -390,7 +390,7 @@ onBeforeUnmount(() => {
     ref="rootEl"
     :class="
       cn(
-        'rounded-md border border-input bg-background text-sm shadow-sm focus-within:ring-1 focus-within:ring-ring',
+        'rounded-md border border-border bg-muted/25 text-sm shadow-none transition-colors focus-within:border-primary/45 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/15',
         disabled && 'cursor-not-allowed opacity-60',
         props.class
       )
@@ -930,7 +930,7 @@ onBeforeUnmount(() => {
                 v-model="videoUrlInput"
                 type="text"
                 placeholder="https://www.youtube.com/watch?v=... или https://vk.com/video..."
-                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
+                class="flex h-9 w-full rounded-md border border-border bg-muted/25 px-3 py-1 text-base text-foreground shadow-none transition-colors duration-150 placeholder:text-muted-foreground hover:border-primary/25 hover:bg-background focus-visible:border-primary/45 focus-visible:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15 md:text-sm"
                 @keydown.enter.prevent="submitVideo"
                 @paste="onVideoUrlPaste"
               >

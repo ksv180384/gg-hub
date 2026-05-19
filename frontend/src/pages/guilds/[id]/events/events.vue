@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Button } from '@/shared/ui';
+import { Button, Input } from '@/shared/ui';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { guildsApi } from '@/shared/api/guildsApi';
@@ -19,6 +19,8 @@ const guildId = computed(() => Number(route.params.id));
 
 const loading = ref(false);
 const items = ref<EventHistoryItem[]>([]);
+const searchQuery = ref('');
+const sortDirection = ref<'desc' | 'asc'>('desc');
 /** Нет членства в гильдии (403/404 с guild.member). */
 const guildEventsAccessNotFound = ref(false);
 
@@ -38,6 +40,26 @@ const deleteLoading = ref(false);
 const canCreate = computed(() => myPermissionSlugs.value.includes('dobavliat-sobytie'));
 const canEdit = computed(() => myPermissionSlugs.value.includes('redaktirovat-sobytie'));
 const canDelete = computed(() => myPermissionSlugs.value.includes('udaliat-sobytie'));
+
+const visibleItems = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  const filtered = query
+    ? items.value.filter((item) => {
+        const title = item.title.toLowerCase();
+        const description = (item.description ?? '').toLowerCase();
+
+        return title.includes(query) || description.includes(query);
+      })
+    : items.value;
+
+  return [...filtered].sort((a, b) => {
+    const left = a.occurred_at ? new Date(a.occurred_at).getTime() : 0;
+    const right = b.occurred_at ? new Date(b.occurred_at).getTime() : 0;
+    const diff = right - left || b.id - a.id;
+
+    return sortDirection.value === 'desc' ? diff : -diff;
+  });
+});
 
 function goToShow(item: EventHistoryItem) {
   if (!guildId.value) return;
@@ -96,6 +118,10 @@ function askDelete(item: EventHistoryItem) {
   deleteConfirmOpen.value = true;
 }
 
+function toggleSortDirection() {
+  sortDirection.value = sortDirection.value === 'desc' ? 'asc' : 'desc';
+}
+
 async function confirmDelete() {
   if (!guildId.value || !deleteTarget.value) return;
   deleteLoading.value = true;
@@ -105,7 +131,7 @@ async function confirmDelete() {
     deleteTarget.value = null;
     await fetchHistory();
   } catch {
-    // ошибка уже обработана через throwOnError
+    // Ошибка уже обработана через throwOnError.
   } finally {
     deleteLoading.value = false;
   }
@@ -144,6 +170,8 @@ function formatParticipantsLine(item: EventHistoryItem): string {
 async function loadEventsPage() {
   guildEventsAccessNotFound.value = false;
   items.value = [];
+  searchQuery.value = '';
+  sortDirection.value = 'desc';
   myPermissionSlugs.value = [];
   dkpEnabled.value = false;
   deleteConfirmOpen.value = false;
@@ -163,133 +191,191 @@ watch(guildId, () => {
 
 <template>
   <NotFoundPage v-if="guildEventsAccessNotFound" />
-  <div v-else class="space-y-4">
-    
-        <div class="flex items-center justify-between gap-2">
-          <h1 class="text-xl font-semibold">
-            События гильдии
-          </h1>
-          <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            <Button type="button" variant="outlinePrimary" size="sm" @click="titlesAdmin.openModal()">
-              Виды событий
+  <div v-else class="max-w-[720px] space-y-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
+        <h1 class="text-xl font-semibold tracking-normal text-foreground">
+          События гильдии
+        </h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          История рейдов, осад и активностей
+        </p>
+      </div>
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <Button type="button" variant="outlinePrimary" size="sm" @click="titlesAdmin.openModal()">
+          Виды событий
+        </Button>
+        <Button v-if="canCreate" size="sm" @click="goToCreate">
+          Добавить событие
+        </Button>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <label class="relative min-w-0 flex-1">
+        <span class="sr-only">Поиск по событиям</span>
+        <svg
+          class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <Input
+          v-model="searchQuery"
+          type="search"
+          class="pl-9"
+          placeholder="Поиск по событиям"
+        />
+      </label>
+      <Button
+        type="button"
+        variant="outline"
+        size="default"
+        class="justify-between sm:w-auto"
+        @click="toggleSortDirection"
+      >
+        {{ sortDirection === 'desc' ? 'Сначала новые' : 'Сначала старые' }}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </Button>
+    </div>
+
+    <div>
+      <p
+        v-if="loading"
+        class="rounded-lg border border-border bg-card px-4 py-5 text-sm text-muted-foreground"
+      >
+        Загрузка истории событий...
+      </p>
+      <p
+        v-else-if="!items.length"
+        class="rounded-lg border border-border bg-card px-4 py-5 text-sm text-muted-foreground"
+      >
+        Пока нет записей в истории событий.
+      </p>
+      <p
+        v-else-if="!visibleItems.length"
+        class="rounded-lg border border-border bg-card px-4 py-5 text-sm text-muted-foreground"
+      >
+        По этому запросу событий не найдено.
+      </p>
+      <ul
+        v-else
+        class="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+      >
+        <li
+          v-for="item in visibleItems"
+          :key="item.id"
+          class="group flex items-center justify-between gap-3 border-b border-border/80 px-4 py-3 transition-colors last:border-b-0 hover:bg-accent/45"
+        >
+          <button
+            type="button"
+            class="min-w-0 flex-1 text-left"
+            @click="goToShow(item)"
+          >
+            <span class="block truncate text-sm font-semibold text-foreground group-hover:text-primary">
+              {{ item.title }}
+            </span>
+            <span class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5">
+              <span
+                v-if="item.occurred_at"
+                class="text-muted-foreground"
+              >
+                {{ formatDateTime(item.occurred_at) }}
+              </span>
+              <span
+                v-if="item.occurred_at"
+                class="text-muted-foreground/45"
+                aria-hidden="true"
+              >
+                ·
+              </span>
+              <span class="font-medium text-foreground">
+                {{ formatParticipantsLine(item) }}
+              </span>
+            </span>
+          </button>
+          <div class="flex shrink-0 items-center gap-1">
+            <Button
+              v-if="canEdit"
+              size="icon"
+              variant="ghost"
+              class="h-8 w-8 text-muted-foreground hover:text-foreground"
+              aria-label="Редактировать"
+              title="Редактировать"
+              @click.stop="goToEdit(item)"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z" />
+              </svg>
             </Button>
-            <Button v-if="canCreate" size="sm" @click="goToCreate">
-              Добавить событие
+            <Button
+              v-if="canDelete"
+              size="icon"
+              variant="ghost"
+              class="h-8 w-8 text-muted-foreground hover:text-destructive"
+              aria-label="Удалить"
+              title="Удалить"
+              @click.stop="askDelete(item)"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 6h18" />
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+              </svg>
             </Button>
           </div>
-        </div>
+        </li>
+      </ul>
+    </div>
 
-        <div>
-          <p
-            v-if="loading"
-            class="text-sm text-muted-foreground"
-          >
-            Загрузка истории событий...
-          </p>
-          <p
-            v-else-if="!items.length"
-            class="text-sm text-muted-foreground"
-          >
-            Пока нет записей в истории событий.
-          </p>
-          <ul
-            v-else
-            class="space-y-4"
-          >
-            <li
-              v-for="item in items"
-              :key="item.id"
-              class="rounded-md border p-3 flex flex-col gap-2"
-            >
-              <div class="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  class="min-w-0 flex-1 text-left"
-                  @click="goToShow(item)"
-                >
-                  <div class="flex flex-col gap-0.5 min-w-0">
-                    <span class="font-semibold truncate">
-                      {{ item.title }}
-                    </span>
-                    <div
-                      class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs"
-                    >
-                      <span
-                        v-if="item.occurred_at"
-                        class="text-muted-foreground"
-                      >
-                        {{ formatDateTime(item.occurred_at) }}
-                      </span>
-                      <span class="font-semibold text-foreground">
-                        {{ formatParticipantsLine(item) }}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-                <div class="flex items-center gap-1">
-                  <Button
-                    v-if="canEdit"
-                    size="icon"
-                    variant="ghost"
-                    class="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    aria-label="Редактировать"
-                    @click.stop="goToEdit(item)"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z" />
-                    </svg>
-                  </Button>
-                  <Button
-                    v-if="canDelete"
-                    size="icon"
-                    variant="ghost"
-                    class="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    aria-label="Удалить"
-                    @click.stop="askDelete(item)"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                    </svg>
-                  </Button>
-                </div>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <ConfirmDialog
-          v-model:open="deleteConfirmOpen"
-          title="Удалить событие?"
-          description="Событие будет удалено без возможности восстановления."
-          confirm-label="Удалить"
-          cancel-label="Отмена"
-          :loading="deleteLoading"
-          confirm-variant="destructive"
-          @confirm="confirmDelete"
-        />
+    <ConfirmDialog
+      v-model:open="deleteConfirmOpen"
+      title="Удалить событие?"
+      description="Событие будет удалено без возможности восстановления."
+      confirm-label="Удалить"
+      cancel-label="Отмена"
+      :loading="deleteLoading"
+      confirm-variant="destructive"
+      @confirm="confirmDelete"
+    />
 
     <EventHistoryTitlesDialog
       v-model:open="titlesAdmin.open"
@@ -314,4 +400,3 @@ watch(guildId, () => {
     />
   </div>
 </template>
-

@@ -38,9 +38,27 @@ function statusLabel(status: string) {
   return status;
 }
 
+function statusClass(status: string) {
+  if (status === 'pending' || status === 'invitation') {
+    return 'text-primary';
+  }
+  if (status === 'approved') {
+    return 'text-emerald-600';
+  }
+  if (status === 'rejected' || status === 'revoked' || status === 'withdrawn') {
+    return 'text-muted-foreground';
+  }
+  return 'text-muted-foreground';
+}
+
 function typeLabel(status: string) {
   if (status === 'invitation' || status === 'revoked') return 'Приглашение';
   return 'Заявка';
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString('ru-RU');
 }
 
 function openApplication(app: GuildApplicationItem) {
@@ -53,60 +71,75 @@ function openApplication(app: GuildApplicationItem) {
 </script>
 
 <template>
-  <div class="space-y-4">
-        <h1 class="mb-4 text-xl font-semibold tracking-tight">Мои заявки и приглашения</h1>
+  <div class="container">
+    <div class="mx-auto">
+      <div class="mb-5">
+        <h1 class="text-2xl font-bold tracking-tight">Мои заявки и приглашения</h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          История заявок в гильдии, приглашений и решений по вступлению
+        </p>
+      </div>
 
-        <div v-if="loading" class="flex justify-center py-10">
-          <Spinner class="h-8 w-8" />
+      <div v-if="loading" class="flex justify-center py-10">
+        <Spinner class="h-8 w-8" />
+      </div>
+
+      <template v-else-if="error">
+        <div class="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {{ error }}
         </div>
+      </template>
 
-        <template v-else-if="error">
-          <p class="text-sm text-destructive">{{ error }}</p>
-        </template>
-
-        <template v-else>
-          <p v-if="applications.length === 0" class="text-sm text-muted-foreground">
-            Вы ещё не подавали заявки в гильдии.
-          </p>
-          <ul v-else class="space-y-2">
-            <li
-              v-for="app in applications"
-              :key="app.id"
-              class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 hover:bg-muted/50 cursor-pointer"
+      <template v-else>
+        <div
+          v-if="applications.length === 0"
+          class="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground"
+        >
+          Вы ещё не подавали заявки в гильдии.
+        </div>
+        <ul v-else class="overflow-hidden rounded-lg border border-border bg-background shadow-sm">
+          <li
+            v-for="app in applications"
+            :key="app.id"
+            class="border-b border-border last:border-b-0"
+          >
+            <button
+              type="button"
+              class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
               @click="openApplication(app)"
             >
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
-                  <p class="min-w-0 truncate text-sm font-medium">
+              <div class="min-w-0 flex-1">
+                <div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span class="min-w-0 truncate text-sm font-medium text-foreground">
                     {{ app.guild?.name ?? 'Гильдия #' + app.guild_id }}
-                  </p>
-                  <span
-                    class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground"
-                  >
+                  </span>
+                  <span class="text-xs text-muted-foreground">
                     {{ typeLabel(app.status) }}
                   </span>
                 </div>
-                <p class="text-xs text-muted-foreground">
-                  Персонаж: {{ app.character?.name ?? '—' }}
+                <p class="mt-1 text-xs text-muted-foreground">
+                  Персонаж:
+                  <span class="font-medium text-foreground">{{ app.character?.name ?? '—' }}</span>
+                  <span v-if="formatDate(app.created_at)"> · {{ formatDate(app.created_at) }}</span>
                 </p>
               </div>
-              <div class="text-right text-xs">
-                <p
-                  :class="
-                    app.status === 'pending' || app.status === 'invitation'
-                      ? 'font-medium text-green-600 dark:text-green-400'
-                      : 'text-muted-foreground'
-                  "
+              <div class="flex shrink-0 items-center gap-3">
+                <span
+                  class="hidden text-right text-xs font-medium sm:inline"
+                  :class="statusClass(app.status)"
                 >
                   {{ statusLabel(app.status) }}
-                </p>
-                <p v-if="app.created_at" class="text-muted-foreground">
-                  {{ new Date(app.created_at).toLocaleDateString('ru-RU') }}
-                </p>
+                </span>
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </span>
               </div>
-            </li>
-          </ul>
-        </template>
+            </button>
+          </li>
+        </ul>
+      </template>
+    </div>
   </div>
 </template>
-

@@ -490,7 +490,7 @@ watch(guildId, async () => {
                     hide-actions
                     placeholder="Все классы"
                     search-placeholder="Поиск классов..."
-                    trigger-class="min-h-8 w-full min-w-0"
+                    trigger-class="h-8 w-full min-w-0"
                     display-mode="badges"
                   />
                 </div>
@@ -501,7 +501,7 @@ watch(guildId, async () => {
                     :options="tagOptions"
                     placeholder="Любые (общие и гильдии)"
                     search-placeholder="Поиск тегов..."
-                    trigger-class="min-h-8 w-full min-w-0"
+                    trigger-class="h-8 w-full min-w-0"
                     display-mode="badges"
                   />
                 </div>
@@ -525,7 +525,7 @@ watch(guildId, async () => {
                     hide-actions
                     placeholder="Все классы"
                     search-placeholder="Поиск классов..."
-                    trigger-class="min-h-8 w-full min-w-0"
+                    trigger-class="h-8 w-full min-w-0"
                     display-mode="badges"
                   />
                 </div>
@@ -538,7 +538,7 @@ watch(guildId, async () => {
                     :options="tagOptions"
                     placeholder="Любые (общие и гильдии)"
                     search-placeholder="Поиск тегов..."
-                    trigger-class="min-h-8 w-full min-w-0"
+                    trigger-class="h-8 w-full min-w-0"
                     display-mode="badges"
                   />
                 </div>

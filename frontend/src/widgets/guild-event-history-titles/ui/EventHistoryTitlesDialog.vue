@@ -40,23 +40,23 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-    <div class="flex max-h-[min(90vh,40rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-lg">
-      <div class="border-b border-border px-4 py-3">
+  <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
+    <div class="flex max-h-[min(90vh,40rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-background text-foreground shadow-xl">
+      <div class="border-b border-border px-4 py-4 sm:px-5">
         <div class="text-base font-semibold">Виды событий</div>
-        <p class="mt-1 text-xs text-muted-foreground">
+        <p class="mt-1 max-w-[36rem] text-xs leading-5 text-muted-foreground">
           Справочник названий для истории событий гильдии. Удалить вид можно только если по нему ещё нет записей в истории.
         </p>
       </div>
 
-      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-        <div v-if="createFormOpen" class="space-y-3 rounded-lg border border-border p-3">
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
+        <div v-if="createFormOpen" class="space-y-3 rounded-lg border border-border bg-background p-3">
           <div
             class="grid grid-cols-1 gap-3"
             :class="dkpEnabled ? 'sm:grid-cols-2 sm:items-end' : ''"
           >
-            <div class="space-y-2">
-              <Label for="event-title-name">Название *</Label>
+            <div class="space-y-1.5">
+              <Label for="event-title-name" class="text-sm">Название *</Label>
               <Input
                 id="event-title-name"
                 v-model="form.name"
@@ -67,8 +67,8 @@ const emit = defineEmits<{
                 required
               />
             </div>
-            <div v-if="dkpEnabled" class="space-y-2">
-              <Label for="event-title-dkp">Очки ДКП</Label>
+            <div v-if="dkpEnabled" class="space-y-1.5">
+              <Label for="event-title-dkp" class="text-sm">Очки ДКП</Label>
               <Input
                 id="event-title-dkp"
                 v-model="form.dkp_base_points"
@@ -83,13 +83,13 @@ const emit = defineEmits<{
           </div>
           <div
             v-if="dkpEnabled"
-            class="flex items-start gap-2 rounded-md border border-border/60 p-2"
+            class="flex min-h-9 items-center gap-2 rounded-md border border-border bg-muted/25 px-2.5 py-2"
           >
             <input
               id="event-title-distribute-dkp"
               v-model="form.distribute_dkp_to_participants"
               type="checkbox"
-              class="mt-0.5 h-4 w-4 shrink-0 rounded border-input"
+              class="h-4 w-4 shrink-0 rounded border-input"
               :disabled="saving"
               @change="onDistributeToggle(form.distribute_dkp_to_participants, form)"
             >
@@ -114,8 +114,8 @@ const emit = defineEmits<{
           </div>
 
           <div class="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" :disabled="saving" @click="emit('cancelCreate')">Отмена</Button>
-            <Button :disabled="saving" @click="emit('create')">
+            <Button variant="outline" class="h-9" :disabled="saving" @click="emit('cancelCreate')">Отмена</Button>
+            <Button class="h-9" :disabled="saving" @click="emit('create')">
               {{ saving ? 'Добавление…' : 'Добавить' }}
             </Button>
           </div>
@@ -128,7 +128,7 @@ const emit = defineEmits<{
             <Button
               v-if="!createFormOpen"
               type="button"
-              size="sm"
+              class="h-9"
               :disabled="saving"
               @click="emit('openCreate')"
             >
@@ -138,19 +138,19 @@ const emit = defineEmits<{
           <p v-if="loading" class="text-sm text-muted-foreground">Загрузка…</p>
           <p v-else-if="listError" class="text-sm text-destructive">{{ listError }}</p>
           <p v-else-if="!sortedTitles.length" class="text-sm text-muted-foreground">Пока нет видов событий.</p>
-          <ul v-else class="space-y-2">
+          <ul v-else class="overflow-hidden rounded-lg border border-border bg-background">
             <li
               v-for="title in sortedTitles"
               :key="title.id"
-              class="rounded-lg border border-border px-3 py-3"
+              class="border-b border-border px-3 py-3 last:border-b-0"
             >
               <template v-if="editingId === title.id">
                 <div
                   class="grid grid-cols-1 gap-3"
                   :class="dkpEnabled ? 'sm:grid-cols-2 sm:items-end' : ''"
                 >
-                  <div class="space-y-2">
-                    <Label :for="`event-title-edit-name-${title.id}`">Название *</Label>
+                  <div class="space-y-1.5">
+                    <Label :for="`event-title-edit-name-${title.id}`" class="text-sm">Название *</Label>
                     <Input
                       :id="`event-title-edit-name-${title.id}`"
                       v-model="editForm.name"
@@ -161,8 +161,8 @@ const emit = defineEmits<{
                       required
                     />
                   </div>
-                  <div v-if="dkpEnabled" class="space-y-2">
-                    <Label :for="`event-title-edit-dkp-${title.id}`">Очки ДКП</Label>
+                  <div v-if="dkpEnabled" class="space-y-1.5">
+                    <Label :for="`event-title-edit-dkp-${title.id}`" class="text-sm">Очки ДКП</Label>
                     <Input
                       :id="`event-title-edit-dkp-${title.id}`"
                       v-model="editForm.dkp_base_points"
@@ -175,41 +175,41 @@ const emit = defineEmits<{
                     />
                   </div>
                 </div>
-          <div
-            v-if="dkpEnabled"
-            class="flex items-start gap-2 rounded-md border border-border/60 p-2"
-          >
-            <input
-              :id="`event-title-edit-distribute-dkp-${title.id}`"
-              v-model="editForm.distribute_dkp_to_participants"
-              type="checkbox"
-              class="mt-0.5 h-4 w-4 shrink-0 rounded border-input"
-              :disabled="saving"
-              @change="onDistributeToggle(editForm.distribute_dkp_to_participants, editForm)"
-            >
-            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-              <Label :for="`event-title-edit-distribute-dkp-${title.id}`" class="font-normal leading-snug">
-                Распределять очки по участникам события
-              </Label>
-              <Tooltip :content="DISTRIBUTE_DKP_TOOLTIP" side="top" class="max-w-sm text-left">
-                <button
-                  type="button"
-                  class="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                  aria-label="Подсказка о распределении очков ДКП"
+                <div
+                  v-if="dkpEnabled"
+                  class="mt-3 flex min-h-9 items-center gap-2 rounded-md border border-border bg-muted/25 px-2.5 py-2"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 16v-4" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
-              </Tooltip>
-            </div>
-          </div>
+                  <input
+                    :id="`event-title-edit-distribute-dkp-${title.id}`"
+                    v-model="editForm.distribute_dkp_to_participants"
+                    type="checkbox"
+                    class="h-4 w-4 shrink-0 rounded border-input"
+                    :disabled="saving"
+                    @change="onDistributeToggle(editForm.distribute_dkp_to_participants, editForm)"
+                  >
+                  <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                    <Label :for="`event-title-edit-distribute-dkp-${title.id}`" class="font-normal leading-snug">
+                      Распределять очки по участникам события
+                    </Label>
+                    <Tooltip :content="DISTRIBUTE_DKP_TOOLTIP" side="top" class="max-w-sm text-left">
+                      <button
+                        type="button"
+                        class="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="Подсказка о распределении очков ДКП"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4" />
+                          <path d="M12 8h.01" />
+                        </svg>
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
 
                 <div class="mt-3 flex flex-wrap justify-end gap-2">
-                  <Button variant="outline" :disabled="saving" @click="emit('cancelEdit')">Отмена</Button>
-                  <Button :disabled="saving" @click="emit('saveEdit')">
+                  <Button variant="outline" class="h-9" :disabled="saving" @click="emit('cancelEdit')">Отмена</Button>
+                  <Button class="h-9" :disabled="saving" @click="emit('saveEdit')">
                     {{ saving ? 'Сохранение…' : 'Сохранить' }}
                   </Button>
                 </div>
@@ -219,7 +219,7 @@ const emit = defineEmits<{
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div class="min-w-0">
                     <div class="truncate text-sm font-medium">{{ title.name }}</div>
-                    <div class="text-xs text-muted-foreground">
+                    <div class="mt-1 text-xs text-muted-foreground">
                       <template v-if="dkpEnabled">
                         <template v-if="title.distribute_dkp_to_participants">
                           ДКП: распределение по участникам
@@ -299,8 +299,8 @@ const emit = defineEmits<{
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
-        <Button variant="outline" :disabled="saving || deletingId != null" @click="open = false">
+      <div class="flex items-center justify-end gap-2 border-t border-border px-4 py-3 sm:px-5">
+        <Button variant="outline" class="h-9" :disabled="saving || deletingId != null" @click="open = false">
           Закрыть
         </Button>
       </div>
