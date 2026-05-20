@@ -8,7 +8,7 @@ import PostComments from './PostComments.vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
+import { applyPageSeo, getSiteOrigin, type PageSeoOptions } from '@/shared/lib/usePageSeo';
 
 const route = useRoute();
 const router = useRouter();
@@ -61,15 +61,14 @@ function buildKeywords(p: Post): string {
 }
 
 let seoCleanup: null | (() => void) = null;
-function applySeoForPost(p: Post) {
+function buildSeoOptionsForPost(p: Post): PageSeoOptions {
   const titleBase = p.title?.trim() || 'Запись';
   const title = `${titleBase} — gg-hub`;
   const canonicalUrl = `${siteOrigin}${route.fullPath}`;
   const description = buildDescription(p);
   const keywords = buildKeywords(p);
 
-  seoCleanup?.();
-  seoCleanup = applyPageSeo({
+  return {
     title,
     description,
     canonicalUrl,
@@ -85,7 +84,13 @@ function applySeoForPost(p: Post) {
       dateModified: p.updated_at,
       author: p.author_name ? { '@type': 'Person', name: p.author_name } : undefined,
     },
-  });
+  };
+}
+
+function applySeoForPost(p: Post) {
+  const options = buildSeoOptionsForPost(p);
+  seoCleanup?.();
+  seoCleanup = applyPageSeo(options);
 }
 
 watch(
@@ -114,6 +119,7 @@ async function loadPost() {
       return;
     }
     post.value = await postsApi.getGlobalPost(postId.value);
+    applySeoForPost(post.value);
     if (auth.isAuthenticated) {
       if (post.value?.game_id != null) {
         myCharacters.value = await charactersApi.getCharacters(post.value.game_id);

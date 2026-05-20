@@ -21,6 +21,18 @@ function safeReplace(str, marker, replacement) {
   return str.slice(0, idx) + replacement + str.slice(idx + marker.length);
 }
 
+function replaceSsrHead(template, head) {
+  if (!head) return template;
+  const start = '<!--GG_SSR_HEAD_START-->';
+  const end = '<!--GG_SSR_HEAD_END-->';
+  const startIdx = template.indexOf(start);
+  const endIdx = template.indexOf(end);
+  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+    return safeReplace(template, '<!--INJECT_HOME_SEO-->', head);
+  }
+  return template.slice(0, startIdx) + head + template.slice(endIdx + end.length);
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const resolve = (p) => path.resolve(__dirname, p);
 
@@ -106,7 +118,11 @@ async function createDevServer() {
       }
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
       const html = safeReplace(
-        safeReplace(template, '<!--app-html-->', result.html),
+        safeReplace(
+          replaceSsrHead(template, result.head),
+          '<!--app-html-->',
+          result.html,
+        ),
         '<!--pinia-state-->',
         stateJson,
       );
@@ -145,7 +161,11 @@ async function createProdServer() {
       }
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
       const html = safeReplace(
-        safeReplace(template, '<!--app-html-->', result.html),
+        safeReplace(
+          replaceSsrHead(template, result.head),
+          '<!--app-html-->',
+          result.html,
+        ),
         '<!--pinia-state-->',
         stateJson,
       );

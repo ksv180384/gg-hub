@@ -13,6 +13,62 @@ export interface PageSeoOptions {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escapeScriptJson(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
+export function buildPageSeoHead(options: PageSeoOptions): string {
+  const tags: string[] = [];
+  const meta = (attr: 'name' | 'property', key: string, content: string) => {
+    tags.push(
+      `<meta ${attr}="${escapeHtml(key)}" content="${escapeHtml(content)}">`
+    );
+  };
+
+  tags.push(`<title>${escapeHtml(options.title)}</title>`);
+  meta('name', 'description', options.description);
+  if (options.keywords) {
+    meta('name', 'keywords', options.keywords);
+  }
+  meta('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+  meta('name', 'author', 'gg-hub');
+  meta('property', 'og:type', options.ogType ?? 'website');
+  meta('property', 'og:locale', 'ru_RU');
+  meta('property', 'og:url', options.canonicalUrl);
+  meta('property', 'og:title', options.title);
+  meta('property', 'og:description', options.description);
+  meta('property', 'og:site_name', 'gg-hub');
+  if (options.ogImageUrl) {
+    meta('property', 'og:image', options.ogImageUrl);
+    meta('property', 'og:image:alt', options.title);
+  }
+  meta('name', 'twitter:card', options.ogImageUrl ? 'summary_large_image' : 'summary');
+  meta('name', 'twitter:title', options.title);
+  meta('name', 'twitter:description', options.description);
+  if (options.ogImageUrl) {
+    meta('name', 'twitter:image', options.ogImageUrl);
+  }
+  tags.push(`<link rel="canonical" href="${escapeHtml(options.canonicalUrl)}">`);
+
+  if (options.jsonLd) {
+    const graph = Array.isArray(options.jsonLd) ? options.jsonLd : [options.jsonLd];
+    const payload = graph.length > 1 ? { '@context': 'https://schema.org', '@graph': graph } : graph[0]!;
+    tags.push(
+      `<script type="application/ld+json" id="gg-hub-ld-json">${escapeScriptJson(payload)}</script>`
+    );
+  }
+
+  return tags.join('\n    ');
+}
+
 /**
  * Немедленно применяет SEO к текущей странице и возвращает cleanup-функцию.
  * Полезно для страниц, где данные (title/description) появляются после загрузки API.

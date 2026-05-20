@@ -11,6 +11,8 @@ import { computeMainSiteOriginForSsr, mainSiteOriginSsrKey } from '@/shared/lib/
 import { ssrRequestContext } from './ssr/requestContext';
 import '@/assets/main.css';
 import '@cyhnkckali/vue3-color-picker/dist/style.css';
+import { buildPageSeoHead, type PageSeoOptions } from '@/shared/lib/usePageSeo';
+import { postsApi, type Post } from '@/shared/api/postsApi';
 
 let ssrInterceptorsInstalled = false;
 
@@ -23,12 +25,77 @@ export interface SsrRenderOptions {
 export interface SsrRenderResult {
   html: string;
   piniaState: Record<string, unknown>;
+  head?: string;
   /**
    * Если в ходе router.beforeEach произошёл редирект на другой путь — сюда попадает
    * целевой fullPath. Сервер должен отдать HTTP 302, иначе на клиенте случится
    * hydration mismatch (SSR нарисовал одну страницу, клиент пытается нарисовать другую по текущему URL).
    */
   redirect?: string;
+}
+
+function stripHtmlToText(input: string): string {
+  return input
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildPostDescription(post: Post): string {
+  const raw = (post.preview ?? post.body ?? '').toString();
+  const text = stripHtmlToText(raw);
+  if (text.length >= 50) return text.slice(0, 170).trim();
+  const base = post.game_name ? `Пост по игре ${post.game_name}.` : 'Пост в gg-hub.';
+  return text ? `${text} ${base}`.trim() : base;
+}
+
+function buildPostKeywords(post: Post): string {
+  const parts = [
+    post.title ?? '',
+    post.game_name ?? '',
+    post.author_name ?? '',
+    'gg-hub',
+    'журнал',
+    'пост',
+  ]
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return [...new Set(parts)].join(', ');
+}
+
+async function resolveRouteSeo(url: string, origin: string): Promise<PageSeoOptions | undefined> {
+  const path = url.split('?')[0] ?? url;
+  const match = path.match(/^\/posts\/(\d+)\/?$/);
+  if (!match) return undefined;
+  const idRaw = match[1];
+  if (!idRaw) return undefined;
+  const postId = Number(idRaw);
+  if (!Number.isFinite(postId)) return undefined;
+
+  const post = await postsApi.getGlobalPost(postId);
+  const titleBase = post.title?.trim() || 'Запись';
+  const title = `${titleBase} — gg-hub`;
+  const canonicalUrl = `${origin}${url}`;
+  const description = buildPostDescription(post);
+
+  return {
+    title,
+    description,
+    canonicalUrl,
+    ogType: 'article',
+    keywords: buildPostKeywords(post),
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: titleBase,
+      description,
+      mainEntityOfPage: canonicalUrl,
+      datePublished: post.published_at_global ?? post.created_at,
+      dateModified: post.updated_at,
+      author: post.author_name ? { '@type': 'Person', name: post.author_name } : undefined,
+    },
+  };
 }
 
 /**
@@ -65,12 +132,17 @@ export async function render(url: string, opts: SsrRenderOptions): Promise<SsrRe
         return { html: '', piniaState: {}, redirect: resolvedFullPath };
       }
 
-      const html = await renderToString(app);
+      const origin = computeMainSiteOriginForSsr({ host: opts.host, protocol: opts.protocol });
+      const routeSeo = await resolveRouteSeo(url, origin).catch(() => undefined);
+      const ssrContext: { pageSeo?: PageSeoOptions } = {};
+      const html = await renderToString(app, ssrContext);
       const piniaState = pinia.state.value as Record<string, unknown>;
+      const pageSeo = ssrContext.pageSeo ?? routeSeo;
+      const head = pageSeo ? buildPageSeoHead(pageSeo) : undefined;
 
       setActiveRouter(null);
 
-      return { html, piniaState };
+      return { html, piniaState, head };
     },
   );
 }

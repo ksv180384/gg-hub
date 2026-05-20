@@ -23,7 +23,11 @@ function injectHomeSeoPlugin(mode: string): Plugin {
                 const fallbackOrigin =
                     mode === 'development' ? 'http://gg-hub.local' : DEFAULT_PRODUCTION_ORIGIN;
                 const siteOrigin = normalizeSiteOrigin(env.VITE_SITE_URL, fallbackOrigin);
-                const seo = buildHomePageStaticHeadHtml(siteOrigin, env);
+                const seo = [
+                    '<!--GG_SSR_HEAD_START-->',
+                    buildHomePageStaticHeadHtml(siteOrigin, env),
+                    '<!--GG_SSR_HEAD_END-->',
+                ].join('');
                 const noscript = buildHomeNoscriptHtml();
                 let out = html
                     .replace('<!--INJECT_HOME_SEO-->', seo)
