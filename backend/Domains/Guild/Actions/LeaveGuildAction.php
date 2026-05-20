@@ -18,13 +18,23 @@ class LeaveGuildAction
         private GuildLinkBuilder $linkBuilder,
     ) {}
 
-    public function __invoke(User $user, Guild $guild): void
+    public function __invoke(User $user, Guild $guild, ?int $characterId = null): void
     {
         $guild->loadMissing(['leader', 'members.character']);
 
-        // Находим участника по пользователю (по его персонажу)
-        $member = $guild->members
-            ->first(fn (GuildMember $m) => $m->character && (int) $m->character->user_id === (int) $user->id);
+        $userMembers = $guild->members
+            ->filter(fn (GuildMember $m) => $m->character && (int) $m->character->user_id === (int) $user->id);
+
+        if ($characterId) {
+            $member = $userMembers->first(
+                fn (GuildMember $m) => (int) $m->character_id === $characterId
+            );
+        } else {
+            $member = $userMembers->first(
+                fn (GuildMember $m) => ! $guild->leader_character_id
+                    || (int) $m->character_id !== (int) $guild->leader_character_id
+            ) ?? $userMembers->first();
+        }
 
         if (!$member) {
             throw ValidationException::withMessages([
@@ -54,4 +64,3 @@ class LeaveGuildAction
         );
     }
 }
-

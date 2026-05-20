@@ -27,9 +27,8 @@ class CreateGuildApplicationApprovedNotificationAction
         return Notification::create([
             'user_id' => $userId,
             'message' => "Ваша заявка в гильдию «{$guild->name}» была одобрена. Вы приняты в гильдию.",
-            // После одобрения логично вести сразу на страницу гильдии
-            'link' => '/guilds/' . $guild->id,
+            // После одобрения ведём на публичную страницу информации гильдии.
+            'link' => '/guilds/' . $guild->id . '/info',
         ]);
     }
 }
-

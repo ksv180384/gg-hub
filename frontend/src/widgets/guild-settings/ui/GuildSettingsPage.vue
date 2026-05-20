@@ -46,6 +46,7 @@ const model = reactive(useGuildSettingsModel());
             :field-errors="model.fieldErrors"
             :leaving="model.leaving"
             :leave-error="model.leaveError"
+            :leave-guild-characters="model.leaveGuildCharacters"
             @logoChange="model.onLogoChange"
             @logoDragOver="model.onLogoDragOver"
             @logoDragLeave="model.onLogoDragLeave"
@@ -190,7 +191,10 @@ const model = reactive(useGuildSettingsModel());
       <LeaveGuildConfirm
         :open="model.leaveDialogOpen"
         :loading="model.leaving"
+        :characters="model.leaveGuildCharacters"
+        :selected-character-id="model.selectedLeaveCharacterId"
         @update:open="(v) => { model.leaveDialogOpen = v; }"
+        @update:selectedCharacterId="model.selectedLeaveCharacterId = $event"
         @confirm="model.confirmLeaveGuild"
       />
 

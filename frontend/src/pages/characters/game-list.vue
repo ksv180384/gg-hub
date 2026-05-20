@@ -478,7 +478,7 @@ watch(
             <p v-else-if="visibleCharacters.length === 0" class="text-sm text-muted-foreground">
               По выбранным критериям персонажей не найдено.
             </p>
-            <ul v-else class="flex flex-wrap justify-around gap-3">
+            <ul v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <CharacterCard
                 v-for="c in visibleCharacters"
                 :key="c.id"

@@ -88,7 +88,7 @@ export interface Guild {
   /** Права текущего пользователя в гильдии (приходит только с GET /guilds/:id/settings). */
   my_permission_slugs?: string[];
   /** Персонажи текущего пользователя в гильдии (приходит с GET /guilds/:id/settings). */
-  my_characters?: { id: number; name: string; avatar_url?: string | null }[];
+  my_characters?: { id: number; name: string; avatar_url?: string | null; is_leader?: boolean }[];
   /** Смена leader_character_id: владелец гильдии или текущий лидер (по персонажу). GET /guilds/:id/settings. */
   can_change_guild_leader?: boolean;
   /**
@@ -796,8 +796,11 @@ export const guildsApi = {
   },
 
   /** Покинуть гильдию (участник, кроме лидера). */
-  async leaveGuild(id: number): Promise<void> {
-    const res = await http.fetchPost<{ message?: string }>(`/guilds/${id}/leave`, {});
+  async leaveGuild(id: number, characterId?: number): Promise<void> {
+    const res = await http.fetchPost<{ message?: string }>(
+      `/guilds/${id}/leave`,
+      characterId ? { character_id: characterId } : {}
+    );
     throwOnError(res, 'Не удалось покинуть гильдию');
   },
 

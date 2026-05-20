@@ -262,7 +262,13 @@ class GuildController extends Controller
         $data['my_permission_slugs'] = $permissionSlugs;
         $data['my_characters'] = $user
             ? ($this->getUserGuildCharactersAction)($user, $guild)
-                ->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'avatar_url' => $c->resolved_avatar_url])
+                ->map(fn ($c) => [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'avatar_url' => $c->resolved_avatar_url,
+                    'is_leader' => $guild->leader_character_id
+                        && (int) $guild->leader_character_id === (int) $c->id,
+                ])
                 ->values()
                 ->all()
             : [];
@@ -339,7 +345,15 @@ class GuildController extends Controller
      */
     public function leave(Request $request, Guild $guild): JsonResponse
     {
-        ($this->leaveGuildAction)($request->user(), $guild);
+        $data = $request->validate([
+            'character_id' => ['sometimes', 'integer', 'exists:characters,id'],
+        ]);
+
+        ($this->leaveGuildAction)(
+            $request->user(),
+            $guild,
+            isset($data['character_id']) ? (int) $data['character_id'] : null
+        );
 
         return response()->json(['message' => 'Вы покинули гильдию.']);
     }

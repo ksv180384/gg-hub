@@ -114,7 +114,12 @@ const routes: RouteRecordRaw[] = [
           path: 'guilds/:id/application-form',
           name: 'guild-application-form',
           component: () => import('@/pages/guilds/[id]/application-form/index.vue'),
-          meta: { requiresAuth: false, title: 'Подать заявку в гильдию' },
+          meta: {
+            requiresAuth: false,
+            title: 'Подать заявку в гильдию',
+            contentShell: true,
+            journalBanner: true,
+          },
         },
         {
           path: 'guilds/:id/applications',

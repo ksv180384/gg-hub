@@ -92,7 +92,8 @@ class GuildApplicationController extends Controller
     {
         $guild->load('applicationFormFields');
         $characterId = (int) $request->validated('character_id');
-        $formData = $request->validated('form_data');
+        $validated = $request->validated();
+        $formData = $validated['form_data'] ?? [];
         $application = ($this->submitAction)($guild, $characterId, $formData);
 
         $applicationLink = '/guilds/' . $guild->id . '/applications/list/' . $application->id;

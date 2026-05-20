@@ -209,6 +209,10 @@ export function useGuildSettingsModel() {
   const leaveDialogOpen = ref(false);
   const leaving = ref(false);
   const leaveError = ref<string | null>(null);
+  const selectedLeaveCharacterId = ref('');
+  const leaveGuildCharacters = computed(() =>
+    (guild.value?.my_characters ?? []).filter((character) => !character.is_leader)
+  );
 
   // discord
   const discordWebhookUrl = ref('');
@@ -445,6 +449,9 @@ export function useGuildSettingsModel() {
       applicationFormDescription.value = guild.value.application_form_description ?? '';
       selectedTagIds.value = (guild.value.tags ?? []).map((t) => t.id);
       applicationFormFields.value = guild.value.application_form_fields ?? [];
+      selectedLeaveCharacterId.value = leaveGuildCharacters.value[0]
+        ? String(leaveGuildCharacters.value[0].id)
+        : '';
       discordWebhookError.value = null;
       applyDiscordStateFromGuild(guild.value);
     } catch (e: unknown) {
@@ -642,11 +649,24 @@ export function useGuildSettingsModel() {
 
   async function confirmLeaveGuild() {
     if (!guild.value || leaving.value) return;
+    const characterId = Number(selectedLeaveCharacterId.value);
+    if (!characterId || Number.isNaN(characterId)) {
+      leaveError.value = 'Выберите персонажа, который покинет гильдию.';
+      return;
+    }
     leaving.value = true;
     leaveError.value = null;
     try {
-      await guildsApi.leaveGuild(guild.value.id);
-      router.push({ name: 'guilds' });
+      const remainingMyCharacters = (guild.value.my_characters ?? []).filter(
+        (character) => character.id !== characterId
+      );
+      await guildsApi.leaveGuild(guild.value.id, characterId);
+      if (remainingMyCharacters.length > 0) {
+        leaveDialogOpen.value = false;
+        await loadGuild();
+      } else {
+        router.push({ name: 'guilds' });
+      }
     } catch (e: unknown) {
       const err = e as Error & { message?: string };
       leaveError.value = err.message ?? 'Не удалось покинуть гильдию.';
@@ -900,6 +920,8 @@ export function useGuildSettingsModel() {
     leaveDialogOpen,
     leaving,
     leaveError,
+    leaveGuildCharacters,
+    selectedLeaveCharacterId,
     confirmLeaveGuild,
 
     // discord
@@ -912,4 +934,3 @@ export function useGuildSettingsModel() {
     saveDiscordNotification,
   };
 }
-

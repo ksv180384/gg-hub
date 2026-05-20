@@ -28,7 +28,7 @@ class SubmitGuildApplicationRequest extends FormRequest
         }
         $rules = [
             'character_id' => ['required', 'integer', 'exists:characters,id'],
-            'form_data' => ['required', 'array'],
+            'form_data' => ['sometimes', 'array'],
         ];
 
         if ($guild instanceof Guild && $guild->relationLoaded('applicationFormFields')) {
@@ -53,7 +53,7 @@ class SubmitGuildApplicationRequest extends FormRequest
         return [
             'character_id.required' => 'Выберите персонажа для заявки.',
             'character_id.exists' => 'Выбранный персонаж не найден.',
-            'form_data.required' => 'Заполните поля формы заявки.',
+            'form_data.array' => 'Поля формы заявки должны быть переданы в корректном формате.',
         ];
     }
 

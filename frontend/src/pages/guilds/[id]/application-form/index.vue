@@ -115,8 +115,9 @@ async function loadCharacters() {
       if (guildServerId != null && c.server_id !== guildServerId) return false;
       return true;
     });
-    if (characters.value.length > 0 && !selectedCharacterId.value) {
-      selectedCharacterId.value = String(characters.value[0].id);
+    const firstCharacter = characters.value[0];
+    if (firstCharacter && !selectedCharacterId.value) {
+      selectedCharacterId.value = String(firstCharacter.id);
     }
   } catch {
     characters.value = [];
@@ -260,7 +261,7 @@ function goToGuildInfo() {
 </script>
 
 <template>
-  <div class="container py-6 md:py-8">
+  <div>
     <div class="min-w-0 space-y-4">
       <template v-if="loading">
         <div class="relative flex flex-col md:flex-row md:items-start md:gap-3">

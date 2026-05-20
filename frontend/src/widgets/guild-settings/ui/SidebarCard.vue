@@ -37,6 +37,7 @@ const props = defineProps<{
   // leave
   leaving: boolean;
   leaveError: string | null;
+  leaveGuildCharacters: { id: number; name: string; avatar_url?: string | null; is_leader?: boolean }[];
 }>();
 
 const emit = defineEmits<{
@@ -169,7 +170,7 @@ function openLogoFilePicker() {
         </p>
       </div>
 
-      <div v-if="!canChangeGuildLeader" class="mt-0">
+      <div v-if="leaveGuildCharacters.length > 0" class="mt-0">
         <Button variant="destructive" size="sm" :disabled="leaving" @click="emit('openLeave')">
           Покинуть гильдию
         </Button>
