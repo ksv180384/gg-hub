@@ -111,11 +111,19 @@ class UpdateEventHistoryAction
             }
 
             if (array_key_exists('screenshots', $data)) {
+                $previousUrls = EventHistoryScreenshot::query()
+                    ->where('event_history_id', $history->id)
+                    ->pluck('url')
+                    ->filter()
+                    ->values()
+                    ->all();
+
                 EventHistoryScreenshot::query()
                     ->where('event_history_id', $history->id)
                     ->delete();
 
                 $screenshots = $data['screenshots'] ?? [];
+                $keptUrls = [];
                 foreach ($screenshots as $index => $screenshot) {
                     $url = $screenshot['url'] ?? null;
                     if (($screenshot['file'] ?? null) instanceof UploadedFile) {
@@ -126,12 +134,18 @@ class UpdateEventHistoryAction
                         continue;
                     }
 
+                    $keptUrls[] = $url;
+
                     EventHistoryScreenshot::query()->create([
                         'event_history_id' => $history->id,
                         'url' => $url,
                         'title' => $screenshots[$index]['title'] ?? null,
                         'sort_order' => $screenshots[$index]['sort_order'] ?? $index,
                     ]);
+                }
+
+                foreach (array_diff($previousUrls, $keptUrls) as $removedUrl) {
+                    $this->eventHistoryScreenshotService->deleteByUrl($removedUrl);
                 }
             }
 

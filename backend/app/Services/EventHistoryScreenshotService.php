@@ -29,4 +29,29 @@ class EventHistoryScreenshotService
 
         return url($disk->url($path));
     }
+
+    public function deleteByUrl(?string $url): void
+    {
+        if (! is_string($url) || $url === '') {
+            return;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+        if (! is_string($path)) {
+            return;
+        }
+
+        $storagePrefix = '/storage/';
+        $position = strpos($path, $storagePrefix);
+        if ($position === false) {
+            return;
+        }
+
+        $relativePath = substr($path, $position + strlen($storagePrefix));
+        if (! str_starts_with($relativePath, 'event-history/')) {
+            return;
+        }
+
+        Storage::disk('public')->delete($relativePath);
+    }
 }
