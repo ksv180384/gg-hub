@@ -26,7 +26,12 @@ function auctionRoom(guildId) {
 function getOrCreateGuildState(guildId) {
     const key = String(guildId);
     if (!guildAuctionState.has(key)) {
-        guildAuctionState.set(key, { entries: [], spinLockedUntil: 0, enrollmentOpen: false });
+        guildAuctionState.set(key, {
+            entries: [],
+            spinLockedUntil: 0,
+            enrollmentOpen: false,
+            eliminationMode: false,
+        });
     }
     return guildAuctionState.get(key);
 }
@@ -107,6 +112,7 @@ export function registerAuctionSocketHandlers(io, log = console) {
             socket.emit('auction:state', {
                 entries: st.entries,
                 enrollmentOpen: !!st.enrollmentOpen,
+                eliminationMode: !!st.eliminationMode,
             });
         });
 
@@ -183,6 +189,18 @@ export function registerAuctionSocketHandlers(io, log = console) {
             if (st.enrollmentOpen === open) return;
             st.enrollmentOpen = open;
             io.to(auctionRoom(guildId)).emit('auction:enrollment', { open: st.enrollmentOpen });
+        });
+
+        socket.on('auction:elimination-mode:set', payload => {
+            const guildId = Number(payload?.guildId);
+            if (!Number.isFinite(guildId) || guildId <= 0) return;
+            const st = getOrCreateGuildState(guildId);
+            const enabled = !!payload?.enabled;
+            if (st.eliminationMode === enabled) return;
+            st.eliminationMode = enabled;
+            io.to(auctionRoom(guildId)).emit('auction:elimination-mode', {
+                enabled: st.eliminationMode,
+            });
         });
 
         socket.on('auction:spin-request', payload => {

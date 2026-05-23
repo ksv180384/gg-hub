@@ -3,7 +3,7 @@
  * Canvas-рулетка: `angle` из `useSpinWheel` крутит диск через `rotate()`; стрелка статична сверху.
  * Подробности траектории и синхронизации — `widgets/spin-wheel/docs/SPIN_WHEEL_ROTATION.md`.
  */
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/shared/ui';
 import type { SpinWheelServerParams } from '@/shared/lib/spinWheelTypes';
 import { useSpinWheel } from '../model/useSpinWheel';
@@ -33,25 +33,38 @@ const props = withDefaults(
 const canvas = ref<HTMLCanvasElement | null>(null);
 const ctx = ref<CanvasRenderingContext2D | null>(null);
 const segmentColors = ref<string[]>([]);
+const drawingOptions = ref<string[]>([]);
+const drawingWeights = ref<number[] | undefined>();
 
 /** Tooltip при наведении на сегмент */
 const tooltip = ref({ show: false, text: '', x: 0, y: 0 });
 
 const emit = defineEmits<{
-  (e: 'result', value: string | null): void;
+  (e: 'result', value: string | null, index: number | null): void;
   /** Длительность вращения (мс) для сервера при синхронном режиме. */
   (e: 'spin-request', durationMs: number): void;
   /** Начало вращения (локально, с сервера или сразу после нажатия «Крутить» в remote-режиме). */
   (e: 'spin-start'): void;
 }>();
 
-const { angle, result, isSpinning, spinCountdownSeconds, spin, spinFromServer } = useSpinWheel(
+const {
+  angle,
+  result,
+  resultIndex,
+  resultSeq,
+  isSpinning,
+  spinCountdownSeconds,
+  spin,
+  spinFromServer,
+} = useSpinWheel(
   () => props.options,
   () => props.duration ?? 4000
 );
 
 defineExpose({
   spinFromServer: (p: SpinWheelServerParams) => spinFromServer(p),
+  spin,
+  animateRemoveSegment,
   isSpinning,
   spinCountdownSeconds,
 });
@@ -70,7 +83,7 @@ watch(isSpinning, (spinning) => {
   if (spinning) emit('spin-start');
 });
 
-watch(result, (v) => emit('result', v));
+watch(resultSeq, () => emit('result', result.value, resultIndex.value));
 
 onMounted(() => {
   if (!canvas.value) return;
@@ -78,10 +91,13 @@ onMounted(() => {
   renderWheel();
 });
 
+onUnmounted(stopRemoveAnimation);
+
 const WHEEL_SIZE = props.size;
 const CENTER = props.size / 2;
 const POINTER_HEIGHT = 20;
 const CANVAS_HEIGHT = WHEEL_SIZE + POINTER_HEIGHT;
+const SEGMENT_REMOVE_ANIMATION_MS = 420;
 
 /** Растровый кэш сегментов и текста (без поворота); на каждом кадре анимации — только rotate + drawImage. */
 let wheelCache: HTMLCanvasElement | null = null;
@@ -100,15 +116,89 @@ function rebuildWheelCache() {
   ensureWheelCacheCanvas();
   if (!wheelCacheCtx) return;
   wheelCacheCtx.clearRect(0, 0, WHEEL_SIZE, WHEEL_SIZE);
-  drawWheel(wheelCacheCtx, props.options, segmentColors.value, WHEEL_SIZE);
+  drawWheel(
+    wheelCacheCtx,
+    drawingOptions.value,
+    segmentColors.value,
+    WHEEL_SIZE,
+    drawingWeights.value
+  );
   wheelCacheDirty = false;
 }
 
 /** Следим и за длиной, и за содержимым: при 1→1 (плейсхолдер → имя) length не меняется, но колесо нужно перерисовать. */
+let removeAnimationRaf = 0;
+let pendingRemovedIndex: number | null = null;
+
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function stopRemoveAnimation() {
+  if (!removeAnimationRaf) return;
+  cancelAnimationFrame(removeAnimationRaf);
+  removeAnimationRaf = 0;
+}
+
+function animateRemoveSegment(index: number): Promise<void> {
+  if (index < 0 || index >= props.options.length || props.options.length <= 1) {
+    return Promise.resolve();
+  }
+
+  stopRemoveAnimation();
+  pendingRemovedIndex = index;
+  drawingOptions.value = [...props.options];
+  if (segmentColors.value.length !== props.options.length) {
+    segmentColors.value = getSoftColors(props.options.length);
+  }
+
+  const weights = props.options.map(() => 1);
+  drawingWeights.value = weights;
+  wheelCacheDirty = true;
+  renderWheel();
+
+  return new Promise((resolve) => {
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / SEGMENT_REMOVE_ANIMATION_MS);
+      const eased = easeInOutCubic(progress);
+      weights[index] = 1 - eased;
+      drawingWeights.value = [...weights];
+      wheelCacheDirty = true;
+      renderWheel();
+
+      if (progress < 1) {
+        removeAnimationRaf = requestAnimationFrame(tick);
+        return;
+      }
+
+      removeAnimationRaf = 0;
+      weights[index] = 0;
+      drawingWeights.value = [...weights];
+      wheelCacheDirty = true;
+      renderWheel();
+      resolve();
+    };
+    removeAnimationRaf = requestAnimationFrame(tick);
+  });
+}
+
 watch(
   () => [props.options?.length ?? 0, (props.options ?? []).join('\u0001')] as const,
   ([len]) => {
-    segmentColors.value = getSoftColors(len);
+    const removedIndex = pendingRemovedIndex;
+    if (
+      removedIndex !== null &&
+      segmentColors.value.length === len + 1 &&
+      drawingOptions.value.length === len + 1
+    ) {
+      segmentColors.value = segmentColors.value.filter((_, i) => i !== removedIndex);
+    } else if (segmentColors.value.length !== len) {
+      segmentColors.value = getSoftColors(len);
+    }
+    pendingRemovedIndex = null;
+    drawingOptions.value = [...props.options];
+    drawingWeights.value = undefined;
     wheelCacheDirty = true;
     if (ctx.value) renderWheel();
   },
@@ -122,12 +212,25 @@ function getSegmentAt(offsetX: number, offsetY: number): number {
   const dx = offsetX - CENTER;
   const dy = offsetY - POINTER_HEIGHT - CENTER;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist > CENTER || props.options.length === 0) return -1;
+  const options = drawingOptions.value;
+  if (dist > CENTER || options.length === 0) return -1;
 
   const canvasAngle = Math.atan2(dy, dx);
   const modelAngle = ((canvasAngle - (angle.value * Math.PI) / 180) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-  const arc = (2 * Math.PI) / props.options.length;
-  return Math.floor(modelAngle / arc) % props.options.length;
+  const weights = drawingWeights.value?.length === options.length
+    ? drawingWeights.value.map((w) => Math.max(0, Number.isFinite(w) ? w : 0))
+    : options.map(() => 1);
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  if (totalWeight <= 0) return -1;
+
+  let startAngle = 0;
+  for (let i = 0; i < options.length; i++) {
+    const arc = (2 * Math.PI * (weights[i] ?? 0)) / totalWeight;
+    const endAngle = startAngle + arc;
+    if (modelAngle >= startAngle && modelAngle < endAngle) return i;
+    startAngle = endAngle;
+  }
+  return options.length - 1;
 }
 
 function onWheelMouseMove(e: MouseEvent) {
@@ -143,7 +246,7 @@ function onWheelMouseMove(e: MouseEvent) {
   if (idx >= 0) {
     tooltip.value = {
       show: true,
-      text: props.options[idx],
+      text: drawingOptions.value[idx] ?? '',
       x: e.clientX,
       y: e.clientY,
     };

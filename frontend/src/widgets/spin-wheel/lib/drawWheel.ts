@@ -7,7 +7,7 @@ export function truncateText(
     if (maxWidth <= 0) return '';
     const width = ctx.measureText(text).width;
     if (width <= maxWidth) return text;
-    const ellipsis = '…';
+    const ellipsis = '...';
     const ellipsisWidth = ctx.measureText(ellipsis).width;
     let truncated = text;
     while (truncated.length > 0 && ctx.measureText(truncated + ellipsis).width > maxWidth) {
@@ -29,7 +29,7 @@ export function getSoftColors(count: number): string[] {
     const shuffled = [...SOFT_COLORS].sort(() => Math.random() - 0.5);
     const result: string[] = [];
     for (let i = 0; i < count; i++) {
-        result.push(shuffled[i % shuffled.length]);
+        result.push(shuffled[i % shuffled.length] ?? '#f3f4f6');
     }
     return result;
 }
@@ -38,47 +38,65 @@ export function drawWheel(
     ctx: CanvasRenderingContext2D,
     options: string[],
     colors?: string[],
-    size = 400
+    size = 400,
+    segmentWeights?: number[]
 ) {
+    if (options.length === 0) return;
+
     const center = size / 2;
     const radius = size / 2;
-    const arc = (2 * Math.PI) / options.length;
+    const weights =
+        segmentWeights?.length === options.length
+            ? segmentWeights.map((w) => Math.max(0, Number.isFinite(w) ? w : 0))
+            : options.map(() => 1);
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+    if (totalWeight <= 0) return;
+
     const segmentColors =
         colors?.length === options.length ? colors : getSoftColors(options.length);
     const fontSize = Math.max(12, Math.round(size * 0.04));
     const textRadius = radius * 0.9;
-    /** Макс. ширина: по радиусу (не заходить за центр) и по хорде (не выходить в соседний сегмент). */
     const maxByRadius = textRadius * 0.92;
-    const maxByArc = Math.max(20, textRadius * arc * 0.85);
-    const maxTextWidth = Math.min(maxByRadius, maxByArc);
 
+    let startAngle = 0;
     for (let i = 0; i < options.length; i++) {
+        const weight = weights[i] ?? 0;
+        if (weight <= 0.001) continue;
+
+        const arc = (2 * Math.PI * weight) / totalWeight;
+        const endAngle = startAngle + arc;
+
         ctx.beginPath();
-        ctx.fillStyle = segmentColors[i];
+        ctx.fillStyle = segmentColors[i] ?? '#f3f4f6';
         ctx.moveTo(center, center);
-        ctx.arc(center, center, radius, arc * i, arc * (i + 1));
+        ctx.arc(center, center, radius, startAngle, endAngle);
         ctx.fill();
 
         ctx.save();
         ctx.translate(center, center);
-        ctx.fillStyle = "#000";
+        ctx.fillStyle = '#000';
         ctx.font = `${fontSize}px sans-serif`;
+
+        const maxByArc = Math.max(20, textRadius * arc * 0.85);
+        const maxTextWidth = Math.min(maxByRadius, maxByArc);
         const label = truncateText(
             ctx,
-            options[i],
+            options[i] ?? '',
             options.length === 1 ? radius * 1.55 : maxTextWidth
         );
-        if (options.length === 1) {
-            // При одном сегменте arc/2 = π — радиальная подпись оказывается вверх ногами.
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
+
+        if (options.length === 1 || arc >= Math.PI * 1.75) {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             ctx.fillText(label, 0, 0);
-        } else {
-            ctx.rotate(arc * i + arc / 2);
-            ctx.textAlign = "right";
-            ctx.textBaseline = "alphabetic";
+        } else if (arc > 0.08) {
+            ctx.rotate(startAngle + arc / 2);
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'alphabetic';
             ctx.fillText(label, textRadius, fontSize * 0.6);
         }
         ctx.restore();
+
+        startAngle = endAngle;
     }
 }

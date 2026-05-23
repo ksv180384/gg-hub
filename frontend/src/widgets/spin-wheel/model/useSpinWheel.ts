@@ -90,6 +90,8 @@ export function useSpinWheel(
 ) {
     const angle = ref(0);
     const result = ref<string | null>(null);
+    const resultIndex = ref<number | null>(null);
+    const resultSeq = ref(0);
     const isSpinning = ref(false);
     /** Обратный отсчёт секунд во время вращения; null — колесо не крутится. */
     const spinCountdownSeconds = ref<number | null>(null);
@@ -199,7 +201,9 @@ export function useSpinWheel(
     const calculateResult = () => {
         const options = optionsGetter();
         if (options.length === 0) {
+            resultIndex.value = null;
             result.value = null;
+            resultSeq.value += 1;
             return;
         }
         // Совпадает с поворотом колеса в SpinWheel.vue (верх = 12 часов).
@@ -207,12 +211,16 @@ export function useSpinWheel(
         const normalizedAngle = mod360(topAngle - mod360(angle.value));
         const arc = 360 / options.length;
         const selectedIndex = Math.floor(normalizedAngle / arc) % options.length;
-        result.value = options[selectedIndex];
+        resultIndex.value = selectedIndex;
+        result.value = options[selectedIndex] ?? null;
+        resultSeq.value += 1;
     };
 
     return {
         angle,
         result,
+        resultIndex,
+        resultSeq,
         isSpinning,
         spinCountdownSeconds,
         spin,

@@ -109,6 +109,8 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     externalWheelNickname.value = '';
     externalWheelHintError.value = '';
     importWheelExcelError.value = '';
+    eliminationActive.value = false;
+    clearEliminationNextSpinTimer();
   }
 
   function removeGuildFromWheel(characterId: number) {
@@ -120,6 +122,20 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
   function removeExternalFromWheel(id: string) {
     wheelEntries.value = wheelEntries.value.filter(
       (e) => !(e.kind === 'external' && e.id === id)
+    );
+  }
+
+  function removeWheelEntryAtIndex(index: number) {
+    if (index < 0 || index >= wheelEntries.value.length) return;
+    wheelEntries.value = wheelEntries.value.filter((_, i) => i !== index);
+  }
+
+  function getWheelEntryName(entry: WheelEntry | undefined): string | null {
+    if (!entry) return null;
+    if (entry.kind === 'external') return entry.name;
+    return (
+      roster.value.find((m) => m.character_id === entry.character_id)?.name ??
+      `Персонаж #${entry.character_id}`
     );
   }
 
@@ -257,6 +273,10 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
   const wheelSpinResult = ref<string | null>(null);
   const winnerDisplayKey = ref(0);
   const winnerBannerDismissed = ref(false);
+  const eliminationMode = ref(false);
+  const eliminationActive = ref(false);
+  const eliminationAwaitingRemoteWinner = ref(false);
+  let eliminationNextSpinTimer: ReturnType<typeof setTimeout> | null = null;
 
   const showWheelWinnerBanner = computed(() => {
     if (winnerBannerDismissed.value) return false;
@@ -267,9 +287,63 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     return true;
   });
 
-  function onSpinWheelResult(value: string | null) {
+  function clearEliminationNextSpinTimer() {
+    if (eliminationNextSpinTimer === null) return;
+    clearTimeout(eliminationNextSpinTimer);
+    eliminationNextSpinTimer = null;
+  }
+
+  function requestNextEliminationSpin() {
+    clearEliminationNextSpinTimer();
+    eliminationNextSpinTimer = setTimeout(() => {
+      eliminationNextSpinTimer = null;
+      if (!eliminationActive.value || !eliminationMode.value) return;
+      if (!canManageRoulette.value || isWheelSpinning.value) return;
+      if (wheelEntries.value.length <= 1) return;
+      if (remoteSpin.value) {
+        requestSpin(wheelSpinDurationMs.value);
+        return;
+      }
+      spinWheelRef.value?.spin?.();
+    }, 650);
+  }
+
+  async function onSpinWheelResult(value: string | null, index: number | null = null) {
+    if (
+      eliminationActive.value &&
+      eliminationMode.value &&
+      wheelEntries.value.length > 1 &&
+      index !== null
+    ) {
+      await spinWheelRef.value?.animateRemoveSegment?.(index);
+
+      if (!canManageRoulette.value) {
+        wheelSpinResult.value = null;
+        winnerBannerDismissed.value = true;
+        eliminationAwaitingRemoteWinner.value = true;
+        return;
+      }
+
+      removeWheelEntryAtIndex(index);
+      const remaining = wheelEntries.value;
+      if (remaining.length === 1) {
+        wheelSpinResult.value = getWheelEntryName(remaining[0]) ?? value;
+        winnerBannerDismissed.value = false;
+        winnerDisplayKey.value += 1;
+        eliminationActive.value = false;
+        eliminationAwaitingRemoteWinner.value = false;
+        return;
+      }
+      wheelSpinResult.value = null;
+      winnerBannerDismissed.value = true;
+      requestNextEliminationSpin();
+      return;
+    }
+
     wheelSpinResult.value = value;
     winnerBannerDismissed.value = false;
+    eliminationActive.value = false;
+    eliminationAwaitingRemoteWinner.value = false;
     const opts = wheelOptions.value;
     const placeholder = opts.length === 1 && opts[0] === WHEEL_EMPTY_PLACEHOLDER;
     if (value?.trim() && !placeholder) {
@@ -282,9 +356,25 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
   }
 
   function onSpinWheelStart() {
+    clearEliminationNextSpinTimer();
+    eliminationActive.value =
+      eliminationMode.value && wheelEntries.value.length > 1;
+    eliminationAwaitingRemoteWinner.value = false;
     wheelSpinResult.value = null;
     winnerBannerDismissed.value = false;
   }
+
+  watch([eliminationMode, wheelEntries], ([mode, entries]) => {
+    if (eliminationAwaitingRemoteWinner.value && entries.length === 1) {
+      wheelSpinResult.value = getWheelEntryName(entries[0]);
+      winnerBannerDismissed.value = false;
+      winnerDisplayKey.value += 1;
+      eliminationAwaitingRemoteWinner.value = false;
+    }
+    if (mode && entries.length > 1) return;
+    eliminationActive.value = false;
+    clearEliminationNextSpinTimer();
+  });
 
   watch(wheelOptions, (opts) => {
     if (opts.length === 0 || (opts.length === 1 && opts[0] === WHEEL_EMPTY_PLACEHOLDER)) {
@@ -352,12 +442,13 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     guildId,
     wheelEntries,
     spinWheelRef,
+    eliminationMode,
     canManageAuctionWheel: canManageRoulette,
   });
 
   /** Можно менять состав колеса (целиком): есть права + не идёт вращение. */
   const canEditWheelEntries = computed(
-    () => canManageRoulette.value && !isWheelSpinning.value
+    () => canManageRoulette.value && !isWheelSpinning.value && !eliminationActive.value
   );
 
   const authStore = useAuthStore();
@@ -454,8 +545,9 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
 
   function openCharacterPicker() {
     if (!canParticipateInRoulette.value) return;
-    if (myCharactersAvailable.value.length === 1) {
-      addOwnCharacterToWheel(myCharactersAvailable.value[0].character_id);
+    const onlyCharacter = myCharactersAvailable.value[0];
+    if (myCharactersAvailable.value.length === 1 && onlyCharacter) {
+      addOwnCharacterToWheel(onlyCharacter.character_id);
       return;
     }
     characterPickerOpen.value = true;
@@ -536,6 +628,8 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     clearImportWheelExcelError,
     canManageRoulette,
     canEditWheelEntries,
+    eliminationMode,
+    eliminationActive,
     wheelSpinResult,
     winnerDisplayKey,
     showWheelWinnerBanner,

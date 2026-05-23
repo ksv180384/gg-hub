@@ -12,7 +12,6 @@ import EnrollmentToggleButton from './EnrollmentToggleButton.vue';
 import RouletteWinnerBanner from './RouletteWinnerBanner.vue';
 import SocketStatusMessage from './SocketStatusMessage.vue';
 import RouletteSettingsDialog from './RouletteSettingsDialog.vue';
-import WheelDurationField from './WheelDurationField.vue';
 import WheelEntriesList from './WheelEntriesList.vue';
 
 const props = defineProps<{
@@ -25,10 +24,6 @@ function resolveUserColor(entry: WheelEntry) {
   return props.model.getEntryUserColor(entry);
 }
 
-/**
- * Резолвер «можно убрать запись» для рядового члена гильдии: он удаляет только
- * своих персонажей, и только пока набор открыт и нет вращения.
- */
 function resolveCanRemove(entry: WheelEntry): boolean {
   if (entry.kind !== 'guild') return false;
   if (!props.model.canRemoveOwnCharacter) return false;
@@ -37,10 +32,6 @@ function resolveCanRemove(entry: WheelEntry): boolean {
   );
 }
 
-/**
- * ✕ в списке «На колесе»: менеджер — полное обновление через сокет;
- * рядовой участник — только свои персонажи через `auction:entries:remove`.
- */
 function onRemoveGuildFromWheelList(characterId: number) {
   if (props.model.canManageRoulette) {
     props.model.removeGuildFromWheel(characterId);
@@ -49,7 +40,6 @@ function onRemoveGuildFromWheelList(characterId: number) {
   props.model.removeOwnCharacterFromWheel(characterId);
 }
 
-/** Function ref: пробрасываем экземпляр SpinWheel в state модели через сеттер. */
 function setSpinWheelRef(el: unknown) {
   props.model.setSpinWheelInstance(
     (el as GuildAuctionSpinWheelExpose | null) ?? null
@@ -59,14 +49,8 @@ function setSpinWheelRef(el: unknown) {
 const wheelCardInfoHint =
   'Добавьте участников справа или загрузите список из Excel, затем крутите колесо.\n\nРулетка и список на колесе синхронизируются у всех, кто открыл эту страницу.\n\nИзменять состав колеса и запускать розыгрыш могут только участники с правом «Управление рулеткой» (роли гильдии).';
 
-/** Диаметр колеса (px), совпадает с `:size` у `SpinWheel`. */
 const SPIN_WHEEL_SIZE_PX = 360;
-/**
- * Высота зоны стрелки над диском в `SpinWheel.vue` (`POINTER_HEIGHT`).
- * При смене там — обновить и здесь.
- */
 const SPIN_WHEEL_POINTER_PX = 20;
-/** Центр диска по вертикали от верха корня `SpinWheel` (верх canvas). */
 const WINNER_OVERLAY_CENTER_TOP_PX =
   SPIN_WHEEL_POINTER_PX + SPIN_WHEEL_SIZE_PX / 2;
 </script>
@@ -77,7 +61,7 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
       <CardHeader class="space-y-3">
         <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <CardTitle class="flex shrink-0 items-center gap-1.5 text-left">
-            Рулетка гильдии
+            Рулетка
             <Tooltip
               :content="wheelCardInfoHint"
               side="top"
@@ -86,7 +70,7 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
               <button
                 type="button"
                 class="inline-flex shrink-0 rounded-sm text-muted-foreground outline-none ring-offset-background transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                aria-label="Справка по рулетке гильдии"
+                aria-label="Справка по рулетке"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -106,6 +90,7 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
               </button>
             </Tooltip>
           </CardTitle>
+
           <div class="flex min-w-0 flex-wrap items-center justify-center gap-2 sm:ml-auto sm:justify-end">
             <EnrollmentToggleButton
               v-if="model.canManageRoulette"
@@ -115,33 +100,17 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
               @open="model.openEnrollment"
               @close="model.closeEnrollment"
             />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent class="flex flex-col items-stretch gap-6">
-        <SocketStatusMessage
-          :socket-configured="model.socketConfigured"
-          :socket-connected="model.socketConnected"
-          :socket-connect-error="model.socketConnectError"
-          :socket-uses-explicit-url="model.socketUsesExplicitUrl"
-          :remote-spin="model.remoteSpin"
-        />
-        <WheelDurationField
-          v-if="model.canManageRoulette"
-          v-model="model.wheelSpinDurationSeconds"
-          :countdown-seconds="model.wheelSpinCountdownSeconds"
-          :disabled="model.isWheelSpinning"
-          @blur="model.clampWheelSpinSecondsField"
-        >
-          <template #right>
-            <Tooltip content="Настройки рулетки" side="top">
+            <Tooltip
+              v-if="model.canManageRoulette"
+              content="Настройки рулетки"
+              side="top"
+            >
               <button
                 type="button"
                 class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 aria-label="Настройки рулетки"
                 @click="settingsOpen = true"
               >
-                <!-- Lucide settings -->
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -162,8 +131,18 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
                 </svg>
               </button>
             </Tooltip>
-          </template>
-        </WheelDurationField>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent class="flex flex-col items-stretch gap-6">
+        <SocketStatusMessage
+          :socket-configured="model.socketConfigured"
+          :socket-connected="model.socketConnected"
+          :socket-connect-error="model.socketConnectError"
+          :socket-uses-explicit-url="model.socketUsesExplicitUrl"
+          :remote-spin="model.remoteSpin"
+        />
         <RouletteSettingsDialog
           v-if="model.canManageRoulette"
           v-model:open="settingsOpen"
@@ -178,7 +157,7 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
               :duration="model.wheelSpinDurationMs"
               :remote-spin="model.remoteSpin"
               :show-spin-button="model.canManageRoulette"
-              :spin-disabled="model.wheelEntries.length === 0"
+              :spin-disabled="model.wheelEntries.length === 0 || model.eliminationActive"
               :hide-inline-countdown="model.canManageRoulette"
               @result="model.onSpinWheelResult"
               @spin-start="model.onSpinWheelStart"

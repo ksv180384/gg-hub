@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Button } from '@/shared/ui';
+import { Button, Tooltip } from '@/shared/ui';
 
 const props = defineProps<{
   enrollmentOpen: boolean;
   /** Если true, нельзя переключать (например, идёт вращение). */
   disabled?: boolean;
-  /** Состояние сокета — для дизейбла, когда нет коннекта. */
+  /** Состояние сокета - для дизейбла, когда нет коннекта. */
   remoteAvailable: boolean;
 }>();
 
@@ -16,17 +16,22 @@ defineEmits<{
 </script>
 
 <template>
-  <Button
+  <Tooltip
     v-if="!enrollmentOpen"
-    type="button"
-    size="sm"
-    variant="default"
-    :disabled="props.disabled || !remoteAvailable"
-    class="shrink-0"
-    @click="$emit('open')"
+    content="Открывает набор: участники гильдии смогут сами добавить своих персонажей на колесо рулетки."
+    side="bottom"
   >
-    Открыть набор участников
-  </Button>
+    <Button
+      type="button"
+      size="sm"
+      variant="default"
+      :disabled="props.disabled || !remoteAvailable"
+      class="shrink-0"
+      @click="$emit('open')"
+    >
+      Открыть набор участников
+    </Button>
+  </Tooltip>
   <Button
     v-else
     type="button"

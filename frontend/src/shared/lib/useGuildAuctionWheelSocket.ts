@@ -18,6 +18,8 @@ export type GuildAuctionWheelEntry =
 
 export type GuildAuctionSpinWheelExpose = {
   spinFromServer: (p: SpinWheelServerParams) => void;
+  spin?: () => void;
+  animateRemoveSegment?: (index: number) => Promise<void>;
   spinCountdownSeconds: Ref<number | null>;
   isSpinning: Ref<boolean>;
 };
@@ -55,6 +57,7 @@ function normalizeEntries(raw: unknown): GuildAuctionWheelEntry[] {
 export function useGuildAuctionWheelSocket(options: {
   guildId: Ref<number>;
   wheelEntries: Ref<GuildAuctionWheelEntry[]>;
+  eliminationMode: Ref<boolean>;
   spinWheelRef: ShallowRef<GuildAuctionSpinWheelExpose | null>;
   canManageAuctionWheel: Ref<boolean>;
 }) {
@@ -63,6 +66,7 @@ export function useGuildAuctionWheelSocket(options: {
   /** Получили начальное состояние с сервера — до этого не шлём локальные entries, чтобы не затереть комнату. */
   const hasServerState = ref(false);
   const applyingRemoteEntries = ref(false);
+  const applyingRemoteEliminationMode = ref(false);
   const connectError = ref<string | null>(null);
   /** Открыт ли набор участников (синхронизируется со всеми в комнате). */
   const enrollmentOpen = ref(false);
@@ -90,6 +94,14 @@ export function useGuildAuctionWheelSocket(options: {
 
   function applyRemoteEnrollment(open: unknown) {
     enrollmentOpen.value = !!open;
+  }
+
+  function applyRemoteEliminationMode(enabled: unknown) {
+    applyingRemoteEliminationMode.value = true;
+    options.eliminationMode.value = !!enabled;
+    nextTick(() => {
+      applyingRemoteEliminationMode.value = false;
+    });
   }
 
   async function loadIo() {
@@ -131,9 +143,14 @@ export function useGuildAuctionWheelSocket(options: {
 
       s.on(
         'auction:state',
-        (msg: { entries?: unknown; enrollmentOpen?: unknown }) => {
+        (msg: {
+          entries?: unknown;
+          enrollmentOpen?: unknown;
+          eliminationMode?: unknown;
+        }) => {
           applyRemoteEntries(msg?.entries);
           applyRemoteEnrollment(msg?.enrollmentOpen);
+          applyRemoteEliminationMode(msg?.eliminationMode);
         }
       );
 
@@ -143,6 +160,10 @@ export function useGuildAuctionWheelSocket(options: {
 
       s.on('auction:enrollment', (msg: { open?: unknown }) => {
         applyRemoteEnrollment(msg?.open);
+      });
+
+      s.on('auction:elimination-mode', (msg: { enabled?: unknown }) => {
+        applyRemoteEliminationMode(msg?.enabled);
       });
 
       s.on('auction:spin', (payload: SpinWheelServerParams) => {
@@ -186,6 +207,17 @@ export function useGuildAuctionWheelSocket(options: {
     },
     { deep: true }
   );
+
+  watch(options.eliminationMode, (enabled) => {
+    if (!options.canManageAuctionWheel.value) return;
+    const s = socketRef.value;
+    if (!s?.connected || !hasServerState.value || applyingRemoteEliminationMode.value) {
+      return;
+    }
+    const gid = options.guildId.value;
+    if (gid <= 0) return;
+    s.emit('auction:elimination-mode:set', { guildId: gid, enabled: !!enabled });
+  });
 
   function requestSpin(durationMs: number) {
     if (!options.canManageAuctionWheel.value) return;
