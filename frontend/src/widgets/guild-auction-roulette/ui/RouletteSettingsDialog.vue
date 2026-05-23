@@ -72,6 +72,24 @@ function onOpenChange(value: boolean) {
             </span>
           </label>
 
+          <label
+            class="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/20 p-3 text-sm transition-colors hover:bg-muted/35"
+            :class="{ 'cursor-not-allowed opacity-60': props.model.isWheelSpinning }"
+          >
+            <input
+              v-model="props.model.useDkpCoefficients"
+              type="checkbox"
+              class="mt-0.5 size-4 rounded border-border accent-primary"
+              :disabled="props.model.isWheelSpinning"
+            />
+            <span class="grid gap-1">
+              <span class="font-medium text-foreground">Учитывать коэффициенты</span>
+              <span class="text-muted-foreground">
+                Размер сектора персонажа зависит от его коэффициента. У участников не из гильдии вес равен 1.
+              </span>
+            </span>
+          </label>
+
           <div class="flex justify-end gap-2 pt-2">
             <Button variant="outline" @click="onOpenChange(false)">
               Закрыть

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, unref } from 'vue';
 import { Card, CardContent, CardHeader, CardTitle, Tooltip } from '@/shared/ui';
 import { SpinWheel } from '@/widgets/spin-wheel';
 import {
@@ -19,6 +19,31 @@ const props = defineProps<{
 }>();
 
 const settingsOpen = ref(false);
+
+const spinWheelOptions = computed(() => {
+  const options = unref(props.model.wheelOptions);
+  return options.length > 0 ? options : [WHEEL_EMPTY_PLACEHOLDER];
+});
+
+const spinWheelWeights = computed(() => {
+  const weights = unref(props.model.wheelWeights);
+  return weights.length > 0 ? weights : [1];
+});
+
+const wheelCoefficientValues = computed(() => {
+  const coefficients = unref(props.model.wheelCoefficientValues);
+  return coefficients.length > 0 ? coefficients : [1];
+});
+
+const spinDisabled = computed(
+  () =>
+    unref(props.model.wheelEntries).length === 0 ||
+    unref(props.model.eliminationActive)
+);
+
+const showWheelCoefficients = computed(() =>
+  unref(props.model.useDkpCoefficients)
+);
 
 function resolveUserColor(entry: WheelEntry) {
   return props.model.getEntryUserColor(entry);
@@ -152,12 +177,13 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
           <div class="relative inline-flex">
             <SpinWheel
               :ref="setSpinWheelRef"
-              :options="model.wheelOptions.length > 0 ? model.wheelOptions : [WHEEL_EMPTY_PLACEHOLDER]"
+              :options="spinWheelOptions"
+              :weights="spinWheelWeights"
               :size="SPIN_WHEEL_SIZE_PX"
               :duration="model.wheelSpinDurationMs"
               :remote-spin="model.remoteSpin"
               :show-spin-button="model.canManageRoulette"
-              :spin-disabled="model.wheelEntries.length === 0 || model.eliminationActive"
+              :spin-disabled="spinDisabled"
               :hide-inline-countdown="model.canManageRoulette"
               @result="model.onSpinWheelResult"
               @spin-start="model.onSpinWheelStart"
@@ -186,6 +212,19 @@ const WINNER_OVERLAY_CENTER_TOP_PX =
         <WheelEntriesList
           :entries="model.wheelEntries"
           :options="model.wheelOptions"
+          :weights="wheelCoefficientValues"
+          :show-coefficients="unref(showWheelCoefficients)"
+          :can-edit-coefficients="model.canManageRouletteDkpCoefficients"
+          :coefficient-draft="model.getWheelEntryDkpCoefficientDraft"
+          :coefficient-error="
+            (entry) =>
+              entry.kind === 'guild'
+                ? model.getDkpCoefficientError(entry.character_id)
+                : model.getExternalDkpCoefficientError(entry.id)
+          "
+          :set-coefficient-draft="model.setWheelEntryDkpCoefficientDraft"
+          :apply-coefficient="model.applyWheelEntryDkpCoefficient"
+          :reset-coefficient="model.resetWheelEntryDkpCoefficient"
           :can-edit-wheel-entries="model.canEditWheelEntries"
           :resolve-can-remove="resolveCanRemove"
           :resolve-user-color="resolveUserColor"

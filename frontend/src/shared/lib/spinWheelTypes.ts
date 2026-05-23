@@ -12,4 +12,5 @@ export type SpinWheelServerParams = {
   fullTurns: number;
   /** Длительность анимации на клиенте, мс. */
   duration: number;
+  weights?: number[];
 };

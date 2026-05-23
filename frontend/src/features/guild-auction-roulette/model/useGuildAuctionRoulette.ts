@@ -43,6 +43,12 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
 
   const externalWheelNickname = ref('');
   const externalWheelHintError = ref('');
+  const dkpCoefficientDraftByCharacterId = ref<Record<number, string>>({});
+  const dkpCoefficientErrorByCharacterId = ref<Record<number, string>>({});
+  const rouletteDkpCoefficientByCharacterId = ref<Record<number, number>>({});
+  const externalDkpCoefficientDraftById = ref<Record<string, string>>({});
+  const externalDkpCoefficientErrorById = ref<Record<string, string>>({});
+  const rouletteDkpCoefficientByExternalId = ref<Record<string, number>>({});
 
   const filteredRoster = computed(() => {
     const q = searchQuery.value.trim().toLowerCase();
@@ -262,6 +268,8 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
       )
   );
 
+  const canManageRouletteDkpCoefficients = computed(() => canManageRoulette.value);
+
   async function loadAuctionPage() {
     guildAuctionAccessNotFound.value = false;
     await Promise.all([loadRoster(), loadGuildSettingsForAuction()]);
@@ -274,6 +282,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
   const winnerDisplayKey = ref(0);
   const winnerBannerDismissed = ref(false);
   const eliminationMode = ref(false);
+  const useDkpCoefficients = ref(false);
   const eliminationActive = ref(false);
   const eliminationAwaitingRemoteWinner = ref(false);
   let eliminationNextSpinTimer: ReturnType<typeof setTimeout> | null = null;
@@ -293,6 +302,38 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     eliminationNextSpinTimer = null;
   }
 
+  function getWheelEntryCoefficient(entry: WheelEntry): number {
+    if (entry.kind === 'external') {
+      const override = rouletteDkpCoefficientByExternalId.value[entry.id];
+      return override !== undefined && Number.isFinite(override) && override >= 0
+        ? override
+        : 1;
+    }
+    const override = rouletteDkpCoefficientByCharacterId.value[entry.character_id];
+    if (override !== undefined && Number.isFinite(override) && override >= 0) {
+      return override;
+    }
+    const member = roster.value.find((m) => m.character_id === entry.character_id);
+    const coefficient = Number(member?.dkp_coefficient);
+    return Number.isFinite(coefficient) && coefficient >= 0 ? coefficient : 1;
+  }
+
+  function getWheelEntryWeight(entry: WheelEntry): number {
+    if (!useDkpCoefficients.value) return 1;
+    const coefficient = getWheelEntryCoefficient(entry);
+    if (!eliminationMode.value) return coefficient;
+    const safeCoefficient = coefficient > 0 ? coefficient : 0.01;
+    return 1 / safeCoefficient;
+  }
+
+  const wheelCoefficientValues = computed(() =>
+    wheelEntries.value.map((entry) => getWheelEntryCoefficient(entry))
+  );
+
+  const wheelWeights = computed(() =>
+    wheelEntries.value.map((entry) => getWheelEntryWeight(entry))
+  );
+
   function requestNextEliminationSpin() {
     clearEliminationNextSpinTimer();
     eliminationNextSpinTimer = setTimeout(() => {
@@ -301,7 +342,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
       if (!canManageRoulette.value || isWheelSpinning.value) return;
       if (wheelEntries.value.length <= 1) return;
       if (remoteSpin.value) {
-        requestSpin(wheelSpinDurationMs.value);
+        requestSpin(wheelSpinDurationMs.value, wheelWeights.value);
         return;
       }
       spinWheelRef.value?.spin?.();
@@ -443,6 +484,9 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     wheelEntries,
     spinWheelRef,
     eliminationMode,
+    useDkpCoefficients,
+    dkpCoefficientOverrides: rouletteDkpCoefficientByCharacterId,
+    externalDkpCoefficientOverrides: rouletteDkpCoefficientByExternalId,
     canManageAuctionWheel: canManageRoulette,
   });
 
@@ -603,6 +647,161 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     return userColorByUserId.value.get(member.user_id) ?? null;
   }
 
+  function formatDkpCoefficientValue(value: number | undefined): string {
+    const coefficient = Number(value);
+    const safe = Number.isFinite(coefficient) && coefficient >= 0 ? coefficient : 1;
+    return Number.isInteger(safe) ? String(safe) : String(Number(safe.toFixed(2)));
+  }
+
+  function getDkpCoefficientDraft(member: GuildRosterMember): string {
+    return (
+      dkpCoefficientDraftByCharacterId.value[member.character_id] ??
+      formatDkpCoefficientValue(
+        rouletteDkpCoefficientByCharacterId.value[member.character_id] ??
+          member.dkp_coefficient
+      )
+    );
+  }
+
+  function setDkpCoefficientDraft(characterId: number, value: string) {
+    dkpCoefficientDraftByCharacterId.value = {
+      ...dkpCoefficientDraftByCharacterId.value,
+      [characterId]: value,
+    };
+    dkpCoefficientErrorByCharacterId.value = {
+      ...dkpCoefficientErrorByCharacterId.value,
+      [characterId]: '',
+    };
+  }
+
+  function getDkpCoefficientError(characterId: number): string {
+    return dkpCoefficientErrorByCharacterId.value[characterId] ?? '';
+  }
+
+  function getWheelEntryDkpCoefficientDraft(entry: WheelEntry): string {
+    if (entry.kind === 'external') {
+      return (
+        externalDkpCoefficientDraftById.value[entry.id] ??
+        formatDkpCoefficientValue(getWheelEntryCoefficient(entry))
+      );
+    }
+    return (
+      dkpCoefficientDraftByCharacterId.value[entry.character_id] ??
+      formatDkpCoefficientValue(getWheelEntryCoefficient(entry))
+    );
+  }
+
+  function setWheelEntryDkpCoefficientDraft(entry: WheelEntry, value: string) {
+    if (entry.kind === 'external') {
+      externalDkpCoefficientDraftById.value = {
+        ...externalDkpCoefficientDraftById.value,
+        [entry.id]: value,
+      };
+      externalDkpCoefficientErrorById.value = {
+        ...externalDkpCoefficientErrorById.value,
+        [entry.id]: '',
+      };
+      return;
+    }
+    setDkpCoefficientDraft(entry.character_id, value);
+  }
+
+  function applyWheelEntryDkpCoefficient(entry: WheelEntry) {
+    if (!canManageRouletteDkpCoefficients.value) return;
+    const raw = getWheelEntryDkpCoefficientDraft(entry).trim().replace(',', '.');
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0 || value > 999) {
+      if (entry.kind === 'external') {
+        externalDkpCoefficientErrorById.value = {
+          ...externalDkpCoefficientErrorById.value,
+          [entry.id]: 'Коэффициент от 0 до 999.',
+        };
+        return;
+      }
+      dkpCoefficientErrorByCharacterId.value = {
+        ...dkpCoefficientErrorByCharacterId.value,
+        [entry.character_id]: 'Коэффициент от 0 до 999.',
+      };
+      return;
+    }
+
+    if (entry.kind === 'external') {
+      rouletteDkpCoefficientByExternalId.value = {
+        ...rouletteDkpCoefficientByExternalId.value,
+        [entry.id]: value,
+      };
+      externalDkpCoefficientErrorById.value = {
+        ...externalDkpCoefficientErrorById.value,
+        [entry.id]: '',
+      };
+      externalDkpCoefficientDraftById.value = {
+        ...externalDkpCoefficientDraftById.value,
+        [entry.id]: formatDkpCoefficientValue(value),
+      };
+      return;
+    }
+
+    rouletteDkpCoefficientByCharacterId.value = {
+      ...rouletteDkpCoefficientByCharacterId.value,
+      [entry.character_id]: value,
+    };
+    dkpCoefficientErrorByCharacterId.value = {
+      ...dkpCoefficientErrorByCharacterId.value,
+      [entry.character_id]: '',
+    };
+    setDkpCoefficientDraft(entry.character_id, formatDkpCoefficientValue(value));
+  }
+
+  function resetWheelEntryDkpCoefficient(entry: WheelEntry) {
+    if (!canManageRouletteDkpCoefficients.value) return;
+    if (entry.kind === 'external') {
+      const { [entry.id]: _removed, ...nextOverrides } =
+        rouletteDkpCoefficientByExternalId.value;
+      const { [entry.id]: _removedDraft, ...nextDrafts } =
+        externalDkpCoefficientDraftById.value;
+      rouletteDkpCoefficientByExternalId.value = nextOverrides;
+      externalDkpCoefficientDraftById.value = nextDrafts;
+      externalDkpCoefficientErrorById.value = {
+        ...externalDkpCoefficientErrorById.value,
+        [entry.id]: '',
+      };
+      return;
+    }
+    const { [entry.character_id]: _removed, ...nextOverrides } =
+      rouletteDkpCoefficientByCharacterId.value;
+    const { [entry.character_id]: _removedDraft, ...nextDrafts } =
+      dkpCoefficientDraftByCharacterId.value;
+    rouletteDkpCoefficientByCharacterId.value = nextOverrides;
+    dkpCoefficientDraftByCharacterId.value = nextDrafts;
+    dkpCoefficientErrorByCharacterId.value = {
+      ...dkpCoefficientErrorByCharacterId.value,
+      [entry.character_id]: '',
+    };
+  }
+
+  function applyRouletteDkpCoefficient(member: GuildRosterMember) {
+    if (!canManageRouletteDkpCoefficients.value) return;
+    const raw = getDkpCoefficientDraft(member).trim().replace(',', '.');
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0 || value > 999) {
+      dkpCoefficientErrorByCharacterId.value = {
+        ...dkpCoefficientErrorByCharacterId.value,
+        [member.character_id]: 'Коэффициент от 0 до 999.',
+      };
+      return;
+    }
+
+    rouletteDkpCoefficientByCharacterId.value = {
+      ...rouletteDkpCoefficientByCharacterId.value,
+      [member.character_id]: value,
+    };
+    dkpCoefficientErrorByCharacterId.value = {
+      ...dkpCoefficientErrorByCharacterId.value,
+      [member.character_id]: '',
+    };
+    setDkpCoefficientDraft(member.character_id, formatDkpCoefficientValue(value));
+  }
+
   return {
     roster,
     loading,
@@ -627,9 +826,13 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     importWheelExcelFromFile,
     clearImportWheelExcelError,
     canManageRoulette,
+    canManageRouletteDkpCoefficients,
     canEditWheelEntries,
     eliminationMode,
+    useDkpCoefficients,
     eliminationActive,
+    wheelCoefficientValues,
+    wheelWeights,
     wheelSpinResult,
     winnerDisplayKey,
     showWheelWinnerBanner,
@@ -668,6 +871,16 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     userColorByUserId,
     getEntryUserColor,
     getMemberUserColor,
+    getDkpCoefficientDraft,
+    setDkpCoefficientDraft,
+    applyRouletteDkpCoefficient,
+    getWheelEntryDkpCoefficientDraft,
+    setWheelEntryDkpCoefficientDraft,
+    applyWheelEntryDkpCoefficient,
+    resetWheelEntryDkpCoefficient,
+    getDkpCoefficientError,
+    getExternalDkpCoefficientError: (id: string) =>
+      externalDkpCoefficientErrorById.value[id] ?? '',
   };
 }
 

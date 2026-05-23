@@ -12,6 +12,7 @@ import { drawWheel, getSoftColors } from '../lib/drawWheel';
 const props = withDefaults(
   defineProps<{
     options: string[];
+    weights?: number[];
     duration?: number;
     /** Диаметр колеса в пикселях (по умолчанию 400) */
     size?: number;
@@ -35,6 +36,7 @@ const ctx = ref<CanvasRenderingContext2D | null>(null);
 const segmentColors = ref<string[]>([]);
 const drawingOptions = ref<string[]>([]);
 const drawingWeights = ref<number[] | undefined>();
+const serverSpinWeights = ref<number[] | null>(null);
 
 /** Tooltip при наведении на сегмент */
 const tooltip = ref({ show: false, text: '', x: 0, y: 0 });
@@ -42,10 +44,30 @@ const tooltip = ref({ show: false, text: '', x: 0, y: 0 });
 const emit = defineEmits<{
   (e: 'result', value: string | null, index: number | null): void;
   /** Длительность вращения (мс) для сервера при синхронном режиме. */
-  (e: 'spin-request', durationMs: number): void;
+  (e: 'spin-request', durationMs: number, weights: number[]): void;
   /** Начало вращения (локально, с сервера или сразу после нажатия «Крутить» в remote-режиме). */
   (e: 'spin-start'): void;
 }>();
+
+function getCurrentWeights(options: string[]): number[] {
+  return getCurrentWeightsFromRaw(options, props.weights);
+}
+
+function getActiveWeights(options: string[]): number[] {
+  return serverSpinWeights.value ?? getCurrentWeights(options);
+}
+
+function getCurrentWeightsFromRaw(options: string[], raw?: number[]): number[] {
+  if (!raw || raw.length !== options.length) {
+    return options.map(() => 1);
+  }
+  const weights = raw.map((weight) => {
+    const n = Number(weight);
+    return Number.isFinite(n) && n >= 0 ? n : 1;
+  });
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  return total > 0 ? weights : options.map(() => 1);
+}
 
 const {
   angle,
@@ -58,11 +80,23 @@ const {
   spinFromServer,
 } = useSpinWheel(
   () => props.options,
-  () => props.duration ?? 4000
+  () => props.duration ?? 4000,
+  () => getActiveWeights(props.options)
 );
 
 defineExpose({
-  spinFromServer: (p: SpinWheelServerParams) => spinFromServer(p),
+  spinFromServer: (p: SpinWheelServerParams) => {
+    serverSpinWeights.value =
+      Array.isArray(p.weights) && p.weights.length === props.options.length
+        ? getCurrentWeightsFromRaw(props.options, p.weights)
+        : null;
+    if (serverSpinWeights.value) {
+      drawingWeights.value = [...serverSpinWeights.value];
+      wheelCacheDirty = true;
+      renderWheel();
+    }
+    spinFromServer(p);
+  },
   spin,
   animateRemoveSegment,
   isSpinning,
@@ -71,9 +105,10 @@ defineExpose({
 
 function onSpinClick() {
   if (props.spinDisabled || isSpinning.value) return;
+  serverSpinWeights.value = null;
   if (props.remoteSpin) {
     emit('spin-start');
-    emit('spin-request', props.duration ?? 4000);
+    emit('spin-request', props.duration ?? 4000, getCurrentWeights(props.options));
     return;
   }
   spin();
@@ -83,7 +118,10 @@ watch(isSpinning, (spinning) => {
   if (spinning) emit('spin-start');
 });
 
-watch(resultSeq, () => emit('result', result.value, resultIndex.value));
+watch(resultSeq, () => {
+  emit('result', result.value, resultIndex.value);
+  serverSpinWeights.value = null;
+});
 
 onMounted(() => {
   if (!canvas.value) return;
@@ -152,7 +190,8 @@ function animateRemoveSegment(index: number): Promise<void> {
     segmentColors.value = getSoftColors(props.options.length);
   }
 
-  const weights = props.options.map(() => 1);
+  const weights = getActiveWeights(props.options);
+  const removedStartWeight = weights[index] ?? 1;
   drawingWeights.value = weights;
   wheelCacheDirty = true;
   renderWheel();
@@ -162,7 +201,7 @@ function animateRemoveSegment(index: number): Promise<void> {
     const tick = (now: number) => {
       const progress = Math.min(1, (now - start) / SEGMENT_REMOVE_ANIMATION_MS);
       const eased = easeInOutCubic(progress);
-      weights[index] = 1 - eased;
+      weights[index] = removedStartWeight * (1 - eased);
       drawingWeights.value = [...weights];
       wheelCacheDirty = true;
       renderWheel();
@@ -184,7 +223,12 @@ function animateRemoveSegment(index: number): Promise<void> {
 }
 
 watch(
-  () => [props.options?.length ?? 0, (props.options ?? []).join('\u0001')] as const,
+  () =>
+    [
+      props.options?.length ?? 0,
+      (props.options ?? []).join('\u0001'),
+      (props.weights ?? []).join('\u0001'),
+    ] as const,
   ([len]) => {
     const removedIndex = pendingRemovedIndex;
     if (
@@ -198,7 +242,7 @@ watch(
     }
     pendingRemovedIndex = null;
     drawingOptions.value = [...props.options];
-    drawingWeights.value = undefined;
+    drawingWeights.value = getCurrentWeights(props.options);
     wheelCacheDirty = true;
     if (ctx.value) renderWheel();
   },

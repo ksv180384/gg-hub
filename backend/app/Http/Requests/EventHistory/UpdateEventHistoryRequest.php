@@ -36,8 +36,9 @@ class UpdateEventHistoryRequest extends FormRequest
             'participants.*.dkp_coefficient' => ['nullable', 'numeric', 'min:0', 'max:999'],
             'participants.*.dkp_points_override' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
 
-            'screenshots' => ['sometimes', 'nullable', 'array'],
-            'screenshots.*.url' => ['required_with:screenshots', 'url', 'max:2000'],
+            'screenshots' => ['sometimes', 'nullable', 'array', 'max:5'],
+            'screenshots.*.url' => ['nullable', 'required_without:screenshots.*.file', 'url', 'max:2000'],
+            'screenshots.*.file' => ['nullable', 'required_without:screenshots.*.url', 'image', 'max:10240'],
             'screenshots.*.title' => ['nullable', 'string', 'max:255'],
             'screenshots.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ];
@@ -66,9 +67,13 @@ class UpdateEventHistoryRequest extends FormRequest
             'participants.*.dkp_points_override.min' => 'Переопределение ДКП не может быть отрицательным.',
 
             'screenshots.array' => 'Список скриншотов должен быть массивом.',
-            'screenshots.*.url.required_with' => 'Укажите ссылку на скриншот.',
+            'screenshots.max' => 'Можно загрузить максимум 5 скриншотов.',
+            'screenshots.*.url.required_without' => 'Добавьте файл скриншота или оставьте существующую ссылку.',
             'screenshots.*.url.url' => 'Ссылка на скриншот должна быть корректным URL.',
             'screenshots.*.url.max' => 'Ссылка на скриншот слишком длинная.',
+            'screenshots.*.file.required_without' => 'Добавьте файл скриншота или оставьте существующую ссылку.',
+            'screenshots.*.file.image' => 'Файл скриншота должен быть изображением.',
+            'screenshots.*.file.max' => 'Файл скриншота не должен быть больше 10 МБ.',
             'screenshots.*.title.max' => 'Название скриншота не должно превышать 255 символов.',
             'screenshots.*.sort_order.integer' => 'Порядок сортировки должен быть числом.',
             'screenshots.*.sort_order.min' => 'Порядок сортировки не может быть отрицательным.',
@@ -93,9 +98,9 @@ class UpdateEventHistoryRequest extends FormRequest
             'participants.*.dkp_points_override' => 'переопределение ДКП',
             'screenshots' => 'скриншоты',
             'screenshots.*.url' => 'ссылка на скриншот',
+            'screenshots.*.file' => 'файл скриншота',
             'screenshots.*.title' => 'название скриншота',
             'screenshots.*.sort_order' => 'порядок сортировки',
         ];
     }
 }
-

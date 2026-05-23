@@ -58,6 +58,7 @@ function isMine(member: GuildRosterMember): boolean {
     member.user_id === props.model.currentUserId
   );
 }
+
 </script>
 
 <template>

@@ -2,12 +2,14 @@
 
 namespace Domains\Event\Actions;
 
+use App\Services\EventHistoryScreenshotService;
 use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryParticipant;
 use Domains\Event\Models\EventHistoryScreenshot;
 use Domains\Event\Models\EventHistoryTitle;
 use Domains\Guild\Support\ResolveEventParticipantDkpCoefficient;
 use Domains\GuildDkp\Actions\SyncEventHistoryDkpLedgerAction;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +18,7 @@ class CreateEventHistoryAction
     public function __construct(
         private SyncEventHistoryDkpLedgerAction $syncEventHistoryDkpLedgerAction,
         private ResolveEventParticipantDkpCoefficient $resolveEventParticipantDkpCoefficient,
+        private EventHistoryScreenshotService $eventHistoryScreenshotService,
     ) {}
     /**
      * @param  array{
@@ -26,7 +29,7 @@ class CreateEventHistoryAction
      *     dkp_base_points?: int|null,
      *     distribute_dkp_to_participants?: bool,
      *     participants?: array<int, array{character_id?: int|null, external_name?: string|null, dkp_coefficient?: float|int|string|null, dkp_points_override?: int|null}>,
-     *     screenshots?: array<int, array{url: string, title?: string|null, sort_order?: int|null}>
+     *     screenshots?: array<int, array{url?: string|null, file?: UploadedFile|null, title?: string|null, sort_order?: int|null}>
      * }  $data
      */
     public function __invoke(array $data): EventHistory
@@ -78,9 +81,18 @@ class CreateEventHistoryAction
 
             $screenshots = $data['screenshots'] ?? [];
             foreach ($screenshots as $index => $screenshot) {
+                $url = $screenshot['url'] ?? null;
+                if (($screenshot['file'] ?? null) instanceof UploadedFile) {
+                    $url = $this->eventHistoryScreenshotService->store($screenshot['file'], (int) $history->id);
+                }
+
+                if (! is_string($url) || trim($url) === '') {
+                    continue;
+                }
+
                 EventHistoryScreenshot::query()->create([
                     'event_history_id' => $history->id,
-                    'url' => $screenshot['url'],
+                    'url' => $url,
                     'title' => $screenshot['title'] ?? null,
                     'sort_order' => $screenshot['sort_order'] ?? $index,
                 ]);
@@ -99,4 +111,3 @@ class CreateEventHistoryAction
         });
     }
 }
-

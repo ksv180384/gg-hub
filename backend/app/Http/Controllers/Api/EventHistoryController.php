@@ -58,7 +58,12 @@ class EventHistoryController extends Controller
 
     public function store(StoreEventHistoryRequest $request, Guild $guild): JsonResponse
     {
-        $data = array_merge($request->validated(), [
+        $validated = $request->validated();
+        if ($request->boolean('participants_empty')) {
+            $validated['participants'] = [];
+        }
+
+        $data = array_merge($validated, [
             'guild_id' => $guild->id,
         ]);
 
@@ -76,7 +81,12 @@ class EventHistoryController extends Controller
             throw new NotFoundHttpException('Событие не найдено.');
         }
 
-        $updated = ($this->updateEventHistoryAction)($model, $request->validated());
+        $validated = $request->validated();
+        if ($request->boolean('participants_empty')) {
+            $validated['participants'] = [];
+        }
+
+        $updated = ($this->updateEventHistoryAction)($model, $validated);
 
         return response()->json(new EventHistoryResource($updated));
     }
@@ -93,4 +103,3 @@ class EventHistoryController extends Controller
         return response()->noContent();
     }
 }
-

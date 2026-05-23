@@ -2,6 +2,8 @@ import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import type { AxiosRequestConfig } from 'axios';
 
+declare const process: { env: Record<string, string | undefined> } | undefined;
+
 interface HttpConfig {
   baseUrl: string;
   defaultHeaders: Record<string, string>;
@@ -47,6 +49,9 @@ const httpClient = ({ baseUrl, defaultHeaders }: HttpConfig): HttpClient => {
 
   const request = async <T>(config: AxiosRequestConfig): Promise<HttpResponse<T>> => {
     const headers = { ...config.headers } as NonNullable<typeof config.headers>;
+    if (config.data instanceof FormData) {
+      (headers as Record<string, unknown>)['Content-Type'] = undefined;
+    }
 
     try {
       const { data, status } = await axiosInstant.request<T>({
@@ -141,9 +146,7 @@ const httpClient = ({ baseUrl, defaultHeaders }: HttpConfig): HttpClient => {
     const isFormData = data instanceof FormData;
     const headers = {
       ...config.headers,
-      ...(isFormData
-        ? { 'Content-Type': false }
-        : { 'Content-Type': 'application/json' }),
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     };
     return request<T>({
       ...config,

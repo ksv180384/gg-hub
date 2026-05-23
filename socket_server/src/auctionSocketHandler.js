@@ -31,6 +31,9 @@ function getOrCreateGuildState(guildId) {
             spinLockedUntil: 0,
             enrollmentOpen: false,
             eliminationMode: false,
+            useDkpCoefficients: false,
+            dkpCoefficientOverrides: {},
+            externalDkpCoefficientOverrides: {},
         });
     }
     return guildAuctionState.get(key);
@@ -57,6 +60,44 @@ function sanitizeEntries(raw) {
     return out;
 }
 
+function sanitizeDkpCoefficientOverrides(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const out = {};
+    for (const [key, value] of Object.entries(raw)) {
+        const characterId = Number(key);
+        const coefficient = Number(value);
+        if (
+            Number.isFinite(characterId) &&
+            characterId > 0 &&
+            Number.isFinite(coefficient) &&
+            coefficient >= 0 &&
+            coefficient <= 999
+        ) {
+            out[String(Math.round(characterId))] = coefficient;
+        }
+    }
+    return out;
+}
+
+function sanitizeExternalDkpCoefficientOverrides(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const out = {};
+    for (const [key, value] of Object.entries(raw)) {
+        const coefficient = Number(value);
+        if (
+            typeof key === 'string' &&
+            key.length > 0 &&
+            key.length <= 120 &&
+            Number.isFinite(coefficient) &&
+            coefficient >= 0 &&
+            coefficient <= 999
+        ) {
+            out[key] = coefficient;
+        }
+    }
+    return out;
+}
+
 const MIN_FULL_TURNS = 5;
 const MAX_FULL_TURNS = 120;
 const FULL_TURNS_REF_MS = 4_000;
@@ -76,18 +117,55 @@ function fullTurnsFromDurationMs(durationMs) {
  * @param {number} n — число сегментов (участников)
  * @param {number} durationMs
  */
-function buildSpinPayload(n, durationMs) {
-    const arc = 360 / n;
+function sanitizeSpinWeights(raw, n) {
+    if (!Array.isArray(raw) || raw.length !== n) {
+        return Array.from({ length: n }, () => 1);
+    }
+    const weights = raw.map(weight => {
+        const value = Number(weight);
+        return Number.isFinite(value) && value >= 0 ? value : 1;
+    });
+    return weights.reduce((sum, weight) => sum + weight, 0) > 0
+        ? weights
+        : Array.from({ length: n }, () => 1);
+}
+
+function getWeightedSegmentBounds(index, weights) {
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    if (total <= 0) return { start: 0, arc: 360 };
+    const startWeight = weights
+        .slice(0, index)
+        .reduce((sum, weight) => sum + weight, 0);
+    return {
+        start: (360 * startWeight) / total,
+        arc: (360 * (weights[index] ?? 1)) / total,
+    };
+}
+
+function getRandomWeightedIndex(weights) {
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    let pick = Math.random() * total;
+    for (let i = 0; i < weights.length; i++) {
+        pick -= weights[i] ?? 0;
+        if (pick <= 0) return i;
+    }
+    return Math.max(0, weights.length - 1);
+}
+
+function buildSpinPayload(n, durationMs, rawWeights) {
+    const weights = sanitizeSpinWeights(rawWeights, n);
+    const winIdx = getRandomWeightedIndex(weights);
+    const { start, arc } = getWeightedSegmentBounds(winIdx, weights);
     const margin = Math.min(arc * 0.06, 8);
     const span = Math.max(arc - 2 * margin, arc * 0.5);
-    const winIdx = Math.floor(Math.random() * n);
-    const norm = winIdx * arc + margin + Math.random() * span;
+    const norm = start + margin + Math.random() * span;
     const fullTurns = fullTurnsFromDurationMs(durationMs);
     return {
         winIdx,
         norm,
         fullTurns,
         duration: durationMs,
+        weights,
     };
 }
 
@@ -113,6 +191,9 @@ export function registerAuctionSocketHandlers(io, log = console) {
                 entries: st.entries,
                 enrollmentOpen: !!st.enrollmentOpen,
                 eliminationMode: !!st.eliminationMode,
+                useDkpCoefficients: !!st.useDkpCoefficients,
+                dkpCoefficientOverrides: st.dkpCoefficientOverrides,
+                externalDkpCoefficientOverrides: st.externalDkpCoefficientOverrides,
             });
         });
 
@@ -203,6 +284,38 @@ export function registerAuctionSocketHandlers(io, log = console) {
             });
         });
 
+        socket.on('auction:use-dkp-coefficients:set', payload => {
+            const guildId = Number(payload?.guildId);
+            if (!Number.isFinite(guildId) || guildId <= 0) return;
+            const st = getOrCreateGuildState(guildId);
+            const enabled = !!payload?.enabled;
+            if (st.useDkpCoefficients === enabled) return;
+            st.useDkpCoefficients = enabled;
+            io.to(auctionRoom(guildId)).emit('auction:use-dkp-coefficients', {
+                enabled: st.useDkpCoefficients,
+            });
+        });
+
+        socket.on('auction:dkp-coefficients:set', payload => {
+            const guildId = Number(payload?.guildId);
+            if (!Number.isFinite(guildId) || guildId <= 0) return;
+            const st = getOrCreateGuildState(guildId);
+            st.dkpCoefficientOverrides = sanitizeDkpCoefficientOverrides(payload?.overrides);
+            io.to(auctionRoom(guildId)).emit('auction:dkp-coefficients', {
+                overrides: st.dkpCoefficientOverrides,
+            });
+        });
+
+        socket.on('auction:external-dkp-coefficients:set', payload => {
+            const guildId = Number(payload?.guildId);
+            if (!Number.isFinite(guildId) || guildId <= 0) return;
+            const st = getOrCreateGuildState(guildId);
+            st.externalDkpCoefficientOverrides = sanitizeExternalDkpCoefficientOverrides(payload?.overrides);
+            io.to(auctionRoom(guildId)).emit('auction:external-dkp-coefficients', {
+                overrides: st.externalDkpCoefficientOverrides,
+            });
+        });
+
         socket.on('auction:spin-request', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
@@ -214,7 +327,7 @@ export function registerAuctionSocketHandlers(io, log = console) {
             if (st.spinLockedUntil > now) return;
 
             const durationMs = clampSpinDurationMs(payload?.durationMs);
-            const spinPayload = buildSpinPayload(n, durationMs);
+            const spinPayload = buildSpinPayload(n, durationMs, payload?.weights);
             st.spinLockedUntil = now + spinPayload.duration + 400;
 
             // Запуск розыгрыша автоматически закрывает набор участников.

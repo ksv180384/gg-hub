@@ -35,6 +35,13 @@ const eventHistoryId = computed(() =>
 );
 const isEdit = computed(() => eventHistoryId.value != null);
 
+type ScreenshotRow = {
+  url?: string;
+  title: string;
+  file?: File;
+  previewUrl?: string;
+};
+
 const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
@@ -64,7 +71,7 @@ const form = ref({
   dkp_base_points: '',
   participants: [] as EventsFormParticipant[],
   externalNickname: '',
-  screenshots: [] as { url: string; title: string }[],
+  screenshots: [] as ScreenshotRow[],
 });
 
 const titleSuggestions = ref<EventHistoryTitleDto[]>([]);
@@ -252,14 +259,6 @@ async function onParticipantsXlsxChange(ev: Event) {
   }
 }
 
-function addScreenshotRow() {
-  form.value.screenshots.push({ url: '', title: '' });
-}
-
-function removeScreenshotRow(index: number) {
-  form.value.screenshots.splice(index, 1);
-}
-
 async function loadEventIfEdit() {
   if (!isEdit.value || !guildId.value || !eventHistoryId.value) return;
   loading.value = true;
@@ -441,11 +440,12 @@ async function submit() {
     }),
     screenshots: form.value.screenshots
       .map((s, index) => ({
-        url: s.url.trim(),
+        url: s.url?.trim(),
+        file: s.file,
         title: s.title.trim() || null,
         sort_order: index,
       }))
-      .filter((s) => s.url.length > 0),
+      .filter((s) => s.file || (s.url?.length ?? 0) > 0),
   };
 
   if (dkpEnabled.value) {
@@ -561,8 +561,6 @@ onMounted(async () => {
               <EventsFormScreenshotsTab
                 v-show="activeTab === 'screenshots'"
                 v-model:screenshots="form.screenshots"
-                @add-screenshot-row="addScreenshotRow"
-                @remove-screenshot-row="removeScreenshotRow"
               />
 
               <div class="flex flex-wrap justify-end gap-2 border-t pt-4">
@@ -661,4 +659,3 @@ onMounted(async () => {
   />
   </div>
 </template>
-

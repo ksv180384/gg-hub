@@ -44,6 +44,43 @@ function normalizeEntries(raw: unknown): GuildAuctionWheelEntry[] {
   return out;
 }
 
+function normalizeDkpCoefficientOverrides(raw: unknown): Record<number, number> {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<number, number> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const characterId = Number(key);
+    const coefficient = Number(value);
+    if (
+      Number.isFinite(characterId) &&
+      characterId > 0 &&
+      Number.isFinite(coefficient) &&
+      coefficient >= 0 &&
+      coefficient <= 999
+    ) {
+      out[characterId] = coefficient;
+    }
+  }
+  return out;
+}
+
+function normalizeExternalDkpCoefficientOverrides(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const coefficient = Number(value);
+    if (
+      key.length > 0 &&
+      key.length <= 120 &&
+      Number.isFinite(coefficient) &&
+      coefficient >= 0 &&
+      coefficient <= 999
+    ) {
+      out[key] = coefficient;
+    }
+  }
+  return out;
+}
+
 /**
  * Синхронизация рулетки аукциона через Socket.IO.
  *
@@ -58,6 +95,9 @@ export function useGuildAuctionWheelSocket(options: {
   guildId: Ref<number>;
   wheelEntries: Ref<GuildAuctionWheelEntry[]>;
   eliminationMode: Ref<boolean>;
+  useDkpCoefficients: Ref<boolean>;
+  dkpCoefficientOverrides: Ref<Record<number, number>>;
+  externalDkpCoefficientOverrides: Ref<Record<string, number>>;
   spinWheelRef: ShallowRef<GuildAuctionSpinWheelExpose | null>;
   canManageAuctionWheel: Ref<boolean>;
 }) {
@@ -67,6 +107,9 @@ export function useGuildAuctionWheelSocket(options: {
   const hasServerState = ref(false);
   const applyingRemoteEntries = ref(false);
   const applyingRemoteEliminationMode = ref(false);
+  const applyingRemoteUseDkpCoefficients = ref(false);
+  const applyingRemoteDkpCoefficientOverrides = ref(false);
+  const applyingRemoteExternalDkpCoefficientOverrides = ref(false);
   const connectError = ref<string | null>(null);
   /** Открыт ли набор участников (синхронизируется со всеми в комнате). */
   const enrollmentOpen = ref(false);
@@ -101,6 +144,32 @@ export function useGuildAuctionWheelSocket(options: {
     options.eliminationMode.value = !!enabled;
     nextTick(() => {
       applyingRemoteEliminationMode.value = false;
+    });
+  }
+
+  function applyRemoteUseDkpCoefficients(enabled: unknown) {
+    applyingRemoteUseDkpCoefficients.value = true;
+    options.useDkpCoefficients.value = !!enabled;
+    nextTick(() => {
+      applyingRemoteUseDkpCoefficients.value = false;
+    });
+  }
+
+  function applyRemoteDkpCoefficientOverrides(overrides: unknown) {
+    applyingRemoteDkpCoefficientOverrides.value = true;
+    options.dkpCoefficientOverrides.value =
+      normalizeDkpCoefficientOverrides(overrides);
+    nextTick(() => {
+      applyingRemoteDkpCoefficientOverrides.value = false;
+    });
+  }
+
+  function applyRemoteExternalDkpCoefficientOverrides(overrides: unknown) {
+    applyingRemoteExternalDkpCoefficientOverrides.value = true;
+    options.externalDkpCoefficientOverrides.value =
+      normalizeExternalDkpCoefficientOverrides(overrides);
+    nextTick(() => {
+      applyingRemoteExternalDkpCoefficientOverrides.value = false;
     });
   }
 
@@ -146,13 +215,21 @@ export function useGuildAuctionWheelSocket(options: {
         (msg: {
           entries?: unknown;
           enrollmentOpen?: unknown;
-          eliminationMode?: unknown;
-        }) => {
+            eliminationMode?: unknown;
+            useDkpCoefficients?: unknown;
+            dkpCoefficientOverrides?: unknown;
+            externalDkpCoefficientOverrides?: unknown;
+          }) => {
           applyRemoteEntries(msg?.entries);
           applyRemoteEnrollment(msg?.enrollmentOpen);
           applyRemoteEliminationMode(msg?.eliminationMode);
-        }
-      );
+            applyRemoteUseDkpCoefficients(msg?.useDkpCoefficients);
+            applyRemoteDkpCoefficientOverrides(msg?.dkpCoefficientOverrides);
+            applyRemoteExternalDkpCoefficientOverrides(
+              msg?.externalDkpCoefficientOverrides
+            );
+          }
+        );
 
       s.on('auction:entries', (msg: { entries?: unknown }) => {
         applyRemoteEntries(msg?.entries);
@@ -164,6 +241,18 @@ export function useGuildAuctionWheelSocket(options: {
 
       s.on('auction:elimination-mode', (msg: { enabled?: unknown }) => {
         applyRemoteEliminationMode(msg?.enabled);
+      });
+
+      s.on('auction:use-dkp-coefficients', (msg: { enabled?: unknown }) => {
+        applyRemoteUseDkpCoefficients(msg?.enabled);
+      });
+
+      s.on('auction:dkp-coefficients', (msg: { overrides?: unknown }) => {
+        applyRemoteDkpCoefficientOverrides(msg?.overrides);
+      });
+
+      s.on('auction:external-dkp-coefficients', (msg: { overrides?: unknown }) => {
+        applyRemoteExternalDkpCoefficientOverrides(msg?.overrides);
       });
 
       s.on('auction:spin', (payload: SpinWheelServerParams) => {
@@ -219,14 +308,84 @@ export function useGuildAuctionWheelSocket(options: {
     s.emit('auction:elimination-mode:set', { guildId: gid, enabled: !!enabled });
   });
 
-  function requestSpin(durationMs: number) {
+  watch(options.useDkpCoefficients, (enabled) => {
+    if (!options.canManageAuctionWheel.value) return;
+    const s = socketRef.value;
+    if (!s?.connected || !hasServerState.value || applyingRemoteUseDkpCoefficients.value) {
+      return;
+    }
+    const gid = options.guildId.value;
+    if (gid <= 0) return;
+    s.emit('auction:use-dkp-coefficients:set', { guildId: gid, enabled: !!enabled });
+  });
+
+  watch(
+    options.dkpCoefficientOverrides,
+    (overrides) => {
+      if (!options.canManageAuctionWheel.value) return;
+      const s = socketRef.value;
+      if (
+        !s?.connected ||
+        !hasServerState.value ||
+        applyingRemoteDkpCoefficientOverrides.value
+      ) {
+        return;
+      }
+      const gid = options.guildId.value;
+      if (gid <= 0) return;
+      s.emit('auction:dkp-coefficients:set', {
+        guildId: gid,
+        overrides: { ...overrides },
+      });
+    },
+    { deep: true }
+  );
+
+  watch(
+    options.externalDkpCoefficientOverrides,
+    (overrides) => {
+      if (!options.canManageAuctionWheel.value) return;
+      const s = socketRef.value;
+      if (
+        !s?.connected ||
+        !hasServerState.value ||
+        applyingRemoteExternalDkpCoefficientOverrides.value
+      ) {
+        return;
+      }
+      const gid = options.guildId.value;
+      if (gid <= 0) return;
+      s.emit('auction:external-dkp-coefficients:set', {
+        guildId: gid,
+        overrides: { ...overrides },
+      });
+    },
+    { deep: true }
+  );
+
+  function sanitizeSpinWeights(weights?: number[]): number[] | undefined {
+    if (!Array.isArray(weights)) return undefined;
+    const sanitized = weights.map((weight) => {
+      const n = Number(weight);
+      return Number.isFinite(n) && n >= 0 ? n : 1;
+    });
+    return sanitized.reduce((sum, weight) => sum + weight, 0) > 0
+      ? sanitized
+      : weights.map(() => 1);
+  }
+
+  function requestSpin(durationMs: number, weights?: number[]) {
     if (!options.canManageAuctionWheel.value) return;
     const s = socketRef.value;
     if (!s?.connected || !hasServerState.value) return;
     const gid = options.guildId.value;
     if (gid <= 0) return;
     const d = Number.isFinite(durationMs) && durationMs > 0 ? durationMs : 4000;
-    s.emit('auction:spin-request', { guildId: gid, durationMs: d });
+    s.emit('auction:spin-request', {
+      guildId: gid,
+      durationMs: d,
+      weights: sanitizeSpinWeights(weights),
+    });
   }
 
   /**
