@@ -11,6 +11,7 @@ type ScreenshotRow = {
 };
 
 const MAX_SCREENSHOTS = 5;
+const MAX_TOTAL_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 const screenshots = defineModel<ScreenshotRow[]>('screenshots', { required: true });
 
@@ -19,6 +20,14 @@ const dragging = ref(false);
 const error = ref('');
 
 const remainingSlots = computed(() => Math.max(0, MAX_SCREENSHOTS - screenshots.value.length));
+const currentUploadBytes = computed(() =>
+  screenshots.value.reduce((sum, screenshot) => sum + (screenshot.file?.size ?? 0), 0)
+);
+const remainingUploadBytes = computed(() => Math.max(0, MAX_TOTAL_UPLOAD_BYTES - currentUploadBytes.value));
+
+function formatFileSize(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+}
 
 function openFileDialog() {
   fileInput.value?.click();
@@ -38,10 +47,23 @@ function addFiles(files: FileList | File[]) {
     return;
   }
 
-  const acceptedFiles = imageFiles.slice(0, remainingSlots.value);
-  if (acceptedFiles.length < imageFiles.length) {
+  const slotLimitedFiles = imageFiles.slice(0, remainingSlots.value);
+  if (slotLimitedFiles.length < imageFiles.length) {
     error.value = `Добавлены только первые ${remainingSlots.value} файла. Максимум ${MAX_SCREENSHOTS} скриншотов.`;
   }
+
+  const acceptedFiles: File[] = [];
+  let bytesLeft = remainingUploadBytes.value;
+  for (const file of slotLimitedFiles) {
+    if (file.size > bytesLeft) {
+      error.value = `Общий размер скриншотов не должен превышать ${formatFileSize(MAX_TOTAL_UPLOAD_BYTES)}.`;
+      continue;
+    }
+    acceptedFiles.push(file);
+    bytesLeft -= file.size;
+  }
+
+  if (!acceptedFiles.length) return;
 
   screenshots.value.push(
     ...acceptedFiles.map((file) => ({
@@ -144,7 +166,8 @@ onMounted(() => {
             Перетащите скриншоты сюда или выберите файлы
           </span>
           <span class="block text-sm text-muted-foreground">
-            JPG, PNG, WebP, перетаскивание или вставка из буфера. Осталось мест: {{ remainingSlots }}.
+            JPG, PNG, WebP, перетаскивание или вставка из буфера.
+            Осталось: {{ remainingSlots }} файлов и {{ formatFileSize(remainingUploadBytes) }}.
           </span>
         </span>
       </button>

@@ -4,9 +4,12 @@ namespace App\Http\Requests\EventHistory;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreEventHistoryRequest extends FormRequest
 {
+    private const MAX_SCREENSHOTS_TOTAL_BYTES = 50 * 1024 * 1024;
+
     public function authorize(): bool
     {
         return true;
@@ -42,6 +45,30 @@ class StoreEventHistoryRequest extends FormRequest
             'screenshots.*.title' => ['nullable', 'string', 'max:255'],
             'screenshots.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $totalBytes = 0;
+            $screenshots = $this->file('screenshots', []);
+
+            if (is_array($screenshots)) {
+                foreach ($screenshots as $screenshot) {
+                    $file = is_array($screenshot) ? ($screenshot['file'] ?? null) : null;
+                    if ($file instanceof \Illuminate\Http\UploadedFile) {
+                        $totalBytes += $file->getSize();
+                    }
+                }
+            }
+
+            if ($totalBytes > self::MAX_SCREENSHOTS_TOTAL_BYTES) {
+                $validator->errors()->add(
+                    'screenshots',
+                    'Общий размер скриншотов не должен превышать 50 МБ.'
+                );
+            }
+        });
     }
 
     /**
