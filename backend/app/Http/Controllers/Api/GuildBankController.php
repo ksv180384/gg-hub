@@ -8,6 +8,7 @@ use App\Http\Requests\GuildBank\StoreGuildBankGrantRequest;
 use App\Http\Requests\GuildBank\StoreGuildBankItemRequest;
 use App\Http\Requests\GuildBank\StoreGuildBankItemTierRequest;
 use App\Http\Requests\GuildBank\UpdateGuildBankItemRequest;
+use App\Http\Requests\GuildBank\UpdateGuildBankItemTierRequest;
 use App\Http\Resources\GuildBank\GuildBankGrantListResource;
 use App\Http\Resources\GuildBank\GuildBankMemberGrantListResource;
 use App\Http\Resources\GuildBank\GuildBankGrantResource;
@@ -29,6 +30,7 @@ use Domains\GuildBank\Actions\ListGuildBankItemTiersAction;
 use Domains\GuildBank\Actions\ListGuildMemberBankGrantsAction;
 use Domains\GuildBank\Actions\RevokeGuildBankItemGrantAction;
 use Domains\GuildBank\Actions\UpdateGuildBankItemAction;
+use Domains\GuildBank\Actions\UpdateGuildBankItemTierAction;
 use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
 use Domains\GuildBank\Models\GuildBankItemTier;
@@ -49,6 +51,7 @@ class GuildBankController extends Controller
         private ListGuildMemberBankGrantsAction $listGuildMemberBankGrantsAction,
         private ListGuildBankItemTiersAction $listGuildBankItemTiersAction,
         private CreateGuildBankItemTierAction $createGuildBankItemTierAction,
+        private UpdateGuildBankItemTierAction $updateGuildBankItemTierAction,
         private DeleteGuildBankItemTierAction $deleteGuildBankItemTierAction,
         private GetGuildBankPageContextAction $getGuildBankPageContextAction,
     ) {}
@@ -75,6 +78,17 @@ class GuildBankController extends Controller
         $tier = ($this->createGuildBankItemTierAction)($guild, $request->validated());
 
         return (new GuildBankItemTierResource($tier))->response()->setStatusCode(201);
+    }
+
+    public function updateTier(UpdateGuildBankItemTierRequest $request, Guild $guild, GuildBankItemTier $tier): GuildBankItemTierResource
+    {
+        if ((int) $tier->guild_id !== (int) $guild->id) {
+            abort(404);
+        }
+
+        $updated = ($this->updateGuildBankItemTierAction)($tier, $request->validated());
+
+        return new GuildBankItemTierResource($updated);
     }
 
     public function destroyTier(Guild $guild, GuildBankItemTier $tier): JsonResponse|Response
@@ -165,4 +179,3 @@ class GuildBankController extends Controller
         return GuildBankMemberGrantListResource::collection($grants);
     }
 }
-

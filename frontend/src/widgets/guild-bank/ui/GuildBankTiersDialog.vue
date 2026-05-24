@@ -11,6 +11,7 @@ const props = defineProps<{
   tiersError: string;
   formError: string;
   saving: boolean;
+  tierEditing: GuildBankItemTier | null;
   tierPendingDelete: GuildBankItemTier | null;
   deleteDialogError: string;
   deletingTierId: number | null;
@@ -21,7 +22,9 @@ const form = defineModel<GuildBankTierForm>('form', { required: true });
 const deleteDialogOpen = defineModel<boolean>('deleteDialogOpen', { required: true });
 
 const emit = defineEmits<{
-  create: [];
+  save: [];
+  edit: [tier: GuildBankItemTier];
+  cancelEdit: [];
   delete: [tier: GuildBankItemTier];
   confirmDelete: [];
   closeDelete: [];
@@ -33,18 +36,43 @@ const sortedTiers = computed(() =>
 </script>
 
 <template>
-  <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-    <div class="flex max-h-[min(90vh,40rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-lg">
-      <div class="border-b border-border px-4 py-3">
-        <div class="text-base font-semibold">Тиры предметов</div>
-        <p class="mt-1 text-xs text-muted-foreground">
-          Тиры привязаны к гильдии. Удалить можно только тир без предметов.
-        </p>
+  <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+    <div class="flex max-h-[min(90vh,44rem)] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-xl">
+      <div class="border-b border-border bg-muted/25 px-5 py-4">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-lg font-semibold">Тиры предметов</div>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Цвет тира отображается на предмете в списке и карточке выдач.
+            </p>
+          </div>
+          <Button variant="ghost" size="icon" aria-label="Закрыть" @click="open = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </Button>
+        </div>
       </div>
 
-      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-        <div class="space-y-3 rounded-lg border border-border p-3">
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
+        <div class="rounded-lg border border-border bg-muted/20 p-4">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <div class="text-sm font-semibold">
+              {{ tierEditing ? 'Редактировать тир' : 'Добавить тир' }}
+            </div>
+            <Button
+              v-if="tierEditing"
+              type="button"
+              variant="ghost"
+              size="sm"
+              :disabled="saving"
+              @click="emit('cancelEdit')"
+            >
+              Отмена
+            </Button>
+          </div>
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
             <div class="space-y-2">
               <Label for="tier-name">Название *</Label>
               <Input
@@ -54,6 +82,7 @@ const sortedTiers = computed(() =>
                 maxlength="50"
                 class="h-9"
                 :disabled="saving"
+                placeholder="Например: S, A, Редкий"
                 required
               />
             </div>
@@ -61,60 +90,111 @@ const sortedTiers = computed(() =>
               <Label for="tier-color">Цвет *</Label>
               <ColorPicker id="tier-color" v-model="form.color" :disabled="saving" />
             </div>
-          </div>
-          <div class="flex justify-end">
-            <Button :disabled="saving" @click="emit('create')">
-              {{ saving ? 'Добавление…' : 'Добавить тир' }}
+            <Button class="h-9" :disabled="saving" @click="emit('save')">
+              {{ saving ? 'Сохранение...' : tierEditing ? 'Сохранить' : 'Добавить' }}
             </Button>
           </div>
-          <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
+          <p v-if="formError" class="mt-3 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {{ formError }}
+          </p>
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm font-medium">Список тиров</p>
-          <p v-if="tiersLoading" class="text-sm text-muted-foreground">Загрузка…</p>
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm font-semibold">Список тиров</p>
+            <p class="text-xs text-muted-foreground">{{ sortedTiers.length }} всего</p>
+          </div>
+          <p v-if="tiersLoading" class="text-sm text-muted-foreground">Загрузка...</p>
           <p v-else-if="tiersError" class="text-sm text-destructive">{{ tiersError }}</p>
-          <p v-else-if="!sortedTiers.length" class="text-sm text-muted-foreground">Пока нет тиров.</p>
-          <ul v-else class="space-y-2">
+          <p v-else-if="!sortedTiers.length" class="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            Пока нет тиров. Добавьте первый цветовой ярлык.
+          </p>
+          <ul v-else class="grid grid-cols-1 gap-2 md:grid-cols-2">
             <li
               v-for="tier in sortedTiers"
               :key="tier.id"
-              class="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
+              class="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-3"
             >
-              <div class="min-w-0 flex items-center gap-2">
+              <div class="min-w-0 flex items-center gap-3">
                 <span
-                  class="inline-block h-3 w-3 shrink-0 rounded-full border"
-                  :style="{ backgroundColor: tier.color ?? '#ffffff' }"
+                  class="inline-block h-8 w-1.5 shrink-0 rounded-full"
+                  :style="{ backgroundColor: tier.color ?? '#64748b' }"
                   aria-hidden="true"
                 />
                 <div class="min-w-0">
-                  <div class="truncate text-sm font-medium">{{ tier.name }}</div>
+                  <div class="truncate text-sm font-semibold">{{ tier.name }}</div>
                   <div class="text-xs text-muted-foreground">
                     Предметов: {{ tier.items_count ?? 0 }}
                   </div>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                class="shrink-0 text-destructive hover:text-destructive"
-                :disabled="(tier.items_count ?? 0) > 0 || deletingTierId === tier.id"
-                :title="
-                  (tier.items_count ?? 0) > 0
-                    ? 'Нельзя удалить: тир привязан к предметам.'
-                    : 'Удалить тир'
-                "
-                @click="emit('delete', tier)"
-              >
-                Удалить
-              </Button>
+              <div class="flex shrink-0 items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  class="h-8 w-8"
+                  :disabled="saving || deletingTierId === tier.id"
+                  title="Редактировать тир"
+                  aria-label="Редактировать тир"
+                  @click="emit('edit', tier)"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="size-4"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+                  </svg>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  class="h-8 w-8 text-destructive hover:text-destructive"
+                  :disabled="(tier.items_count ?? 0) > 0 || deletingTierId === tier.id"
+                  :title="
+                    (tier.items_count ?? 0) > 0
+                      ? 'Нельзя удалить: тир назначен предметам.'
+                      : 'Удалить тир'
+                  "
+                  :aria-label="
+                    (tier.items_count ?? 0) > 0
+                      ? 'Нельзя удалить: тир назначен предметам.'
+                      : 'Удалить тир'
+                  "
+                  @click="emit('delete', tier)"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="size-4"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v5" />
+                    <path d="M14 11v5" />
+                  </svg>
+                </Button>
+              </div>
             </li>
           </ul>
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
+      <div class="flex items-center justify-end gap-2 border-t border-border bg-muted/20 px-5 py-4">
         <Button variant="outline" @click="open = false">Закрыть</Button>
       </div>
     </div>

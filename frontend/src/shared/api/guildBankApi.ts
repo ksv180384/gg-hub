@@ -75,6 +75,8 @@ export type CreateGuildBankItemTierPayload = {
   color: string;
 };
 
+export type UpdateGuildBankItemTierPayload = CreateGuildBankItemTierPayload;
+
 export type CreateGuildBankGrantPayload = {
   guild_bank_item_id: number;
   received_by_character_id: number;
@@ -113,6 +115,19 @@ export const guildBankApi = {
   async createTier(guildId: number, payload: CreateGuildBankItemTierPayload): Promise<GuildBankItemTier> {
     const res = await http.fetchPost<GuildBankItemTier>(`/guilds/${guildId}/bank/tiers`, payload as Record<string, unknown>);
     throwOnError(res, 'Не удалось добавить тир.');
+    return this.unwrap<GuildBankItemTier>(res as { data: unknown });
+  },
+
+  async updateTier(
+    guildId: number,
+    tierId: number,
+    payload: UpdateGuildBankItemTierPayload,
+  ): Promise<GuildBankItemTier> {
+    const res = await http.fetchPut<GuildBankItemTier>(
+      `/guilds/${guildId}/bank/tiers/${tierId}`,
+      payload as Record<string, unknown>,
+    );
+    throwOnError(res, 'Не удалось сохранить тир.');
     return this.unwrap<GuildBankItemTier>(res as { data: unknown });
   },
 

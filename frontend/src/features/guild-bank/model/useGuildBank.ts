@@ -112,6 +112,7 @@ export function useGuildBank() {
   const tierFormSaving = ref(false);
   const tierFormError = ref('');
   const tierForm = ref<GuildBankTierForm>({ name: '', color: '' });
+  const tierEditing = ref<GuildBankItemTier | null>(null);
   const tierPendingDelete = ref<GuildBankItemTier | null>(null);
   const deleteTierDialogOpen = ref(false);
   const deleteTierDialogError = ref('');
@@ -255,10 +256,20 @@ export function useGuildBank() {
     if (!q) return grants.value;
     return grants.value.filter((g) => {
       const name = (g.received_by_character?.name ?? '').toLowerCase();
+      const grantedBy = (g.granted_by_character?.name ?? '').toLowerCase();
       const id = String(g.received_by_character_id);
-      return name.includes(q) || id.includes(q);
+      return name.includes(q) || grantedBy.includes(q) || id.includes(q);
     });
   });
+
+  const totalItemsCount = computed(() => items.value.length);
+  const totalStockCount = computed(() =>
+    items.value.reduce((sum, item) => sum + (item.quantity ?? 0), 0),
+  );
+  const totalGrantsCount = computed(() =>
+    items.value.reduce((sum, item) => sum + (item.grants_count ?? 0), 0),
+  );
+  const tiersCount = computed(() => tiers.value.length);
 
   async function loadGrants(itemId: number) {
     if (!guildId.value) return;
@@ -282,6 +293,7 @@ export function useGuildBank() {
 
   function openTiersModal() {
     tierForm.value = { name: '', color: '' };
+    tierEditing.value = null;
     tierFormError.value = '';
     deleteTierDialogError.value = '';
     tiersModalOpen.value = true;
@@ -314,6 +326,65 @@ export function useGuildBank() {
       tierForm.value = { name: '', color: '' };
     } catch (e: unknown) {
       tierFormError.value = e instanceof Error ? e.message : 'Не удалось добавить тир.';
+    } finally {
+      tierFormSaving.value = false;
+    }
+  }
+
+  function openEditTier(tier: GuildBankItemTier) {
+    tierEditing.value = tier;
+    tierForm.value = {
+      name: tier.name,
+      color: tier.color ?? '',
+    };
+    tierFormError.value = '';
+  }
+
+  function cancelEditTier() {
+    if (tierFormSaving.value) return;
+    tierEditing.value = null;
+    tierForm.value = { name: '', color: '' };
+    tierFormError.value = '';
+  }
+
+  async function saveTier() {
+    if (!guildId.value) return;
+    if (!tierEditing.value) {
+      await createTier();
+      return;
+    }
+
+    tierFormError.value = '';
+    const name = tierForm.value.name.trim();
+    const color = tierForm.value.color.trim();
+    if (!name) {
+      tierFormError.value = 'Укажите название тира.';
+      return;
+    }
+    if (!color) {
+      tierFormError.value = 'Укажите цвет тира.';
+      return;
+    }
+
+    const tierId = tierEditing.value.id;
+    tierFormSaving.value = true;
+    try {
+      const updated = await guildBankApi.updateTier(guildId.value, tierId, { name, color });
+      tiers.value = syncTierItemCounts(
+        tiers.value
+          .map((tier) => (tier.id === updated.id ? updated : tier))
+          .sort((a, b) => a.name.localeCompare(b.name, 'ru')),
+        items.value,
+      );
+      items.value = items.value.map((item) =>
+        item.guild_bank_item_tier_id === updated.id
+          ? { ...item, tier: { ...updated } }
+          : item
+      );
+      tierEditing.value = null;
+      tierForm.value = { name: '', color: '' };
+    } catch (e: unknown) {
+      tierFormError.value = e instanceof Error ? e.message : 'Не удалось сохранить тир.';
     } finally {
       tierFormSaving.value = false;
     }
@@ -527,6 +598,9 @@ export function useGuildBank() {
   async function saveGrant(confirmNegativeBalance = false) {
     if (!guildId.value || !selectedItem.value) return;
     grantFormError.value = '';
+    if (rosterMembers.value.length === 0) {
+      await loadRosterMembers();
+    }
     const receivedId = Number(grantForm.value.received_by_character_id);
     if (!receivedId) {
       grantFormError.value = 'Укажите персонажа, который получил предмет.';
@@ -656,6 +730,7 @@ export function useGuildBank() {
     tiersError,
     tiersModalOpen,
     tierForm,
+    tierEditing,
     tierFormSaving,
     tierFormError,
     tierPendingDelete,
@@ -693,9 +768,16 @@ export function useGuildBank() {
     selectedItem,
     filteredItems,
     filteredGrants,
+    totalItemsCount,
+    totalStockCount,
+    totalGrantsCount,
+    tiersCount,
     selectItem,
     openTiersModal,
     createTier,
+    openEditTier,
+    cancelEditTier,
+    saveTier,
     openDeleteTierDialog,
     closeDeleteTierDialog,
     confirmDeleteTier,

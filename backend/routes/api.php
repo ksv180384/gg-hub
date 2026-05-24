@@ -117,6 +117,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/guilds/{guild}/bank/context', [GuildBankController::class, 'pageContext'])->middleware('guild.member');
     Route::get('/guilds/{guild}/bank/tiers', [GuildBankController::class, 'tiers'])->middleware('guild.member');
     Route::post('/guilds/{guild}/bank/tiers', [GuildBankController::class, 'storeTier'])->middleware('guild.member', 'guild.role.permission:dobavliat-predmety');
+    Route::match(['put', 'patch'], '/guilds/{guild}/bank/tiers/{tier}', [GuildBankController::class, 'updateTier'])->middleware('guild.member', 'guild.role.permission:dobavliat-predmety');
     Route::delete('/guilds/{guild}/bank/tiers/{tier}', [GuildBankController::class, 'destroyTier'])->middleware('guild.member', 'guild.role.permission:dobavliat-predmety');
     Route::get('/guilds/{guild}/bank/items', [GuildBankController::class, 'items'])->middleware('guild.member');
     Route::post('/guilds/{guild}/bank/items', [GuildBankController::class, 'storeItem'])->middleware('guild.member', 'guild.role.permission:dobavliat-predmety');
