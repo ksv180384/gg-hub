@@ -52,6 +52,7 @@ export interface UserGuildItem {
   pending_applications_count?: number;
   /** Включён показ состава неучастникам (авторизованным), если открыт в настройках гильдии. */
   show_roster_to_all?: boolean;
+  dkp_enabled?: boolean;
 }
 
 export interface Guild {

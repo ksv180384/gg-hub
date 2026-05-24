@@ -55,6 +55,40 @@ class GuildPermissionsSeeder extends Seeder
             ]
         );
 
+        $auctionGroup = PermissionGroup::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'auction',
+            ],
+            [
+                'name' => 'Аукцион',
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'dobavliat-predmety-na-aukcion',
+            ],
+            [
+                'name' => 'Добавлять предметы на аукцион',
+                'description' => 'Выставление предметов из хранилища гильдии на аукцион',
+                'permission_group_id' => $auctionGroup->id,
+            ]
+        );
+
+        Permission::firstOrCreate(
+            [
+                'scope' => PermissionScope::Guild,
+                'slug' => 'zakryvat-aukcion',
+            ],
+            [
+                'name' => 'Закрывать аукцион',
+                'description' => 'Закрытие лотов аукциона и выдача предметов победителям',
+                'permission_group_id' => $auctionGroup->id,
+            ]
+        );
+
         $raidsGroup = PermissionGroup::firstOrCreate(
             [
                 'scope' => PermissionScope::Guild,

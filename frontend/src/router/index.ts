@@ -105,6 +105,12 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'История ДКП' },
         },
         {
+          path: 'guilds/:id/auction',
+          name: 'guild-auction',
+          component: () => import('../pages/guilds/[id]/auction/index.vue'),
+          meta: { requiresAuth: true, title: 'Аукцион' },
+        },
+        {
           path: 'guilds/:id/raids',
           name: 'guild-raids',
           component: () => import('@/pages/guilds/[id]/raids/index.vue'),

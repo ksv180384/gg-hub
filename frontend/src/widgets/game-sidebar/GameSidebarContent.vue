@@ -44,6 +44,7 @@ const guildSubmenuItems: GuildSubmenuItem[] = [
   { pathSuffix: '/settings', label: 'Информация' },
   { pathSuffix: '/roster', label: 'Состав' },
   { pathSuffix: '/bank', label: 'Хранилище гильдии' },
+  { pathSuffix: '/auction', label: 'Аукцион' },
   { pathSuffix: '/raids', label: 'Рейды|Группы|КП' },
   { pathSuffix: '/applications', label: 'Заявки и приглашения' },
   { pathSuffix: '/calendar', label: 'Календарь событий' },
@@ -366,7 +367,10 @@ watch(showAdminBlock, (v) => v && loadAdminPendingCount(), { immediate: true });
                 <RouterLink
                   v-for="item in guildSubmenuItems"
                   :key="item.pathSuffix + (item.query ? JSON.stringify(item.query) : '')"
-                  v-show="item.pathSuffix !== '/roles' || guild.can_access_roles"
+                  v-show="
+                    (item.pathSuffix !== '/roles' || guild.can_access_roles)
+                      && (item.pathSuffix !== '/auction' || guild.dkp_enabled)
+                  "
                   :to="guildItemLocation(guild.id, item)"
                   :class="guildSubLinkClass(guild.id, item)"
                   @click="onMobileNavigate"

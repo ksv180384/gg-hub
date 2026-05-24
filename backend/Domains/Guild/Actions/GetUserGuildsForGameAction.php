@@ -76,6 +76,7 @@ class GetUserGuildsForGameAction
                 'can_access_roles' => $canAccessRoles,
                 'can_invite' => $canInvite,
                 'show_roster_to_all' => (bool) $guild->show_roster_to_all,
+                'dkp_enabled' => (bool) ($guild->dkp_enabled ?? false),
                 'pending_applications_count' => (int) ($guild->pending_applications_count ?? 0),
             ];
         });

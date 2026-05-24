@@ -5,6 +5,7 @@ import { registerRaidSocketHandlers } from '../raidSocketHandler.js';
 import { registerNotificationSocketHandlers } from '../notificationSocketHandler.js';
 import { registerGuildPollSocketHandlers } from '../guildPollSocketHandler.js';
 import { registerGuildEventSocketHandlers } from '../guildEventSocketHandler.js';
+import { registerGuildAuctionSocketHandlers } from '../guildAuctionSocketHandler.js';
 
 const socketioPlugin = async (fastify, options) => {
     fastify.register(fastifySocketIO);
@@ -17,6 +18,7 @@ const socketioPlugin = async (fastify, options) => {
         registerNotificationSocketHandlers(fastify.io, fastify.log);
         registerGuildPollSocketHandlers(fastify.io, fastify.log);
         registerGuildEventSocketHandlers(fastify.io, fastify.log);
+        registerGuildAuctionSocketHandlers(fastify.io, fastify.log);
     });
 };
 

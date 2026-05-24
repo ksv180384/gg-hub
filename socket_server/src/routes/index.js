@@ -9,6 +9,7 @@ import {
   emitGuildPollDeleted,
 } from '../guildPollSocketHandler.js';
 import { emitGuildEventChanged } from '../guildEventSocketHandler.js';
+import { emitGuildAuctionChanged } from '../guildAuctionSocketHandler.js';
 
 const routes = async (fastify, options) => {
     fastify.get('/', async (request, reply) => {
@@ -134,6 +135,15 @@ const routes = async (fastify, options) => {
     if (!Number.isFinite(guildId) || guildId <= 0) return reply.code(400).send({ ok: false });
     if (!Number.isFinite(eventId) || eventId <= 0) return reply.code(400).send({ ok: false });
     emitGuildEventChanged(fastify.io, guildId, eventId);
+    return { ok: true };
+  });
+
+  fastify.post('/guild-auctions/broadcast-changed', async (request, reply) => {
+    const guildId = Number(request.body?.guildId);
+    const lotId = Number(request.body?.lotId);
+    if (!Number.isFinite(guildId) || guildId <= 0) return reply.code(400).send({ ok: false });
+    if (!Number.isFinite(lotId) || lotId <= 0) return reply.code(400).send({ ok: false });
+    emitGuildAuctionChanged(fastify.io, guildId, lotId);
     return { ok: true };
   });
 };

@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventHistoryController;
 use App\Http\Controllers\Api\EventHistoryTitleController;
 use App\Http\Controllers\Api\GuildBankController;
+use App\Http\Controllers\Api\GuildAuctionController;
 use App\Http\Controllers\Api\GuildDkpController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\RaidController;
@@ -127,6 +128,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds/{guild}/bank/grants', [GuildBankController::class, 'storeGrant'])->middleware('guild.member', 'guild.role.permission:peredavat-predmety-polzovateliam');
     Route::delete('/guilds/{guild}/bank/grants/{grant}', [GuildBankController::class, 'revokeGrant'])->middleware('guild.member', 'guild.role.permission:peredavat-predmety-polzovateliam');
     Route::get('/guilds/{guild}/bank/members/{character}/grants', [GuildBankController::class, 'memberGrants'])->middleware('guild.member');
+
+    Route::get('/guilds/{guild}/auction/context', [GuildAuctionController::class, 'context'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/auction/lots', [GuildAuctionController::class, 'index'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/auction/lots', [GuildAuctionController::class, 'store'])->middleware('guild.member', 'guild.role.permission:dobavliat-predmety-na-aukcion');
+    Route::post('/guilds/{guild}/auction/lots/{lot}/bid', [GuildAuctionController::class, 'bid'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/auction/lots/{lot}/close', [GuildAuctionController::class, 'close'])->middleware('guild.member', 'guild.role.permission:zakryvat-aukcion');
 
     Route::get('/guilds/{guild}/dkp/ledger', [GuildDkpController::class, 'ledger'])->middleware('guild.member');
     Route::get('/guilds/{guild}/members/{character}/dkp', [GuildDkpController::class, 'memberBalance'])->middleware('guild.member');
