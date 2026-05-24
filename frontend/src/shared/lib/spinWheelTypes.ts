@@ -1,5 +1,5 @@
 /**
- * Payload события `auction:spin` (генерируется в `socket_server/auctionSocketHandler.js`).
+ * Payload события `roulette:spin` (генерируется в `socket_server/rouletteSocketHandler.js`).
  * Угол остановки на клиенте считается по `norm`, `fullTurns`, `duration`; см. также
  * `frontend/src/widgets/spin-wheel/docs/SPIN_WHEEL_ROTATION.md`.
  */

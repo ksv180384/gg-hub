@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, Tooltip } from '@/shared/ui';
 import { SpinWheel } from '@/widgets/spin-wheel';
 import {
   WHEEL_EMPTY_PLACEHOLDER,
-  type GuildAuctionRouletteModel,
+  type GuildRouletteModel,
   type WheelEntry,
-} from '@/features/guild-auction-roulette';
-import type { GuildAuctionSpinWheelExpose } from '@/shared/lib/useGuildAuctionWheelSocket';
+} from '@/features/guild-roulette';
+import type { GuildRouletteSpinWheelExpose } from '@/shared/lib/useGuildRouletteWheelSocket';
 import EnrollmentToggleButton from './EnrollmentToggleButton.vue';
 import RouletteWinnerBanner from './RouletteWinnerBanner.vue';
 import SocketStatusMessage from './SocketStatusMessage.vue';
@@ -15,7 +15,7 @@ import RouletteSettingsDialog from './RouletteSettingsDialog.vue';
 import WheelEntriesList from './WheelEntriesList.vue';
 
 const props = defineProps<{
-  model: GuildAuctionRouletteModel;
+  model: GuildRouletteModel;
 }>();
 
 const settingsOpen = ref(false);
@@ -67,7 +67,7 @@ function onRemoveGuildFromWheelList(characterId: number) {
 
 function setSpinWheelRef(el: unknown) {
   props.model.setSpinWheelInstance(
-    (el as GuildAuctionSpinWheelExpose | null) ?? null
+    (el as GuildRouletteSpinWheelExpose | null) ?? null
   );
 }
 

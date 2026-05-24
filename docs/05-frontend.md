@@ -34,7 +34,7 @@ app → pages → widgets → features → entities → shared
 |------|------------|
 | `auth/` | login, register, forgot/reset password |
 | `home/` | Лендинг, журнал игры |
-| `guilds/` | Список, карточка, roster, bank, DKP, raids, events, polls, auction, applications, settings, calendar |
+| `guilds/` | Список, карточка, roster, bank, DKP, raids, events, polls, roulette, applications, settings, calendar |
 | `posts/`, `my-posts/` | Просмотр и управление постами |
 | `characters/` | Персонажи пользователя |
 | `applications/` | Мои заявки |
@@ -44,11 +44,11 @@ app → pages → widgets → features → entities → shared
 
 ### `widgets/`
 
-Крупные блоки: `header`, `game-sidebar`, `guild-bank`, `guild-dkp-ledger`, `guild-calendar`, `guild-auction-roulette`, `raid-composition-modal`, `spin-wheel`, …
+Крупные блоки: `header`, `game-sidebar`, `guild-bank`, `guild-dkp-ledger`, `guild-calendar`, `guild-roulette`, `raid-composition-modal`, `spin-wheel`, …
 
 ### `features/`
 
-Сценарии + composables: `guild-bank`, `guild-dkp`, `guild-settings`, `guild-calendar`, `guild-auction-roulette`, …
+Сценарии + composables: `guild-bank`, `guild-dkp`, `guild-settings`, `guild-calendar`, `guild-roulette`, …
 
 ### `entities/`
 

@@ -8,8 +8,8 @@
 |-----------|------|
 | `frontend/src/widgets/spin-wheel/model/useSpinWheel.ts` | Математика угла, RAF-анимация, локальный и серверный спин |
 | `frontend/src/widgets/spin-wheel/ui/SpinWheel.vue` | Canvas: `rotate(angle)`, отрисовка сегментов, стрелка сверху |
-| `frontend/src/shared/lib/useGuildAuctionWheelSocket.ts` | Socket.IO: комната гильдии, `auction:spin`, `spinFromServer` |
-| `socket_server/src/auctionSocketHandler.js` | Один общий payload вращения для всех в комнате |
+| `frontend/src/shared/lib/useGuildRouletteWheelSocket.ts` | Socket.IO: комната гильдии, `roulette:spin`, `spinFromServer` |
+| `socket_server/src/rouletteSocketHandler.js` | Один общий payload вращения для всех в комнате |
 
 ## Геометрия и система углов
 
@@ -61,7 +61,7 @@ angle = startAngle + ease * (finalAngle − startAngle)
 
 При большой длительности (например 60 с) тот же нормированный прогресс `ease ∈ [0,1]` растягивает **один и тот же** диапазон угла `Δ = finalAngle − startAngle` на большее время → средняя угловая скорость падает. Чтобы длинный спин не выглядел «ползущим», число оборотов **увеличивается** с ростом `duration`:
 
-- **Сокет:** `randomFullTurnsForDuration(durationMs)` в `auctionSocketHandler.js`.
+- **Сокет:** `randomFullTurnsForDuration(durationMs)` в `rouletteSocketHandler.js`.
 - **Фронт (локальный спин):** `fullTurnsForDurationMs` в `useSpinWheel.ts`.
 
 Формулы **должны совпадать**: **`N = round(8 × T / 4 с)`**, затем **`clamp(N, 5, 120)`**. Тогда полный угол **`∝ T`**, и на линейном круизе **`ω ≈ 360×N/T ≈ const`** — длительность 60 с не выглядит медленнее 4 с по скорости вращения (раньше `N` рос слабее `T`, из‑за этого 60 с «ползло»).
@@ -96,8 +96,8 @@ ease(t) ∈ [0, 1]  →  angle = startAngle + ease * (finalAngle − startAngle)
 
 ## Синхронизация по сокету
 
-1. Клиент с правом управления шлёт **`auction:spin-request`** с **`durationMs`** (кламп на сервере 2000–60000 мс).
-2. Сервер один раз вызывает **`buildSpinPayload(n, durationMs)`** и шлёт всем в комнате **`auction:spin`** с полями **`norm`**, **`fullTurns`**, **`duration`**, плюс **`winIdx`**.
+1. Клиент с правом управления шлёт **`roulette:spin-request`** с **`durationMs`** (кламп на сервере 2000–60000 мс).
+2. Сервер один раз вызывает **`buildSpinPayload(n, durationMs)`** и шлёт всем в комнате **`roulette:spin`** с полями **`norm`**, **`fullTurns`**, **`duration`**, плюс **`winIdx`**.
 3. Все клиенты вызывают **`spinFromServer(payload)`** с одинаковыми числами → одинаковая траектория и итог.
 
-При изменении логики оборотов или геометрии нужно обновлять **и** фронт, **и** `auctionSocketHandler.js`, и этот документ.
+При изменении логики оборотов или геометрии нужно обновлять **и** фронт, **и** `rouletteSocketHandler.js`, и этот документ.

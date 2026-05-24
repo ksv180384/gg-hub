@@ -159,17 +159,30 @@ class GuildPermissionsSeeder extends Seeder
             ]
         );
 
-        $auctionGroup = PermissionGroup::firstOrCreate(
-            [
-                'scope' => PermissionScope::Guild,
-                'slug' => 'auction',
-            ],
-            [
-                'name' => 'Аукцион / рулетка',
-            ]
-        );
+        $rouletteGroup = PermissionGroup::where('scope', PermissionScope::Guild)
+            ->where('slug', 'roulette')
+            ->first();
 
-        Permission::firstOrCreate(
+        if (!$rouletteGroup) {
+            $rouletteGroup = PermissionGroup::where('scope', PermissionScope::Guild)
+                ->where('slug', 'auction')
+                ->first();
+        }
+
+        if ($rouletteGroup) {
+            $rouletteGroup->update([
+                'slug' => 'roulette',
+                'name' => 'Рулетка',
+            ]);
+        } else {
+            $rouletteGroup = PermissionGroup::create([
+                'scope' => PermissionScope::Guild,
+                'slug' => 'roulette',
+                'name' => 'Рулетка',
+            ]);
+        }
+
+        Permission::updateOrCreate(
             [
                 'scope' => PermissionScope::Guild,
                 'slug' => 'upravlenie-ruletkoi',
@@ -177,7 +190,7 @@ class GuildPermissionsSeeder extends Seeder
             [
                 'name' => 'Управление рулеткой',
                 'description' => 'Добавление участников на колесо и запуск розыгрыша',
-                'permission_group_id' => $auctionGroup->id,
+                'permission_group_id' => $rouletteGroup->id,
             ]
         );
 

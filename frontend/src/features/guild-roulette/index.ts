@@ -1,5 +1,5 @@
-export { useGuildAuctionRoulette } from './model/useGuildAuctionRoulette';
-export type { GuildAuctionRouletteModel } from './model/useGuildAuctionRoulette';
+export { useGuildRoulette } from './model/useGuildRoulette';
+export type { GuildRouletteModel } from './model/useGuildRoulette';
 export type { WheelEntry } from './model/types';
 export {
   WHEEL_EMPTY_PLACEHOLDER,

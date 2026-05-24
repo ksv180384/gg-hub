@@ -1,7 +1,7 @@
 /**
  * Socket.IO-подписка на персональный канал оповещений пользователя.
  *
- * Поведение подключения аналогично `useGuildAuctionWheelSocket`:
+ * Поведение подключения аналогично `useGuildRouletteWheelSocket`:
  * - Без `VITE_SOCKET_URL` (или пусто) — same-origin через `/socket.io` (проксирует nginx/vite).
  * - `VITE_SOCKET_URL=off` — не подключаться.
  *

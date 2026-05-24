@@ -187,9 +187,9 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'Голосования' },
         },
         {
-          path: 'guilds/:id/auction',
-          name: 'guild-auction',
-          component: () => import('@/pages/guilds/[id]/auction/index.vue'),
+          path: 'guilds/:id/roulette',
+          name: 'guild-roulette',
+          component: () => import('@/pages/guilds/[id]/roulette/index.vue'),
           meta: { requiresAuth: true, title: 'Рулетка' },
         },
         {

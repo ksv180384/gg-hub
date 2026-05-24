@@ -9,7 +9,7 @@ import {
 } from 'radix-vue';
 import { Avatar, Badge, Button } from '@/shared/ui';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
-import { avatarFallback } from '@/features/guild-auction-roulette';
+import { avatarFallback } from '@/features/guild-roulette';
 import type { GuildRosterMember } from '@/shared/api/guildsApi';
 
 defineProps<{

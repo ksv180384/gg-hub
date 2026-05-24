@@ -12,11 +12,11 @@ import {
 } from 'vue';
 import type { Socket } from 'socket.io-client';
 
-export type GuildAuctionWheelEntry =
+export type GuildRouletteWheelEntry =
   | { kind: 'guild'; character_id: number }
   | { kind: 'external'; id: string; name: string };
 
-export type GuildAuctionSpinWheelExpose = {
+export type GuildRouletteSpinWheelExpose = {
   spinFromServer: (p: SpinWheelServerParams) => void;
   spin?: () => void;
   animateRemoveSegment?: (index: number) => Promise<void>;
@@ -24,9 +24,9 @@ export type GuildAuctionSpinWheelExpose = {
   isSpinning: Ref<boolean>;
 };
 
-function normalizeEntries(raw: unknown): GuildAuctionWheelEntry[] {
+function normalizeEntries(raw: unknown): GuildRouletteWheelEntry[] {
   if (!Array.isArray(raw)) return [];
-  const out: GuildAuctionWheelEntry[] = [];
+  const out: GuildRouletteWheelEntry[] = [];
   for (const e of raw) {
     if (!e || typeof e !== 'object') continue;
     const o = e as Record<string, unknown>;
@@ -82,24 +82,24 @@ function normalizeExternalDkpCoefficientOverrides(raw: unknown): Record<string, 
 }
 
 /**
- * Синхронизация рулетки аукциона через Socket.IO.
+ * Синхронизация рулетки через Socket.IO.
  *
  * - Без `VITE_SOCKET_URL` (или пусто): подключение к **тому же origin**, что и сайт (`/socket.io`).
  *   Нужны прокси nginx и/или Vite dev (см. `default.conf`, `vite.config.ts`).
  * - Явный `VITE_SOCKET_URL`: только если сокет на другом хосте/порту (должен быть доступен **из браузера**).
  * - `VITE_SOCKET_URL=off` — не подключаться.
  *
- * `canManageAuctionWheel`: если false — только просмотр и приём синхронизации, без отправки изменений и spin-request.
+ * `canManageRouletteWheel`: если false — только просмотр и приём синхронизации, без отправки изменений и spin-request.
  */
-export function useGuildAuctionWheelSocket(options: {
+export function useGuildRouletteWheelSocket(options: {
   guildId: Ref<number>;
-  wheelEntries: Ref<GuildAuctionWheelEntry[]>;
+  wheelEntries: Ref<GuildRouletteWheelEntry[]>;
   eliminationMode: Ref<boolean>;
   useDkpCoefficients: Ref<boolean>;
   dkpCoefficientOverrides: Ref<Record<number, number>>;
   externalDkpCoefficientOverrides: Ref<Record<string, number>>;
-  spinWheelRef: ShallowRef<GuildAuctionSpinWheelExpose | null>;
-  canManageAuctionWheel: Ref<boolean>;
+  spinWheelRef: ShallowRef<GuildRouletteSpinWheelExpose | null>;
+  canManageRouletteWheel: Ref<boolean>;
 }) {
   const socketRef = shallowRef<Socket | null>(null);
   const connected = ref(false);
@@ -195,7 +195,7 @@ export function useGuildAuctionWheelSocket(options: {
         hasServerState.value = false;
         const gid = options.guildId.value;
         if (gid > 0) {
-          s.emit('auction:join', { guildId: gid });
+          s.emit('roulette:join', { guildId: gid });
         }
       });
 
@@ -211,7 +211,7 @@ export function useGuildAuctionWheelSocket(options: {
       });
 
       s.on(
-        'auction:state',
+        'roulette:state',
         (msg: {
           entries?: unknown;
           enrollmentOpen?: unknown;
@@ -231,31 +231,31 @@ export function useGuildAuctionWheelSocket(options: {
           }
         );
 
-      s.on('auction:entries', (msg: { entries?: unknown }) => {
+      s.on('roulette:entries', (msg: { entries?: unknown }) => {
         applyRemoteEntries(msg?.entries);
       });
 
-      s.on('auction:enrollment', (msg: { open?: unknown }) => {
+      s.on('roulette:enrollment', (msg: { open?: unknown }) => {
         applyRemoteEnrollment(msg?.open);
       });
 
-      s.on('auction:elimination-mode', (msg: { enabled?: unknown }) => {
+      s.on('roulette:elimination-mode', (msg: { enabled?: unknown }) => {
         applyRemoteEliminationMode(msg?.enabled);
       });
 
-      s.on('auction:use-dkp-coefficients', (msg: { enabled?: unknown }) => {
+      s.on('roulette:use-dkp-coefficients', (msg: { enabled?: unknown }) => {
         applyRemoteUseDkpCoefficients(msg?.enabled);
       });
 
-      s.on('auction:dkp-coefficients', (msg: { overrides?: unknown }) => {
+      s.on('roulette:dkp-coefficients', (msg: { overrides?: unknown }) => {
         applyRemoteDkpCoefficientOverrides(msg?.overrides);
       });
 
-      s.on('auction:external-dkp-coefficients', (msg: { overrides?: unknown }) => {
+      s.on('roulette:external-dkp-coefficients', (msg: { overrides?: unknown }) => {
         applyRemoteExternalDkpCoefficientOverrides(msg?.overrides);
       });
 
-      s.on('auction:spin', (payload: SpinWheelServerParams) => {
+      s.on('roulette:spin', (payload: SpinWheelServerParams) => {
         // Сервер автоматически закрывает набор при запуске; продублируем локально
         // на случай рассогласования порядка событий.
         enrollmentOpen.value = false;
@@ -275,11 +275,11 @@ export function useGuildAuctionWheelSocket(options: {
       const s = socketRef.value;
       if (!s?.connected) return;
       if (prevId && prevId > 0) {
-        s.emit('auction:leave', { guildId: prevId });
+        s.emit('roulette:leave', { guildId: prevId });
       }
       if (id > 0) {
         hasServerState.value = false;
-        s.emit('auction:join', { guildId: id });
+        s.emit('roulette:join', { guildId: id });
       }
     }
   );
@@ -287,42 +287,42 @@ export function useGuildAuctionWheelSocket(options: {
   watch(
     options.wheelEntries,
     (entries) => {
-      if (!options.canManageAuctionWheel.value) return;
+      if (!options.canManageRouletteWheel.value) return;
       const s = socketRef.value;
       if (!s?.connected || !hasServerState.value || applyingRemoteEntries.value) return;
       const gid = options.guildId.value;
       if (gid <= 0) return;
-      s.emit('auction:entries:update', { guildId: gid, entries: [...entries] });
+      s.emit('roulette:entries:update', { guildId: gid, entries: [...entries] });
     },
     { deep: true }
   );
 
   watch(options.eliminationMode, (enabled) => {
-    if (!options.canManageAuctionWheel.value) return;
+    if (!options.canManageRouletteWheel.value) return;
     const s = socketRef.value;
     if (!s?.connected || !hasServerState.value || applyingRemoteEliminationMode.value) {
       return;
     }
     const gid = options.guildId.value;
     if (gid <= 0) return;
-    s.emit('auction:elimination-mode:set', { guildId: gid, enabled: !!enabled });
+    s.emit('roulette:elimination-mode:set', { guildId: gid, enabled: !!enabled });
   });
 
   watch(options.useDkpCoefficients, (enabled) => {
-    if (!options.canManageAuctionWheel.value) return;
+    if (!options.canManageRouletteWheel.value) return;
     const s = socketRef.value;
     if (!s?.connected || !hasServerState.value || applyingRemoteUseDkpCoefficients.value) {
       return;
     }
     const gid = options.guildId.value;
     if (gid <= 0) return;
-    s.emit('auction:use-dkp-coefficients:set', { guildId: gid, enabled: !!enabled });
+    s.emit('roulette:use-dkp-coefficients:set', { guildId: gid, enabled: !!enabled });
   });
 
   watch(
     options.dkpCoefficientOverrides,
     (overrides) => {
-      if (!options.canManageAuctionWheel.value) return;
+      if (!options.canManageRouletteWheel.value) return;
       const s = socketRef.value;
       if (
         !s?.connected ||
@@ -333,7 +333,7 @@ export function useGuildAuctionWheelSocket(options: {
       }
       const gid = options.guildId.value;
       if (gid <= 0) return;
-      s.emit('auction:dkp-coefficients:set', {
+      s.emit('roulette:dkp-coefficients:set', {
         guildId: gid,
         overrides: { ...overrides },
       });
@@ -344,7 +344,7 @@ export function useGuildAuctionWheelSocket(options: {
   watch(
     options.externalDkpCoefficientOverrides,
     (overrides) => {
-      if (!options.canManageAuctionWheel.value) return;
+      if (!options.canManageRouletteWheel.value) return;
       const s = socketRef.value;
       if (
         !s?.connected ||
@@ -355,7 +355,7 @@ export function useGuildAuctionWheelSocket(options: {
       }
       const gid = options.guildId.value;
       if (gid <= 0) return;
-      s.emit('auction:external-dkp-coefficients:set', {
+      s.emit('roulette:external-dkp-coefficients:set', {
         guildId: gid,
         overrides: { ...overrides },
       });
@@ -375,13 +375,13 @@ export function useGuildAuctionWheelSocket(options: {
   }
 
   function requestSpin(durationMs: number, weights?: number[]) {
-    if (!options.canManageAuctionWheel.value) return;
+    if (!options.canManageRouletteWheel.value) return;
     const s = socketRef.value;
     if (!s?.connected || !hasServerState.value) return;
     const gid = options.guildId.value;
     if (gid <= 0) return;
     const d = Number.isFinite(durationMs) && durationMs > 0 ? durationMs : 4000;
-    s.emit('auction:spin-request', {
+    s.emit('roulette:spin-request', {
       guildId: gid,
       durationMs: d,
       weights: sanitizeSpinWeights(weights),
@@ -393,34 +393,34 @@ export function useGuildAuctionWheelSocket(options: {
    * `upravlenie-ruletkoi` (флаг проверяется здесь же, чтобы не плодить ошибки на сервере).
    */
   function setEnrollmentOpen(open: boolean) {
-    if (!options.canManageAuctionWheel.value) return;
+    if (!options.canManageRouletteWheel.value) return;
     const s = socketRef.value;
     if (!s?.connected || !hasServerState.value) return;
     const gid = options.guildId.value;
     if (gid <= 0) return;
-    s.emit('auction:enrollment:set', { guildId: gid, open: !!open });
+    s.emit('roulette:enrollment:set', { guildId: gid, open: !!open });
   }
 
   /**
    * Добавить одну запись через сервер (для рядовых членов гильдии: одиночные операции
    * вместо отправки всего массива записей). Сервер примет только при открытом наборе.
    */
-  function addEntryViaServer(entry: GuildAuctionWheelEntry): boolean {
+  function addEntryViaServer(entry: GuildRouletteWheelEntry): boolean {
     const s = socketRef.value;
     if (!s?.connected || !hasServerState.value) return false;
     const gid = options.guildId.value;
     if (gid <= 0) return false;
-    s.emit('auction:entries:add', { guildId: gid, entry });
+    s.emit('roulette:entries:add', { guildId: gid, entry });
     return true;
   }
 
   /** Удалить одну запись через сервер (рядовой участник убирает свою же). */
-  function removeEntryViaServer(entry: GuildAuctionWheelEntry): boolean {
+  function removeEntryViaServer(entry: GuildRouletteWheelEntry): boolean {
     const s = socketRef.value;
     if (!s?.connected || !hasServerState.value) return false;
     const gid = options.guildId.value;
     if (gid <= 0) return false;
-    s.emit('auction:entries:remove', { guildId: gid, entry });
+    s.emit('roulette:entries:remove', { guildId: gid, entry });
     return true;
   }
 

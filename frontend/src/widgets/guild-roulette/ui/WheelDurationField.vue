@@ -3,7 +3,7 @@ import { Input, Label } from '@/shared/ui';
 import {
   WHEEL_SPIN_SEC_MAX,
   WHEEL_SPIN_SEC_MIN,
-} from '@/features/guild-auction-roulette';
+} from '@/features/guild-roulette';
 
 defineProps<{
   modelValue: string;

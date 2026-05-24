@@ -1,5 +1,5 @@
 /**
- * Комнаты рулетки аукциона гильдии: синхронизация участников и одного общего вращения.
+ * Комнаты рулетки гильдии: синхронизация участников и одного общего вращения.
  *
  * Поведение вращения на клиенте и согласование `norm` / `fullTurns` / длительности —
  * см. `frontend/src/widgets/spin-wheel/docs/SPIN_WHEEL_ROTATION.md`.
@@ -11,22 +11,22 @@ const MAX_SPIN_DURATION_MS = 60000;
 const MAX_ENTRIES = 400;
 
 /**
- * @typedef {Object} GuildAuctionState
+ * @typedef {Object} GuildRouletteState
  * @property {unknown[]} entries
  * @property {number} spinLockedUntil
  * @property {boolean} enrollmentOpen — открыт ли набор «Участвовать» для рядовых членов гильдии
  */
-/** @type {Map<string, GuildAuctionState>} */
-const guildAuctionState = new Map();
+/** @type {Map<string, GuildRouletteState>} */
+const guildRouletteState = new Map();
 
-function auctionRoom(guildId) {
-    return `guild:${guildId}:auction`;
+function rouletteRoom(guildId) {
+    return `guild:${guildId}:roulette`;
 }
 
 function getOrCreateGuildState(guildId) {
     const key = String(guildId);
-    if (!guildAuctionState.has(key)) {
-        guildAuctionState.set(key, {
+    if (!guildRouletteState.has(key)) {
+        guildRouletteState.set(key, {
             entries: [],
             spinLockedUntil: 0,
             enrollmentOpen: false,
@@ -36,7 +36,7 @@ function getOrCreateGuildState(guildId) {
             externalDkpCoefficientOverrides: {},
         });
     }
-    return guildAuctionState.get(key);
+    return guildRouletteState.get(key);
 }
 
 function sanitizeEntries(raw) {
@@ -175,19 +175,19 @@ function clampSpinDurationMs(raw) {
     return Math.min(MAX_SPIN_DURATION_MS, Math.max(MIN_SPIN_DURATION_MS, Math.round(n)));
 }
 
-export function registerAuctionSocketHandlers(io, log = console) {
+export function registerRouletteSocketHandlers(io, log = console) {
     io.on('connection', socket => {
         if (typeof log.info === 'function') {
             log.info({ id: socket.id }, 'socket client connected');
         }
 
-        socket.on('auction:join', payload => {
+        socket.on('roulette:join', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
-            const room = auctionRoom(guildId);
+            const room = rouletteRoom(guildId);
             socket.join(room);
             const st = getOrCreateGuildState(guildId);
-            socket.emit('auction:state', {
+            socket.emit('roulette:state', {
                 entries: st.entries,
                 enrollmentOpen: !!st.enrollmentOpen,
                 eliminationMode: !!st.eliminationMode,
@@ -197,25 +197,25 @@ export function registerAuctionSocketHandlers(io, log = console) {
             });
         });
 
-        socket.on('auction:leave', payload => {
+        socket.on('roulette:leave', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
-            socket.leave(auctionRoom(guildId));
+            socket.leave(rouletteRoom(guildId));
         });
 
-        socket.on('auction:entries:update', payload => {
+        socket.on('roulette:entries:update', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
             st.entries = sanitizeEntries(payload?.entries);
-            io.to(auctionRoom(guildId)).emit('auction:entries', { entries: st.entries });
+            io.to(rouletteRoom(guildId)).emit('roulette:entries', { entries: st.entries });
         });
 
         /**
          * Добавление одной записи (используется рядовым участником гильдии при «Участвовать»).
          * Доступно только когда `enrollmentOpen = true`, и только если такой записи ещё нет.
          */
-        socket.on('auction:entries:add', payload => {
+        socket.on('roulette:entries:add', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
@@ -232,14 +232,14 @@ export function registerAuctionSocketHandlers(io, log = console) {
             });
             if (exists) return;
             st.entries = [...st.entries, candidate];
-            io.to(auctionRoom(guildId)).emit('auction:entries', { entries: st.entries });
+            io.to(rouletteRoom(guildId)).emit('roulette:entries', { entries: st.entries });
         });
 
         /**
          * Удаление одной записи (рядовой участник убирает только свою — клиентское ограничение).
          * Доступно только когда `enrollmentOpen = true`.
          */
-        socket.on('auction:entries:remove', payload => {
+        socket.on('roulette:entries:remove', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
@@ -255,68 +255,68 @@ export function registerAuctionSocketHandlers(io, log = console) {
                 return e.id !== target.id;
             });
             if (st.entries.length === before) return;
-            io.to(auctionRoom(guildId)).emit('auction:entries', { entries: st.entries });
+            io.to(rouletteRoom(guildId)).emit('roulette:entries', { entries: st.entries });
         });
 
         /**
          * Открыть/закрыть набор участников. Доступ проверяется на клиенте по праву
          * `upravlenie-ruletkoi`; сокет-сервер без auth — этот хендлер просто синхронизирует.
          */
-        socket.on('auction:enrollment:set', payload => {
+        socket.on('roulette:enrollment:set', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
             const open = !!payload?.open;
             if (st.enrollmentOpen === open) return;
             st.enrollmentOpen = open;
-            io.to(auctionRoom(guildId)).emit('auction:enrollment', { open: st.enrollmentOpen });
+            io.to(rouletteRoom(guildId)).emit('roulette:enrollment', { open: st.enrollmentOpen });
         });
 
-        socket.on('auction:elimination-mode:set', payload => {
+        socket.on('roulette:elimination-mode:set', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
             const enabled = !!payload?.enabled;
             if (st.eliminationMode === enabled) return;
             st.eliminationMode = enabled;
-            io.to(auctionRoom(guildId)).emit('auction:elimination-mode', {
+            io.to(rouletteRoom(guildId)).emit('roulette:elimination-mode', {
                 enabled: st.eliminationMode,
             });
         });
 
-        socket.on('auction:use-dkp-coefficients:set', payload => {
+        socket.on('roulette:use-dkp-coefficients:set', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
             const enabled = !!payload?.enabled;
             if (st.useDkpCoefficients === enabled) return;
             st.useDkpCoefficients = enabled;
-            io.to(auctionRoom(guildId)).emit('auction:use-dkp-coefficients', {
+            io.to(rouletteRoom(guildId)).emit('roulette:use-dkp-coefficients', {
                 enabled: st.useDkpCoefficients,
             });
         });
 
-        socket.on('auction:dkp-coefficients:set', payload => {
+        socket.on('roulette:dkp-coefficients:set', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
             st.dkpCoefficientOverrides = sanitizeDkpCoefficientOverrides(payload?.overrides);
-            io.to(auctionRoom(guildId)).emit('auction:dkp-coefficients', {
+            io.to(rouletteRoom(guildId)).emit('roulette:dkp-coefficients', {
                 overrides: st.dkpCoefficientOverrides,
             });
         });
 
-        socket.on('auction:external-dkp-coefficients:set', payload => {
+        socket.on('roulette:external-dkp-coefficients:set', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
             st.externalDkpCoefficientOverrides = sanitizeExternalDkpCoefficientOverrides(payload?.overrides);
-            io.to(auctionRoom(guildId)).emit('auction:external-dkp-coefficients', {
+            io.to(rouletteRoom(guildId)).emit('roulette:external-dkp-coefficients', {
                 overrides: st.externalDkpCoefficientOverrides,
             });
         });
 
-        socket.on('auction:spin-request', payload => {
+        socket.on('roulette:spin-request', payload => {
             const guildId = Number(payload?.guildId);
             if (!Number.isFinite(guildId) || guildId <= 0) return;
             const st = getOrCreateGuildState(guildId);
@@ -333,10 +333,10 @@ export function registerAuctionSocketHandlers(io, log = console) {
             // Запуск розыгрыша автоматически закрывает набор участников.
             if (st.enrollmentOpen) {
                 st.enrollmentOpen = false;
-                io.to(auctionRoom(guildId)).emit('auction:enrollment', { open: false });
+                io.to(rouletteRoom(guildId)).emit('roulette:enrollment', { open: false });
             }
 
-            io.to(auctionRoom(guildId)).emit('auction:spin', spinPayload);
+            io.to(rouletteRoom(guildId)).emit('roulette:spin', spinPayload);
         });
 
         socket.on('disconnect', () => {

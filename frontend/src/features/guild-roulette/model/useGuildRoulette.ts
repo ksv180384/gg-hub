@@ -8,9 +8,9 @@ import {
 } from '@/shared/api/guildsApi';
 import { parseParticipantNicknamesFromXlsxFile } from '@/shared/lib/eventHistoryParticipantsXlsxImport';
 import {
-  useGuildAuctionWheelSocket,
-  type GuildAuctionSpinWheelExpose,
-} from '@/shared/lib/useGuildAuctionWheelSocket';
+  useGuildRouletteWheelSocket,
+  type GuildRouletteSpinWheelExpose,
+} from '@/shared/lib/useGuildRouletteWheelSocket';
 import { useAuthStore } from '@/stores/auth';
 import { createWheelExternalId } from './wheelEntryUtils';
 import { getUserColorByIndex, type UserColorTheme } from './userColors';
@@ -27,11 +27,11 @@ import {
  * загрузка состава и прав, управление списком участников на колесе,
  * импорт ников из Excel, длительность спина и синхронизация через сокет.
  */
-export function useGuildAuctionRoulette(guildId: Ref<number>) {
+export function useGuildRoulette(guildId: Ref<number>) {
   const roster = ref<GuildRosterMember[]>([]);
   const loading = ref(true);
   const error = ref<string | null>(null);
-  const guildAuctionAccessNotFound = ref(false);
+  const guildRouletteAccessNotFound = ref(false);
 
   const searchQuery = ref('');
 
@@ -234,7 +234,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     } catch (e: unknown) {
       const err = e as ApiError;
       if (err.status === 403 || err.status === 404) {
-        guildAuctionAccessNotFound.value = true;
+        guildRouletteAccessNotFound.value = true;
         error.value = null;
       } else {
         error.value = err instanceof Error ? err.message : 'Ошибка загрузки состава';
@@ -247,7 +247,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
 
   const guildForPerms = ref<Guild | null>(null);
 
-  async function loadGuildSettingsForAuction() {
+  async function loadGuildSettingsForRoulette() {
     guildForPerms.value = null;
     if (!guildId.value || Number.isNaN(guildId.value)) return;
     try {
@@ -255,7 +255,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     } catch (e: unknown) {
       const err = e as ApiError;
       if (err.status === 403 || err.status === 404) {
-        guildAuctionAccessNotFound.value = true;
+        guildRouletteAccessNotFound.value = true;
       }
       guildForPerms.value = null;
     }
@@ -270,12 +270,12 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
 
   const canManageRouletteDkpCoefficients = computed(() => canManageRoulette.value);
 
-  async function loadAuctionPage() {
-    guildAuctionAccessNotFound.value = false;
-    await Promise.all([loadRoster(), loadGuildSettingsForAuction()]);
+  async function loadRoulettePage() {
+    guildRouletteAccessNotFound.value = false;
+    await Promise.all([loadRoster(), loadGuildSettingsForRoulette()]);
   }
 
-  watch(guildId, loadAuctionPage, { immediate: true });
+  watch(guildId, loadRoulettePage, { immediate: true });
 
   /** Результат рулетки — показываем в шапке карточки (справа). */
   const wheelSpinResult = ref<string | null>(null);
@@ -443,14 +443,14 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     wheelSpinDurationSeconds.value = String(clamped);
   }
 
-  const spinWheelRef = shallowRef<GuildAuctionSpinWheelExpose | null>(null);
+  const spinWheelRef = shallowRef<GuildRouletteSpinWheelExpose | null>(null);
 
   /**
    * Сеттер для template-ref: используется виджетом, чтобы записать инстанс
    * SpinWheel в `spinWheelRef` (через `reactive(model)` напрямую `model.spinWheelRef.value`
    * становится недоступен, т.к. ref разворачивается).
    */
-  function setSpinWheelInstance(instance: GuildAuctionSpinWheelExpose | null) {
+  function setSpinWheelInstance(instance: GuildRouletteSpinWheelExpose | null) {
     spinWheelRef.value = instance;
   }
 
@@ -479,7 +479,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     setEnrollmentOpen,
     addEntryViaServer,
     removeEntryViaServer,
-  } = useGuildAuctionWheelSocket({
+  } = useGuildRouletteWheelSocket({
     guildId,
     wheelEntries,
     spinWheelRef,
@@ -487,7 +487,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     useDkpCoefficients,
     dkpCoefficientOverrides: rouletteDkpCoefficientByCharacterId,
     externalDkpCoefficientOverrides: rouletteDkpCoefficientByExternalId,
-    canManageAuctionWheel: canManageRoulette,
+    canManageRouletteWheel: canManageRoulette,
   });
 
   /** Можно менять состав колеса (целиком): есть права + не идёт вращение. */
@@ -543,7 +543,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
   /**
    * Добавить своего персонажа на колесо. Менеджер использует общий канал
    * (watcher на `wheelEntries` шлёт полный список). Рядовой пользователь —
-   * отдельный сокет-ивент `auction:entries:add`, потому что watcher
+   * отдельный сокет-ивент `roulette:entries:add`, потому что watcher
    * для него не отправляет изменения.
    */
   function addOwnCharacterToWheel(characterId: number) {
@@ -806,7 +806,7 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
     roster,
     loading,
     error,
-    guildAuctionAccessNotFound,
+    guildRouletteAccessNotFound,
     searchQuery,
     filteredRoster,
     wheelEntries,
@@ -884,4 +884,4 @@ export function useGuildAuctionRoulette(guildId: Ref<number>) {
   };
 }
 
-export type GuildAuctionRouletteModel = ReturnType<typeof useGuildAuctionRoulette>;
+export type GuildRouletteModel = ReturnType<typeof useGuildRoulette>;

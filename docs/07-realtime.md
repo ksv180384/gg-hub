@@ -8,7 +8,7 @@
 - push in-app уведомлений;
 - обновления голосований гильдии;
 - изменения календарных событий;
-- рулетка аукциона гильдии (комната `guild:{id}:auction`).
+- рулетка гильдии (комната `guild:{id}:roulette`).
 
 ## Стек
 
@@ -38,7 +38,7 @@ socket_server/
 │   ├── notificationSocketHandler.js
 │   ├── guildPollSocketHandler.js
 │   ├── guildEventSocketHandler.js
-│   └── auctionSocketHandler.js
+│   └── rouletteSocketHandler.js
 └── package.json
 ```
 
@@ -68,7 +68,7 @@ socket_server/
 | `user:{userId}` | Уведомления пользователя |
 | `guild:{guildId}:polls` | Опросы гильдии |
 | `guild:{guildId}:events` | Календарь |
-| `guild:{guildId}:auction` | Рулетка аукциона |
+| `guild:{guildId}:roulette` | Рулетка |
 
 Клиент присоединяется к комнатам после подключения (см. `shared/lib` на фронте).
 

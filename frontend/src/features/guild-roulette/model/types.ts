@@ -1,6 +1,6 @@
-import type { GuildAuctionWheelEntry } from '@/shared/lib/useGuildAuctionWheelSocket';
+import type { GuildRouletteWheelEntry } from '@/shared/lib/useGuildRouletteWheelSocket';
 
-export type WheelEntry = GuildAuctionWheelEntry;
+export type WheelEntry = GuildRouletteWheelEntry;
 
 export const WHEEL_SPIN_SEC_MIN = 2;
 export const WHEEL_SPIN_SEC_MAX = 60;

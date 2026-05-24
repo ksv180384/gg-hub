@@ -9,12 +9,12 @@ import {
 } from 'radix-vue';
 import { Button } from '@/shared/ui';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
-import type { GuildAuctionRouletteModel } from '@/features/guild-auction-roulette';
+import type { GuildRouletteModel } from '@/features/guild-roulette';
 import WheelDurationField from './WheelDurationField.vue';
 
 const props = defineProps<{
   open: boolean;
-  model: GuildAuctionRouletteModel;
+  model: GuildRouletteModel;
 }>();
 
 const emit = defineEmits<{

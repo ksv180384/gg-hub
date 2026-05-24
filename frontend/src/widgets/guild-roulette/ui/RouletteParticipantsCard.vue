@@ -14,13 +14,13 @@ import {
 } from '@/shared/ui';
 import {
   avatarFallback,
-  type GuildAuctionRouletteModel,
-} from '@/features/guild-auction-roulette';
+  type GuildRouletteModel,
+} from '@/features/guild-roulette';
 import type { GuildRosterMember } from '@/shared/api/guildsApi';
 import CharacterPickerDialog from './CharacterPickerDialog.vue';
 
 const props = defineProps<{
-  model: GuildAuctionRouletteModel;
+  model: GuildRouletteModel;
 }>();
 
 const wheelExcelImportHint =

@@ -3,7 +3,7 @@ import { Button } from '@/shared/ui';
 import type {
   UserColorTheme,
   WheelEntry,
-} from '@/features/guild-auction-roulette';
+} from '@/features/guild-roulette';
 
 const props = defineProps<{
   entries: WheelEntry[];

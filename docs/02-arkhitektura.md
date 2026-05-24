@@ -53,7 +53,7 @@ flowchart TB
 |-----------|------|------|
 | **Backend** | `backend/` | REST API, авторизация, бизнес-логика (DDD), очереди, планировщик |
 | **Frontend** | `frontend/` | UI, SSR, маршрутизация, состояние (Pinia) |
-| **Socket server** | `socket_server/` | Realtime: рейды, уведомления, опросы, календарь, аукцион |
+| **Socket server** | `socket_server/` | Realtime: рейды, уведомления, опросы, календарь, рулетка |
 | **Notification hub** | отдельный репозиторий | Прокси в Telegram/Discord с ingress-токеном |
 | **Docker** | `docker-compose.yml`, `_docker/` | Оркестрация сервисов |
 

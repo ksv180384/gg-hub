@@ -43,7 +43,7 @@ const transitionInnerClass = computed(() =>
 
 <template>
   <div :class="rootClass" :style="rootStyle" aria-live="polite">
-    <Transition name="auction-wheel-winner">
+    <Transition name="roulette-wheel-winner">
       <div
         v-if="show"
         :key="displayKey"
@@ -132,26 +132,26 @@ const transitionInnerClass = computed(() =>
 </template>
 
 <style scoped>
-.auction-wheel-winner-enter-active {
+.roulette-wheel-winner-enter-active {
   transition:
     opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.65s cubic-bezier(0.34, 1.45, 0.64, 1),
     filter 0.45s ease-out;
 }
-.auction-wheel-winner-leave-active {
+.roulette-wheel-winner-leave-active {
   transition: opacity 0.2s ease-out;
 }
-.auction-wheel-winner-enter-from {
+.roulette-wheel-winner-enter-from {
   opacity: 0;
   transform: scale(0.88) translateY(10px);
   filter: blur(3px);
 }
-.auction-wheel-winner-enter-to {
+.roulette-wheel-winner-enter-to {
   opacity: 1;
   transform: scale(1) translateY(0);
   filter: blur(0);
 }
-.auction-wheel-winner-leave-to {
+.roulette-wheel-winner-leave-to {
   opacity: 0;
 }
 </style>
