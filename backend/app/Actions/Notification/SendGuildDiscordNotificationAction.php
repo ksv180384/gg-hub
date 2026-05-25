@@ -29,6 +29,8 @@ class SendGuildDiscordNotificationAction
         'discord_notify_poll_started',
         'discord_notify_role_changed',
         'discord_notify_post_published',
+        'discord_notify_auction_lot_created',
+        'discord_notify_auction_lot_closed',
     ];
 
     public function __construct(

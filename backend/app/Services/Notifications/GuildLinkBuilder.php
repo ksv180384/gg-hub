@@ -42,6 +42,11 @@ class GuildLinkBuilder
         return $this->guildUrl($guild) . '/polls';
     }
 
+    public function auctionLotUrl(Guild $guild, int $lotId): string
+    {
+        return $this->guildUrl($guild) . '/auction/lots/' . $lotId;
+    }
+
     public function postUrl(Guild $guild, int $postId): string
     {
         return $this->guildUrl($guild) . $this->postPath($guild, $postId);

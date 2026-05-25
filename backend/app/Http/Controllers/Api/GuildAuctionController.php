@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\GuildAuction\GuildAuctionBidResource;
 use App\Http\Resources\GuildAuction\GuildAuctionLotResource;
+use App\Actions\Notification\SendGuildDiscordNotificationAction;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\GuildAuctionSocketBroadcaster;
+use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Character\Models\Character;
 use Domains\Guild\Actions\GetUserGuildCharactersAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
+use Domains\GuildAuction\Actions\CloseGuildAuctionLotAction;
 use Domains\GuildAuction\Models\GuildAuctionBid;
 use Domains\GuildAuction\Models\GuildAuctionLot;
 use Domains\GuildBank\Models\GuildBankItem;
@@ -32,6 +35,9 @@ class GuildAuctionController extends Controller
         private GetGuildUserDkpBalanceAction $getGuildUserDkpBalanceAction,
         private RecordGuildDkpLedgerEntryAction $recordGuildDkpLedgerEntryAction,
         private GuildAuctionSocketBroadcaster $broadcaster,
+        private CloseGuildAuctionLotAction $closeGuildAuctionLotAction,
+        private SendGuildDiscordNotificationAction $sendGuildDiscordNotificationAction,
+        private GuildLinkBuilder $linkBuilder,
     ) {}
 
     public function context(Request $request, Guild $guild): JsonResponse
@@ -63,6 +69,8 @@ class GuildAuctionController extends Controller
     {
         abort_unless((bool) ($guild->dkp_enabled ?? false), 404);
 
+        $this->closeExpiredLots($guild);
+
         $lots = GuildAuctionLot::query()
             ->where('guild_id', $guild->id)
             ->with($this->lotRelations())
@@ -71,6 +79,23 @@ class GuildAuctionController extends Controller
             ->get();
 
         return GuildAuctionLotResource::collection($lots);
+    }
+
+    public function show(Guild $guild, GuildAuctionLot $lot): GuildAuctionLotResource
+    {
+        abort_unless((bool) ($guild->dkp_enabled ?? false), 404);
+
+        if ((int) $lot->guild_id !== (int) $guild->id) {
+            abort(404);
+        }
+
+        if ($lot->status === GuildAuctionLot::STATUS_ACTIVE && $lot->ends_at->lte(now())) {
+            $lot = ($this->closeGuildAuctionLotAction)($guild, $lot);
+        }
+
+        return new GuildAuctionLotResource(
+            $lot->load($this->lotRelations())
+        );
     }
 
     public function store(Request $request, Guild $guild): AnonymousResourceCollection
@@ -118,6 +143,8 @@ class GuildAuctionController extends Controller
             ->with($this->lotRelations())
             ->orderBy('ends_at')
             ->get();
+
+        $createdLots->each(fn (GuildAuctionLot $lot) => $this->sendLotCreatedDiscordNotification($guild, $lot));
 
         return GuildAuctionLotResource::collection($createdLots);
     }
@@ -202,6 +229,14 @@ class GuildAuctionController extends Controller
             abort(404);
         }
 
+        abort_unless((bool) ($guild->dkp_enabled ?? false), 404);
+
+        $closed = ($this->closeGuildAuctionLotAction)($guild, $lot, $request->user());
+
+        return new GuildAuctionLotResource(
+            $closed->load($this->lotRelations())
+        );
+
         $closed = DB::transaction(function () use ($guild, $request, $lot): GuildAuctionLot {
             /** @var GuildAuctionLot $lockedLot */
             $lockedLot = GuildAuctionLot::query()
@@ -283,10 +318,13 @@ class GuildAuctionController extends Controller
     {
         return [
             'item.tier',
+            'createdBy:id,name',
+            'closedBy:id,name',
             'currentBidUser:id,name',
             'currentBidCharacter:id,name,avatar,use_profile_avatar,user_id',
             'currentBidCharacter.user:id,avatar',
             'winner:id,name',
+            'grant.receivedByCharacter:id,name',
             'bids.user:id,name',
             'bids.character:id,name,avatar,use_profile_avatar,user_id',
             'bids.character.user:id,avatar',
@@ -359,6 +397,36 @@ class GuildAuctionController extends Controller
         }
 
         return (int) $characterId;
+    }
+
+    private function closeExpiredLots(Guild $guild): void
+    {
+        GuildAuctionLot::query()
+            ->where('guild_id', $guild->id)
+            ->where('status', GuildAuctionLot::STATUS_ACTIVE)
+            ->where('ends_at', '<=', now())
+            ->select('id', 'guild_id')
+            ->chunkById(50, function ($lots) use ($guild) {
+                foreach ($lots as $lot) {
+                    ($this->closeGuildAuctionLotAction)($guild, $lot);
+                }
+            });
+    }
+
+    private function sendLotCreatedDiscordNotification(Guild $guild, GuildAuctionLot $lot): void
+    {
+        $lot->loadMissing('item');
+        $itemName = $lot->item?->name ?? 'Лот #' . $lot->id;
+        $url = $this->linkBuilder->auctionLotUrl($guild, (int) $lot->id);
+        $message = "На аукцион выставлен лот «{$itemName}».\n"
+            . "Начальная стоимость: {$lot->start_price} ДКП.\n"
+            . $url;
+
+        ($this->sendGuildDiscordNotificationAction)(
+            $guild,
+            'discord_notify_auction_lot_created',
+            $message,
+        );
     }
 
     private function notifyGuildMembers(Guild $guild, array $itemNames): void

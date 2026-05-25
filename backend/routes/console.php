@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\NotifyDiscordEventsStartingCommand;
+use App\Console\Commands\CloseExpiredGuildAuctionLotsCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -13,6 +14,11 @@ Artisan::command('inspire', function () {
 // Команда сама вычисляет окно 9..10 минут до старта и защищена кешем от дублей.
 // withoutOverlapping — на случай долгой отправки в Discord (1 мин tick может пересечься).
 Schedule::command(NotifyDiscordEventsStartingCommand::class)
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->runInBackground();
+
+Schedule::command(CloseExpiredGuildAuctionLotsCommand::class)
     ->everyMinute()
     ->withoutOverlapping(5)
     ->runInBackground();

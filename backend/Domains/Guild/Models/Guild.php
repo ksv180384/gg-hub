@@ -44,6 +44,8 @@ class Guild extends Model
         'discord_notify_poll_started',
         'discord_notify_role_changed',
         'discord_notify_post_published',
+        'discord_notify_auction_lot_created',
+        'discord_notify_auction_lot_closed',
     ];
 
     protected function casts(): array
@@ -59,6 +61,8 @@ class Guild extends Model
             'discord_notify_poll_started' => 'boolean',
             'discord_notify_role_changed' => 'boolean',
             'discord_notify_post_published' => 'boolean',
+            'discord_notify_auction_lot_created' => 'boolean',
+            'discord_notify_auction_lot_closed' => 'boolean',
         ];
     }
 

@@ -33,7 +33,9 @@ export type DiscordNotificationKey =
   | 'discord_notify_event_starting'
   | 'discord_notify_poll_started'
   | 'discord_notify_role_changed'
-  | 'discord_notify_post_published';
+  | 'discord_notify_post_published'
+  | 'discord_notify_auction_lot_created'
+  | 'discord_notify_auction_lot_closed';
 
 /**
  * Метки для чекбоксов оповещений Discord (для UI).
@@ -46,6 +48,8 @@ export const DISCORD_NOTIFICATION_LABELS: { key: DiscordNotificationKey; label: 
   { key: 'discord_notify_poll_started', label: 'Запуск нового голосования' },
   { key: 'discord_notify_role_changed', label: 'Смена роли пользователю' },
   { key: 'discord_notify_post_published', label: 'Публикация нового поста гильдии' },
+  { key: 'discord_notify_auction_lot_created', label: 'Выставление лота на аукцион' },
+  { key: 'discord_notify_auction_lot_closed', label: 'Закрытие лота' },
 ];
 
 /**
@@ -226,6 +230,8 @@ export function useGuildSettingsModel() {
     discord_notify_poll_started: false,
     discord_notify_role_changed: false,
     discord_notify_post_published: false,
+    discord_notify_auction_lot_created: false,
+    discord_notify_auction_lot_closed: false,
   });
   /** Какая галочка оповещения Discord сейчас сохраняется на сервер (остальные временно блокируются). */
   const discordNotifySavingKey = ref<DiscordNotificationKey | null>(null);
@@ -240,6 +246,8 @@ export function useGuildSettingsModel() {
       discord_notify_poll_started: g.discord_notify_poll_started ?? false,
       discord_notify_role_changed: g.discord_notify_role_changed ?? false,
       discord_notify_post_published: g.discord_notify_post_published ?? false,
+      discord_notify_auction_lot_created: g.discord_notify_auction_lot_created ?? false,
+      discord_notify_auction_lot_closed: g.discord_notify_auction_lot_closed ?? false,
     };
   }
 
@@ -287,6 +295,18 @@ export function useGuildSettingsModel() {
   const togglingRecruiting = ref(false);
   const isRecruiting = computed(() => guild.value?.is_recruiting ?? false);
 
+  function applyUpdatedGuild(next: Guild) {
+    const previous = guild.value;
+    guild.value = {
+      ...next,
+      my_permission_slugs: next.my_permission_slugs ?? previous?.my_permission_slugs,
+      my_characters: next.my_characters ?? previous?.my_characters,
+      can_change_guild_leader: next.can_change_guild_leader ?? previous?.can_change_guild_leader,
+      can_change_localization_server: next.can_change_localization_server ?? previous?.can_change_localization_server,
+      application_form_fields: next.application_form_fields ?? previous?.application_form_fields,
+    };
+  }
+
   function setLogoFile(file: File | null) {
     if (logoPreview.value) URL.revokeObjectURL(logoPreview.value);
     logoFile.value = file ?? null;
@@ -299,7 +319,7 @@ export function useGuildSettingsModel() {
     saving.value = true;
     error.value = null;
     try {
-      guild.value = await guildsApi.updateGuild(guild.value.id, { logo: logoFile.value });
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, { logo: logoFile.value }));
       setLogoFile(null);
     } catch (e: unknown) {
       error.value = (e as Error).message ?? 'Не удалось загрузить логотип';
@@ -347,7 +367,7 @@ export function useGuildSettingsModel() {
     saving.value = true;
     error.value = null;
     try {
-      guild.value = await guildsApi.updateGuild(guild.value.id, { remove_logo: true });
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, { remove_logo: true }));
       removeLogo.value = false;
     } catch (e: unknown) {
       error.value = (e as Error).message ?? 'Не удалось удалить логотип';
@@ -507,7 +527,7 @@ export function useGuildSettingsModel() {
       if (canChangeGuildLeader.value && selectedLeaderCharacterId.value) {
         payload.leader_character_id = Number(selectedLeaderCharacterId.value);
       }
-      guild.value = await guildsApi.updateGuild(guild.value.id, payload);
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, payload));
     } catch (e: unknown) {
       const err = e as Error & { errors?: Record<string, string[]> };
       if (err.errors) {
@@ -541,7 +561,7 @@ export function useGuildSettingsModel() {
     saving.value = true;
     error.value = null;
     try {
-      guild.value = await guildsApi.updateGuild(guild.value.id, { about_text: aboutText.value || null });
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, { about_text: aboutText.value || null }));
     } catch (e: unknown) {
       error.value = (e as Error).message ?? 'Не удалось сохранить';
     } finally {
@@ -554,7 +574,7 @@ export function useGuildSettingsModel() {
     saving.value = true;
     error.value = null;
     try {
-      guild.value = await guildsApi.updateGuild(guild.value.id, { charter_text: charterText.value || null });
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, { charter_text: charterText.value || null }));
     } catch (e: unknown) {
       error.value = (e as Error).message ?? 'Не удалось сохранить';
     } finally {
@@ -567,9 +587,9 @@ export function useGuildSettingsModel() {
     saving.value = true;
     error.value = null;
     try {
-      guild.value = await guildsApi.updateGuild(guild.value.id, {
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, {
         application_form_description: applicationFormDescription.value.trim() || null,
-      });
+      }));
       applicationFormDescription.value = guild.value.application_form_description ?? '';
     } catch (e: unknown) {
       error.value = (e as Error).message ?? 'Не удалось сохранить описание формы';
@@ -610,9 +630,11 @@ export function useGuildSettingsModel() {
         payload.discord_notify_poll_started = false;
         payload.discord_notify_role_changed = false;
         payload.discord_notify_post_published = false;
+        payload.discord_notify_auction_lot_created = false;
+        payload.discord_notify_auction_lot_closed = false;
       }
 
-      guild.value = await guildsApi.updateGuild(guild.value.id, payload);
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, payload));
       applyDiscordStateFromGuild(guild.value);
     } catch (e: unknown) {
       const err = e as Error & { errors?: Record<string, string[] | string> };
@@ -637,7 +659,7 @@ export function useGuildSettingsModel() {
     discordNotifySavingKey.value = key;
     error.value = null;
     try {
-      guild.value = await guildsApi.updateGuild(guild.value.id, { [key]: value });
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, { [key]: value }));
       applyDiscordStateFromGuild(guild.value);
     } catch (e: unknown) {
       discordNotifications.value = { ...discordNotifications.value, [key]: prev };
@@ -680,9 +702,9 @@ export function useGuildSettingsModel() {
     togglingRecruiting.value = true;
     error.value = null;
     try {
-      guild.value = await guildsApi.updateGuild(guild.value.id, {
+      applyUpdatedGuild(await guildsApi.updateGuild(guild.value.id, {
         is_recruiting: !guild.value.is_recruiting,
-      });
+      }));
     } catch (e: unknown) {
       error.value = (e as Error).message ?? 'Не удалось изменить набор в гильдию';
     } finally {

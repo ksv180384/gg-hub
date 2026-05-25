@@ -52,6 +52,7 @@
 | Календарь | `/guilds/{guild}/events` | `dobavliat-sobytie-kalendar`, … |
 | Банк | `/guilds/{guild}/bank/*` | `dobavliat-predmety`, `peredavat-predmety-polzovateliam` |
 | DKP | `/guilds/{guild}/dkp/*`, `/members/{char}/dkp` | см. [guild-bank-and-dkp.md](guild-bank-and-dkp.md) |
+| Аукцион | `/guilds/{guild}/auction/*` | см. [guild-auction.md](guild-auction.md) |
 | История событий | `/guilds/{guild}/event-history` | `dobavliat-sobytie`, … |
 | Рейды | `/guilds/{guild}/raids` | `formirovat-reidy`, `udaliat-reidy` |
 | Состав | `/guilds/{guild}/roster` | — |

@@ -454,7 +454,13 @@ async function confirmCloseLot() {
                   @click="selectLot(lot)"
                 >
                   <td class="px-4 py-3">
-                    <div class="truncate font-medium text-foreground">{{ lot.item?.name ?? `Лот #${lot.id}` }}</div>
+                    <RouterLink
+                      :to="{ name: 'guild-auction-lot', params: { id: guildId, lotId: lot.id } }"
+                      class="block truncate font-medium text-foreground hover:text-primary hover:underline"
+                      @click.stop
+                    >
+                      {{ lot.item?.name ?? `Лот #${lot.id}` }}
+                    </RouterLink>
                     <div class="text-xs text-muted-foreground">из хранилища</div>
                   </td>
                   <td class="px-2 py-3">

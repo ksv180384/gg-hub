@@ -28,6 +28,7 @@
 | Тема | Файл |
 |------|------|
 | Хранилище гильдии и ДКП | [guild-bank-and-dkp.md](guild-bank-and-dkp.md) |
+| Аукцион гильдии | [guild-auction.md](guild-auction.md) |
 | Миграции на проде | [migrate.md](migrate.md) |
 | Функционал (краткий обзор) | [features.md](features.md) |
 | Домены backend (кратко) | [../backend/Domains/README.md](../backend/Domains/README.md) |

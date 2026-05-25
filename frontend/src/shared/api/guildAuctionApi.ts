@@ -27,6 +27,14 @@ export type GuildAuctionLot = {
     tier: Pick<GuildBankItemTier, 'id' | 'name' | 'color'> | null;
   } | null;
   start_price: number;
+  created_by_user_id: number | null;
+  created_by_user_name: string | null;
+  created_by_character_id: number | null;
+  created_by_character_name: string | null;
+  closed_by_user_id: number | null;
+  closed_by_user_name: string | null;
+  closed_by_character_id: number | null;
+  closed_by_character_name: string | null;
   current_bid_amount: number | null;
   current_bid_user_id: number | null;
   current_bid_user_name: string | null;
@@ -35,6 +43,15 @@ export type GuildAuctionLot = {
   current_bid_character_avatar_url: string | null;
   winner_user_id: number | null;
   winner_user_name: string | null;
+  guild_bank_item_grant_id: number | null;
+  grant?: {
+    id: number;
+    received_by_character_id: number | null;
+    received_by_character_name: string | null;
+    dkp_charged: number | null;
+    reason: string | null;
+    granted_at: string | null;
+  } | null;
   ends_at: string;
   closed_at: string | null;
   created_at: string;
@@ -73,6 +90,12 @@ export const guildAuctionApi = {
     const res = await http.fetchGet<{ data: GuildAuctionLot[] }>(`/guilds/${guildId}/auction/lots`);
     throwOnError(res, 'Не удалось загрузить лоты аукциона.');
     return res.data?.data ?? [];
+  },
+
+  async getLot(guildId: number, lotId: number): Promise<GuildAuctionLot> {
+    const res = await http.fetchGet<{ data: GuildAuctionLot }>(`/guilds/${guildId}/auction/lots/${lotId}`);
+    throwOnError(res, 'Не удалось загрузить лот аукциона.');
+    return res.data?.data as GuildAuctionLot;
   },
 
   async createLots(guildId: number, payload: CreateGuildAuctionPayload): Promise<GuildAuctionLot[]> {

@@ -55,6 +55,8 @@ class GuildResource extends JsonResource
             'discord_notify_poll_started' => (bool) ($this->discord_notify_poll_started ?? false),
             'discord_notify_role_changed' => (bool) ($this->discord_notify_role_changed ?? false),
             'discord_notify_post_published' => (bool) ($this->discord_notify_post_published ?? false),
+            'discord_notify_auction_lot_created' => (bool) ($this->discord_notify_auction_lot_created ?? false),
+            'discord_notify_auction_lot_closed' => (bool) ($this->discord_notify_auction_lot_closed ?? false),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

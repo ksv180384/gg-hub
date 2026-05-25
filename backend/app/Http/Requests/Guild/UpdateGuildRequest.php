@@ -108,6 +108,8 @@ class UpdateGuildRequest extends FormRequest
             'discord_notify_poll_started' => ['sometimes', 'boolean'],
             'discord_notify_role_changed' => ['sometimes', 'boolean'],
             'discord_notify_post_published' => ['sometimes', 'boolean'],
+            'discord_notify_auction_lot_created' => ['sometimes', 'boolean'],
+            'discord_notify_auction_lot_closed' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -137,6 +139,8 @@ class UpdateGuildRequest extends FormRequest
             'discord_notify_poll_started.boolean' => 'Поле «Запуск нового голосования» должно быть логическим значением.',
             'discord_notify_role_changed.boolean' => 'Поле «Смена роли пользователю» должно быть логическим значением.',
             'discord_notify_post_published.boolean' => 'Поле «Публикация нового поста гильдии» должно быть логическим значением.',
+            'discord_notify_auction_lot_created.boolean' => 'Поле «Выставление лота на аукцион» должно быть логическим значением.',
+            'discord_notify_auction_lot_closed.boolean' => 'Поле «Закрытие лота» должно быть логическим значением.',
             'dkp_enabled.boolean' => 'Поле «Система ДКП» должно быть логическим значением.',
             'application_form_description.max' => 'Описание формы заявки не должно превышать 65535 символов.',
         ];

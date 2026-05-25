@@ -110,6 +110,8 @@ export interface Guild {
   discord_notify_poll_started?: boolean;
   discord_notify_role_changed?: boolean;
   discord_notify_post_published?: boolean;
+  discord_notify_auction_lot_created?: boolean;
+  discord_notify_auction_lot_closed?: boolean;
 }
 
 /** Дополнительное поле формы заявки гильдии. */
@@ -248,6 +250,8 @@ export interface UpdateGuildPayload {
   discord_notify_poll_started?: boolean;
   discord_notify_role_changed?: boolean;
   discord_notify_post_published?: boolean;
+  discord_notify_auction_lot_created?: boolean;
+  discord_notify_auction_lot_closed?: boolean;
 }
 
 /** Ответ сервера: список гильдий с пагинацией (GET /guilds). */
@@ -862,6 +866,12 @@ export const guildsApi = {
     }
     if (payload.discord_notify_post_published !== undefined) {
       form.append('discord_notify_post_published', payload.discord_notify_post_published ? '1' : '0');
+    }
+    if (payload.discord_notify_auction_lot_created !== undefined) {
+      form.append('discord_notify_auction_lot_created', payload.discord_notify_auction_lot_created ? '1' : '0');
+    }
+    if (payload.discord_notify_auction_lot_closed !== undefined) {
+      form.append('discord_notify_auction_lot_closed', payload.discord_notify_auction_lot_closed ? '1' : '0');
     }
     form.append('_method', 'PUT');
     const res = await http.fetchPost<{ data: Guild } | Guild>(`/guilds/${id}`, form);

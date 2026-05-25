@@ -38,6 +38,8 @@ class UpdateGuildAction
         'discord_notify_poll_started' => 'redaktirovanie-dannyx-gildii',
         'discord_notify_role_changed' => 'redaktirovanie-dannyx-gildii',
         'discord_notify_post_published' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_auction_lot_created' => 'redaktirovanie-dannyx-gildii',
+        'discord_notify_auction_lot_closed' => 'redaktirovanie-dannyx-gildii',
     ];
 
     /** Человекочитаемые имена полей гильдии для сообщений об ошибках. */
@@ -60,6 +62,8 @@ class UpdateGuildAction
         'discord_notify_poll_started' => 'оповещение «Запуск нового голосования»',
         'discord_notify_role_changed' => 'оповещение «Смена роли пользователю»',
         'discord_notify_post_published' => 'оповещение «Публикация нового поста гильдии»',
+        'discord_notify_auction_lot_created' => 'оповещение «Выставление лота на аукцион»',
+        'discord_notify_auction_lot_closed' => 'оповещение «Закрытие лота»',
     ];
 
     public function __construct(
