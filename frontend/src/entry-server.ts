@@ -26,6 +26,7 @@ export interface SsrRenderResult {
   html: string;
   piniaState: Record<string, unknown>;
   head?: string;
+  statusCode?: number;
   /**
    * Если в ходе router.beforeEach произошёл редирект на другой путь — сюда попадает
    * целевой fullPath. Сервер должен отдать HTTP 302, иначе на клиенте случится
@@ -139,10 +140,12 @@ export async function render(url: string, opts: SsrRenderOptions): Promise<SsrRe
       const piniaState = pinia.state.value as Record<string, unknown>;
       const pageSeo = ssrContext.pageSeo ?? routeSeo;
       const head = pageSeo ? buildPageSeoHead(pageSeo) : undefined;
+      const routeName = router.currentRoute.value.name;
+      const statusCode = routeName === 'not-found' || routeName === 'page-not-found' ? 404 : 200;
 
       setActiveRouter(null);
 
-      return { html, piniaState, head };
+      return { html, piniaState, head, statusCode };
     },
   );
 }

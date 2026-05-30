@@ -126,7 +126,7 @@ async function createDevServer() {
         '<!--pinia-state-->',
         stateJson,
       );
-      res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+      res.status(result.statusCode || 200).set({ 'Content-Type': 'text/html' }).end(html);
     } catch (e) {
       vite.ssrFixStacktrace(e);
       next(e);
@@ -169,7 +169,7 @@ async function createProdServer() {
         '<!--pinia-state-->',
         stateJson,
       );
-      res.status(200).type('html').send(html);
+      res.status(result.statusCode || 200).type('html').send(html);
     } catch (e) {
       console.error(e);
       res.status(500).type('html').send('SSR error');
