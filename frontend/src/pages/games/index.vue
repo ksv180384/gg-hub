@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { inject } from 'vue';
 import { GamesCatalogPage } from '@/widgets/games-catalog';
-import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
+import { applyPageSeo } from '@/shared/lib/usePageSeo';
+import { getMainSiteOrigin, mainSiteOriginSsrKey } from '@/shared/lib/mainSiteOriginSsr';
 
-const siteOrigin = getSiteOrigin();
+const mainSiteOriginFromSsr = inject(mainSiteOriginSsrKey, undefined as string | undefined);
+const siteOrigin = getMainSiteOrigin(mainSiteOriginFromSsr);
 
 if (typeof window !== 'undefined') {
   applyPageSeo({

@@ -44,6 +44,12 @@ function removeStaticHomeNoscript(template) {
   return template.slice(0, startIdx) + template.slice(endIdx + end.length);
 }
 
+function injectDevStyles(template) {
+  const href = '/src/assets/main.css';
+  if (template.includes(`href="${href}"`)) return template;
+  return template.replace('</head>', `    <link rel="stylesheet" href="${href}">\n  </head>`);
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const resolve = (p) => path.resolve(__dirname, p);
 
@@ -150,7 +156,7 @@ async function createDevServer() {
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
       const html = safeReplace(
         safeReplace(
-          removeStaticHomeNoscript(replaceSsrHead(template, result.head)),
+          injectDevStyles(removeStaticHomeNoscript(replaceSsrHead(template, result.head))),
           '<!--app-html-->',
           result.html,
         ),

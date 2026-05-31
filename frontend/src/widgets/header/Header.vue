@@ -290,13 +290,14 @@ watch(
   }
 );
 
-const navItems = [
+const mainSiteHref = computed(() => `${getMainSiteOrigin(mainSiteOriginFromSsr)}/`);
+const gamesHref = computed(() => `${getMainSiteOrigin(mainSiteOriginFromSsr)}/games`);
+
+const navItems = computed(() => [
   { to: '/', label: 'Главная' },
   { to: '/guilds', label: 'Гильдии' },
-  { to: '/games', label: 'Игры' },
-];
-
-const mainSiteHref = computed(() => `${getMainSiteOrigin(mainSiteOriginFromSsr)}/`);
+  { to: '/games', href: gamesHref.value, label: 'Игры', external: true },
+]);
 
 /** Активный пункт верхнего меню: главная только по точному пути, остальные — раздел и вложенные URL. */
 function isNavActive(itemTo: string): boolean {
@@ -326,20 +327,34 @@ function isNavActive(itemTo: string): boolean {
         class="hidden min-w-0 items-center justify-center gap-1 md:flex md:justify-self-center"
         aria-label="Основная навигация"
       >
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          class="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-[color,opacity] hover:text-foreground/90"
-          :class="
-            isNavActive(item.to)
-              ? 'text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/45'
-              : ''
-          "
-          :aria-current="isNavActive(item.to) ? 'page' : undefined"
-        >
-          {{ item.label }}
-        </RouterLink>
+        <template v-for="item in navItems" :key="item.to">
+          <a
+            v-if="item.external"
+            :href="item.href"
+            class="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-[color,opacity] hover:text-foreground/90"
+            :class="
+              isNavActive(item.to)
+                ? 'text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/45'
+                : ''
+            "
+            :aria-current="isNavActive(item.to) ? 'page' : undefined"
+          >
+            {{ item.label }}
+          </a>
+          <RouterLink
+            v-else
+            :to="item.to"
+            class="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-[color,opacity] hover:text-foreground/90"
+            :class="
+              isNavActive(item.to)
+                ? 'text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/45'
+                : ''
+            "
+            :aria-current="isNavActive(item.to) ? 'page' : undefined"
+          >
+            {{ item.label }}
+          </RouterLink>
+        </template>
       </nav>
 
       <div class="flex min-w-0 items-center justify-end gap-2 md:flex-none md:justify-self-end">
@@ -473,21 +488,36 @@ function isNavActive(itemTo: string): boolean {
             :class="{ 'pt-8': !hasMobileMenuSidebar }"
           >
             <div class="flex shrink-0 flex-col">
-              <RouterLink
-                v-for="item in navItems"
-                :key="item.to"
-                :to="item.to"
-                class="rounded-md px-3 py-2 text-base font-medium transition-colors hover:bg-muted/50"
-                :class="
-                  isNavActive(item.to)
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground'
-                "
-                :aria-current="isNavActive(item.to) ? 'page' : undefined"
-                @click="mobileMenuOpen = false"
-              >
-                {{ item.label }}
-              </RouterLink>
+              <template v-for="item in navItems" :key="item.to">
+                <a
+                  v-if="item.external"
+                  :href="item.href"
+                  class="rounded-md px-3 py-2 text-base font-medium transition-colors hover:bg-muted/50"
+                  :class="
+                    isNavActive(item.to)
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground'
+                  "
+                  :aria-current="isNavActive(item.to) ? 'page' : undefined"
+                  @click="mobileMenuOpen = false"
+                >
+                  {{ item.label }}
+                </a>
+                <RouterLink
+                  v-else
+                  :to="item.to"
+                  class="rounded-md px-3 py-2 text-base font-medium transition-colors hover:bg-muted/50"
+                  :class="
+                    isNavActive(item.to)
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground'
+                  "
+                  :aria-current="isNavActive(item.to) ? 'page' : undefined"
+                  @click="mobileMenuOpen = false"
+                >
+                  {{ item.label }}
+                </RouterLink>
+              </template>
             </div>
             <template v-if="hasMobileMenuSidebar">
               <Separator class="shrink-0" />

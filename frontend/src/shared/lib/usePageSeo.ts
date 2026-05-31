@@ -204,7 +204,10 @@ export function usePageSeo(options: PageSeoOptions) {
 /** Базовый origin сайта для канонических URL и OG (без завершающего слэша). */
 export function getSiteOrigin(): string {
   if (typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.host}`;
+    const protocol = window.location.hostname === 'gg-hub.local' || window.location.hostname.endsWith('.gg-hub.local')
+      ? 'http:'
+      : window.location.protocol;
+    return `${protocol}//${window.location.host}`;
   }
   const fromEnv = import.meta.env.VITE_SITE_URL as string | undefined;
   if (fromEnv && /^https?:\/\//i.test(fromEnv)) {

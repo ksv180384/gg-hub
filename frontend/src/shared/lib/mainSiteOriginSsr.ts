@@ -9,6 +9,13 @@ function baseHostStripGameSubdomain(hostname: string): string {
   return parts.length >= 3 ? parts.slice(1).join('.') : hostname;
 }
 
+function protocolForHost(hostname: string, protocol?: string): 'http' | 'https' {
+  if (hostname === 'gg-hub.local' || hostname.endsWith('.gg-hub.local')) {
+    return 'http';
+  }
+  return protocol === 'https' ? 'https' : 'http';
+}
+
 /** Origin «основного» сайта для SSR HTML (совпадает с клиентским расчётом по window без VITE_SITE_URL). */
 export function computeMainSiteOriginForSsr(opts: { host?: string; protocol?: string }): string {
   const fromEnv = import.meta.env.VITE_SITE_URL as string | undefined;
@@ -17,7 +24,7 @@ export function computeMainSiteOriginForSsr(opts: { host?: string; protocol?: st
   }
   if (opts.host) {
     const hostname = opts.host.split(':')[0];
-    const proto = opts.protocol === 'https' ? 'https' : 'http';
+    const proto = protocolForHost(hostname, opts.protocol);
     return `${proto}://${baseHostStripGameSubdomain(hostname)}`;
   }
   return DEFAULT_PRODUCTION_ORIGIN;
@@ -26,7 +33,8 @@ export function computeMainSiteOriginForSsr(opts: { host?: string; protocol?: st
 /** Origin текущего HTTP-запроса SSR. Используется для canonical/OG на игровых поддоменах. */
 export function computeRequestOriginForSsr(opts: { host?: string; protocol?: string }): string {
   if (opts.host) {
-    const proto = opts.protocol === 'https' ? 'https' : 'http';
+    const hostname = opts.host.split(':')[0];
+    const proto = protocolForHost(hostname, opts.protocol);
     return `${proto}://${opts.host}`;
   }
   return DEFAULT_PRODUCTION_ORIGIN;
@@ -43,5 +51,6 @@ export function getMainSiteOrigin(mainSiteOriginFromSsr?: string): string {
     return DEFAULT_PRODUCTION_ORIGIN;
   }
   const { protocol, hostname } = window.location;
-  return `${protocol}//${baseHostStripGameSubdomain(hostname)}`;
+  const resolvedProtocol = protocolForHost(hostname, protocol.replace(':', ''));
+  return `${resolvedProtocol}://${baseHostStripGameSubdomain(hostname)}`;
 }

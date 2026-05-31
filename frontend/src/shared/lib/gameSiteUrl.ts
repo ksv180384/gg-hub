@@ -6,7 +6,7 @@ export function getGameSiteUrl(slug: string): string {
   const baseDomain =
     (import.meta.env.VITE_APP_HOST as string | undefined) ||
     (typeof window !== 'undefined' ? getBaseDomainFromHost(window.location.hostname) : 'gg-hub.local');
-  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+  const protocol = baseDomain === 'gg-hub.local' ? 'http:' : (typeof window !== 'undefined' ? window.location.protocol : 'https:');
   return `${protocol}//${slug}.${baseDomain}`;
 }
 

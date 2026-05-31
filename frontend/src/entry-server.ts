@@ -18,6 +18,7 @@ import '@cyhnkckali/vue3-color-picker/dist/style.css';
 import { buildPageSeoHead, type PageSeoOptions } from '@/shared/lib/usePageSeo';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { guildsApi, type Guild, type GuildApplicationFormData } from '@/shared/api/guildsApi';
+import { gamesApi, type GameCatalogItem } from '@/shared/api/gamesApi';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { useSsrPageDataStore } from '@/stores/ssrPageData';
 
@@ -208,6 +209,37 @@ function buildGuildApplicationSeo(
   };
 }
 
+function buildGamesCatalogSeo(games: GameCatalogItem[], origin: string): PageSeoOptions {
+  const canonicalUrl = `${origin}/games`;
+  const title = 'Игры — gg-hub';
+  const description =
+    'Список поддерживаемых игр на gg-hub: выберите игру и перейдите на её сайт с каталогом гильдий, журналом и инструментами сообщества.';
+
+  return {
+    title,
+    description,
+    keywords: 'игры, поддерживаемые игры, MMORPG, Throne and Liberty, Aion 2, gg-hub',
+    canonicalUrl,
+    ogType: 'website',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: title,
+      description,
+      url: canonicalUrl,
+      mainEntity: {
+        '@type': 'ItemList',
+        itemListElement: games.map((game, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: game.name,
+          url: buildGameOriginForSsr(origin, game.slug),
+        })),
+      },
+    },
+  };
+}
+
 async function resolveRouteSeo(url: string, origin: string): Promise<PageSeoOptions | undefined> {
   const path = url.split('?')[0] ?? url;
   if (path === '/' || path === '') {
@@ -260,6 +292,13 @@ async function resolveRouteSeo(url: string, origin: string): Promise<PageSeoOpti
         url: `${origin}/guilds`,
       },
     };
+  }
+
+  if (path === '/games' || path === '/games/') {
+    const pageData = useSsrPageDataStore();
+    const games = await gamesApi.getGamesCatalog().catch(() => []);
+    pageData.setGamesCatalog(games);
+    return buildGamesCatalogSeo(games, origin);
   }
 
   const guildInfoMatch = path.match(/^\/guilds\/(\d+)\/info\/?$/);
@@ -354,6 +393,17 @@ export async function render(url: string, opts: SsrRenderOptions): Promise<SsrRe
         return { html: '', piniaState: {}, redirect: resolvedFullPath };
       }
 
+      const routeName = router.currentRoute.value.name;
+      const siteContext = useSiteContextStore();
+      if (routeName === 'games' && siteContext.isGameSubdomain) {
+        setActiveRouter(null);
+        return {
+          html: '',
+          piniaState: {},
+          redirect: `${computeMainSiteOriginForSsr({ host: opts.host, protocol: opts.protocol })}${resolvedFullPath}`,
+        };
+      }
+
       const origin = computeRequestOriginForSsr({ host: opts.host, protocol: opts.protocol });
       const routeSeo = await resolveRouteSeo(url, origin).catch(() => {
         const path = url.split('?')[0] ?? url;
@@ -367,7 +417,6 @@ export async function render(url: string, opts: SsrRenderOptions): Promise<SsrRe
       const piniaState = pinia.state.value as Record<string, unknown>;
       const pageSeo = ssrContext.pageSeo ?? routeSeo;
       const head = pageSeo ? buildPageSeoHead(pageSeo) : undefined;
-      const routeName = router.currentRoute.value.name;
       const statusCode = routeName === 'not-found' || routeName === 'page-not-found' ? 404 : 200;
 
       setActiveRouter(null);

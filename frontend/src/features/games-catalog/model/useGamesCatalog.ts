@@ -1,9 +1,12 @@
-import { onMounted, ref } from 'vue';
+import { onMounted, onServerPrefetch, ref } from 'vue';
 import { gamesApi, type GameCatalogItem } from '@/shared/api/gamesApi';
+import { useSsrPageDataStore } from '@/stores/ssrPageData';
 
 export function useGamesCatalog() {
-  const games = ref<GameCatalogItem[]>([]);
-  const loading = ref(true);
+  const ssrPageData = useSsrPageDataStore();
+  const initialGames = ssrPageData.gamesCatalog;
+  const games = ref<GameCatalogItem[]>(initialGames ?? []);
+  const loading = ref(initialGames == null);
   const error = ref<string | null>(null);
 
   async function loadGames() {
@@ -11,6 +14,7 @@ export function useGamesCatalog() {
     error.value = null;
     try {
       games.value = await gamesApi.getGamesCatalog();
+      ssrPageData.setGamesCatalog(games.value);
     } catch (e: unknown) {
       const err = e as Error & { message?: string };
       error.value = err.message ?? 'Не удалось загрузить игры';
@@ -19,8 +23,16 @@ export function useGamesCatalog() {
     }
   }
 
+  onServerPrefetch(async () => {
+    if (ssrPageData.gamesCatalog == null) {
+      await loadGames();
+    }
+  });
+
   onMounted(() => {
-    loadGames();
+    if (ssrPageData.gamesCatalog == null) {
+      loadGames();
+    }
   });
 
   return {

@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
 import { useRouteLoadingStore } from '@/stores/routeLoading';
 import { isHydrating } from '@/ssr/hydrationFlag';
+import { getMainSiteOrigin } from '@/shared/lib/mainSiteOriginSsr';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -540,6 +541,11 @@ export function createRouterInstance(history: RouterHistory) {
         window.location.href = `${window.location.protocol}//${mainHost}/`;
         return false;
       }
+    }
+
+    if (typeof window !== 'undefined' && to.name === 'games' && siteContext.isGameSubdomain) {
+      window.location.href = `${getMainSiteOrigin()}/games`;
+      return false;
     }
 
     const isGuestRoute = to.name && guestRouteNames.includes(to.name as (typeof guestRouteNames)[number]);
