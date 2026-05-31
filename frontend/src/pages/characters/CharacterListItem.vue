@@ -65,11 +65,12 @@ const tagsUi = computed(() => sliceRosterTagRowsForDisplay(tagRows.value));
             </p>
 
             <p v-if="character.guild" class="mt-0.5 text-sm text-muted-foreground">
+              <span>Гильдия: </span>
               <RouterLink
-                :to="{ name: 'guild-show', params: { id: character.guild.id } }"
+                :to="{ name: 'guild-info', params: { id: character.guild.id } }"
                 class="text-primary hover:underline"
               >
-                Гильдия: {{ character.guild.name }}
+                {{ character.guild.name }}
               </RouterLink>
             </p>
 

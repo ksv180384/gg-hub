@@ -2,18 +2,24 @@
 import { Button, Card, CardContent, Badge, BackIconButton } from '@/shared/ui';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onServerPrefetch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
+import { useSsrPageDataStore } from '@/stores/ssrPageData';
 
 type TabId = 'about' | 'charter';
 
 const route = useRoute();
 const router = useRouter();
+const ssrPageData = useSsrPageDataStore();
 
 const guildId = computed(() => Number(route.params.id));
-const guild = ref<Guild | null>(null);
-const loading = ref(true);
+const initialGuild =
+  ssrPageData.guildInfo && Number(ssrPageData.guildInfo.id) === Number(route.params.id)
+    ? ssrPageData.guildInfo
+    : null;
+const guild = ref<Guild | null>(initialGuild);
+const loading = ref(!initialGuild);
 const error = ref<string | null>(null);
 
 const siteOrigin = getSiteOrigin();
@@ -58,10 +64,15 @@ watch(
 
 async function loadGuild() {
   if (!guildId.value) return;
+  if (guild.value && Number(guild.value.id) === guildId.value) {
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   error.value = null;
   try {
     guild.value = await guildsApi.getGuild(guildId.value);
+    ssrPageData.setGuildInfo(guild.value);
   } catch (e: unknown) {
     const err = e as { status?: number };
     if (err.status === 404) {
@@ -77,6 +88,8 @@ async function loadGuild() {
 watch(guildId, () => {
   loadGuild();
 }, { immediate: true });
+
+onServerPrefetch(loadGuild);
 
 function stripHtmlToText(html: string): string {
   if (!html) return '';

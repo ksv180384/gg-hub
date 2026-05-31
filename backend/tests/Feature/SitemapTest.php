@@ -54,6 +54,22 @@ it('includes games catalog page URL', function () {
         ->assertSee('https://gg-hub.test/games', false);
 });
 
+it('includes active game home URL with game subdomain', function () {
+    config(['app.frontend_url' => 'https://gg-hub.test']);
+
+    Game::query()->create([
+        'name' => 'Test Game',
+        'slug' => 'aion2',
+        'description' => null,
+        'image' => null,
+        'is_active' => true,
+    ]);
+
+    $this->get('/sitemap.xml')
+        ->assertOk()
+        ->assertSee('https://aion2.gg-hub.test/', false);
+});
+
 it('includes global post URL on base host when post has no game', function () {
     config(['app.frontend_url' => 'https://gg-hub.test']);
 

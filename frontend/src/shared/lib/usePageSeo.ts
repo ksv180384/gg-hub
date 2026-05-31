@@ -203,12 +203,12 @@ export function usePageSeo(options: PageSeoOptions) {
 
 /** Базовый origin сайта для канонических URL и OG (без завершающего слэша). */
 export function getSiteOrigin(): string {
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
   const fromEnv = import.meta.env.VITE_SITE_URL as string | undefined;
   if (fromEnv && /^https?:\/\//i.test(fromEnv)) {
     return fromEnv.replace(/\/$/, '');
-  }
-  if (typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.host}`;
   }
   return DEFAULT_PRODUCTION_ORIGIN;
 }

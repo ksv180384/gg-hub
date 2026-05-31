@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Notifications\GuildLinkBuilder;
+use Domains\Game\Models\Game;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
@@ -25,6 +26,7 @@ final class SitemapController extends Controller
 
         $sitemap = Sitemap::create();
         $this->addStaticUrls($sitemap, $frontendUrl, $now);
+        $this->addGameHomeUrls($sitemap, $frontendUrl);
         $this->addGuildUrls($sitemap, $frontendUrl);
         $this->addGlobalPostUrls($sitemap);
 
@@ -58,6 +60,27 @@ final class SitemapController extends Controller
                     ->setChangeFrequency(Url::CHANGE_FREQUENCY_DAILY)
                     ->setPriority(0.9)
             );
+    }
+
+    private function addGameHomeUrls(Sitemap $sitemap, string $frontendUrl): void
+    {
+        Game::query()
+            ->where('is_active', true)
+            ->whereNotNull('slug')
+            ->select(['id', 'slug', 'updated_at'])
+            ->orderBy('id')
+            ->chunkById(500, function ($games) use ($sitemap, $frontendUrl) {
+                foreach ($games as $game) {
+                    $lastmod = $game->updated_at ? Carbon::parse($game->updated_at) : null;
+
+                    $sitemap->add(
+                        Url::create($this->frontendUrlForGame($frontendUrl, (string) $game->slug) . '/')
+                            ->setLastModificationDate($lastmod)
+                            ->setChangeFrequency(Url::CHANGE_FREQUENCY_DAILY)
+                            ->setPriority(0.9)
+                    );
+                }
+            }, 'id');
     }
 
     private function addGuildUrls(Sitemap $sitemap, string $frontendUrl): void
@@ -111,6 +134,16 @@ final class SitemapController extends Controller
             }, 'posts.id', 'id');
     }
 
+    private function frontendUrlForGame(string $frontendUrl, string $gameSlug): string
+    {
+        $parsed = parse_url($frontendUrl) ?: [];
+        $scheme = ($parsed['scheme'] ?? 'https') . '://';
+        $host = $parsed['host'] ?? 'gg-hub.ru';
+        $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+
+        return $scheme . $gameSlug . '.' . $host . $port;
+    }
+
     private function xmlResponse(Sitemap $sitemap): Response
     {
         return ResponseFacade::make($sitemap->render(), 200, [
@@ -119,4 +152,3 @@ final class SitemapController extends Controller
         ]);
     }
 }
-

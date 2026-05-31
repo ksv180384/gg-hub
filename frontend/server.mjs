@@ -33,6 +33,17 @@ function replaceSsrHead(template, head) {
   return template.slice(0, startIdx) + head + template.slice(endIdx + end.length);
 }
 
+function removeStaticHomeNoscript(template) {
+  const start = '<!--GG_HOME_NOSCRIPT_START-->';
+  const end = '<!--GG_HOME_NOSCRIPT_END-->';
+  const startIdx = template.indexOf(start);
+  const endIdx = template.indexOf(end);
+  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+    return template;
+  }
+  return template.slice(0, startIdx) + template.slice(endIdx + end.length);
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const resolve = (p) => path.resolve(__dirname, p);
 
@@ -48,6 +59,25 @@ function requestPublicProtocol(req) {
   }
   if (req.secure) return 'https';
   return 'http';
+}
+
+function requestPublicOrigin(req) {
+  const host = req.headers.host || 'gg-hub.ru';
+  return `${requestPublicProtocol(req)}://${host}`;
+}
+
+function sendRobotsTxt(req, res) {
+  const origin = requestPublicOrigin(req);
+  res
+    .status(200)
+    .type('text/plain')
+    .send([
+      'User-agent: *',
+      'Allow: /',
+      '',
+      `Sitemap: ${origin}/sitemap.xml`,
+      '',
+    ].join('\n'));
 }
 
 /** Гонка HMR full-reload и ssrLoadModule в Vite 7+ даёт «transport was disconnected». */
@@ -90,6 +120,7 @@ async function createDevServer() {
   process.env.GG_SSR_DEV_SERVER = '1';
   const { createServer: createViteServer } = await import('vite');
   const app = express();
+  app.get('/robots.txt', sendRobotsTxt);
   /** Один HTTP-сервер для Express и HMR — иначе в middlewareMode WS на :24678, а клиент ходит на :80/:3008. */
   const httpServer = http.createServer(app);
   const vite = await createViteServer({
@@ -119,7 +150,7 @@ async function createDevServer() {
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
       const html = safeReplace(
         safeReplace(
-          replaceSsrHead(template, result.head),
+          removeStaticHomeNoscript(replaceSsrHead(template, result.head)),
           '<!--app-html-->',
           result.html,
         ),
@@ -138,6 +169,7 @@ async function createDevServer() {
 async function createProdServer() {
   const app = express();
   app.use(compression());
+  app.get('/robots.txt', sendRobotsTxt);
 
   const clientDir = resolve('dist/client');
   app.use('/assets', express.static(path.join(clientDir, 'assets'), { immutable: true, maxAge: '1y' }));
@@ -162,7 +194,7 @@ async function createProdServer() {
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
       const html = safeReplace(
         safeReplace(
-          replaceSsrHead(template, result.head),
+          removeStaticHomeNoscript(replaceSsrHead(template, result.head)),
           '<!--app-html-->',
           result.html,
         ),

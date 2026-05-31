@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, onServerPrefetch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
   Button,
   Input,
   Label,
@@ -22,25 +21,33 @@ import { charactersApi } from '@/shared/api/charactersApi';
 import type { Character } from '@/shared/api/charactersApi';
 import { useAuthStore } from '@/stores/auth';
 import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
+import { useSsrPageDataStore } from '@/stores/ssrPageData';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const ssrPageData = useSsrPageDataStore();
 const { isAuthenticated } = storeToRefs(auth);
 const guildId = computed(() => Number(route.params.id));
 
 const siteOrigin = getSiteOrigin();
 let cleanupSeo: (() => void) | null = null;
 
-const formData = ref<GuildApplicationFormData | null>(null);
+const initialFormData =
+  ssrPageData.guildApplicationForm && Number(ssrPageData.guildApplicationForm.id) === Number(route.params.id)
+    ? ssrPageData.guildApplicationForm
+    : null;
+const formData = ref<GuildApplicationFormData | null>(initialFormData);
 const characters = ref<Character[]>([]);
-const loading = ref(true);
+const loading = ref(!initialFormData);
 const submitting = ref(false);
 const error = ref<string | null>(null);
 const success = ref(false);
 
 const selectedCharacterId = ref<string>('');
-const fieldValues = ref<Record<number, string>>({});
+const fieldValues = ref<Record<number, string>>(
+  Object.fromEntries((initialFormData?.application_form_fields ?? []).map((field) => [field.id, '']))
+);
 
 const isGuest = computed(() => !isAuthenticated.value);
 const isFormDisabled = computed(() => isGuest.value || submitting.value || success.value);
@@ -87,10 +94,15 @@ const logoUrl = computed(() => {
 
 async function loadForm() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
+  if (formData.value && Number(formData.value.id) === guildId.value) {
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   error.value = null;
   try {
     formData.value = await guildsApi.getGuildApplicationForm(guildId.value);
+    ssrPageData.setGuildApplicationForm(formData.value);
     fieldValues.value = {};
     for (const f of formData.value.application_form_fields) {
       fieldValues.value[f.id] = '';
@@ -190,8 +202,12 @@ watch(
   { immediate: true },
 );
 
+onServerPrefetch(loadForm);
+
 onMounted(async () => {
-  await loadForm();
+  if (!formData.value) {
+    await loadForm();
+  }
 });
 
 async function submit() {
@@ -315,7 +331,9 @@ function goToGuildInfo() {
             <img :src="logoUrl" :alt="formData.name" class="h-full w-full object-cover" />
           </div>
           <div class="min-w-0 flex-1">
-            <CardTitle class="text-xl">{{ formData.name }}</CardTitle>
+            <h1 class="text-xl font-semibold leading-none tracking-tight">
+              Заявка в гильдию {{ formData.name }}
+            </h1>
             <p v-if="formData.game" class="mt-0.5 text-sm text-muted-foreground">
               {{ formData.game.name }}
               <template v-if="formData.server"> · {{ formData.server.name }}</template>

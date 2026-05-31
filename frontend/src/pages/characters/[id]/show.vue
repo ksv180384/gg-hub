@@ -190,11 +190,12 @@ watch([() => game.value?.id, characterId], () => {
                         <template v-if="!character.localization?.name && !character.server?.name">—</template>
                       </p>
                       <div v-if="character.guild" class="mt-2">
+                        <span class="text-sm text-muted-foreground">Гильдия: </span>
                         <RouterLink
-                          :to="{ name: 'guild-show', params: { id: character.guild.id } }"
+                          :to="{ name: 'guild-info', params: { id: character.guild.id } }"
                           class="text-sm text-primary hover:underline"
                         >
-                          Гильдия: {{ character.guild.name }}
+                          {{ character.guild.name }}
                         </RouterLink>
                       </div>
                       <div v-if="character.game_classes?.length" class="mt-2 flex flex-wrap items-center gap-1.5">

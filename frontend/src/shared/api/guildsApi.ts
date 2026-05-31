@@ -135,7 +135,7 @@ export interface GuildApplicationFormData {
   logo_card_url: string | null;
   is_recruiting: boolean;
   application_form_description?: string | null;
-  game?: { id: number; name: string };
+  game?: { id: number; name: string; slug?: string };
   server?: { id: number; name: string };
   application_form_fields: GuildApplicationFormFieldDto[];
 }

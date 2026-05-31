@@ -28,12 +28,19 @@ function injectHomeSeoPlugin(mode: string): Plugin {
                     buildHomePageStaticHeadHtml(siteOrigin, env),
                     '<!--GG_SSR_HEAD_END-->',
                 ].join('');
-                const noscript = buildHomeNoscriptHtml();
+                const noscript = [
+                    '<!--GG_HOME_NOSCRIPT_START-->',
+                    buildHomeNoscriptHtml(),
+                    '<!--GG_HOME_NOSCRIPT_END-->',
+                ].join('');
                 let out = html
                     .replace('<!--INJECT_HOME_SEO-->', seo)
                     .replace('<!--INJECT_HOME_NOSCRIPT-->', noscript);
-                /* В dev (vite без SSR) подставляем null; в prod сборке оставляем маркер для Node SSR. */
-                if (ctx.server) {
+                /*
+                 * В обычном Vite dev без SSR подставляем null.
+                 * В server.mjs --dev оставляем маркер: SSR-сервер заменит его на реальный Pinia state.
+                 */
+                if (ctx.server && process.env.GG_SSR_DEV_SERVER !== '1') {
                     out = out.replace('<!--pinia-state-->', 'null');
                 }
                 return out;

@@ -2,16 +2,19 @@
 import PostCardPreview from '@/shared/ui/post/PostCardPreview.vue';
 import { postsApi, type Post } from '@/shared/api/postsApi';
 import { Skeleton } from '@/shared/ui';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useSiteContextStore } from '@/stores/siteContext';
+import { useSsrPageDataStore } from '@/stores/ssrPageData';
+import { isHydrating } from '@/ssr/hydrationFlag';
 import { applyPageSeo, getSiteOrigin } from '@/shared/lib/usePageSeo';
 import GgHubJournalBanner from '@/widgets/journal-promo/GgHubJournalBanner.vue';
 
 const siteContext = useSiteContextStore();
+const ssrPageData = useSsrPageDataStore();
 const game = computed(() => siteContext.game);
 
-const posts = ref<Post[]>([]);
-const loading = ref(true);
+const posts = ref<Post[]>(ssrPageData.journalPosts ?? []);
+const loading = ref(!ssrPageData.journalPosts);
 
 const siteOrigin = getSiteOrigin();
 
@@ -21,22 +24,32 @@ async function loadJournal() {
   const g = game.value;
   if (!g?.id) {
     posts.value = [];
+    ssrPageData.setJournalPosts([]);
     loading.value = false;
     return;
   }
   loading.value = true;
   try {
     posts.value = await postsApi.getGlobalJournalPosts(g.id);
+    ssrPageData.setJournalPosts(posts.value);
   } catch {
     posts.value = [];
+    ssrPageData.setJournalPosts([]);
   } finally {
     loading.value = false;
   }
 }
 
 watch(() => game.value?.id, () => {
+  if (import.meta.env.SSR || isHydrating()) return;
   loadJournal();
-}, { immediate: true });
+});
+
+onMounted(() => {
+  if (ssrPageData.journalPosts == null) {
+    void loadJournal();
+  }
+});
 
 watch(
   () => game.value?.name,

@@ -7,6 +7,7 @@
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
+const DEFAULT_TIMEZONE = 'Europe/Moscow';
 
 /**
  * Нормализует строку даты из API для парсинга.
@@ -80,6 +81,6 @@ export function formatDateTimeFull(iso: string | undefined | null, timezone?: st
     hour: '2-digit',
     minute: '2-digit',
   };
-  if (timezone) options.timeZone = timezone;
+  options.timeZone = timezone || DEFAULT_TIMEZONE;
   return new Intl.DateTimeFormat('ru-RU', options).format(d);
 }

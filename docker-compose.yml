@@ -34,6 +34,7 @@ services:
         environment:
             - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
             - NODE_ENV=${NODE_ENV}
+            - GG_SSR_DEV_SERVER=${GG_SSR_DEV_SERVER:-0}
             - VITE_SSR_API_ORIGIN=${VITE_SSR_API_ORIGIN:-http://gg-nginx:81}
             # Прокси Vite dev → socket_server (браузер ходит на тот же origin, /socket.io)
             - VITE_SOCKET_DEV_PROXY_TARGET=${VITE_SOCKET_DEV_PROXY_TARGET:-http://socket-server-nodejs:3007}

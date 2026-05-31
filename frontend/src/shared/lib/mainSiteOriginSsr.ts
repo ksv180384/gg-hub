@@ -23,6 +23,15 @@ export function computeMainSiteOriginForSsr(opts: { host?: string; protocol?: st
   return DEFAULT_PRODUCTION_ORIGIN;
 }
 
+/** Origin текущего HTTP-запроса SSR. Используется для canonical/OG на игровых поддоменах. */
+export function computeRequestOriginForSsr(opts: { host?: string; protocol?: string }): string {
+  if (opts.host) {
+    const proto = opts.protocol === 'https' ? 'https' : 'http';
+    return `${proto}://${opts.host}`;
+  }
+  return DEFAULT_PRODUCTION_ORIGIN;
+}
+
 /** Общий расчёт origin «основного» сайта для клиентских компонентов. */
 export function getMainSiteOrigin(mainSiteOriginFromSsr?: string): string {
   const fromEnv = import.meta.env.VITE_SITE_URL as string | undefined;
@@ -36,4 +45,3 @@ export function getMainSiteOrigin(mainSiteOriginFromSsr?: string): string {
   const { protocol, hostname } = window.location;
   return `${protocol}//${baseHostStripGameSubdomain(hostname)}`;
 }
-

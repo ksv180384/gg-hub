@@ -8,17 +8,20 @@ import PostComments from './PostComments.vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useSsrPageDataStore } from '@/stores/ssrPageData';
 import { applyPageSeo, getSiteOrigin, type PageSeoOptions } from '@/shared/lib/usePageSeo';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const ssrPageData = useSsrPageDataStore();
 const siteOrigin = getSiteOrigin();
 
 const postId = computed(() => Number(route.params.postId));
+const initialPost = ssrPageData.globalPost?.id === postId.value ? ssrPageData.globalPost : null;
 
-const post = ref<Post | null>(null);
-const loading = ref(true);
+const post = ref<Post | null>(initialPost);
+const loading = ref(!initialPost);
 const error = ref<string | null>(null);
 const myCharacters = ref<Character[]>([]);
 const commentsCount = ref<number | null>(null);
@@ -111,6 +114,19 @@ function redirectToJournal() {
 }
 
 async function loadPost() {
+  if (post.value?.id === postId.value) {
+    loading.value = false;
+    applySeoForPost(post.value);
+    if (auth.isAuthenticated) {
+      if (post.value.game_id != null) {
+        myCharacters.value = await charactersApi.getCharacters(post.value.game_id);
+      } else {
+        myCharacters.value = await charactersApi.getCharacters();
+      }
+    }
+    return;
+  }
+
   loading.value = true;
   error.value = null;
   try {
