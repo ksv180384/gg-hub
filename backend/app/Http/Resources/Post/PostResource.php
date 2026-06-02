@@ -51,6 +51,7 @@ class PostResource extends JsonResource
             'user_id' => $this->user_id,
             'guild_id' => $this->guild_id,
             'game_name' => $this->relationLoaded('game') ? ($this->game?->name ?? null) : null,
+            'game_slug' => $this->relationLoaded('game') ? ($this->game?->slug ?? null) : null,
             'game_id' => $this->game_id,
             'is_visible_global' => $this->is_visible_global,
             'is_visible_guild' => $this->is_visible_guild,

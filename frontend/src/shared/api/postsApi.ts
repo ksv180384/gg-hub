@@ -31,6 +31,7 @@ export interface Post {
   guild_id?: number | null;
   game_id?: number | null;
   game_name?: string | null;
+  game_slug?: string | null;
   is_anonymous?: boolean;
   is_global_as_guild?: boolean;
   is_hidden?: boolean;
@@ -440,4 +441,3 @@ export const postsApi = {
     return data as Post;
   },
 };
-

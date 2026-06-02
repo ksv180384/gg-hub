@@ -35,6 +35,7 @@ export interface SsrRenderResult {
   piniaState: Record<string, unknown>;
   head?: string;
   statusCode?: number;
+  redirectStatusCode?: number;
   /**
    * Если в ходе router.beforeEach произошёл редирект на другой путь — сюда попадает
    * целевой fullPath. Сервер должен отдать HTTP 302, иначе на клиенте случится
@@ -42,6 +43,11 @@ export interface SsrRenderResult {
    */
   redirect?: string;
 }
+
+type RouteSeoOptions = PageSeoOptions & {
+  redirect?: string;
+  redirectStatusCode?: number;
+};
 
 function stripHtmlToText(input: string): string {
   return input
@@ -94,6 +100,14 @@ function buildGameOriginForSsr(origin: string, gameSlug?: string | null): string
     return `${url.protocol}//${slug}.${baseDomain}${port}`;
   } catch {
     return origin;
+  }
+}
+
+function originHost(origin: string): string | null {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return null;
   }
 }
 
@@ -240,7 +254,7 @@ function buildGamesCatalogSeo(games: GameCatalogItem[], origin: string): PageSeo
   };
 }
 
-async function resolveRouteSeo(url: string, origin: string): Promise<PageSeoOptions | undefined> {
+async function resolveRouteSeo(url: string, origin: string): Promise<RouteSeoOptions | undefined> {
   const path = url.split('?')[0] ?? url;
   if (path === '/' || path === '') {
     const siteContext = useSiteContextStore();
@@ -337,13 +351,17 @@ async function resolveRouteSeo(url: string, origin: string): Promise<PageSeoOpti
   useSsrPageDataStore().setGlobalPost(post);
   const titleBase = post.title?.trim() || 'Запись';
   const title = `${titleBase} — gg-hub`;
-  const canonicalUrl = `${origin}${url}`;
+  const canonicalOrigin = buildGameOriginForSsr(origin, post.game_slug);
+  const canonicalUrl = `${canonicalOrigin}/posts/${postId}`;
   const description = buildPostDescription(post);
+  const shouldRedirect = originHost(canonicalOrigin) !== originHost(origin);
 
   return {
     title,
     description,
     canonicalUrl,
+    redirect: shouldRedirect ? canonicalUrl : undefined,
+    redirectStatusCode: shouldRedirect ? 301 : undefined,
     ogType: 'article',
     keywords: buildPostKeywords(post),
     jsonLd: {
@@ -412,6 +430,15 @@ export async function render(url: string, opts: SsrRenderOptions): Promise<SsrRe
         }
         return undefined;
       });
+      if (routeSeo?.redirect) {
+        setActiveRouter(null);
+        return {
+          html: '',
+          piniaState: {},
+          redirect: routeSeo.redirect,
+          redirectStatusCode: routeSeo.redirectStatusCode,
+        };
+      }
       const ssrContext: { pageSeo?: PageSeoOptions } = {};
       const html = await renderToString(app, ssrContext);
       const piniaState = pinia.state.value as Record<string, unknown>;

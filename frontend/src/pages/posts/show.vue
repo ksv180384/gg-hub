@@ -63,11 +63,44 @@ function buildKeywords(p: Post): string {
   return unique.join(', ');
 }
 
+function buildGameOrigin(origin: string, gameSlug?: string | null): string {
+  const slug = gameSlug?.trim();
+  if (!slug) return origin;
+
+  try {
+    const url = new URL(origin);
+    const baseDomain = ['gg-hub.local', 'gg-hub.ru'].find(
+      (domain) => url.hostname === domain || url.hostname.endsWith(`.${domain}`),
+    );
+    if (!baseDomain) return origin;
+
+    const port = url.port ? `:${url.port}` : '';
+    return `${url.protocol}//${slug}.${baseDomain}${port}`;
+  } catch {
+    return origin;
+  }
+}
+
+function buildCanonicalUrl(p: Post): string {
+  return `${buildGameOrigin(siteOrigin, p.game_slug)}/posts/${p.id}`;
+}
+
+function redirectToCanonicalPostUrl(p: Post): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const canonicalUrl = buildCanonicalUrl(p);
+  const currentUrl = `${window.location.origin}${route.path}`;
+  if (canonicalUrl === currentUrl) return false;
+
+  window.location.replace(canonicalUrl);
+  return true;
+}
+
 let seoCleanup: null | (() => void) = null;
 function buildSeoOptionsForPost(p: Post): PageSeoOptions {
   const titleBase = p.title?.trim() || 'Запись';
   const title = `${titleBase} — gg-hub`;
-  const canonicalUrl = `${siteOrigin}${route.fullPath}`;
+  const canonicalUrl = buildCanonicalUrl(p);
   const description = buildDescription(p);
   const keywords = buildKeywords(p);
 
@@ -116,6 +149,7 @@ function redirectToJournal() {
 async function loadPost() {
   if (post.value?.id === postId.value) {
     loading.value = false;
+    if (redirectToCanonicalPostUrl(post.value)) return;
     applySeoForPost(post.value);
     if (auth.isAuthenticated) {
       if (post.value.game_id != null) {
@@ -135,6 +169,7 @@ async function loadPost() {
       return;
     }
     post.value = await postsApi.getGlobalPost(postId.value);
+    if (redirectToCanonicalPostUrl(post.value)) return;
     applySeoForPost(post.value);
     if (auth.isAuthenticated) {
       if (post.value?.game_id != null) {

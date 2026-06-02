@@ -51,6 +51,7 @@ class PostListResource extends JsonResource
             'guild_id' => $this->guild_id,
             'game_id' => $this->game_id,
             'game_name' => $game?->name ?? null,
+            'game_slug' => $game?->slug ?? null,
             'preview' => $this->preview,
             'status_global' => $this->status_global,
             'status_guild' => $this->status_guild,

@@ -150,7 +150,7 @@ async function createDevServer() {
         protocol: requestPublicProtocol(req),
       });
       if (result.redirect) {
-        res.redirect(302, result.redirect);
+        res.redirect(result.redirectStatusCode || 302, result.redirect);
         return;
       }
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
@@ -194,7 +194,7 @@ async function createProdServer() {
         protocol: requestPublicProtocol(req),
       });
       if (result.redirect) {
-        res.redirect(302, result.redirect);
+        res.redirect(result.redirectStatusCode || 302, result.redirect);
         return;
       }
       const stateJson = JSON.stringify(result.piniaState ?? {}).replace(/</g, '\\u003c');
