@@ -40,11 +40,10 @@ final class GlobalPostController extends Controller
         $sessionId = $request->session()?->getId() ?? '';
         ($this->recordPostViewAction)($post, $request->user(), $sessionId);
 
-        $post->loadMissing(['character', 'character.user', 'user', 'game']);
+        $post->loadMissing(['character', 'character.user', 'user', 'game', 'guild']);
         $post->refresh();
         $post->loadCount(['postComments as comments_count']);
 
         return response()->json(new PostResource($post));
     }
 }
-

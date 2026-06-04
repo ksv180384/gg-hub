@@ -23,7 +23,7 @@ export function computeMainSiteOriginForSsr(opts: { host?: string; protocol?: st
     return fromEnv.trim().replace(/\/$/, '');
   }
   if (opts.host) {
-    const hostname = opts.host.split(':')[0];
+    const hostname = opts.host.split(':')[0] ?? opts.host;
     const proto = protocolForHost(hostname, opts.protocol);
     return `${proto}://${baseHostStripGameSubdomain(hostname)}`;
   }
@@ -33,7 +33,7 @@ export function computeMainSiteOriginForSsr(opts: { host?: string; protocol?: st
 /** Origin текущего HTTP-запроса SSR. Используется для canonical/OG на игровых поддоменах. */
 export function computeRequestOriginForSsr(opts: { host?: string; protocol?: string }): string {
   if (opts.host) {
-    const hostname = opts.host.split(':')[0];
+    const hostname = opts.host.split(':')[0] ?? opts.host;
     const proto = protocolForHost(hostname, opts.protocol);
     return `${proto}://${opts.host}`;
   }

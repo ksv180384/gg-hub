@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { UnwrapNestedRefs } from 'vue';
 import {
   DialogRoot,
   DialogPortal,
@@ -14,7 +15,7 @@ import WheelDurationField from './WheelDurationField.vue';
 
 const props = defineProps<{
   open: boolean;
-  model: GuildRouletteModel;
+  model: UnwrapNestedRefs<GuildRouletteModel>;
 }>();
 
 const emit = defineEmits<{

@@ -122,9 +122,10 @@ async function confirmDelete() {
   try {
     await applicationCommentsAdminApi.deleteAdminApplicationComment(c.id, reason);
     const idx = comments.value.findIndex((x) => x.id === c.id);
-    if (idx !== -1) {
+    const existing = idx !== -1 ? comments.value[idx] : undefined;
+    if (existing) {
       comments.value[idx] = {
-        ...comments.value[idx],
+        ...existing,
         is_deleted: true,
         delete_reason: reason,
       };

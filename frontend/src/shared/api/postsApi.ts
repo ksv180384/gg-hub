@@ -29,6 +29,7 @@ export interface Post {
   character_id?: number | null;
   user_id?: number | null;
   guild_id?: number | null;
+  guild_deleted_at?: string | null;
   game_id?: number | null;
   game_name?: string | null;
   game_slug?: string | null;
@@ -67,8 +68,8 @@ export interface CreatePostPayload {
   is_visible_global: boolean;
   is_visible_guild: boolean;
   global_visibility_type: 'anonymous' | 'guild' | null;
-  status_global: 'published' | 'draft' | 'hidden';
-  status_guild: 'published' | 'draft' | 'hidden';
+  status_global: 'published' | 'draft' | 'hidden' | 'pending';
+  status_guild: 'published' | 'draft' | 'hidden' | 'pending';
 }
 
 export interface PostResponse {

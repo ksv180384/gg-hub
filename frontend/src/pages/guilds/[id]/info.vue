@@ -228,7 +228,7 @@ function goToApplication() {
                 >
                   <img
                     v-if="showLogoImage"
-                    :src="logoDisplayUrl"
+                    :src="logoDisplayUrl ?? undefined"
                     alt="Логотип гильдии"
                     class="h-full w-full object-cover"
                     loading="lazy"

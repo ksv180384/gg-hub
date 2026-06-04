@@ -66,7 +66,7 @@ class GuildPostController extends Controller
 
         $posts = ($this->listGuildPostsForJournalAction)($guild, $params);
 
-        $posts->loadMissing(['character', 'character.user', 'user']);
+        $posts->loadMissing(['character', 'character.user', 'user', 'guild']);
 
         return PostListResource::collection($posts);
     }
@@ -83,7 +83,7 @@ class GuildPostController extends Controller
         $sessionId = $request->session()?->getId() ?? '';
         ($this->recordPostViewAction)($post, $request->user(), $sessionId);
 
-        $post->loadMissing(['character', 'character.user', 'user']);
+        $post->loadMissing(['character', 'character.user', 'user', 'guild']);
         $post->refresh();
         $post->loadCount(['postComments as comments_count']);
 
@@ -103,7 +103,7 @@ class GuildPostController extends Controller
             'per_page' => $perPage,
         ]);
 
-        $posts->loadMissing(['character', 'character.user', 'user']);
+        $posts->loadMissing(['character', 'character.user', 'user', 'guild']);
 
         return PostListResource::collection($posts);
     }
@@ -119,7 +119,7 @@ class GuildPostController extends Controller
 
         $this->sendPostOrCommentNotificationAction->postPublishedInGuild($post);
 
-        $post->loadMissing(['character', 'character.user', 'user']);
+        $post->loadMissing(['character', 'character.user', 'user', 'guild']);
 
         return response()->json(new PostResource($post));
     }
@@ -133,7 +133,7 @@ class GuildPostController extends Controller
 
         $this->createPostGuildRejectedNotificationAction->__invoke($guild, $post);
 
-        $post->loadMissing(['character', 'character.user', 'user']);
+        $post->loadMissing(['character', 'character.user', 'user', 'guild']);
 
         return response()->json(new PostResource($post));
     }
@@ -150,7 +150,7 @@ class GuildPostController extends Controller
 
         $post = ($this->blockGuildPostAction)($post);
 
-        $post->loadMissing(['character', 'character.user', 'user']);
+        $post->loadMissing(['character', 'character.user', 'user', 'guild']);
 
         return response()->json(new PostResource($post));
     }
@@ -171,7 +171,7 @@ class GuildPostController extends Controller
 
         $post = ($this->unblockGuildPostAction)($post);
 
-        $post->loadMissing(['character', 'character.user', 'user']);
+        $post->loadMissing(['character', 'character.user', 'user', 'guild']);
 
         return response()->json(new PostResource($post));
     }
@@ -191,4 +191,3 @@ class GuildPostController extends Controller
         return response()->json(['ok' => true, 'recorded' => $recorded]);
     }
 }
-

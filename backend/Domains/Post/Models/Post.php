@@ -81,7 +81,7 @@ class Post extends Model
 
     public function guild(): BelongsTo
     {
-        return $this->belongsTo(Guild::class);
+        return $this->belongsTo(Guild::class)->withTrashed();
     }
 
     public function game(): BelongsTo

@@ -97,6 +97,7 @@ export interface Guild {
    * и он же является лидером гильдии. GET /guilds/:id/settings.
    */
   can_change_localization_server?: boolean;
+  can_delete?: boolean;
   /**
    * URL Discord-вебхука. Потенциально секретное поле — отдаётся только эндпоинтами,
    * требующими права на редактирование гильдии (GET /guilds/:id/settings и ответ PUT /guilds/:id).
@@ -181,7 +182,7 @@ export interface GuildApplicationItem {
 
 export interface GuildApplicationCommentItem {
   id: number;
-  post_id: number;
+  post_id?: number;
   user_id: number;
   parent_id: number | null;
   replied_to_comment_id?: number | null;
@@ -809,6 +810,11 @@ export const guildsApi = {
     throwOnError(res, 'Не удалось покинуть гильдию');
   },
 
+  async deleteGuild(id: number): Promise<void> {
+    const res = await http.fetchDelete(`/guilds/${id}`);
+    throwOnError(res, 'Не удалось удалить гильдию');
+  },
+
   async createGuild(payload: CreateGuildPayload): Promise<Guild> {
     const res = await http.fetchPost<{ data: Guild } | Guild>('/guilds', {
       name: payload.name,
@@ -955,7 +961,7 @@ export const guildsApi = {
   ): Promise<GuildApplicationFormFieldDto> {
     const res = await http.fetchPut<{ data: GuildApplicationFormFieldDto } | GuildApplicationFormFieldDto>(
       `/guilds/${guildId}/application-form-fields/${fieldId}`,
-      payload
+      payload as unknown as Record<string, unknown>
     );
     throwOnError(res, 'Ошибка сохранения поля');
     const raw = res.data as { data?: GuildApplicationFormFieldDto } | GuildApplicationFormFieldDto | null;
@@ -993,7 +999,7 @@ export const guildsApi = {
 
   /** Создать рейд. Требуется право formirovat-reidy. */
   async createGuildRaid(guildId: number, payload: CreateRaidPayload): Promise<RaidItem> {
-    const res = await http.fetchPost<{ data: RaidItem } | RaidItem>(`/guilds/${guildId}/raids`, payload);
+    const res = await http.fetchPost<{ data: RaidItem } | RaidItem>(`/guilds/${guildId}/raids`, payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Ошибка создания рейда');
     const raw = res.data as { data?: RaidItem } | RaidItem | null;
     if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw)
@@ -1005,7 +1011,7 @@ export const guildsApi = {
   async updateGuildRaid(guildId: number, raidId: number, payload: UpdateRaidPayload): Promise<RaidItem> {
     const res = await http.fetchPut<{ data: RaidItem } | RaidItem>(
       `/guilds/${guildId}/raids/${raidId}`,
-      payload
+      payload as unknown as Record<string, unknown>
     );
     throwOnError(res, 'Ошибка сохранения рейда');
     const raw = res.data as { data?: RaidItem } | RaidItem | null;
@@ -1062,7 +1068,7 @@ export const guildsApi = {
   async createGuildPoll(guildId: number, payload: CreateGuildPollPayload): Promise<GuildPollItem> {
     const res = await http.fetchPost<{ data: GuildPollItem } | GuildPollItem>(
       `/guilds/${guildId}/polls`,
-      payload
+      payload as unknown as Record<string, unknown>
     );
     throwOnError(res, 'Ошибка создания голосования');
     const raw = res.data as { data?: GuildPollItem } | GuildPollItem | null;
@@ -1079,7 +1085,7 @@ export const guildsApi = {
   ): Promise<GuildPollItem> {
     const res = await http.fetchPut<{ data: GuildPollItem } | GuildPollItem>(
       `/guilds/${guildId}/polls/${pollId}`,
-      payload
+      payload as unknown as Record<string, unknown>
     );
     throwOnError(res, 'Ошибка сохранения голосования');
     const raw = res.data as { data?: GuildPollItem } | GuildPollItem | null;

@@ -12,6 +12,7 @@ import DiscordTab from './tabs/DiscordTab.vue';
 import ApplicationFieldModal from './modals/ApplicationFieldModal.vue';
 import TagDeleteConfirm from './modals/TagDeleteConfirm.vue';
 import LeaveGuildConfirm from './modals/LeaveGuildConfirm.vue';
+import DeleteGuildConfirm from './modals/DeleteGuildConfirm.vue';
 import LeaderChangeConfirm from './modals/LeaderChangeConfirm.vue';
 
 // Важно: template не разворачивает refs по цепочке `model.foo`.
@@ -47,6 +48,9 @@ const model = reactive(useGuildSettingsModel());
             :leaving="model.leaving"
             :leave-error="model.leaveError"
             :leave-guild-characters="model.leaveGuildCharacters"
+            :can-delete-guild="model.canDeleteGuild"
+            :deleting-guild="model.deletingGuild"
+            :delete-guild-error="model.deleteGuildError"
             @logoChange="model.onLogoChange"
             @logoDragOver="model.onLogoDragOver"
             @logoDragLeave="model.onLogoDragLeave"
@@ -54,6 +58,7 @@ const model = reactive(useGuildSettingsModel());
             @removeLogo="model.removeLogoAndSave"
             @update:selectedLeaderCharacterId="model.selectedLeaderCharacterId = $event"
             @openLeave="model.leaveDialogOpen = true"
+            @openDelete="model.deleteGuildDialogOpen = true"
           />
 
           <div class="min-w-0 flex-1 order-2 md:order-2">
@@ -196,6 +201,13 @@ const model = reactive(useGuildSettingsModel());
         @update:open="(v) => { model.leaveDialogOpen = v; }"
         @update:selectedCharacterId="model.selectedLeaveCharacterId = $event"
         @confirm="model.confirmLeaveGuild"
+      />
+
+      <DeleteGuildConfirm
+        :open="model.deleteGuildDialogOpen"
+        :loading="model.deletingGuild"
+        @update:open="(v) => { model.deleteGuildDialogOpen = v; }"
+        @confirm="model.confirmDeleteGuild"
       />
 
       <LeaderChangeConfirm

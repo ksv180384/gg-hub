@@ -22,6 +22,7 @@ final class ListGuildPendingPostsForModerationAction
     public function __invoke(Guild $guild, array $params = []): Collection|LengthAwarePaginator
     {
         $query = Post::query()
+            ->with(['guild'])
             ->withCount(['postComments as comments_count'])
             ->where('guild_id', $guild->id)
             ->where('is_visible_guild', true)
@@ -44,4 +45,3 @@ final class ListGuildPendingPostsForModerationAction
         return $query->get();
     }
 }
-

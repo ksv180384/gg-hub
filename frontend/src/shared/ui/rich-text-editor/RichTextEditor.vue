@@ -199,7 +199,7 @@ watch(
   (val) => {
     const html = val || '';
     if (editor.value && editor.value.getHTML() !== html) {
-      editor.value.commands.setContent(html, false);
+      editor.value.commands.setContent(html, { emitUpdate: false });
     }
   }
 );
@@ -252,7 +252,7 @@ function extractSrcFromPastedIframe(pastedText: string): string | null {
   const m =
     pastedText.match(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/i) ??
     pastedText.match(/src\s*=\s*["'](https?:\/\/[^"']+)["']/i);
-  return m ? m[1] : null;
+  return m?.[1] ?? null;
 }
 
 async function onVideoUrlPaste(e: ClipboardEvent) {

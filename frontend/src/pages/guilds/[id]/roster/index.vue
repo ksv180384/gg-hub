@@ -12,6 +12,7 @@ import {
   rosterTagDisplayRows,
   sliceRosterTagRowsForDisplay,
   isRosterCommonTag,
+  type RosterTagItem,
 } from '@/shared/lib/rosterTagDisplay';
 import { cn } from '@/shared/lib/utils';
 import NotFoundPage from '@/pages/not-found/index.vue';
@@ -166,7 +167,7 @@ async function exportRosterXlsx() {
 
 const tagOptions = computed<MultiSelectOption[]>(() => {
   const map = new Map<number, { label: string; badgeClass?: string; order: 0 | 1 }>();
-  const tagTextClass = (source: 'guild' | 'personal', tag: { used_by_user_id?: number | null; used_by_guild_id?: number | null }) => {
+  const tagTextClass = (source: 'guild' | 'personal', tag: RosterTagItem) => {
     if (source === 'guild') return 'text-violet-700 dark:text-violet-300';
     if (isRosterCommonTag(tag)) return 'text-blue-700 dark:text-blue-300';
     return '';
@@ -273,7 +274,7 @@ function resetFilters() {
 function avatarFallback(name: string): string {
   if (!name?.trim()) return '?';
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length >= 2) return `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`.toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }
 

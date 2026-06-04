@@ -7,6 +7,7 @@ use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Domains\Tag\Models\Tag;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Validator;
 
 class StoreGuildRequest extends FormRequest
@@ -53,6 +54,7 @@ class StoreGuildRequest extends FormRequest
     {
         $validator->after(function (Validator $validator): void {
             $this->validateAssignableTagIds($validator);
+            $this->validateUniqueActiveGuildSlug($validator);
 
             $userId = $this->user()?->id;
             $serverId = (int) $this->input('server_id');
@@ -114,6 +116,24 @@ class StoreGuildRequest extends FormRequest
         );
         foreach ($invalidIds as $id) {
             $validator->errors()->add('tag_ids.' . array_search($id, $tagIds, true), 'Этот тег нельзя привязать к гильдии.');
+        }
+    }
+
+    private function validateUniqueActiveGuildSlug(Validator $validator): void
+    {
+        $serverId = (int) $this->input('server_id');
+        $name = trim((string) $this->input('name'));
+        if (!$serverId || $name === '') {
+            return;
+        }
+
+        $slug = Str::slug($name);
+        if ($slug === '') {
+            return;
+        }
+
+        if (Guild::query()->where('server_id', $serverId)->where('slug', $slug)->exists()) {
+            $validator->errors()->add('name', 'Гильдия с таким названием уже существует на выбранном сервере.');
         }
     }
 }

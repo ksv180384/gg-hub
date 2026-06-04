@@ -54,7 +54,7 @@ function initSelectedCharacter() {
   }
   const stored = getStoredCharacterId();
   const validStored = stored && chars.some((c) => c.id === stored);
-  selectedCharacterId.value = validStored ? stored : chars[0].id;
+  selectedCharacterId.value = validStored ? stored : chars[0]?.id ?? null;
 }
 
 function onCharacterSelect(v: string) {
@@ -232,7 +232,7 @@ watch(() => props.myCharacters, initSelectedCharacter);
       <div v-if="props.myCharacters.length" class="flex items-center gap-2">
         <span class="text-xs text-muted-foreground shrink-0">От имени</span>
         <Select
-          :model-value="effectiveCharacterId ? String(effectiveCharacterId) : undefined"
+          :model-value="effectiveCharacterId ? String(effectiveCharacterId) : ''"
           :options="props.myCharacters.map((c) => ({ value: String(c.id), label: c.name }))"
           placeholder="Выберите персонажа"
           trigger-class="h-8 min-w-[220px] text-xs"

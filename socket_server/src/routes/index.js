@@ -10,6 +10,7 @@ import {
 } from '../guildPollSocketHandler.js';
 import { emitGuildEventChanged } from '../guildEventSocketHandler.js';
 import { emitGuildAuctionChanged } from '../guildAuctionSocketHandler.js';
+import { emitGuildApplicationCommentChanged } from '../guildApplicationCommentSocketHandler.js';
 
 const routes = async (fastify, options) => {
     fastify.get('/', async (request, reply) => {
@@ -144,6 +145,18 @@ const routes = async (fastify, options) => {
     if (!Number.isFinite(guildId) || guildId <= 0) return reply.code(400).send({ ok: false });
     if (!Number.isFinite(lotId) || lotId <= 0) return reply.code(400).send({ ok: false });
     emitGuildAuctionChanged(fastify.io, guildId, lotId);
+    return { ok: true };
+  });
+
+  fastify.post('/guild-application-comments/broadcast-changed', async (request, reply) => {
+    const guildId = Number(request.body?.guildId);
+    const applicationId = Number(request.body?.applicationId);
+    const commentId = Number(request.body?.commentId);
+    const action = typeof request.body?.action === 'string' ? request.body.action : 'changed';
+    if (!Number.isFinite(guildId) || guildId <= 0) return reply.code(400).send({ ok: false });
+    if (!Number.isFinite(applicationId) || applicationId <= 0) return reply.code(400).send({ ok: false });
+    if (!Number.isFinite(commentId) || commentId <= 0) return reply.code(400).send({ ok: false });
+    emitGuildApplicationCommentChanged(fastify.io, guildId, applicationId, commentId, action);
     return { ok: true };
   });
 };

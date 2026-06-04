@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Post;
 
 use App\Services\UserAvatarService;
+use App\Services\GuildLogoService;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class PostResource extends JsonResource
     {
         $character = $this->whenLoaded('character');
         $user = $this->whenLoaded('user');
+        $guild = $this->whenLoaded('guild');
 
         $authorName = null;
         $authorAvatarUrl = null;
@@ -42,6 +44,11 @@ class PostResource extends JsonResource
             );
         }
 
+        if ($this->is_global_as_guild && $guild) {
+            $authorName = $guild->name ?? $authorName;
+            $authorAvatarUrl = GuildLogoService::urlCard($guild->logo_path) ?? $authorAvatarUrl;
+        }
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -50,6 +57,7 @@ class PostResource extends JsonResource
             'character_id' => $this->character_id,
             'user_id' => $this->user_id,
             'guild_id' => $this->guild_id,
+            'guild_deleted_at' => $guild?->deleted_at?->toIso8601String(),
             'game_name' => $this->relationLoaded('game') ? ($this->game?->name ?? null) : null,
             'game_slug' => $this->relationLoaded('game') ? ($this->game?->slug ?? null) : null,
             'game_id' => $this->game_id,

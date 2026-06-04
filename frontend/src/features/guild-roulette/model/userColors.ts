@@ -94,5 +94,5 @@ export const USER_COLOR_PALETTE: readonly UserColorTheme[] = [
 export function getUserColorByIndex(index: number): UserColorTheme {
   const safeIndex = ((index % USER_COLOR_PALETTE.length) + USER_COLOR_PALETTE.length) %
     USER_COLOR_PALETTE.length;
-  return USER_COLOR_PALETTE[safeIndex];
+  return USER_COLOR_PALETTE[safeIndex] ?? USER_COLOR_PALETTE[0]!;
 }

@@ -10,6 +10,6 @@ export function createWheelExternalId(): string {
 export function avatarFallback(name: string): string {
   if (!name?.trim()) return '?';
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length >= 2) return `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`.toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }

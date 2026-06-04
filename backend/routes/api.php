@@ -217,6 +217,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds/{guild}/applications/{application}/reject', [GuildApplicationController::class, 'reject'])->middleware('guild.member', 'guild.role.permission:podtverzdenie-ili-otklonenie-zaiavok');
     Route::post('/guilds', [GuildController::class, 'store']);
     Route::match(['put', 'patch'], '/guilds/{guild}', [GuildController::class, 'update']);
+    Route::delete('/guilds/{guild}', [GuildController::class, 'destroy'])->middleware('guild.member');
 
     Route::get('/tags', [TagController::class, 'index']);
     Route::post('/tags', [TagController::class, 'store']);

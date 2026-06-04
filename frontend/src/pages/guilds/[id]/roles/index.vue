@@ -81,8 +81,9 @@ async function loadData() {
     roles.value = rolesResult.roles;
     myPermissionSlugs.value = rolesResult.myPermissionSlugs;
     permissionGroups.value = groupsData;
-    if (rolesResult.roles.length > 0) {
-      selectedRole.value = rolesResult.roles[0];
+    const firstRole = rolesResult.roles[0];
+    if (firstRole) {
+      selectedRole.value = firstRole;
     }
   } catch (e: unknown) {
     const err = e as Error & { status?: number };

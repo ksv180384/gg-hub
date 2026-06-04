@@ -38,6 +38,11 @@ const props = defineProps<{
   leaving: boolean;
   leaveError: string | null;
   leaveGuildCharacters: { id: number; name: string; avatar_url?: string | null; is_leader?: boolean }[];
+
+  // delete
+  canDeleteGuild: boolean;
+  deletingGuild: boolean;
+  deleteGuildError: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -53,6 +58,9 @@ const emit = defineEmits<{
 
   // leave
   (e: 'openLeave'): void;
+
+  // delete
+  (e: 'openDelete'): void;
 }>();
 
 function selectedTags(allTags: Tag[], selectedIds: number[]) {
@@ -175,6 +183,13 @@ function openLogoFilePicker() {
           Покинуть гильдию
         </Button>
         <p v-if="leaveError" class="mt-1 text-xs text-destructive">{{ leaveError }}</p>
+      </div>
+
+      <div v-if="canDeleteGuild" class="mt-0">
+        <Button variant="destructive" size="sm" :disabled="deletingGuild" @click="emit('openDelete')">
+          Удалить гильдию
+        </Button>
+        <p v-if="deleteGuildError" class="mt-1 text-xs text-destructive">{{ deleteGuildError }}</p>
       </div>
     </div>
   </div>

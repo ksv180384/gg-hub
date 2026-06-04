@@ -23,6 +23,7 @@ final class ListGuildPostsForJournalAction
         $filterBlocked = isset($params['filter']) && $params['filter'] === 'blocked';
 
         $query = Post::query()
+            ->with(['guild'])
             ->withCount(['postComments as comments_count'])
             ->where('guild_id', $guild->id)
             ->where('is_visible_guild', true);
@@ -54,4 +55,3 @@ final class ListGuildPostsForJournalAction
         return $query->get();
     }
 }
-

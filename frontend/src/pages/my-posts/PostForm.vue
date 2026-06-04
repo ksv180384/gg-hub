@@ -100,8 +100,8 @@ async function loadInitialData() {
       isPendingGuild.value = post.status_guild === 'pending';
       title.value = post.title ?? '';
       body.value = post.body?.startsWith('<') ? post.body : `<p>${(post.body || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`;
-      characterId.value = post.character_id;
-      guildId.value = post.guild_id;
+      characterId.value = post.character_id ?? null;
+      guildId.value = post.guild_id ?? null;
       isVisibleGlobal.value = post.is_visible_global;
       isVisibleGuild.value = post.is_visible_guild;
 
@@ -219,8 +219,8 @@ async function submit() {
       status_global: isPendingGlobal ? 'hidden' : (isVisibleGlobal.value ? statusGlobal.value : 'hidden'),
       status_guild: isPendingGuild ? 'hidden' : (isVisibleGuild.value ? statusGuild.value : 'hidden'),
     };
-    if (isPendingGlobal) (payload as Record<string, unknown>).status_global = 'pending';
-    if (isPendingGuild) (payload as Record<string, unknown>).status_guild = 'pending';
+    if (isPendingGlobal) payload.status_global = 'pending';
+    if (isPendingGuild) payload.status_guild = 'pending';
 
     if (isEdit.value && effectivePostId.value) {
       await postsApi.updatePost(effectivePostId.value, payload);

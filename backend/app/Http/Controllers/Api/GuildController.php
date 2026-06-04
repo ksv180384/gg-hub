@@ -19,6 +19,7 @@ use Domains\Guild\Actions\CreateGuildAction;
 use Domains\Tag\Actions\CreateTagAction;
 use Domains\Tag\Actions\DeleteTagAction;
 use Domains\Tag\Models\Tag;
+use Domains\Guild\Actions\DeleteGuildAction;
 use Domains\Guild\Actions\ExcludeGuildMemberAction;
 use Domains\Guild\Actions\GetGuildAction;
 use Domains\Guild\Actions\GetGuildRosterAction;
@@ -54,7 +55,8 @@ class GuildController extends Controller
         private UpdateGuildMemberDkpCoefficientAction $updateGuildMemberDkpCoefficientAction,
         private SyncGuildRosterMemberTagsAction $syncGuildRosterMemberTagsAction,
         private CreateTagAction $createTagAction,
-        private DeleteTagAction $deleteTagAction
+        private DeleteTagAction $deleteTagAction,
+        private DeleteGuildAction $deleteGuildAction
     ) {}
 
     public function index(GuildFilterRequest $request): AnonymousResourceCollection
@@ -285,6 +287,7 @@ class GuildController extends Controller
         $data['can_change_guild_leader'] = $canChangeGuildLeader;
 
         $data['can_change_localization_server'] = $this->computeCanChangeLocalizationServer($guild);
+        $data['can_delete'] = ($this->deleteGuildAction)->canDelete($guild, $user);
 
         if ($canEditGuildData) {
             // URL Discord-вебхука — потенциально секретный, отдаём только тем,
@@ -338,6 +341,18 @@ class GuildController extends Controller
         // прав на редактирование данных гильдии в UpdateGuildAction.
         $data['discord_webhook_url'] = $guild->discord_webhook_url;
         return response()->json(['data' => $data]);
+    }
+
+    public function destroy(Request $request, Guild $guild): Response
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->noContent(401);
+        }
+
+        ($this->deleteGuildAction)($user, $guild);
+
+        return response()->noContent();
     }
 
     /**

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  Badge,
   Card,
   CardContent,
   CardHeader,
@@ -9,6 +8,7 @@ import {
   Input,
   Label,
   Select,
+  TagToggleBadge,
   type SelectOption,
 } from '@/shared/ui';
 import { useSiteContextStore } from '@/stores/siteContext';
@@ -159,6 +159,7 @@ async function submit() {
       leader_character_id: Number(selectedLeaderCharacterId.value),
       ...(selectedTagIds.value.length > 0 && { tag_ids: selectedTagIds.value }),
     });
+    siteContext.triggerGuildsRefresh();
     await router.push({ name: 'guild-settings', params: { id: String(guild.id) } });
   } catch (e: unknown) {
     const err = e as Error & { errors?: Record<string, string[]> }; 
@@ -312,17 +313,11 @@ watch(availableLocalizations, (list) => {
                   :key="tag.id"
                   class="inline-flex items-center gap-0.5"
                 >
-                  <button
-                    type="button"
-                    class="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    @click="toggleTag(tag.id)"
-                  >
-                    <Badge
-                      :variant="selectedTagIds.includes(tag.id) ? 'outline' : 'secondary'"
-                    >
-                      {{ tag.name }}
-                    </Badge>
-                  </button>
+                  <TagToggleBadge
+                    :label="tag.name"
+                    :selected="selectedTagIds.includes(tag.id)"
+                    @toggle="toggleTag(tag.id)"
+                  />
                   <button
                     v-if="isMyTag(tag)"
                     type="button"

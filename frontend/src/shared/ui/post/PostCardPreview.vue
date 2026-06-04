@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 import { RouterLink, type RouteLocationRaw } from 'vue-router';
 import { formatRelativeTime } from '@/shared/lib/relativeTime';
 import { useVideoPlaybackTracking } from '@/shared/lib/useVideoPlaybackTracking';
+import DeletedGuildMarker from './DeletedGuildMarker.vue';
 
 interface Props {
   post: Post;
@@ -60,6 +61,9 @@ const displayTime = computed(() => formatRelativeTime(displayIso.value));
 const displayName = computed(
   () => props.post.author_name ?? 'Неизвестный персонаж'
 );
+const showDeletedGuildMarker = computed(
+  () => !!props.post.is_global_as_guild && !!props.post.guild_deleted_at
+);
 const avatarUrl = computed(
   () => props.post.author_avatar_url || null
 );
@@ -99,6 +103,10 @@ useVideoPlaybackTracking(previewContainerRef, {
             >
               {{ displayName }}
             </button>
+            <DeletedGuildMarker
+              v-if="showDeletedGuildMarker"
+              :deleted-at="post.guild_deleted_at"
+            />
           </div>
           <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span class="text-xs text-muted-foreground">
@@ -137,7 +145,7 @@ useVideoPlaybackTracking(previewContainerRef, {
     <div class="px-4 pb-2">
       <h3
         class="text-[18px] leading-snug font-semibold text-foreground/95 line-clamp-2"
-        :title="post.title"
+        :title="post.title ?? ''"
       >
         <RouterLink
           v-if="postTo"

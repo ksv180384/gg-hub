@@ -70,7 +70,7 @@ function avatarToneClass(name: string): string {
   for (let i = 0; i < name.length; i += 1) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_TONES[Math.abs(hash) % AVATAR_TONES.length];
+  return AVATAR_TONES[Math.abs(hash) % AVATAR_TONES.length] ?? AVATAR_TONES[0];
 }
 
 function memberSubtitle(member: GuildRosterMember): string | null {
@@ -116,9 +116,11 @@ const confirmedParticipantRows = computed(() => {
     participant,
     name: participant.external_name ?? '',
     subtitle: 'Сторонний участник',
-    avatarUrl: null as string | null,
-    isExternal: true,
-  }));
+      avatarUrl: null as string | null,
+      isExternal: true,
+      characterId: null,
+      isGuildMember: false,
+    }));
 
   return [...guildRows, ...externalRows];
 });
@@ -129,6 +131,14 @@ function parseOverrideValue(value: string | number): number | null {
   const num = Number(raw);
   if (!Number.isFinite(num) || num < 0) return null;
   return Math.trunc(num);
+}
+
+function parseCoefficientValue(value: string | number): number | undefined {
+  const raw = String(value).trim();
+  if (!raw) return undefined;
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num < 0) return undefined;
+  return num;
 }
 
 const eventDkpBasePoints = computed(() => parseDkpBasePointsInput(props.dkpBasePoints));
@@ -318,13 +328,16 @@ function formatDkpPreview(points: number | null): string {
                 </Label>
                 <Input
                   :id="`dkp-coef-${row.participant.character_id ?? row.name}`"
-                  v-model.number="row.participant.dkp_coefficient"
+                  :model-value="String(row.participant.dkp_coefficient ?? '')"
                   type="number"
                   min="0"
-                  :max="DKP_COEFFICIENT_MAX"
+                  :max="String(DKP_COEFFICIENT_MAX)"
                   step="0.1"
                   title="Коэффициент"
                   class="h-7 w-14 px-1.5 text-center text-xs tabular-nums"
+                  @update:model-value="
+                    row.participant.dkp_coefficient = parseCoefficientValue($event)
+                  "
                 />
               </div>
               <div class="flex items-center gap-1">
@@ -336,7 +349,7 @@ function formatDkpPreview(points: number | null): string {
                 </Label>
                 <Input
                   :id="`dkp-override-${row.participant.character_id ?? row.name}`"
-                  :model-value="row.participant.dkp_points_override ?? ''"
+                  :model-value="String(row.participant.dkp_points_override ?? '')"
                   type="number"
                   min="0"
                   step="1"

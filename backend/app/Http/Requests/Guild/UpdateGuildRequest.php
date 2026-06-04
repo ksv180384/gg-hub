@@ -10,6 +10,7 @@ use Domains\Tag\Models\Tag;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Validator;
 
 class UpdateGuildRequest extends FormRequest
@@ -153,6 +154,7 @@ class UpdateGuildRequest extends FormRequest
             $guild = $this->route('guild');
 
             $this->validateAssignableTagIds($validator, $guild);
+            $this->validateUniqueActiveGuildSlug($validator, $guild);
 
             if ($this->has('server_id') || $this->has('localization_id')) {
                 $membersCount = GuildMember::query()->where('guild_id', $guild->id)->count();
@@ -256,6 +258,34 @@ class UpdateGuildRequest extends FormRequest
         );
         foreach ($invalidIds as $id) {
             $validator->errors()->add('tag_ids.' . array_search($id, $tagIds, true), 'Этот тег нельзя привязать к этой гильдии.');
+        }
+    }
+
+    private function validateUniqueActiveGuildSlug(Validator $validator, Guild $guild): void
+    {
+        if (!$this->has('name') && !$this->has('server_id')) {
+            return;
+        }
+
+        $serverId = (int) ($this->input('server_id') ?? $guild->server_id);
+        $name = trim((string) ($this->input('name') ?? $guild->name));
+        if (!$serverId || $name === '') {
+            return;
+        }
+
+        $slug = Str::slug($name);
+        if ($slug === '') {
+            return;
+        }
+
+        if (
+            Guild::query()
+                ->where('server_id', $serverId)
+                ->where('slug', $slug)
+                ->where('id', '!=', $guild->id)
+                ->exists()
+        ) {
+            $validator->errors()->add('name', 'Гильдия с таким названием уже существует на выбранном сервере.');
         }
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, toRef } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { Button, Select, Separator } from '@/shared/ui';
 import PostCommentItem from '@/pages/guilds/[id]/posts/PostCommentItem.vue';
@@ -8,6 +8,8 @@ import {
   type GuildApplicationCommentCharacter,
   type GuildApplicationCommentItem,
 } from '@/shared/api/guildsApi';
+import type { PostComment } from '@/shared/api/commentsApi';
+import { useGuildApplicationCommentsSocket } from '@/shared/lib/useGuildApplicationCommentsSocket';
 
 const props = defineProps<{
   guildId: number;
@@ -18,7 +20,9 @@ const auth = useAuthStore();
 const currentUserId = computed(() => auth.user?.id ?? null);
 
 const comments = ref<GuildApplicationCommentItem[]>([]);
+const postCommentItems = computed(() => comments.value as unknown as PostComment[]);
 const loading = ref(true);
+const socketReloading = ref(false);
 const error = ref<string | null>(null);
 const replyTo = ref<GuildApplicationCommentItem | null>(null);
 const replyBody = ref('');
@@ -28,8 +32,8 @@ const rootSubmitting = ref(false);
 const myCharacters = ref<GuildApplicationCommentCharacter[]>([]);
 const selectedCharacterId = ref<number | null>(null);
 
-async function loadComments() {
-  loading.value = true;
+async function loadComments(options: { silent?: boolean } = {}) {
+  if (!options.silent) loading.value = true;
   error.value = null;
   try {
     const payload = await guildsApi.getGuildApplicationComments(props.guildId, props.applicationId);
@@ -39,7 +43,17 @@ async function loadComments() {
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить комментарии';
   } finally {
-    loading.value = false;
+    if (!options.silent) loading.value = false;
+  }
+}
+
+async function reloadCommentsFromSocket() {
+  if (socketReloading.value) return;
+  socketReloading.value = true;
+  try {
+    await loadComments({ silent: true });
+  } finally {
+    socketReloading.value = false;
   }
 }
 
@@ -48,8 +62,8 @@ function onCharacterSelect(v: string) {
   if (!Number.isNaN(n)) selectedCharacterId.value = n;
 }
 
-function startReply(comment: GuildApplicationCommentItem) {
-  replyTo.value = comment;
+function startReply(comment: PostComment) {
+  replyTo.value = comment as unknown as GuildApplicationCommentItem;
   replyBody.value = '';
 }
 
@@ -159,6 +173,12 @@ async function onDeleteComment(commentId: number) {
 }
 
 onMounted(loadComments);
+
+useGuildApplicationCommentsSocket({
+  guildId: toRef(props, 'guildId'),
+  applicationId: toRef(props, 'applicationId'),
+  onChanged: reloadCommentsFromSocket,
+});
 </script>
 
 <template>
@@ -192,8 +212,8 @@ onMounted(loadComments);
 
     <template v-else>
       <Separator class="my-4" />
-      <ul v-if="comments.length" class="space-y-0">
-        <li v-for="comment in comments" :key="comment.id">
+      <ul v-if="postCommentItems.length" class="space-y-0">
+        <li v-for="comment in postCommentItems" :key="comment.id">
           <PostCommentItem
             :comment="comment"
             :can-comment="true"

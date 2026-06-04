@@ -20,6 +20,7 @@ final class ListGlobalPostsForJournalAction
     public function __invoke(int $gameId, array $params = []): Collection|LengthAwarePaginator
     {
         $query = Post::query()
+            ->with(['guild'])
             ->withCount(['postComments as comments_count'])
             ->where('game_id', $gameId)
             ->where('is_visible_global', true)

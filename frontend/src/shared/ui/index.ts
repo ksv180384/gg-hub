@@ -24,3 +24,4 @@ export * from './back-icon-button';
 export * from './lightbox-image';
 export { default as SiteLogo } from './SiteLogo.vue';
 export { default as TagAddCombobox } from './tag-add-combobox/TagAddCombobox.vue';
+export * from './tag-toggle-badge';

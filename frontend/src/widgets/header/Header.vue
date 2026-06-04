@@ -85,8 +85,9 @@ useNotificationsSocket({
   },
   onRead: ({ id, readAt, unreadCount: count }) => {
     const idx = notifications.value.findIndex((n) => n.id === id);
-    if (idx !== -1 && !notifications.value[idx].read_at) {
-      notifications.value[idx] = { ...notifications.value[idx], read_at: readAt };
+    const existing = idx !== -1 ? notifications.value[idx] : undefined;
+    if (existing && !existing.read_at) {
+      notifications.value[idx] = { ...existing, read_at: readAt };
     }
     unreadCount.value = count;
   },
@@ -272,9 +273,9 @@ async function deleteNotificationsMany(ids: number[]) {
 }
 
 const themeOptions: { value: ThemePreference; label: string }[] = [
-  { value: 'light', label: 'Светлая' },
-  { value: 'dark', label: 'Тёмная' },
-  { value: 'system', label: 'Системная' },
+  { value: 'light', label: 'Светлая тема' },
+  { value: 'dark', label: 'Тёмная тема' },
+  { value: 'system', label: 'Системная тема' },
 ];
 
 function setTheme(value: ThemePreference) {
@@ -375,11 +376,65 @@ function isNavActive(itemTo: string): boolean {
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent class="w-40" align="end">
-            <DropdownMenuGroup>
-              <DropdownMenuItem v-for="opt in themeOptions" :key="opt.value" @select="setTheme(opt.value)">
-                <span class="mr-2 w-4 text-center">{{ theme.preference === opt.value ? '✓' : '' }}</span>
-                {{ opt.label }}
+          <DropdownMenuContent class="w-auto p-1" align="end">
+            <DropdownMenuGroup class="flex items-center gap-1">
+              <DropdownMenuItem
+                v-for="opt in themeOptions"
+                :key="opt.value"
+                class="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-md p-0"
+                :class="theme.preference === opt.value ? 'bg-accent text-foreground' : 'text-muted-foreground'"
+                :aria-label="opt.label"
+                :title="opt.label"
+                @select="setTheme(opt.value)"
+              >
+                <svg
+                  v-if="opt.value === 'light'"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+                <svg
+                  v-else-if="opt.value === 'dark'"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+                <svg
+                  v-else
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="20" height="14" x="2" y="3" rx="2" />
+                  <line x1="8" x2="16" y1="21" y2="21" />
+                  <line x1="12" x2="12" y1="17" y2="21" />
+                </svg>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -465,11 +520,29 @@ function isNavActive(itemTo: string): boolean {
         </template>
         <!-- Не авторизован -->
         <template v-else>
-
-<!--          <RouterLink to="/login">-->
-<!--            <Button variant="ghost" size="sm" class="hidden sm:inline-flex">Войти</Button>-->
-<!--          </RouterLink>-->
-
+          <RouterLink
+            :to="{ name: 'login', query: { redirect: route.fullPath } }"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+            aria-label="Войти"
+            title="Войти"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" x2="3" y1="12" y2="12" />
+            </svg>
+          </RouterLink>
         </template>
 
         <Sheet v-model:open="mobileMenuOpen" side="right" class="md:hidden">

@@ -477,7 +477,7 @@ function clearSelectedRaid() {
 function leaderInitials(name: string): string {
   if (!name?.trim()) return '?';
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length >= 2) return `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`.toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }
 
@@ -531,7 +531,7 @@ function findAndRemoveRaid(items: RaidItem[], raidId: number): RaidItem | null {
   const i = items.findIndex((r) => r.id === raidId);
   if (i !== -1) {
     const [removed] = items.splice(i, 1);
-    return removed;
+    return removed ?? null;
   }
   for (const r of items) {
     if (r.children) {

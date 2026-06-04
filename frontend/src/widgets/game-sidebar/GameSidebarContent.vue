@@ -250,6 +250,7 @@ onMounted(() => {
 });
 
 watch(() => siteContext.game?.id, () => loadUserGuilds());
+watch(() => siteContext.guildsRefreshTrigger, () => loadUserGuilds());
 watch(
   () => auth.isAuthenticated,
   (isAuth) => {

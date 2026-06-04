@@ -59,13 +59,13 @@ export const eventsApi = {
   },
 
   async create(guildId: number, payload: CreateEventPayload): Promise<GuildEvent> {
-    const res = await http.fetchPost<GuildEvent>(`/guilds/${guildId}/events`, payload as Record<string, unknown>);
+    const res = await http.fetchPost<GuildEvent>(`/guilds/${guildId}/events`, payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Не удалось создать событие.');
     return res.data!;
   },
 
   async update(guildId: number, eventId: number, payload: UpdateEventPayload): Promise<GuildEvent> {
-    const res = await http.fetchPut<GuildEvent>(`/guilds/${guildId}/events/${eventId}`, payload as Record<string, unknown>);
+    const res = await http.fetchPut<GuildEvent>(`/guilds/${guildId}/events/${eventId}`, payload as unknown as Record<string, unknown>);
     throwOnError(res, 'Не удалось сохранить изменения.');
     return res.data!;
   },

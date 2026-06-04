@@ -14,11 +14,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Guild extends Model
 {
     use HasFilter;
     use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'game_id',
@@ -63,6 +65,7 @@ class Guild extends Model
             'discord_notify_post_published' => 'boolean',
             'discord_notify_auction_lot_created' => 'boolean',
             'discord_notify_auction_lot_closed' => 'boolean',
+            'deleted_at' => 'datetime',
         ];
     }
 

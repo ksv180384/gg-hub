@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, type UnwrapNestedRefs } from 'vue';
 import {
   Avatar,
   Badge,
@@ -20,7 +20,7 @@ import type { GuildRosterMember } from '@/shared/api/guildsApi';
 import CharacterPickerDialog from './CharacterPickerDialog.vue';
 
 const props = defineProps<{
-  model: GuildRouletteModel;
+  model: UnwrapNestedRefs<GuildRouletteModel>;
 }>();
 
 const wheelExcelImportHint =
@@ -131,7 +131,7 @@ function isMine(member: GuildRosterMember): boolean {
             </template>
           </template>
           <template v-else-if="model.myCharactersAvailable.length === 1">
-            Доступен персонаж: «{{ model.myCharactersAvailable[0].name }}».
+            Доступен персонаж: «{{ model.myCharactersAvailable[0]?.name }}».
           </template>
           <template v-else>
             У вас несколько персонажей в гильдии — выберите, кого добавить

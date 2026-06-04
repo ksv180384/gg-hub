@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, unref } from 'vue';
+import { computed, ref, unref, type UnwrapNestedRefs } from 'vue';
 import { Card, CardContent, CardHeader, CardTitle, Tooltip } from '@/shared/ui';
 import { SpinWheel } from '@/widgets/spin-wheel';
 import {
@@ -15,7 +15,7 @@ import RouletteSettingsDialog from './RouletteSettingsDialog.vue';
 import WheelEntriesList from './WheelEntriesList.vue';
 
 const props = defineProps<{
-  model: GuildRouletteModel;
+  model: UnwrapNestedRefs<GuildRouletteModel>;
 }>();
 
 const settingsOpen = ref(false);

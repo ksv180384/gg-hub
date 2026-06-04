@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\StoreGuildApplicationCommentRequest;
 use App\Http\Requests\Guild\UpdateGuildApplicationCommentRequest;
 use App\Http\Resources\Guild\GuildApplicationCommentResource;
+use App\Services\GuildApplicationCommentSocketBroadcaster;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\GuildApplicationComment;
@@ -20,7 +21,8 @@ class GuildApplicationCommentController extends Controller
     private const MAX_DEPTH = 2;
 
     public function __construct(
-        private SendGuildApplicationCommentNotificationAction $sendGuildApplicationCommentNotificationAction
+        private SendGuildApplicationCommentNotificationAction $sendGuildApplicationCommentNotificationAction,
+        private GuildApplicationCommentSocketBroadcaster $socketBroadcaster
     ) {}
 
     public function index(Request $request, Guild $guild, GuildApplication $application): JsonResponse
@@ -107,6 +109,7 @@ class GuildApplicationCommentController extends Controller
         ]);
         $application->loadMissing('guild.game');
         $this->sendGuildApplicationCommentNotificationAction->commentCreated($application, $comment);
+        $this->socketBroadcaster->broadcastChangedFor($guild->id, $application->id, $comment->id, 'created');
 
         return response()->json(new GuildApplicationCommentResource($comment), 201);
     }
@@ -136,6 +139,7 @@ class GuildApplicationCommentController extends Controller
             'repliedToComment.character.user',
             'repliedToComment.user:id,name',
         ]);
+        $this->socketBroadcaster->broadcastChangedFor($guild->id, $application->id, $comment->id, 'updated');
 
         return response()->json(new GuildApplicationCommentResource($comment));
     }
@@ -152,6 +156,7 @@ class GuildApplicationCommentController extends Controller
         }
 
         $comment->delete();
+        $this->socketBroadcaster->broadcastChangedFor($guild->id, $application->id, $comment->id, 'deleted');
 
         return response()->json(['message' => 'Комментарий удалён.']);
     }

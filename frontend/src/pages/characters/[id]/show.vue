@@ -92,7 +92,7 @@ function openInviteModal() {
   inviteError.value = null;
   inviteSuccess.value = false;
   selectedGuildId.value =
-    guildsWithInvite.value.length === 1 ? guildsWithInvite.value[0].id : null;
+    guildsWithInvite.value.length === 1 ? guildsWithInvite.value[0]?.id ?? null : null;
   inviteModalOpen.value = true;
 }
 

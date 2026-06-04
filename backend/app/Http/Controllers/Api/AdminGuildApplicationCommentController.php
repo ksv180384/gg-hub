@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\AdminDeleteGuildApplicationCommentRequest;
 use App\Http\Requests\Guild\AdminHideGuildApplicationCommentRequest;
 use App\Http\Resources\Guild\AdminGuildApplicationCommentResource;
+use App\Services\GuildApplicationCommentSocketBroadcaster;
 use Domains\Guild\Models\GuildApplicationComment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,8 @@ class AdminGuildApplicationCommentController extends Controller
 {
     public function __construct(
         private CreateGuildApplicationCommentHiddenNotificationAction $createGuildApplicationCommentHiddenNotificationAction,
-        private CreateGuildApplicationCommentDeletedNotificationAction $createGuildApplicationCommentDeletedNotificationAction
+        private CreateGuildApplicationCommentDeletedNotificationAction $createGuildApplicationCommentDeletedNotificationAction,
+        private GuildApplicationCommentSocketBroadcaster $socketBroadcaster
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -52,6 +54,7 @@ class AdminGuildApplicationCommentController extends Controller
         $comment->save();
         $comment->load(['character.user', 'user', 'application.guild']);
         ($this->createGuildApplicationCommentHiddenNotificationAction)($comment, (string) $request->validated('reason'));
+        $this->broadcastCommentChanged($comment, 'hidden');
 
         return response()->json(new AdminGuildApplicationCommentResource($comment));
     }
@@ -62,6 +65,7 @@ class AdminGuildApplicationCommentController extends Controller
         $comment->hidden_reason = null;
         $comment->save();
         $comment->load(['character.user', 'user', 'application.guild']);
+        $this->broadcastCommentChanged($comment, 'unhidden');
 
         return response()->json(new AdminGuildApplicationCommentResource($comment));
     }
@@ -75,7 +79,18 @@ class AdminGuildApplicationCommentController extends Controller
             $comment->delete();
         }
         ($this->createGuildApplicationCommentDeletedNotificationAction)($comment, $reason);
+        $this->broadcastCommentChanged($comment, 'deleted');
 
         return response()->json(['message' => 'Комментарий удалён.']);
+    }
+
+    private function broadcastCommentChanged(GuildApplicationComment $comment, string $action): void
+    {
+        $comment->loadMissing('application');
+
+        $guildId = (int) ($comment->application?->guild_id ?? 0);
+        $applicationId = (int) ($comment->guild_application_id ?? 0);
+
+        $this->socketBroadcaster->broadcastChangedFor($guildId, $applicationId, (int) $comment->id, $action);
     }
 }

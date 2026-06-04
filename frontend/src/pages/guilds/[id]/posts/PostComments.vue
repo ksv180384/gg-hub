@@ -58,7 +58,7 @@ function initSelectedCharacter() {
   }
   const stored = getStoredCharacterId(props.guildId);
   const validStored = stored && chars.some((c) => c.id === stored);
-  selectedCharacterId.value = validStored ? stored : chars[0].id;
+  selectedCharacterId.value = validStored ? stored : chars[0]?.id ?? null;
 }
 
 function onCharacterSelect(v: string) {

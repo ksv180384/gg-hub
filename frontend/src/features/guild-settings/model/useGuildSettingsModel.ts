@@ -1,6 +1,7 @@
 import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useSiteContextStore } from '@/stores/siteContext';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import {
   guildsApi,
@@ -106,6 +107,7 @@ export function useGuildSettingsModel() {
   const route = useRoute();
   const router = useRouter();
   const authStore = useAuthStore();
+  const siteContext = useSiteContextStore();
 
   const guildId = computed(() => Number(route.params.id));
 
@@ -131,6 +133,7 @@ export function useGuildSettingsModel() {
    * Флаг приходит с GET /guilds/:id/settings.
    */
   const canChangeLocalizationServer = ref(false);
+  const canDeleteGuild = ref(false);
 
   const canEditGuildData = computed(() =>
     myPermissionSlugs.value.includes('redaktirovanie-dannyx-gildii')
@@ -217,6 +220,11 @@ export function useGuildSettingsModel() {
   const leaveGuildCharacters = computed(() =>
     (guild.value?.my_characters ?? []).filter((character) => !character.is_leader)
   );
+
+  // delete guild
+  const deleteGuildDialogOpen = ref(false);
+  const deletingGuild = ref(false);
+  const deleteGuildError = ref<string | null>(null);
 
   // discord
   const discordWebhookUrl = ref('');
@@ -441,6 +449,7 @@ export function useGuildSettingsModel() {
       myPermissionSlugs.value = guild.value.my_permission_slugs ?? [];
       canChangeGuildLeader.value = guild.value.can_change_guild_leader ?? false;
       canChangeLocalizationServer.value = guild.value.can_change_localization_server ?? false;
+      canDeleteGuild.value = guild.value.can_delete ?? false;
       selectedLeaderCharacterId.value =
         guild.value.leader_character_id != null ? String(guild.value.leader_character_id) : '';
 
@@ -697,6 +706,22 @@ export function useGuildSettingsModel() {
     }
   }
 
+  async function confirmDeleteGuild() {
+    if (!guild.value || deletingGuild.value) return;
+    deletingGuild.value = true;
+    deleteGuildError.value = null;
+    try {
+      await guildsApi.deleteGuild(guild.value.id);
+      siteContext.triggerGuildsRefresh();
+      deleteGuildDialogOpen.value = false;
+      router.push({ name: 'guilds' });
+    } catch (e: unknown) {
+      deleteGuildError.value = (e as Error).message ?? 'Не удалось удалить гильдию';
+    } finally {
+      deletingGuild.value = false;
+    }
+  }
+
   async function toggleRecruiting() {
     if (!guild.value) return;
     togglingRecruiting.value = true;
@@ -857,6 +882,7 @@ export function useGuildSettingsModel() {
     canOpenGuildTagPicker,
     canChangeGuildLeader,
     canChangeLocalizationServer,
+    canDeleteGuild,
 
     // tabs
     activeTab,
@@ -945,6 +971,12 @@ export function useGuildSettingsModel() {
     leaveGuildCharacters,
     selectedLeaveCharacterId,
     confirmLeaveGuild,
+
+    // delete guild
+    deleteGuildDialogOpen,
+    deletingGuild,
+    deleteGuildError,
+    confirmDeleteGuild,
 
     // discord
     discordWebhookUrl,

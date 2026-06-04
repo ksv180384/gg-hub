@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Post;
 
 use App\Services\UserAvatarService;
+use App\Services\GuildLogoService;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 use Illuminate\Http\Request;
@@ -43,12 +44,19 @@ class PostListResource extends JsonResource
         }
 
         $game = $this->whenLoaded('game');
+        $guild = $this->whenLoaded('guild');
+
+        if ($this->is_global_as_guild && $guild) {
+            $authorName = $guild->name ?? $authorName;
+            $authorAvatarUrl = GuildLogoService::urlCard($guild->logo_path) ?? $authorAvatarUrl;
+        }
 
         return [
             'id' => $this->id,
             'title' => $this->title,
             'user_id' => $this->user_id,
             'guild_id' => $this->guild_id,
+            'guild_deleted_at' => $guild?->deleted_at?->toIso8601String(),
             'game_id' => $this->game_id,
             'game_name' => $game?->name ?? null,
             'game_slug' => $game?->slug ?? null,
@@ -59,6 +67,7 @@ class PostListResource extends JsonResource
             'status_guild_label' => PostStatus::labelFor($this->status_guild),
             'is_visible_global' => $this->is_visible_global,
             'is_visible_guild' => $this->is_visible_guild,
+            'is_global_as_guild' => $this->is_global_as_guild,
             'published_at_global' => $this->published_at_global?->toIso8601String(),
             'published_at_guild' => $this->published_at_guild?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),

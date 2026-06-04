@@ -14,6 +14,7 @@ use Domains\Tag\Models\Tag;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Stevebauman\Purify\Facades\Purify;
 
 class UpdateGuildAction
@@ -141,6 +142,10 @@ class UpdateGuildAction
             $server = Server::query()->findOrFail((int) $data['server_id']);
             $data['game_id'] = $server->game_id;
             $data['localization_id'] = $server->localization_id;
+        }
+
+        if (array_key_exists('name', $data)) {
+            $data['slug'] = Str::slug((string) $data['name']);
         }
 
         unset($data['logo'], $data['remove_logo']);

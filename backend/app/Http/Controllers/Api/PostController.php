@@ -27,7 +27,7 @@ class PostController extends Controller
     {
         $posts = Post::query()
             ->where('user_id', $request->user()->id)
-            ->with(['character', 'character.user', 'user'])
+            ->with(['character', 'character.user', 'user', 'guild'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -40,7 +40,7 @@ class PostController extends Controller
     public function store(StorePostRequest $request): PostResource
     {
         $post = ($this->storeMyPostAction)($request);
-        $post->loadMissing(['character', 'character.user', 'user']);
+        $post->loadMissing(['character', 'character.user', 'user', 'guild']);
 
         return new PostResource($post);
     }
@@ -55,7 +55,7 @@ class PostController extends Controller
             abort(404);
         }
 
-        $post->loadMissing(['character', 'character.user', 'user']);
+        $post->loadMissing(['character', 'character.user', 'user', 'guild']);
 
         return new PostResource($post);
     }
@@ -67,7 +67,7 @@ class PostController extends Controller
     public function update(UpdatePostRequest $request, Post $post): PostResource
     {
         $post = ($this->updateMyPostAction)($request, $post);
-        $post->loadMissing(['character', 'character.user', 'user']);
+        $post->loadMissing(['character', 'character.user', 'user', 'guild']);
         return new PostResource($post);
     }
 }

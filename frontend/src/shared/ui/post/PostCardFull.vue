@@ -4,6 +4,7 @@ import type { Post } from '@/shared/api/postsApi';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { formatRelativeTime } from '@/shared/lib/relativeTime';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
+import DeletedGuildMarker from './DeletedGuildMarker.vue';
 
 interface Props {
   post: Post;
@@ -42,6 +43,9 @@ const displayIso = computed(() => {
 const displayTime = computed(() => formatRelativeTime(displayIso.value));
 const displayName = computed(
   () => props.post.author_name ?? 'Неизвестный персонаж'
+);
+const showDeletedGuildMarker = computed(
+  () => !!props.post.is_global_as_guild && !!props.post.guild_deleted_at
 );
 const avatarUrl = computed(
   () => props.post.author_avatar_url || null
@@ -118,6 +122,10 @@ onUnmounted(() => {
             >
               {{ displayName }}
             </button>
+            <DeletedGuildMarker
+              v-if="showDeletedGuildMarker"
+              :deleted-at="post.guild_deleted_at"
+            />
           </div>
           <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span class="text-xs text-muted-foreground">
@@ -137,7 +145,7 @@ onUnmounted(() => {
     <div class="px-4 pb-2">
       <h3
         class="text-[22px] leading-snug font-semibold text-foreground/95"
-        :title="post.title"
+        :title="post.title ?? ''"
       >
         {{ post.title }}
       </h3>

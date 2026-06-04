@@ -38,7 +38,7 @@ const voteLoadingByPoll = ref<Record<number, boolean>>({});
 function getVoteCharacterId(poll: UserPollItem): number | null {
   const chars = poll.my_characters ?? [];
   if (chars.length === 0) return null;
-  if (chars.length === 1) return chars[0].id;
+  if (chars.length === 1) return chars[0]?.id ?? null;
   return voteCharacterIdByPoll.value[poll.id] ?? chars[0]?.id ?? null;
 }
 
@@ -59,7 +59,7 @@ async function selectOptionAndVote(poll: UserPollItem, optionId: number | null) 
     const updated = await guildsApi.getGuildPoll(poll.guild_id, poll.id);
     emit('poll-updated', { ...updated, guild: poll.guild, my_characters: poll.my_characters });
   } catch {
-    voteOptionIdByPoll.value = { ...voteOptionIdByPoll.value, [poll.id]: prevOptionId };
+    voteOptionIdByPoll.value = { ...voteOptionIdByPoll.value, [poll.id]: prevOptionId ?? null };
   } finally {
     voteLoadingByPoll.value[poll.id] = false;
   }

@@ -14,9 +14,14 @@ export const useSiteContextStore = defineStore('siteContext', () => {
   const isGameSubdomain = computed(() => mode.value === 'game');
 
   const pollsRefreshTrigger = ref(0);
+  const guildsRefreshTrigger = ref(0);
 
   function triggerPollsRefresh(): void {
     pollsRefreshTrigger.value += 1;
+  }
+
+  function triggerGuildsRefresh(): void {
+    guildsRefreshTrigger.value += 1;
   }
 
   async function fetchContext(): Promise<SiteContextData | null> {
@@ -41,7 +46,9 @@ export const useSiteContextStore = defineStore('siteContext', () => {
     isAdmin,
     isGameSubdomain,
     pollsRefreshTrigger,
+    guildsRefreshTrigger,
     triggerPollsRefresh,
+    triggerGuildsRefresh,
     fetchContext,
   };
 });
