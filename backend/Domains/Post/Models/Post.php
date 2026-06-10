@@ -29,7 +29,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * - status_guild       — статус отображения поста в разделе гильдии (pending/published/draft/hidden)
  * - published_at_global  — дата публикации в раздел «Общие»
  * - published_at_guild   — дата публикации в раздел гильдии
- * - type  — (global/guild)
  */
 class Post extends Model
 {
@@ -50,7 +49,6 @@ class Post extends Model
         'published_at_global',
         'published_at_guild',
         'is_published',
-        'type',
         'published_at',
         'views_count',
     ];
