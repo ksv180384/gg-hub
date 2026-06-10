@@ -8,6 +8,30 @@ set -e
 
 cd /var/www/gg
 
+wait_for_db() {
+    local host="${DB_HOST:-gg-mariadb}"
+    local port="${DB_PORT:-3306}"
+    local attempt=1
+    local max_attempts=60
+
+    echo "[gg-start] Waiting for database at ${host}:${port}..."
+
+    while ! timeout 2 bash -c ":</dev/tcp/${host}/${port}" 2>/dev/null; do
+        if [ "$attempt" -ge "$max_attempts" ]; then
+            echo "[gg-start] Database is still unavailable after ${max_attempts} attempts."
+            return 1
+        fi
+
+        echo "[gg-start] Database is not ready yet (${attempt}/${max_attempts}); retrying..."
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+
+    echo "[gg-start] Database is accepting connections."
+}
+
+wait_for_db
+
 # Воркер очереди: --tries=3 ограничивает повторные попытки, --backoff=3 задаёт паузу между ретраями,
 # --sleep=3 — ожидание при пустой очереди, --max-time=3600 — мягкий рестарт раз в час, чтобы освободить память
 # и подхватить обновления кода после deploy.

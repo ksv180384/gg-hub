@@ -2,7 +2,11 @@
 FROM certbot/certbot:latest
 
 RUN apk add --no-cache docker-cli \
-    && pip install --no-cache-dir certbot-dns-cloudflare
+    && pip install \
+        --no-cache-dir \
+        --retries 10 \
+        --timeout 120 \
+        certbot-dns-cloudflare
 
 COPY _docker/certbot/init-cert-webroot.sh /scripts/init-cert-webroot.sh
 RUN chmod +x /scripts/init-cert-webroot.sh

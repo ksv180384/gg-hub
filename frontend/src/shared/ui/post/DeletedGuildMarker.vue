@@ -5,12 +5,22 @@ const props = defineProps<{
   deletedAt: string | null | undefined;
 }>();
 
+const formatter = new Intl.DateTimeFormat('ru-RU', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  timeZone: 'Europe/Moscow',
+});
+
 const title = computed(() => {
   if (!props.deletedAt) return 'Гильдия удалена';
   const date = new Date(props.deletedAt);
   if (Number.isNaN(date.getTime())) return 'Гильдия удалена';
 
-  return `Гильдия удалена: ${date.toLocaleString('ru-RU')}`;
+  return `Гильдия удалена: ${formatter.format(date)}`;
 });
 </script>
 
