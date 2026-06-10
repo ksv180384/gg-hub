@@ -95,8 +95,8 @@ services:
 
     phpmyadmin:
         image: phpmyadmin/phpmyadmin
-#        profiles:
-#            - dev
+        profiles:
+            - dev
         links:
             - gg-mariadb:db
         restart: always
