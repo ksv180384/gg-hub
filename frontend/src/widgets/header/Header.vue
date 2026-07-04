@@ -332,10 +332,10 @@ function isNavActive(itemTo: string): boolean {
           <a
             v-if="item.external"
             :href="item.href"
-            class="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-[color,opacity] hover:text-foreground/90"
+            class="relative rounded-md px-3 py-2 text-sm font-medium text-foreground/75 transition-[color,opacity] hover:text-foreground"
             :class="
               isNavActive(item.to)
-                ? 'text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/45'
+                ? 'text-foreground font-semibold after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/70'
                 : ''
             "
             :aria-current="isNavActive(item.to) ? 'page' : undefined"
@@ -345,10 +345,10 @@ function isNavActive(itemTo: string): boolean {
           <RouterLink
             v-else
             :to="item.to"
-            class="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-[color,opacity] hover:text-foreground/90"
+            class="relative rounded-md px-3 py-2 text-sm font-medium text-foreground/75 transition-[color,opacity] hover:text-foreground"
             :class="
               isNavActive(item.to)
-                ? 'text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/45'
+                ? 'text-foreground font-semibold after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/70'
                 : ''
             "
             :aria-current="isNavActive(item.to) ? 'page' : undefined"
