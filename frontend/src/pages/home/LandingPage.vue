@@ -13,6 +13,7 @@ import {
   HOME_PAGE_SEO_DESCRIPTION,
   HOME_PAGE_LEAD,
   HOME_HERO_IMAGE_PATH,
+  HOME_HERO_MOBILE_IMAGE_PATH,
   HOME_FAQ_ITEMS,
   HOME_FAQ_SECTION_HEADING,
   HOME_CAPABILITIES_HEADING,
@@ -69,7 +70,7 @@ const gamesFallback = [
 const games = ref<{ name: string; slug: string; id?: number }[]>([...gamesFallback]);
 
 /** Частицы «маны» для фона средней части лендинга (MMORPG, не hero и не нижний CTA) */
-const landingMidFantasyMotes = Array.from({ length: 26 }, (_, i) => {
+const landingMidFantasyMotes = Array.from({ length: 260 }, (_, i) => {
   const left = 2 + ((i * 37) % 91);
   const drift = -56 + ((i * 31) % 113);
   return {
@@ -403,31 +404,22 @@ watch(isDark, () => {
       aria-label="Главный экран"
     >
       <!-- LCP: осмысленное изображение вместо одного только background-image -->
-      <img
-        :src="HOME_HERO_IMAGE_PATH"
-        :alt="heroImageAlt"
-        width="1920"
-        height="1080"
-        sizes="100vw"
-        fetchpriority="high"
-        decoding="sync"
-        class="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center"
-      />
-      <!-- Мягкий переход: размытие + тонировка снизу (без резкой рамки) -->
-      <div class="hero-content-scrim" aria-hidden="true" />
-
-      <!-- Animated gradient orbs -->
-      <div
-        class="pointer-events-none absolute -top-32 -left-32 z-[2] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[100px] transition-transform duration-[2000ms] ease-out"
-        :style="{ transform: `translate(${mouseX * 0.8}px, ${mouseY * 0.8}px)` }"
-      />
-      <div
-        class="pointer-events-none absolute -bottom-40 -right-40 z-[2] h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px] transition-transform duration-[2000ms] ease-out"
-        :style="{ transform: `translate(${mouseX * -0.6}px, ${mouseY * -0.6}px)` }"
-      />
+      <picture class="pointer-events-none absolute inset-0 z-0 block h-full w-full">
+        <source media="(max-width: 767px)" :srcset="HOME_HERO_MOBILE_IMAGE_PATH" />
+        <img
+          :src="HOME_HERO_IMAGE_PATH"
+          :alt="heroImageAlt"
+          width="1920"
+          height="1080"
+          sizes="100vw"
+          fetchpriority="high"
+          decoding="sync"
+          class="h-full w-full object-cover object-center"
+        />
+      </picture>
 
       <div class="container relative z-10 w-full py-10 md:py-14">
-        <div class="mx-auto flex max-w-4xl flex-col items-center gap-6 px-2 text-center sm:px-4">
+        <div class="mx-auto flex max-w-4xl flex-col items-center gap-14 px-2 text-center sm:px-4">
 
           <h1
             id="landing-hero-heading"
@@ -444,7 +436,7 @@ watch(isDark, () => {
           </p>
 
           <p
-            class="hero-lead-glass flex items-center hero-text-readable max-w-2xl text-pretty text-lg md:text-xl text-[#363636] dark:text-white/92 min-h-[8rem] sm:min-h-[7rem]"
+            class="hero-lead-screen max-w-xl text-pretty text-lg md:text-xl"
           >
             {{ HOME_PAGE_LEAD }}
           </p>
@@ -470,8 +462,9 @@ watch(isDark, () => {
           </div>
 
           <!-- Scroll indicator -->
-          <div class="mt-8 animate-bounce text-foreground/70">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          <div class="hero-scroll-indicator mt-8 animate-bounce" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <span>Узнать больше</span>
           </div>
         </div>
       </div>
@@ -497,56 +490,6 @@ watch(isDark, () => {
             '--mote-drift': m.driftPx,
           }"
         />
-        <svg
-          class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--1"
-          width="176"
-          height="176"
-          viewBox="0 0 100 100"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <polygon
-            points="50,8 88,32 88,68 50,92 12,68 12,32"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="0.8"
-          />
-          <circle cx="50" cy="50" r="18" fill="none" stroke="currentColor" stroke-width="0.5" />
-        </svg>
-        <svg
-          class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--2"
-          width="148"
-          height="148"
-          viewBox="0 0 100 100"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M50 6 L61 38 L95 38 L68 58 L79 90 L50 70 L21 90 L32 58 L5 38 L39 38 Z"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="0.7"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <svg
-          class="landing-mid-fantasy-sigil landing-mid-fantasy-sigil--3"
-          width="124"
-          height="124"
-          viewBox="0 0 100 100"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <rect
-            x="28"
-            y="28"
-            width="44"
-            height="44"
-            rx="4"
-            transform="rotate(45 50 50)"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="0.65"
-          />
-          <circle cx="50" cy="50" r="10" fill="none" stroke="currentColor" stroke-width="0.5" />
-        </svg>
       </div>
 
       <div class="relative z-[1]">
@@ -1203,6 +1146,45 @@ watch(isDark, () => {
   text-shadow: 0 1px 2px hsl(0 0% 0% / 0.14), 0 2px 24px hsl(0 0% 0% / 0.12);
 }
 
+.hero-lead-screen {
+  margin: 0 auto;
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 400;
+  line-height: 1.58;
+  text-align: center;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.62),
+    0 2px 18px rgba(0, 0, 0, 0.45),
+    0 0 34px rgba(0, 0, 0, 0.32);
+}
+
+@media (min-width: 768px) {
+  .hero-lead-screen {
+    line-height: 1.55;
+  }
+}
+
+.hero-scroll-indicator {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.62),
+    0 2px 14px rgba(0, 0, 0, 0.42);
+}
+
+.hero-scroll-indicator svg {
+  display: block;
+}
+
+.hero-scroll-indicator span {
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
 /* Эйбрау над слоганом: несёт ключевой запрос, не перетягивает визуал. */
 .hero-eyebrow {
   display: inline-flex;
@@ -1228,6 +1210,12 @@ watch(isDark, () => {
   box-shadow:
     0 2px 12px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 740px) {
+  .hero-eyebrow {
+    font-size: 0.62rem;
+  }
 }
 
 @media (min-width: 640px) {
@@ -1272,23 +1260,30 @@ watch(isDark, () => {
 }
 
 .hero-gradient-text,
-.hero-gradient-text-next{
-  /*background: linear-gradient(135deg, var(--primary) 0%, oklch(0.43 0 0 / 0.81) 50%, var(--primary) 100%);*/
-  background: linear-gradient(135deg, oklch(1 0 0) 0%, oklch(1 0 0 / 0.81) 50%, oklch(0.94 0.07 76.35) 100%);
+.hero-gradient-text-next {
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: none;
-  filter: drop-shadow(0 2px 10px hsl(0 0% 0% / 0.35)) drop-shadow(0 1px 2px hsl(0 0% 0% / 0.25));
+  filter:
+    drop-shadow(0 2px 10px hsl(0 0% 0% / 0.35))
+    drop-shadow(0 1px 2px hsl(0 0% 0% / 0.25));
 }
 
-.hero-gradient-text{
+.hero-gradient-text {
+  background-image: linear-gradient(180deg, #ffffff 0%, #f9f5eb 58%, #ddd3bf 100%);
   animation: none;
 }
 
-.hero-gradient-text-next{
+.hero-gradient-text-next {
+  background-image: linear-gradient(180deg, #fff4c9 0%, #f0cf69 42%, #c99a2e 72%, #f4d97b 100%);
+  background-size: 100% 145%;
+  background-position: center 34%;
   animation: none;
+  filter:
+    drop-shadow(0 3px 12px hsl(0 0% 0% / 0.42))
+    drop-shadow(0 0 20px hsl(43 70% 45% / 0.26));
 }
 
 @keyframes gradient-shift {
@@ -1406,60 +1401,6 @@ watch(isDark, () => {
   }
 }
 
-.landing-mid-fantasy-sigil {
-  position: absolute;
-  color: rgba(70, 100, 150, 0.65);
-  pointer-events: none;
-  overflow: visible;
-  opacity: 0.38;
-  filter: drop-shadow(0 0 16px rgba(255, 200, 120, 0.4));
-  animation: landing-mid-fantasy-sigil-drift 20s ease-in-out infinite;
-}
-
-.landing-mid-fantasy-sigil--1 {
-  top: 8%;
-  left: 3%;
-  width: min(22vw, 176px);
-  height: auto;
-  aspect-ratio: 1;
-  animation-duration: 24s;
-}
-
-.landing-mid-fantasy-sigil--2 {
-  top: 14%;
-  right: 4%;
-  width: min(18vw, 148px);
-  height: auto;
-  aspect-ratio: 1;
-  animation-delay: -6s;
-  animation-duration: 19s;
-}
-
-.landing-mid-fantasy-sigil--3 {
-  bottom: 18%;
-  left: 6%;
-  width: min(15vw, 124px);
-  height: auto;
-  aspect-ratio: 1;
-  animation-delay: -11s;
-  animation-duration: 22s;
-}
-
-@keyframes landing-mid-fantasy-sigil-drift {
-  0%,
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 0.34;
-  }
-  33% {
-    transform: translate(1.4%, -1%) rotate(5deg);
-    opacity: 0.46;
-  }
-  66% {
-    transform: translate(-1.1%, 1.2%) rotate(-4deg);
-    opacity: 0.3;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .landing-mid-fantasy-ambient__veil {
@@ -1470,10 +1411,6 @@ watch(isDark, () => {
     display: none;
   }
 
-  .landing-mid-fantasy-sigil {
-    animation: none;
-    opacity: 0.22;
-  }
 }
 
 /* --- FAQ: управление гильдией --- */

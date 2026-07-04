@@ -135,7 +135,8 @@ export const HOME_FAQ_ITEMS: HomeFaqItem[] = [
 ];
 
 /** Публичный путь к герою (в проде файлы лежат в public/assets/images/). */
-export const HOME_HERO_IMAGE_PATH = '/assets/images/1.webp';
+export const HOME_HERO_IMAGE_PATH = '/assets/images/1_2.webp';
+export const HOME_HERO_MOBILE_IMAGE_PATH = '/assets/images/1_2-mobile.webp';
 
 export const DEFAULT_PRODUCTION_ORIGIN = 'https://gg-hub.ru';
 
@@ -387,7 +388,10 @@ export function buildHomePageStaticHeadHtml(siteOrigin: string, env: Record<stri
   parts.push(`<link rel="alternate" hreflang="ru" href="${escapeAttr(canonicalUrl)}" />`);
   parts.push(`<link rel="alternate" hreflang="x-default" href="${escapeAttr(canonicalUrl)}" />`);
   parts.push(
-    `<link rel="preload" as="image" href="${escapeAttr(HOME_HERO_IMAGE_PATH)}" fetchpriority="high" />`,
+    `<link rel="preload" as="image" href="${escapeAttr(HOME_HERO_MOBILE_IMAGE_PATH)}" media="(max-width: 767px)" fetchpriority="high" />`,
+  );
+  parts.push(
+    `<link rel="preload" as="image" href="${escapeAttr(HOME_HERO_IMAGE_PATH)}" media="(min-width: 768px)" fetchpriority="high" />`,
   );
   parts.push(`<script type="application/ld+json" id="gg-hub-ld-json">${JSON.stringify(jsonLd)}</script>`);
 
