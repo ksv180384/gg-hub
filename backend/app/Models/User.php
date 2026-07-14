@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use Domains\Access\Models\Permission;
 use Domains\Access\Models\Role;
@@ -73,6 +74,11 @@ class User extends Authenticatable implements MustVerifyEmail
             ]);
         }
     }
+    public function sendPasswordResetNotification(mixed $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
 
     public function isEmailRegistered(): bool
     {

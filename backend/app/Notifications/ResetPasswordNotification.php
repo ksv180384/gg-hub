@@ -2,23 +2,12 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\URL;
 
-class VerifyEmailNotification extends Notification implements ShouldQueue
+class ResetPasswordNotification extends ResetPassword
 {
-    use Queueable;
-
-    public function via(mixed $notifiable): array
-    {
-        return ['mail'];
-    }
-
     public function toMail(mixed $notifiable): MailMessage
     {
         $appName = Config::get('app.name', 'GG-hub');
@@ -26,33 +15,25 @@ class VerifyEmailNotification extends Notification implements ShouldQueue
             (string) (Config::get('app.frontend_url') ?: Config::get('app.url')),
             '/',
         );
+        $expiresInMinutes = (int) Config::get(
+            'auth.passwords.'.Config::get('auth.defaults.passwords').'.expire',
+            60,
+        );
         $userName = trim((string) $notifiable->name) ?: 'игрок';
-        $verificationUrl = $this->verificationUrl($notifiable);
 
         $viewData = [
             'appName' => $appName,
+            'expiresInMinutes' => $expiresInMinutes,
             'frontendUrl' => $frontendUrl,
             'logoSource' => $this->logoSource($frontendUrl),
+            'resetUrl' => $this->resetUrl($notifiable),
             'userName' => $userName,
-            'verificationUrl' => $verificationUrl,
         ];
 
         return (new MailMessage)
-            ->subject('Подтверждение email — '.$appName)
-            ->view('emails.auth.verify-email', $viewData)
-            ->text('emails.auth.verify-email-text', $viewData);
-    }
-
-    protected function verificationUrl(mixed $notifiable): string
-    {
-        return URL::temporarySignedRoute(
-            'verification.verify',
-            Carbon::now()->addMinutes(60),
-            [
-                'id' => $notifiable->getKey(),
-                'hash' => sha1($notifiable->getEmailForVerification()),
-            ],
-        );
+            ->subject('Восстановление пароля — '.$appName)
+            ->view('emails.auth.reset-password', $viewData)
+            ->text('emails.auth.reset-password-text', $viewData);
     }
 
     protected function logoSource(string $frontendUrl): string
