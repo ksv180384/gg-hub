@@ -9,6 +9,7 @@ use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
 use App\Core\Traits\HasFilter;
+use Domains\ConstantParty\Models\ConstantPartyMember;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -71,6 +72,11 @@ class Character extends Model
     public function guildMember(): HasOne
     {
         return $this->hasOne(GuildMember::class);
+    }
+
+    public function constantPartyMember(): HasOne
+    {
+        return $this->hasOne(ConstantPartyMember::class);
     }
 
     public function tags(): BelongsToMany

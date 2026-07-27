@@ -255,6 +255,24 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'Редактирование поста', contentShell: true },
         },
         {
+          path: 'my-constant-parties',
+          name: 'my-constant-parties',
+          component: () => import('@/pages/my-constant-parties/index.vue'),
+          meta: { requiresAuth: true, title: 'Мои КП', contentShell: true },
+        },
+        {
+          path: 'my-constant-parties/create',
+          name: 'my-constant-parties-create',
+          component: () => import('@/pages/my-constant-parties/create.vue'),
+          meta: { requiresAuth: true, title: 'Новая КП', contentShell: true },
+        },
+        {
+          path: 'constant-parties/:id',
+          name: 'constant-party-show',
+          component: () => import('@/pages/constant-parties/[id]/index.vue'),
+          meta: { requiresAuth: true, title: 'Конст пати' },
+        },
+        {
           path: 'change-password',
           redirect: { name: 'profile' },
         },

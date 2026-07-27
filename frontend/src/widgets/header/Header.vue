@@ -503,6 +503,11 @@ function isNavActive(itemTo: string): boolean {
                 </RouterLink>
               </DropdownMenuItem>
               <DropdownMenuItem as-child>
+                <RouterLink to="/my-constant-parties" class="cursor-pointer" title="Мои конст пати">
+                  Мои КП
+                </RouterLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem as-child>
                 <RouterLink to="/my-posts" class="cursor-pointer">
                   Мои посты
                 </RouterLink>
