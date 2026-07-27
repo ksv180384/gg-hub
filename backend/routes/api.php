@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\AdminGuildApplicationCommentController;
 use App\Http\Controllers\Api\AdminLandingCtaClickController;
 use App\Http\Controllers\Api\AdminPostController;
 use App\Http\Controllers\Api\AdminUserController;
+use App\Http\Controllers\Api\AdminTestingController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
@@ -261,6 +262,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:obshhie-roli');
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::get('/users/{user}', [AdminUserController::class, 'show']);
+Route::post('/testing/telegram', [AdminTestingController::class, 'telegram']);
+        Route::post('/testing/email', [AdminTestingController::class, 'email']);
         Route::put('/users/{user}', [AdminUserController::class, 'update'])->middleware('permission:zablokirovat-polzovatelia');
         Route::put('/users/{user}/roles-permissions', [UserRolePermissionController::class, 'update'])->middleware('permission.roles-permissions');
 

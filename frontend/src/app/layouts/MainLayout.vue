@@ -30,8 +30,8 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
 
 <template>
   <div class="min-h-svh flex flex-col bg-background">
-    <Header>
-      <template v-if="showSidebar" #mobile-menu-sidebar="{ closeMenu }">
+    <Header :mobile-menu-sidebar-visible="showSidebar">
+      <template #mobile-menu-sidebar="{ closeMenu }">
         <GameSidebarContent embedded suppress-embedded-heading @navigate="closeMenu" />
       </template>
     </Header>

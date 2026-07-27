@@ -91,6 +91,7 @@ const adminItems: { to: string; label: string; permission?: string }[] = [
   { to: '/admin/polls', label: 'Голосования', permission: PERMISSION_VIEW_POLLS },
   { to: '/admin/games', label: 'Игры' },
   { to: '/admin/users', label: 'Пользователи' },
+  { to: '/admin/testing', label: 'Тестирование' },
   { to: '/admin/roles', label: 'Роли пользователей' },
   { to: '/admin/permissions', label: 'Права пользователей' },
   { to: '/admin/permission-groups', label: 'Категории прав' },
