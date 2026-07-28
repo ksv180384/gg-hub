@@ -35,6 +35,7 @@ class AdminUserController extends Controller
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $user = ($this->updateUserBanAction)($user, $request->validated()['banned']);
+        $user = ($this->getUserAction)($user);
         return (new UserResource($user))->response();
     }
 }

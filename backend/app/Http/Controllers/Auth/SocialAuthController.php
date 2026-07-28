@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Notification\SendAdminTelegramNotificationAction;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -62,6 +63,9 @@ class SocialAuthController extends Controller
                 'avatar' => $socialUser->getAvatar(),
                 'email_verified_at' => now(),
             ]);
+            app(SendAdminTelegramNotificationAction::class)(
+                'Зарегистрирован новый пользователь через социальную сеть.',
+            );
         }
 
         if ($user->isBanned()) {

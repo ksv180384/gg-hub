@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Actions\Notification\SendAdminTelegramNotificationAction;
 use App\Models\User;
 use Domains\Access\Models\Role;
 use Domains\User\Actions\ResolveRegistrationUserNameFromEmailAction;
@@ -68,6 +69,10 @@ class CreateNewUser implements CreatesNewUsers
         if ($defaultRole) {
             $user->roles()->attach($defaultRole->id);
         }
+
+        app(SendAdminTelegramNotificationAction::class)(
+            'Зарегистрирован новый пользователь. Способ регистрации: email.',
+        );
 
         return $user;
     }

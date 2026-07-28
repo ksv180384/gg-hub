@@ -6,6 +6,7 @@ export { default as Input } from './input/Input.vue';
 export { default as Label } from './label/Label.vue';
 export * from './multi-select';
 export * from './select';
+export * from './table';
 export { default as Sheet } from './sheet/Sheet.vue';
 export { default as Avatar } from './avatar/Avatar.vue';
 export { default as PostCardPreview } from './post/PostCardPreview.vue';

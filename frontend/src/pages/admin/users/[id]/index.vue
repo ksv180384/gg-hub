@@ -23,6 +23,7 @@ import {
   type PermissionGroupDto,
   type RoleDto,
 } from '@/shared/api/accessApi';
+import { formatDateTimeFull } from '@/shared/lib/relativeTime';
 
 const PERMISSION_BAN_USER = 'zablokirovat-polzovatelia';
 const PERMISSION_CHANGE_USER_ROLE = 'izmeniat-rol-polzovatelia';
@@ -45,6 +46,10 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const saving = ref(false);
 const banning = ref(false);
+
+function formatUserDate(value: string | null | undefined): string {
+  return formatDateTimeFull(value) || 'Нет данных';
+}
 
 function syncFromUser(u: AdminUserDto) {
   selectedRoleId.value = u.roles?.[0]?.id ?? null;
@@ -146,6 +151,10 @@ const hasAnyPermissions = computed(() => groups.value.some((g) => g.permissions?
             <CardHeader>
               <CardTitle class="text-base">{{ user.name }}</CardTitle>
               <p class="text-sm text-muted-foreground">{{ user.email }}</p>
+              <div class="space-y-0.5 text-xs text-muted-foreground">
+                <p>Дата регистрации: {{ formatUserDate(user.created_at) }}</p>
+                <p>Последнее посещение: {{ formatUserDate(user.last_activity_at) }}</p>
+              </div>
             </CardHeader>
             <CardContent class="space-y-4">
               <div v-if="user.banned_at" class="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">

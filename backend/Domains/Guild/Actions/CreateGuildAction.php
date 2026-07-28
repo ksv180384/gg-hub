@@ -2,6 +2,7 @@
 
 namespace Domains\Guild\Actions;
 
+use App\Actions\Notification\SendAdminTelegramNotificationAction;
 use App\Contracts\Repositories\GuildRepositoryInterface;
 use App\Models\User;
 use Domains\Access\Models\GuildRole;
@@ -77,6 +78,10 @@ class CreateGuildAction
             'leader',
             'tags' => fn ($q) => $q->notHidden(),
         ]);
+        app(SendAdminTelegramNotificationAction::class)(
+            'Создана новая гильдия.',
+        );
+
         return $guild;
     }
 }

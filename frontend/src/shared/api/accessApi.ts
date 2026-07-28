@@ -91,6 +91,8 @@ export interface AdminUserDto {
   id: number;
   name: string;
   email: string;
+  created_at: string;
+  last_activity_at?: string | null;
   banned_at: string | null;
   permissions: string[];
   roles: { id: number; name: string; slug: string }[];

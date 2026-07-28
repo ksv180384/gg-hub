@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\UserAvatarService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 /** @mixin User */
@@ -27,6 +28,10 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'created_at' => $this->created_at?->toIso8601String(),
+            'last_activity_at' => $this->last_activity_at
+                ? Carbon::createFromTimestampUTC((int) $this->last_activity_at)->toIso8601String()
+                : null,
             'avatar_url' => $avatarUrl,
             'timezone' => $this->timezone ?? 'UTC',
             'banned_at' => $this->banned_at?->toIso8601String(),

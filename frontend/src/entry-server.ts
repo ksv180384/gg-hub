@@ -49,6 +49,15 @@ type RouteSeoOptions = PageSeoOptions & {
   redirectStatusCode?: number;
 };
 
+function isPublicNotFoundRoute(url: string): boolean {
+  const path = url.split('?')[0] ?? url;
+  return (
+    /^\/posts\/\d+\/?$/.test(path) ||
+    /^\/guilds\/\d+\/info\/?$/.test(path) ||
+    /^\/guilds\/\d+\/application-form\/?$/.test(path)
+  );
+}
+
 function stripHtmlToText(input: string): string {
   return input
     .replace(/<[^>]*>/g, ' ')
@@ -423,10 +432,20 @@ export async function render(url: string, opts: SsrRenderOptions): Promise<SsrRe
       }
 
       const origin = computeRequestOriginForSsr({ host: opts.host, protocol: opts.protocol });
-      const routeSeo = await resolveRouteSeo(url, origin).catch(() => {
+      let routeStatusCode: number | undefined;
+      const routeSeo = await resolveRouteSeo(url, origin).catch((error: unknown) => {
         const path = url.split('?')[0] ?? url;
         if (path === '/' || path === '') {
           useSsrPageDataStore().setJournalPosts([]);
+        }
+        if (
+          isPublicNotFoundRoute(url) &&
+          error &&
+          typeof error === 'object' &&
+          'status' in error &&
+          (error as { status?: unknown }).status === 404
+        ) {
+          routeStatusCode = 404;
         }
         return undefined;
       });
@@ -444,7 +463,8 @@ export async function render(url: string, opts: SsrRenderOptions): Promise<SsrRe
       const piniaState = pinia.state.value as Record<string, unknown>;
       const pageSeo = ssrContext.pageSeo ?? routeSeo;
       const head = pageSeo ? buildPageSeoHead(pageSeo) : undefined;
-      const statusCode = routeName === 'not-found' || routeName === 'page-not-found' ? 404 : 200;
+      const statusCode =
+        routeStatusCode ?? (routeName === 'not-found' || routeName === 'page-not-found' ? 404 : 200);
 
       setActiveRouter(null);
 

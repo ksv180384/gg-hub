@@ -30,8 +30,8 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
 
 <template>
   <div class="min-h-svh flex flex-col bg-background">
-    <Header>
-      <template v-if="showSidebar" #mobile-menu-sidebar="{ closeMenu }">
+    <Header :mobile-menu-sidebar-visible="showSidebar">
+      <template #mobile-menu-sidebar="{ closeMenu }">
         <GameSidebarContent embedded suppress-embedded-heading @navigate="closeMenu" />
       </template>
     </Header>
@@ -92,9 +92,9 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
         </div>
       </main>
     </div>
-    <footer class="landing-home-footer relative border-t border-border/60" aria-label="Подвал страницы">
+    <footer class="landing-home-footer relative overflow-hidden border-t border-border/60" aria-label="Подвал страницы">
       <div
-        class="container grid grid-cols-1 items-center gap-8 py-10 md:grid-cols-[1fr_auto_1fr] md:gap-6 md:py-12"
+        class="container relative z-[1] grid grid-cols-1 items-center gap-8 py-10 md:grid-cols-[1fr_auto_1fr] md:gap-6 md:py-12"
       >
         <div
           class="text-center text-sm leading-relaxed text-foreground md:justify-self-start md:text-left"
@@ -118,32 +118,43 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
 </template>
 
 <style>
-/* Глобально: html.dark + класс футера без data-v, чтобы тёмный фон точно перекрывал светлый. */
+/* Глобально: html.dark + класс футера без data-v, чтобы фон точно перекрывал тему. */
 .landing-home-footer {
-  background-color: #ebe9e6;
-  background-image:
-    radial-gradient(ellipse 140% 100% at 50% -20%, rgba(255, 255, 255, 0.85) 0%, transparent 50%),
-    repeating-linear-gradient(
-      -12deg,
-      transparent,
-      transparent 3px,
-      rgba(0, 0, 0, 0.018) 3px,
-      rgba(0, 0, 0, 0.018) 4px
-    ),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, transparent 45%);
+  background-color: #080a0d;
+  background-image: url('/assets/images/footer.webp');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  color: rgba(232, 225, 214, 0.82);
 }
 
-html.dark .landing-home-footer {
-  background-color: var(--background);
-  background-image:
-    radial-gradient(ellipse 140% 100% at 50% -20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
-    repeating-linear-gradient(
-      -12deg,
-      transparent,
-      transparent 3px,
-      rgba(255, 255, 255, 0.04) 3px,
-      rgba(255, 255, 255, 0.04) 4px
-    ),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 45%);
+.landing-home-footer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 7, 10, 0.82) 0%, rgba(5, 7, 10, 0.58) 50%, rgba(5, 7, 10, 0.82) 100%),
+    linear-gradient(180deg, rgba(5, 7, 10, 0.72) 0%, rgba(5, 7, 10, 0.52) 45%, rgba(5, 7, 10, 0.78) 100%);
+  pointer-events: none;
+}
+
+.landing-home-footer p,
+.landing-home-footer a {
+  color: rgba(232, 225, 214, 0.82) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.58);
+}
+
+.landing-home-footer .text-muted-foreground {
+  color: rgba(220, 214, 205, 0.62) !important;
+}
+
+.landing-home-footer a {
+  font-weight: 600;
+  text-decoration-color: rgba(214, 181, 104, 0.5);
+}
+
+.landing-home-footer a:hover {
+  color: rgba(232, 200, 126, 0.9) !important;
 }
 </style>

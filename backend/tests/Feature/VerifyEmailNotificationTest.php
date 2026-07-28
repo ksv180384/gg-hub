@@ -6,9 +6,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('renders verify email with gg-hub branding and without laravel assets', function () {
+it('renders the verification email with the gg-hub auth design', function () {
     config([
-        'app.name' => 'gg-hub',
+        'app.name' => 'GG-hub',
         'app.url' => 'https://gg-hub.ru',
         'app.frontend_url' => 'https://gg-hub.ru',
         'app.locale' => 'ru',
@@ -24,8 +24,17 @@ it('renders verify email with gg-hub branding and without laravel assets', funct
     expect($html)
         ->toContain('data:image/png;base64,')
         ->toContain('Здравствуйте, test77!')
-        ->toContain('Спасибо за регистрацию на gg-hub')
-        ->toContain('команда gg-hub')
+        ->toContain('Спасибо за регистрацию на GG-hub')
+        ->toContain('Подтвердите email')
+        ->toContain('Твоя гильдия. Твоя команда.')
+        ->toContain('background-color: #03090d')
+        ->toContain('background-color: #f7ba2b')
+        ->toContain('border: 1px solid #b97410')
+        ->toContain('border: 1px solid #9a5e0d')
+        ->toContain('border-top: 1px solid #b97717; border-left: 1px solid #b97717')
+        ->toContain('border-bottom: 1px solid #b97717; border-left: 1px solid #b97717')
+        ->toContain('команда GG-hub')
+        ->not->toContain('Laravel')
         ->toContain('Если кнопка «Подтвердить email» не открывается')
         ->not->toContain('<br>')
         ->not->toContain('&lt;br&gt;')

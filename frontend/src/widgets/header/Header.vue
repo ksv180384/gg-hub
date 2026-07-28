@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, useSlots, inject } from 'vue';
+import { ref, computed, watch, nextTick, inject } from 'vue';
 import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
 import {
@@ -30,14 +30,19 @@ import PollsDrawer from '@/widgets/header/PollsDrawer.vue';
 import TodaysEventsDrawer from '@/widgets/header/TodaysEventsDrawer.vue';
 import { getMainSiteOrigin, mainSiteOriginSsrKey } from '@/shared/lib/mainSiteOriginSsr';
 
+interface Props {
+  mobileMenuSidebarVisible: boolean;
+}
+
+const props = defineProps<Props>();
+
 const route = useRoute();
 const auth = useAuthStore();
 const siteContext = useSiteContextStore();
 const theme = useThemeStore();
-const slots = useSlots();
 /** Совпадает с тем, что посчитал entry-server по Host запроса (клиентский stub AsyncLocalStorage недоступен в компонентах). */
 const mainSiteOriginFromSsr = inject(mainSiteOriginSsrKey, undefined as string | undefined);
-const hasMobileMenuSidebar = computed(() => !!slots['mobile-menu-sidebar']);
+const hasMobileMenuSidebar = computed(() => props.mobileMenuSidebarVisible);
 
 const showMobileSidebarAdminBlock = computed(
   () =>
@@ -332,10 +337,10 @@ function isNavActive(itemTo: string): boolean {
           <a
             v-if="item.external"
             :href="item.href"
-            class="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-[color,opacity] hover:text-foreground/90"
+            class="relative rounded-md px-3 py-2 text-sm font-medium text-foreground/75 transition-[color,opacity] hover:text-foreground"
             :class="
               isNavActive(item.to)
-                ? 'text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/45'
+                ? 'text-foreground font-semibold after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/70'
                 : ''
             "
             :aria-current="isNavActive(item.to) ? 'page' : undefined"
@@ -345,10 +350,10 @@ function isNavActive(itemTo: string): boolean {
           <RouterLink
             v-else
             :to="item.to"
-            class="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-[color,opacity] hover:text-foreground/90"
+            class="relative rounded-md px-3 py-2 text-sm font-medium text-foreground/75 transition-[color,opacity] hover:text-foreground"
             :class="
               isNavActive(item.to)
-                ? 'text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/45'
+                ? 'text-foreground font-semibold after:pointer-events-none after:absolute after:inset-x-3 after:bottom-1 after:h-px after:rounded-full after:bg-primary/70'
                 : ''
             "
             :aria-current="isNavActive(item.to) ? 'page' : undefined"
