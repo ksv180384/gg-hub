@@ -7,8 +7,10 @@ import {
   type ConstantParty,
   type ConstantPartyInvitation,
 } from '@/shared/api/constantPartiesApi';
+import { useSiteContextStore } from '@/stores/siteContext';
 
 const router = useRouter();
+const siteContext = useSiteContextStore();
 const parties = ref<ConstantParty[]>([]);
 const invitations = ref<ConstantPartyInvitation[]>([]);
 const loading = ref(true);
@@ -19,7 +21,14 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    const result = await constantPartiesApi.list();
+    if (!siteContext.game) {
+      parties.value = [];
+      invitations.value = [];
+      error.value = 'Конст пати доступны только на сайте выбранной игры.';
+      return;
+    }
+
+    const result = await constantPartiesApi.list(siteContext.game.id);
     parties.value = result.parties;
     invitations.value = result.invitations;
   } catch (e) {
@@ -66,6 +75,7 @@ onMounted(load);
           <p class="mt-1 text-sm text-muted-foreground">Конст пати ваших персонажей и входящие приглашения.</p>
         </div>
         <RouterLink
+          v-if="siteContext.game"
           to="/my-constant-parties/create"
           class="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >

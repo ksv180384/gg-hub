@@ -6,6 +6,45 @@
     <link rel="icon" sizes="any" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#262626">
+    <style>
+      html,
+      body {
+        background-color: #ffffff;
+      }
+
+      html.dark,
+      html.dark body {
+        background-color: #202530;
+        color-scheme: dark;
+      }
+    </style>
+    <script>
+      (function () {
+        var preference = 'system';
+
+        try {
+          var cookiePreference = document.cookie.match(
+            /(?:^|;\s*)gg-theme-prepaint=(light|dark|system)(?:;|$)/,
+          );
+          preference =
+            (cookiePreference && cookiePreference[1]) ||
+            localStorage.getItem('gg-theme-prepaint') ||
+            localStorage.getItem('gg-theme') ||
+            'system';
+        } catch (error) {
+          preference = 'system';
+        }
+
+        var isDark =
+          preference === 'dark' ||
+          (preference === 'system' &&
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+      })();
+    </script>
     <!--INJECT_HOME_SEO-->
   </head>
   <body>

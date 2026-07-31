@@ -4,8 +4,10 @@ import { useRouter } from 'vue-router';
 import { Spinner } from '@/shared/ui';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { constantPartiesApi } from '@/shared/api/constantPartiesApi';
+import { useSiteContextStore } from '@/stores/siteContext';
 
 const router = useRouter();
+const siteContext = useSiteContextStore();
 const characters = ref<Character[]>([]);
 const loading = ref(true);
 const saving = ref(false);
@@ -18,7 +20,12 @@ const canSubmit = computed(() => name.value.trim().length > 0 && leaderCharacter
 onMounted(async () => {
   loading.value = true;
   try {
-    characters.value = await charactersApi.getCharacters();
+    if (!siteContext.game) {
+      error.value = 'Создать конст пати можно только на сайте выбранной игры.';
+      return;
+    }
+
+    characters.value = await charactersApi.getCharacters(siteContext.game.id);
     leaderCharacterId.value = characters.value[0]?.id ?? null;
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить персонажей.';
@@ -28,11 +35,12 @@ onMounted(async () => {
 });
 
 async function submit() {
-  if (!canSubmit.value || leaderCharacterId.value === null) return;
+  if (!canSubmit.value || leaderCharacterId.value === null || !siteContext.game) return;
   saving.value = true;
   error.value = null;
   try {
     const party = await constantPartiesApi.create({
+      game_id: siteContext.game.id,
       name: name.value.trim(),
       leader_character_id: leaderCharacterId.value,
     });

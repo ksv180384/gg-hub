@@ -16,6 +16,7 @@ class StoreConstantPartyRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'game_id' => ['required', 'integer', 'exists:games,id'],
             'leader_character_id' => ['required', 'integer', 'exists:characters,id'],
         ];
     }

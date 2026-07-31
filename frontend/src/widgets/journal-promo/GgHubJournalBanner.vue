@@ -11,7 +11,7 @@ const mainSiteOriginFromSsr = inject(mainSiteOriginSsrKey, undefined as string |
 const mainSiteHref = computed(() => `${getMainSiteOrigin(mainSiteOriginFromSsr)}/`);
 
 const imgClass =
-  'mx-auto w-full max-w-[min(100%,20rem)] rounded-lg border border-border/60 shadow-md';
+  'mx-auto h-auto w-full max-w-[300px] rounded-lg border border-border/60 shadow-md';
 </script>
 
 <template>

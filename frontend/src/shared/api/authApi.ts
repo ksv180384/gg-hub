@@ -4,6 +4,7 @@
 
 import { throwOnError } from '@/shared/api/errors';
 import { http } from '@/shared/api/http';
+import { isThemePreference, type ThemePreference } from '@/shared/lib/themePreference';
 
 /** Пользователь; permissions и roles приходят с api/v1/user (и при логине/регистрации). */
 export interface User {
@@ -14,6 +15,8 @@ export interface User {
   avatar_url?: string | null;
   /** Часовой пояс пользователя (например Europe/Moscow). */
   timezone?: string;
+  /** Тема оформления, сохранённая в профиле. */
+  theme_preference: ThemePreference;
   /** Слаги прав доступа (для проверки hasPermission). */
   permissions?: string[];
   /** Роли (isAdmin по slug === 'admin'). */
@@ -73,10 +76,11 @@ export interface UpdatePasswordPayload {
   password_confirmation: string;
 }
 
-/** Тело запроса: обновление профиля (имя, часовой пояс, аватар). */
+/** Тело запроса: частичное обновление профиля. */
 export interface UpdateProfilePayload {
   name?: string;
   timezone?: string;
+  theme_preference?: ThemePreference;
   avatar?: File | null;
 }
 
@@ -120,6 +124,7 @@ function pickUser(data: unknown): User | null {
       email: u.email as string,
       avatar_url: typeof u.avatar_url === 'string' ? u.avatar_url : null,
       timezone: typeof u.timezone === 'string' ? u.timezone : undefined,
+      theme_preference: isThemePreference(u.theme_preference) ? u.theme_preference : 'system',
       permissions,
       roles,
       ...(guildIds !== undefined ? { guild_ids: guildIds } : {}),
@@ -190,8 +195,11 @@ export const authApi = {
 
   async updateProfile(payload: UpdateProfilePayload): Promise<{ user: User }> {
     const form = new FormData();
-    form.append('name', payload.name ?? '');
+    if (payload.name !== undefined) form.append('name', payload.name ?? '');
     if (payload.timezone !== undefined) form.append('timezone', payload.timezone ?? 'UTC');
+    if (payload.theme_preference !== undefined) {
+      form.append('theme_preference', payload.theme_preference);
+    }
     if (payload.avatar) {
       form.append('avatar', payload.avatar, payload.avatar.name || 'avatar.jpg');
     }

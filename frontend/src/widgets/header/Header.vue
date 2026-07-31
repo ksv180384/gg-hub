@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   SiteLogo,
+  Spinner,
 } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
@@ -364,7 +365,7 @@ function isNavActive(itemTo: string): boolean {
       </nav>
 
       <div class="flex min-w-0 items-center justify-end gap-2 md:flex-none md:justify-self-end">
-        <DropdownMenu>
+        <DropdownMenu v-if="auth.initialized && !auth.isAuthenticated">
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Тема оформления" title="Тема оформления">
               <span class="relative inline-flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center">
@@ -481,7 +482,15 @@ function isNavActive(itemTo: string): boolean {
         </template>
         <!-- Тема: dropdown в стиле shadcn -->
         <!-- Авторизован: по клику на аватар — дропдаун с именем, профиль, выход -->
-        <template v-if="auth.isAuthenticated">
+        <div
+          v-if="!auth.initialized"
+          class="inline-flex h-9 w-9 items-center justify-center text-muted-foreground"
+          role="status"
+          aria-label="Загрузка пользователя"
+        >
+          <Spinner class="h-4 w-4" />
+        </div>
+        <template v-else-if="auth.isAuthenticated">
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <button
@@ -507,7 +516,7 @@ function isNavActive(itemTo: string): boolean {
                   Мои персонажи
                 </RouterLink>
               </DropdownMenuItem>
-              <DropdownMenuItem as-child>
+              <DropdownMenuItem v-if="siteContext.game" as-child>
                 <RouterLink to="/my-constant-parties" class="cursor-pointer" title="Мои конст пати">
                   Мои КП
                 </RouterLink>

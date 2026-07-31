@@ -541,7 +541,7 @@ export function createRouterInstance(history: RouterHistory) {
           return window.setTimeout(cb, 0);
         };
         schedule(() => {
-          if (!auth.loading && !auth.user) {
+          if (!auth.loading && !auth.initialized) {
             void auth.fetchUser();
           }
         });

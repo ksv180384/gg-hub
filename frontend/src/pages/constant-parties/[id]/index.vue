@@ -10,8 +10,10 @@ import {
   type ConstantPartyInvitation,
   type ConstantPartyStorageItem,
 } from '@/shared/api/constantPartiesApi';
+import { useSiteContextStore } from '@/stores/siteContext';
 
 const route = useRoute();
+const siteContext = useSiteContextStore();
 const partyId = computed(() => Number(route.params.id));
 const party = ref<ConstantParty | null>(null);
 const invitations = ref<ConstantPartyInvitation[]>([]);
@@ -44,8 +46,13 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
+    if (!siteContext.game) {
+      error.value = 'Конст пати доступны только на сайте выбранной игры.';
+      return;
+    }
+
     const [partyResult, contextResult] = await Promise.all([
-      constantPartiesApi.get(partyId.value),
+      constantPartiesApi.get(partyId.value, siteContext.game.id),
       constantPartiesApi.storageContext(partyId.value),
     ]);
     party.value = partyResult;
