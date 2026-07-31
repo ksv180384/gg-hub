@@ -3,7 +3,7 @@
 namespace Domains\Character\Actions;
 
 use App\Contracts\Repositories\CharacterRepositoryInterface;
-use App\Models\Notification;
+use Domains\Notification\Models\Notification;
 use App\Services\CharacterAvatarService;
 use Domains\Character\Models\Character;
 use Domains\ConstantParty\Models\ConstantPartyMember;

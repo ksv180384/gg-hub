@@ -2,7 +2,7 @@
 
 namespace Domains\GuildDkp\Models;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryParticipant;

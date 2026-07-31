@@ -2,7 +2,7 @@
 
 namespace Domains\Access\Models;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;

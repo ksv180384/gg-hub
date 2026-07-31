@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Character;
 
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

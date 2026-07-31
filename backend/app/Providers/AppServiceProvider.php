@@ -6,7 +6,7 @@ use App\Contracts\Repositories\CharacterRepositoryInterface;
 use App\Contracts\Repositories\GameRepositoryInterface;
 use App\Contracts\Repositories\GuildRepositoryInterface;
 use App\Contracts\Repositories\LocalizationRepositoryInterface;
-use App\Models\Notification;
+use Domains\Notification\Models\Notification;
 use App\Observers\NotificationObserver;
 use App\Observers\PollObserver;
 use App\Repositories\Eloquent\EloquentCharacterRepository;

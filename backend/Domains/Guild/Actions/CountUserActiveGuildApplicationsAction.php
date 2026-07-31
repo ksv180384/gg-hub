@@ -2,7 +2,7 @@
 
 namespace Domains\Guild\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Guild\Enums\GuildApplicationStatus;
 use Domains\Guild\Models\GuildApplication;
 

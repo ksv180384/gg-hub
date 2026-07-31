@@ -2,7 +2,7 @@
 
 namespace App\Actions\GameClass;
 
-use App\Models\GameClass;
+use Domains\Game\Models\GameClass;
 use App\Services\GameClassImageService;
 use Illuminate\Http\UploadedFile;
 

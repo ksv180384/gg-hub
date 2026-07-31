@@ -2,7 +2,7 @@
 
 namespace Domains\Post\Models;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Game\Models\Game;
 use Domains\Guild\Models\Guild;

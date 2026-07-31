@@ -9,7 +9,7 @@ use App\Actions\Notification\MarkNotificationReadAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Notification\BulkDeleteNotificationsRequest;
 use App\Http\Resources\Notification\NotificationResource;
-use App\Models\Notification;
+use Domains\Notification\Models\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

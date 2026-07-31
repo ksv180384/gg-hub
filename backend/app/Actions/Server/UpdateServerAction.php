@@ -2,7 +2,7 @@
 
 namespace App\Actions\Server;
 
-use App\Models\Server;
+use Domains\Game\Models\Server;
 
 class UpdateServerAction
 {

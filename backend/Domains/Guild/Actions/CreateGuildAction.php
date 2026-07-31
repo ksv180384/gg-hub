@@ -4,7 +4,7 @@ namespace Domains\Guild\Actions;
 
 use App\Actions\Notification\SendAdminTelegramNotificationAction;
 use App\Contracts\Repositories\GuildRepositoryInterface;
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Access\Models\GuildRole;
 use Domains\Game\Models\Server;
 use Domains\Guild\Models\Guild;

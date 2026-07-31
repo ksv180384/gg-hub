@@ -3,7 +3,7 @@
 namespace App\Http\Resources\Game;
 
 use App\Http\Resources\Game\GameClassResource;
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use App\Services\GameImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;

@@ -2,7 +2,7 @@
 
 namespace Domains\Post\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Post\Models\PostComment;
 use InvalidArgumentException;
 

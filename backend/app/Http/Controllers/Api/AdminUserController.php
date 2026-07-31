@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Access\UpdateUserRequest;
 use App\Http\Resources\UserResource;
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Access\Actions\GetUserAction;
 use Domains\Access\Actions\ListUsersAction;
 use Domains\Access\Actions\UpdateUserBanAction;

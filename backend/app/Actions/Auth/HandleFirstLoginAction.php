@@ -3,7 +3,7 @@
 namespace App\Actions\Auth;
 
 use App\Actions\Notification\CreateFirstLoginCreateCharacterNotificationAction;
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 class HandleFirstLoginAction

@@ -2,7 +2,7 @@
 
 namespace Domains\Guild\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\GuildMember;

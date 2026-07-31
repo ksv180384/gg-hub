@@ -2,7 +2,7 @@
 
 namespace Domains\Character\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 
 class SyncCharacterTagsAction

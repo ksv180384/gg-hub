@@ -2,15 +2,18 @@
 
 namespace Domains\Character\Models;
 
-use App\Models\User;
+use App\Core\Traits\HasFilter;
 use App\Services\CharacterAvatarService;
 use App\Services\UserAvatarService;
+use Domains\ConstantParty\Models\ConstantPartyMember;
+use Domains\Game\Models\Concerns\PreventsWritesOnMergingServer;
 use Domains\Game\Models\Game;
+use Domains\Game\Models\GameClass;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
-use App\Core\Traits\HasFilter;
-use Domains\ConstantParty\Models\ConstantPartyMember;
 use Domains\Guild\Models\GuildMember;
+use Domains\Tag\Models\Tag;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,8 +23,9 @@ use Illuminate\Support\Facades\Storage;
 
 class Character extends Model
 {
-    use HasFilter;
     use HasFactory;
+    use HasFilter;
+    use PreventsWritesOnMergingServer;
 
     protected $fillable = [
         'user_id',
@@ -65,7 +69,7 @@ class Character extends Model
     /** Классы персонажа в рамках игры (многие ко многим). */
     public function gameClasses(): BelongsToMany
     {
-        return $this->belongsToMany(\App\Models\GameClass::class, 'character_game_class');
+        return $this->belongsToMany(GameClass::class, 'character_game_class');
     }
 
     /** Персонаж может состоять только в одной гильдии (в контексте игры/локации/сервера). */
@@ -81,13 +85,13 @@ class Character extends Model
 
     public function tags(): BelongsToMany
     {
-        return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'character_tag');
+        return $this->belongsToMany(Tag::class, 'character_tag');
     }
 
     /** Теги персонажа в контексте гильдии (pivot character_guild_tag). */
     public function characterGuildTags(): BelongsToMany
     {
-        return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'character_guild_tag', 'character_id', 'tag_id')
+        return $this->belongsToMany(Tag::class, 'character_guild_tag', 'character_id', 'tag_id')
             ->withPivot('guild_id');
     }
 

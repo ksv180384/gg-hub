@@ -2,7 +2,7 @@
 
 namespace Domains\Guild\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Access\Actions\ListPermissionGroupsAction;
 use Domains\Access\Enums\PermissionScope;
 use Domains\Guild\Models\Guild;

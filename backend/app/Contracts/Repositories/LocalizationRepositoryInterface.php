@@ -2,8 +2,8 @@
 
 namespace App\Contracts\Repositories;
 
-use App\Models\Game;
-use App\Models\Localization;
+use Domains\Game\Models\Game;
+use Domains\Game\Models\Localization;
 
 interface LocalizationRepositoryInterface
 {

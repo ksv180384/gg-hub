@@ -10,11 +10,12 @@ use App\Http\Resources\Character\CharacterResource;
 use App\Http\Resources\ConstantParty\ConstantPartyInvitationResource;
 use App\Http\Resources\ConstantParty\ConstantPartyMemberResource;
 use App\Http\Resources\ConstantParty\ConstantPartyResource;
-use App\Models\Notification;
+use App\Services\SubdomainContext;
 use Domains\Character\Models\Character;
 use Domains\ConstantParty\Models\ConstantParty;
 use Domains\ConstantParty\Models\ConstantPartyInvitation;
 use Domains\ConstantParty\Models\ConstantPartyMember;
+use Domains\Notification\Models\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -23,11 +24,17 @@ use Illuminate\Support\Facades\DB;
 
 class ConstantPartyController extends Controller
 {
+    public function __construct(
+        private SubdomainContext $subdomainContext,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $gameId = $this->resolveGameId($request);
 
         $parties = ConstantParty::query()
+            ->where('game_id', $gameId)
             ->whereHas('members.character', fn ($query) => $query->where('user_id', $user->id))
             ->with([
                 'leader.gameClasses',
@@ -52,11 +59,13 @@ class ConstantPartyController extends Controller
                     'role' => $member->role,
                     'can_manage_storage' => (bool) $member->can_manage_storage,
                 ] : null;
+
                 return $party;
             });
 
         $invitations = ConstantPartyInvitation::query()
             ->where('status', ConstantPartyInvitation::STATUS_PENDING)
+            ->whereHas('constantParty', fn ($query) => $query->where('game_id', $gameId))
             ->whereHas('invitedCharacter', fn ($query) => $query->where('user_id', $user->id))
             ->with([
                 'constantParty.leader',
@@ -77,11 +86,13 @@ class ConstantPartyController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
+        $gameId = $this->resolveGameId($request);
 
-        $party = DB::transaction(function () use ($user, $data): ConstantParty {
+        $party = DB::transaction(function () use ($user, $data, $gameId): ConstantParty {
             /** @var Character $leader */
             $leader = Character::query()
                 ->whereKey($data['leader_character_id'])
+                ->where('game_id', $gameId)
                 ->where('user_id', $user->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -115,6 +126,12 @@ class ConstantPartyController extends Controller
 
     public function show(Request $request, ConstantParty $constantParty): ConstantPartyResource
     {
+        $gameId = $this->resolveGameId($request);
+
+        if ((int) $constantParty->game_id !== $gameId) {
+            abort(404);
+        }
+
         $this->ensureMember($constantParty, $request->user()->id);
 
         $constantParty->load([
@@ -189,7 +206,7 @@ class ConstantPartyController extends Controller
 
         $characters = Character::query()
             ->where('server_id', $constantParty->server_id)
-            ->where('name', 'like', '%' . str_replace(['%', '_'], ['\%', '\_'], $query) . '%')
+            ->where('name', 'like', '%'.str_replace(['%', '_'], ['\%', '\_'], $query).'%')
             ->whereDoesntHave('constantPartyMember')
             ->whereNotIn('id', function ($subquery) use ($constantParty) {
                 $subquery
@@ -351,6 +368,20 @@ class ConstantPartyController extends Controller
         $invitation->load(['constantParty.leader', 'invitedCharacter', 'invitedByCharacter']);
 
         return new ConstantPartyInvitationResource($invitation);
+    }
+
+    private function resolveGameId(Request $request): int
+    {
+        $gameId = (int) $request->validate([
+            'game_id' => ['required', 'integer', 'exists:games,id'],
+        ])['game_id'];
+        $contextGame = $this->subdomainContext->getGameBySubdomain($request);
+
+        if ($contextGame && (int) $contextGame->id !== $gameId) {
+            abort(404);
+        }
+
+        return $gameId;
     }
 
     private function abortIfCharacterAlreadyInParty(int $characterId): void

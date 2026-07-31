@@ -2,7 +2,7 @@
 
 namespace Domains\Event\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Event\Models\Event;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;

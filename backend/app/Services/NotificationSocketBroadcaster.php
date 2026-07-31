@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Http\Resources\Notification\NotificationResource;
-use App\Models\Notification;
+use Domains\Notification\Models\Notification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;

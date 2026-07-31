@@ -2,8 +2,8 @@
 
 namespace App\Actions\User;
 
-use App\Models\User;
 use App\Services\UserAvatarService;
+use Domains\User\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,13 +11,12 @@ class UpdateUserProfileAction
 {
     public function __construct(
         private UserAvatarService $userAvatarService
-    ) {
-    }
+    ) {}
 
     /**
      * Обновляет профиль пользователя: имя, часовой пояс, при необходимости — аватар.
      *
-     * @param  array{name?: string, timezone?: string|null}  $data
+     * @param  array{name?: string, timezone?: string|null, theme_preference?: string}  $data
      */
     public function __invoke(User $user, array $data, ?UploadedFile $avatarFile = null): User
     {
@@ -27,6 +26,10 @@ class UpdateUserProfileAction
 
         if (array_key_exists('timezone', $data)) {
             $user->timezone = $data['timezone'] ?? 'UTC';
+        }
+
+        if (array_key_exists('theme_preference', $data)) {
+            $user->theme_preference = $data['theme_preference'];
         }
 
         if ($avatarFile !== null) {

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Game\Models\Game;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;

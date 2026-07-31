@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\GuildDkp\Actions\AdjustGuildUserDkpAction;
 use Domains\GuildDkp\Actions\RecordGuildDkpLedgerEntryAction;
 use Domains\GuildDkp\Enums\GuildDkpLedgerSource;

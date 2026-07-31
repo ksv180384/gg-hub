@@ -97,8 +97,10 @@ function unwrap<T>(res: { data: unknown }): T {
 }
 
 export const constantPartiesApi = {
-  async list(): Promise<{ parties: ConstantParty[]; invitations: ConstantPartyInvitation[] }> {
-    const res = await http.fetchGet<{ data: ConstantParty[]; invitations: ConstantPartyInvitation[] }>('/constant-parties');
+  async list(gameId: number): Promise<{ parties: ConstantParty[]; invitations: ConstantPartyInvitation[] }> {
+    const res = await http.fetchGet<{ data: ConstantParty[]; invitations: ConstantPartyInvitation[] }>(
+      `/constant-parties?game_id=${gameId}`,
+    );
     throwOnError(res, 'Не удалось загрузить конст пати.');
     return {
       parties: res.data?.data ?? [],
@@ -106,14 +108,16 @@ export const constantPartiesApi = {
     };
   },
 
-  async create(payload: { name: string; leader_character_id: number }): Promise<ConstantParty> {
+  async create(payload: { game_id: number; name: string; leader_character_id: number }): Promise<ConstantParty> {
     const res = await http.fetchPost<ConstantParty>('/constant-parties', payload);
     throwOnError(res, 'Не удалось создать конст пати.');
     return unwrap<ConstantParty>(res as { data: unknown });
   },
 
-  async get(id: number): Promise<ConstantParty> {
-    const res = await http.fetchGet<{ data: ConstantParty }>(`/constant-parties/${id}`);
+  async get(id: number, gameId: number): Promise<ConstantParty> {
+    const res = await http.fetchGet<{ data: ConstantParty }>(
+      `/constant-parties/${id}?game_id=${gameId}`,
+    );
     throwOnError(res, 'Не удалось загрузить конст пати.');
     return res.data?.data ?? ({} as ConstantParty);
   },
@@ -156,7 +160,7 @@ export const constantPartiesApi = {
       url: `/constant-parties/${partyId}/members/${memberId}`,
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      data: payload,
     });
     throwOnError(res, 'Не удалось обновить права участника.');
     return res.data?.data ?? ({} as ConstantPartyMember);

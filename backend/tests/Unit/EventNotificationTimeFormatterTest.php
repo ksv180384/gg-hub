@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use App\Services\Notifications\EventNotificationTimeFormatter;
 use Domains\Character\Models\Character;
 use Domains\Event\Models\Event;

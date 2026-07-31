@@ -2,7 +2,7 @@
 
 namespace Domains\Post\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Carbon\Carbon;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;

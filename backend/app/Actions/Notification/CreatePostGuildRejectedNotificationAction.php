@@ -2,7 +2,7 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
+use Domains\Notification\Models\Notification;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Models\Post;
 

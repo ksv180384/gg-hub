@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use Domains\User\Models\User;
 use App\Http\Requests\Access\StorePermissionRequest;
 use App\Http\Requests\Access\UpdatePermissionRequest;
 use App\Http\Resources\Access\PermissionResource;

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);

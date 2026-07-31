@@ -2,7 +2,7 @@
 
 namespace Domains\User\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Support\Str;
 
 class ResolveRegistrationUserNameFromEmailAction

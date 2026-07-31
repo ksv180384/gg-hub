@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Access\UpdateUserRolesPermissionsRequest;
 use App\Http\Resources\Access\UserRolesPermissionsResource;
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Access\Actions\UpdateUserRolesPermissionsAction;
 use Illuminate\Http\JsonResponse;
 

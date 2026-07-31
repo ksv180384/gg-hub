@@ -2,9 +2,9 @@
 
 namespace App\Actions\Server;
 
-use App\Models\Game;
-use App\Models\Localization;
-use App\Models\Server;
+use Domains\Game\Models\Game;
+use Domains\Game\Models\Localization;
+use Domains\Game\Models\Server;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CreateServerAction

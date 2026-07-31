@@ -3,8 +3,8 @@
 namespace App\Repositories\Eloquent;
 
 use App\Contracts\Repositories\LocalizationRepositoryInterface;
-use App\Models\Game;
-use App\Models\Localization;
+use Domains\Game\Models\Game;
+use Domains\Game\Models\Localization;
 
 class EloquentLocalizationRepository implements LocalizationRepositoryInterface
 {

@@ -2,11 +2,12 @@
 
 namespace Domains\ConstantParty\Models;
 
-use App\Models\User;
 use Domains\Character\Models\Character;
+use Domains\Game\Models\Concerns\PreventsWritesOnMergingServer;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ConstantParty extends Model
 {
+    use PreventsWritesOnMergingServer;
     use SoftDeletes;
 
     protected $fillable = [

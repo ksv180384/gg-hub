@@ -1,14 +1,18 @@
 <?php
 
-use App\Models\Notification;
-use App\Models\User;
+use App\Actions\Server\MergeServersAction;
 use Domains\Character\Models\Character;
+use Domains\ConstantParty\Models\ConstantParty;
 use Domains\ConstantParty\Models\ConstantPartyMember;
+use Domains\ConstantParty\Models\ConstantPartyStorageItem;
 use Domains\ConstantParty\Models\ConstantPartyStorageItemGrant;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+
 use function Pest\Laravel\actingAs;
 
 uses(RefreshDatabase::class);
@@ -80,6 +84,7 @@ it('creates constant party with selected character as leader', function () {
 
     $response = actingAs($ctx['leaderUser'])
         ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
             'name' => 'Static Squad',
             'leader_character_id' => $ctx['leader']->id,
         ])
@@ -102,6 +107,7 @@ it('does not invite character from another server', function () {
 
     $partyId = actingAs($ctx['leaderUser'])
         ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
             'name' => 'Static Squad',
             'leader_character_id' => $ctx['leader']->id,
         ])
@@ -119,6 +125,7 @@ it('searches invite candidates only on constant party server', function () {
 
     $partyId = actingAs($ctx['leaderUser'])
         ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
             'name' => 'Static Squad',
             'leader_character_id' => $ctx['leader']->id,
         ])
@@ -141,6 +148,7 @@ it('accepts invitation and creates member notification', function () {
 
     $partyId = actingAs($ctx['leaderUser'])
         ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
             'name' => 'Static Squad',
             'leader_character_id' => $ctx['leader']->id,
         ])
@@ -173,6 +181,7 @@ it('notifies inviter when invitation is declined', function () {
 
     $partyId = actingAs($ctx['leaderUser'])
         ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
             'name' => 'Static Squad',
             'leader_character_id' => $ctx['leader']->id,
         ])
@@ -202,6 +211,7 @@ it('allows storage manager to add and grant item', function () {
 
     $partyId = actingAs($ctx['leaderUser'])
         ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
             'name' => 'Static Squad',
             'leader_character_id' => $ctx['leader']->id,
         ])
@@ -238,4 +248,160 @@ it('allows storage manager to add and grant item', function () {
         ->where('constant_party_id', $partyId)
         ->where('item_id', $itemId)
         ->count())->toBe(1);
+});
+
+it('moves constant party to target server and preserves its storage when servers are merged', function () {
+    $ctx = seedConstantPartyContext();
+
+    $partyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'Static Squad',
+            'leader_character_id' => $ctx['leader']->id,
+        ])
+        ->json('data.id');
+
+    $invitationId = actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/invitations", [
+            'character_id' => $ctx['member']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    $itemId = actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/storage/items", [
+            'name' => 'Ancient Sword',
+            'quantity' => 1,
+            'actor_character_id' => $ctx['leader']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    app(MergeServersAction::class)(
+        $ctx['game'],
+        $ctx['loc'],
+        $ctx['otherServer']->id,
+        [$ctx['server']->id],
+    );
+
+    expect($ctx['leader']->fresh()->server_id)->toBe($ctx['otherServer']->id)
+        ->and(ConstantParty::query()->findOrFail($partyId)->server_id)->toBe($ctx['otherServer']->id)
+        ->and(ConstantPartyMember::query()
+            ->where('constant_party_id', $partyId)
+            ->where('character_id', $ctx['leader']->id)
+            ->exists())->toBeTrue()
+        ->and(ConstantPartyStorageItem::query()
+            ->where('id', $itemId)
+            ->where('constant_party_id', $partyId)
+            ->exists())->toBeTrue();
+
+    actingAs($ctx['memberUser'])
+        ->postJson("/api/v1/constant-parties/invitations/{$invitationId}/accept")
+        ->assertSuccessful()
+        ->assertJsonPath('data.status', 'accepted');
+
+    actingAs($ctx['leaderUser'])
+        ->getJson("/api/v1/constant-parties/{$partyId}/invitations/candidates?query=Other")
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $ctx['otherServerCharacter']->id);
+});
+it('lists only parties and invitations of selected game', function () {
+    $ctx = seedConstantPartyContext();
+
+    $firstPartyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'First Game Party',
+            'leader_character_id' => $ctx['leader']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    $secondGame = Game::query()->create([
+        'name' => 'Second Game',
+        'slug' => 'second-game',
+        'is_active' => true,
+    ]);
+    $secondLoc = Localization::query()->create([
+        'game_id' => $secondGame->id,
+        'code' => 'eu',
+        'name' => 'Europe',
+        'is_active' => true,
+    ]);
+    $secondServer = Server::query()->create([
+        'game_id' => $secondGame->id,
+        'localization_id' => $secondLoc->id,
+        'name' => 'Second Server',
+        'slug' => 'second-server',
+        'is_active' => true,
+    ]);
+    $secondLeader = Character::query()->create([
+        'user_id' => $ctx['leaderUser']->id,
+        'game_id' => $secondGame->id,
+        'localization_id' => $secondLoc->id,
+        'server_id' => $secondServer->id,
+        'name' => 'Second Leader',
+        'use_profile_avatar' => false,
+        'is_main' => false,
+    ]);
+    $secondMember = Character::query()->create([
+        'user_id' => $ctx['memberUser']->id,
+        'game_id' => $secondGame->id,
+        'localization_id' => $secondLoc->id,
+        'server_id' => $secondServer->id,
+        'name' => 'Second Member',
+        'use_profile_avatar' => false,
+        'is_main' => false,
+    ]);
+
+    $secondPartyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $secondGame->id,
+            'name' => 'Second Game Party',
+            'leader_character_id' => $secondLeader->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    $firstInvitationId = actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$firstPartyId}/invitations", [
+            'character_id' => $ctx['member']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$secondPartyId}/invitations", [
+            'character_id' => $secondMember->id,
+        ])
+        ->assertCreated();
+
+    actingAs($ctx['leaderUser'])
+        ->getJson("/api/v1/constant-parties?game_id={$ctx['game']->id}")
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $firstPartyId);
+
+    actingAs($ctx['memberUser'])
+        ->getJson("/api/v1/constant-parties?game_id={$ctx['game']->id}")
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'invitations')
+        ->assertJsonPath('invitations.0.id', $firstInvitationId);
+
+    actingAs($ctx['leaderUser'])
+        ->withHeader('X-Site-Host', 'test-game.gg-hub.local')
+        ->getJson("/api/v1/constant-parties?game_id={$secondGame->id}")
+        ->assertNotFound();
+    actingAs($ctx['leaderUser'])
+        ->getJson("/api/v1/constant-parties/{$secondPartyId}?game_id={$ctx['game']->id}")
+        ->assertNotFound();
+
+    actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'Wrong Game Party',
+            'leader_character_id' => $secondLeader->id,
+        ])
+        ->assertNotFound();
 });

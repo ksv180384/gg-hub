@@ -12,7 +12,7 @@ class ListGamesCatalogAction
     ) {}
 
     /**
-     * @return Collection<int, \App\Models\Game>
+     * @return Collection<int, \Domains\Game\Models\Game>
      */
     public function __invoke(): Collection
     {

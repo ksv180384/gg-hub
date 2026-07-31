@@ -2,7 +2,7 @@
 
 namespace Domains\GuildDkp\Models;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Guild\Models\Guild;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

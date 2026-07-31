@@ -4,7 +4,7 @@ namespace Domains\Character\Actions;
 
 use App\Actions\Character\HandleFirstCharacterCreatedAction;
 use App\Contracts\Repositories\CharacterRepositoryInterface;
-use App\Models\User;
+use Domains\User\Models\User;
 use App\Services\CharacterAvatarService;
 use Domains\Character\Models\Character;
 use Illuminate\Http\UploadedFile;

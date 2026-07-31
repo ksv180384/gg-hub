@@ -2,7 +2,7 @@
 
 namespace App\Actions\Game;
 
-use App\Models\Game;
+use Domains\Game\Models\Game;
 
 class DeleteGameAction
 {

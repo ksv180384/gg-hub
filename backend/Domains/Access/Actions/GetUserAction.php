@@ -2,7 +2,7 @@
 
 namespace Domains\Access\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class GetUserAction

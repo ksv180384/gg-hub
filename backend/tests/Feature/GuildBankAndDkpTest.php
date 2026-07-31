@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Access\Enums\PermissionScope;
 use Domains\Access\Models\GuildRole;
 use Domains\Access\Models\Permission;

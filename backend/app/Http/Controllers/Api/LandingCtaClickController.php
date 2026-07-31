@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Landing\StoreLandingCtaClickRequest;
 use App\Http\Resources\Landing\LandingCtaClickResource;
-use App\Models\LandingCtaClick;
+use Domains\Analytics\Models\LandingCtaClick;
 use Illuminate\Http\JsonResponse;
 
 class LandingCtaClickController extends Controller

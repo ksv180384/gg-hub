@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Filters\TagFilter;
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use Domains\User\Models\User;
 use App\Http\Requests\Tag\StoreTagRequest;
 use App\Http\Requests\Tag\UpdateTagRequest;
 use App\Http\Resources\Tag\TagResource;

@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Access\Models\GuildRole;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\User;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,6 +26,7 @@ class UpdateProfileRequest extends FormRequest
                 Rule::unique(User::class, 'name')->ignore($this->user()?->id),
             ],
             'timezone' => ['nullable', 'string', 'max:50', 'timezone'],
+            'theme_preference' => ['sometimes', 'string', Rule::in(['light', 'dark', 'system'])],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
         ];
     }
@@ -39,6 +40,7 @@ class UpdateProfileRequest extends FormRequest
             'name.unique' => 'Пользователь с таким именем уже зарегистрирован. Выберите другое имя.',
             'name.max' => 'Имя не должно превышать 255 символов.',
             'timezone.timezone' => 'Укажите корректный часовой пояс.',
+            'theme_preference.in' => 'Выберите светлую, тёмную или системную тему.',
             'avatar.image' => 'Файл должен быть изображением.',
             'avatar.mimes' => 'Допустимые форматы: jpeg, png, jpg, gif, webp.',
             'avatar.max' => 'Размер изображения не должен превышать 5 МБ.',

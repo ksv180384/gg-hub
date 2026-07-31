@@ -2,7 +2,7 @@
 
 namespace Domains\GuildBank\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\GuildDkp\Actions\GetGuildUserDkpBalanceAction;

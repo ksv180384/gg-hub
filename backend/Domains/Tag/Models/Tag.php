@@ -3,7 +3,7 @@
 namespace Domains\Tag\Models;
 
 use App\Core\Traits\HasFilter;
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Illuminate\Database\Eloquent\Builder;

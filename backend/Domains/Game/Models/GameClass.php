@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace Domains\Game\Models;
 
 use App\Services\GameClassImageService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class GameClass extends Model
 {
@@ -28,10 +29,10 @@ class GameClass extends Model
 
     public function deleteImageFiles(): void
     {
-        if (!$this->image) {
+        if (! $this->image) {
             return;
         }
-        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        $disk = Storage::disk('public');
         if (str_contains($this->image, '/images/')) {
             $disk->deleteDirectory(dirname($this->image));
         } else {

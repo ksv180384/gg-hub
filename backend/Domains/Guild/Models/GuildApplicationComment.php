@@ -2,7 +2,7 @@
 
 namespace Domains\Guild\Models;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

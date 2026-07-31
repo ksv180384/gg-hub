@@ -3,8 +3,8 @@
 namespace Domains\GuildAuction\Actions;
 
 use App\Actions\Notification\SendGuildDiscordNotificationAction;
-use App\Models\Notification;
-use App\Models\User;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use App\Services\GuildAuctionSocketBroadcaster;
 use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Character\Models\Character;

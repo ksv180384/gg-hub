@@ -9,7 +9,7 @@ use App\Http\Requests\Character\CharacterFilterRequest;
 use App\Http\Requests\Character\StoreCharacterRequest;
 use App\Http\Requests\Character\UpdateCharacterRequest;
 use App\Http\Resources\Character\CharacterResource;
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Domains\Character\Models\Character;
 use Domains\Character\Actions\CreateCharacterAction;
 use Domains\Character\Actions\DeleteCharacterAction;

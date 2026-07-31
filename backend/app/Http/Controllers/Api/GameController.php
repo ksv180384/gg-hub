@@ -13,7 +13,7 @@ use App\Actions\Game\GetGameAction;
 use App\Actions\Game\ListGamesCatalogAction;
 use App\Actions\Game\ListGamesAction;
 use App\Actions\Game\UpdateGameAction;
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Localization\StoreLocalizationRequest;
 use App\Http\Resources\Game\LocalizationResource;
 use App\Actions\Game\CreateLocalizationAction;
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Illuminate\Http\JsonResponse;
 
 class LocalizationController extends Controller

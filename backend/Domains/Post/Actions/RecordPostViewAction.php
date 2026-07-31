@@ -2,7 +2,7 @@
 
 namespace Domains\Post\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Post\Models\Post;
 use Domains\Post\Models\PostView;
 use Illuminate\Support\Facades\DB;

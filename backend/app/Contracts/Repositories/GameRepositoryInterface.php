@@ -2,7 +2,7 @@
 
 namespace App\Contracts\Repositories;
 
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Illuminate\Support\Collection;
 
 interface GameRepositoryInterface

@@ -3,7 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Actions\Notification\SendAdminTelegramNotificationAction;
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Access\Models\Role;
 use Domains\User\Actions\ResolveRegistrationUserNameFromEmailAction;
 use Illuminate\Support\Facades\Hash;

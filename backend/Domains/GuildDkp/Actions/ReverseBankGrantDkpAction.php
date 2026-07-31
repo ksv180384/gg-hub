@@ -2,7 +2,7 @@
 
 namespace Domains\GuildDkp\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\GuildBank\Models\GuildBankItemGrant;
 use Domains\GuildDkp\Enums\GuildDkpLedgerSource;

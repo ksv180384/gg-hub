@@ -2,7 +2,7 @@
 
 namespace Domains\Poll\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\GuildMember;
 use Domains\Poll\Models\Poll;

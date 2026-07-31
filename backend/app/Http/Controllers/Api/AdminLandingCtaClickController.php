@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Landing\LandingCtaClickStatsResource;
-use App\Models\LandingCtaClick;
+use Domains\Analytics\Models\LandingCtaClick;
 use Illuminate\Support\Carbon;
 
 class AdminLandingCtaClickController extends Controller

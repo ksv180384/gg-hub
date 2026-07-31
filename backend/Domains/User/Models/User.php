@@ -1,21 +1,26 @@
 <?php
 
-namespace App\Models;
+namespace Domains\User\Models;
 
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use Database\Factories\UserFactory;
 use Domains\Access\Models\Permission;
 use Domains\Access\Models\Role;
+use Domains\Character\Models\Character;
+use Domains\Guild\Models\GuildMember;
+use Domains\Notification\Models\Notification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Log;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     public const ROLE_ADMIN_SLUG = 'admin';
@@ -31,6 +36,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'avatar',
         'timezone',
+        'theme_preference',
         'banned_at',
         'provider',
         'provider_id',
@@ -52,6 +58,11 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @return array<string, string>
      */
+    protected static function newFactory(): UserFactory
+    {
+        return UserFactory::new();
+    }
+
     protected function casts(): array
     {
         return [
@@ -65,7 +76,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification(): void
     {
         try {
-            $this->notify(new VerifyEmailNotification());
+            $this->notify(new VerifyEmailNotification);
         } catch (\Throwable $e) {
             Log::error('Failed to send email verification', [
                 'user_id' => $this->id,
@@ -74,11 +85,11 @@ class User extends Authenticatable implements MustVerifyEmail
             ]);
         }
     }
+
     public function sendPasswordResetNotification(mixed $token): void
     {
         $this->notify(new ResetPasswordNotification($token));
     }
-
 
     public function isEmailRegistered(): bool
     {
@@ -100,9 +111,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Permission::class, 'user_permission');
     }
 
-    public function characters(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function characters(): HasMany
     {
-        return $this->hasMany(\Domains\Character\Models\Character::class);
+        return $this->hasMany(Character::class);
     }
 
     /**
@@ -112,7 +123,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function guildIds(): array
     {
-        return \Domains\Guild\Models\GuildMember::query()
+        return GuildMember::query()
             ->whereIn('character_id', function ($q) {
                 $q->select('id')
                     ->from('characters')
@@ -125,9 +136,9 @@ class User extends Authenticatable implements MustVerifyEmail
             ->all();
     }
 
-    public function notifications(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function notifications(): HasMany
     {
-        return $this->hasMany(\App\Models\Notification::class);
+        return $this->hasMany(Notification::class);
     }
 
     /**
@@ -141,6 +152,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
         $fromRoles = $this->roles()->with('permissions')->get()->flatMap->permissions->pluck('slug')->unique()->values()->all();
         $direct = $this->directPermissions()->pluck('slug')->all();
+
         return array_values(array_unique(array_merge($fromRoles, $direct)));
     }
 }

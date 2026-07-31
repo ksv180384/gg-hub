@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Post\Models\Post;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

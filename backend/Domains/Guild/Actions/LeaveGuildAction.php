@@ -4,7 +4,7 @@ namespace Domains\Guild\Actions;
 
 use App\Actions\Notification\CreateGuildMemberLeftNotificationAction;
 use App\Actions\Notification\SendGuildDiscordNotificationAction;
-use App\Models\User;
+use Domains\User\Models\User;
 use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;

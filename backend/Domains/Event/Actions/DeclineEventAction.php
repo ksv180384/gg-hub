@@ -2,7 +2,7 @@
 
 namespace Domains\Event\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use App\Services\GuildEventSocketBroadcaster;
 use Domains\Event\Models\Event;
 use Domains\Event\Models\EventParticipant;

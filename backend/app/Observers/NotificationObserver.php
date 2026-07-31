@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Models\Notification;
+use Domains\Notification\Models\Notification;
 use App\Services\NotificationSocketBroadcaster;
 
 /**

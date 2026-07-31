@@ -2,7 +2,7 @@
 
 namespace Domains\GuildBank\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Carbon\CarbonImmutable;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;

@@ -6,7 +6,7 @@ namespace App\Filters;
 
 use App\Core\Filters\Filter;
 use App\Http\Requests\Tag\TagListFilterRequest;
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Database\Eloquent\Builder;
 

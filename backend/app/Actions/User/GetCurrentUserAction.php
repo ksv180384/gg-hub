@@ -2,7 +2,7 @@
 
 namespace App\Actions\User;
 
-use App\Models\User;
+use Domains\User\Models\User;
 
 class GetCurrentUserAction
 {
