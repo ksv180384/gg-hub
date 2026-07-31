@@ -100,33 +100,36 @@ watch(
     <template #trigger>
       <button
         type="button"
-        class="relative flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+        class="relative flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-center text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:h-auto md:flex-none md:flex-row md:justify-between md:gap-2 md:rounded-lg md:px-3 md:py-2 md:text-left md:text-sm md:text-foreground"
         aria-label="Голосования"
         title="Голосования"
       >
-        <Badge
-          v-if="badgeText"
-          variant="destructive"
-          class="absolute -right-1 -top-1 flex max-w-[10px] items-center justify-center bg-red-50 text-[10px] text-red-700 hover:text-red-200 dark:bg-red-950 dark:text-red-300"
-        >
-          {{ badgeText }}
-        </Badge>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="h-[1.125rem] w-[1.125rem]"
-        >
-          <path d="M12 20V10" />
-          <path d="M18 20V4" />
-          <path d="M6 20v-4" />
-        </svg>
+        <span class="relative inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-[1.125rem] w-[1.125rem]"
+          >
+            <path d="M12 20V10" />
+            <path d="M18 20V4" />
+            <path d="M6 20v-4" />
+          </svg>
+          <Badge
+            v-if="badgeText"
+            variant="destructive"
+            class="absolute -right-2 -top-2 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-50 px-1 text-[9px] leading-none text-red-700 dark:bg-red-950 dark:text-red-300"
+          >
+            {{ badgeText }}
+          </Badge>
+        </span>
+        <span class="md:hidden">Голосования</span>
       </button>
     </template>
     <template #title>Голосования</template>

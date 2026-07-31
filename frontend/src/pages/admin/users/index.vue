@@ -103,7 +103,7 @@ onMounted(async () => {
     <div v-else class="rounded-xl border bg-card shadow-sm">
       <Table>
         <TableHeader
-          class="[&_th]:sticky [&_th]:top-14 [&_th]:z-10 [&_th]:border-b [&_th]:bg-muted/95 [&_th]:backdrop-blur"
+          class="[&_th]:sticky [&_th]:top-0 md:[&_th]:top-14 [&_th]:z-10 [&_th]:border-b [&_th]:bg-muted/95 [&_th]:backdrop-blur"
         >
           <TableRow class="hover:bg-transparent">
             <TableSortHead

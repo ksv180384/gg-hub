@@ -7,7 +7,9 @@ import {
   constantPartiesApi,
   type ConstantParty,
   type ConstantPartyChatMessage,
+  type ConstantPartyFormerMember,
   type ConstantPartyInvitation,
+  type ConstantPartyStorageGrant,
   type ConstantPartyStorageItem,
 } from '@/shared/api/constantPartiesApi';
 import { useSiteContextStore } from '@/stores/siteContext';
@@ -19,6 +21,11 @@ const party = ref<ConstantParty | null>(null);
 const invitations = ref<ConstantPartyInvitation[]>([]);
 const messages = ref<ConstantPartyChatMessage[]>([]);
 const storageItems = ref<ConstantPartyStorageItem[]>([]);
+const formerMembers = ref<ConstantPartyFormerMember[]>([]);
+const selectedHistoryCharacterId = ref<number | null>(null);
+const selectedHistoryCharacterName = ref('');
+const characterGrants = ref<ConstantPartyStorageGrant[]>([]);
+const loadingCharacterGrants = ref(false);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const activeTab = ref<'members' | 'chat' | 'storage'>('members');
@@ -29,6 +36,7 @@ const invitingCharacterId = ref<number | null>(null);
 const inviteMessage = ref('');
 let inviteSearchTimer: ReturnType<typeof setTimeout> | null = null;
 let inviteSearchRequestId = 0;
+let historyRequestId = 0;
 const chatBody = ref('');
 const storageContext = ref({ can_manage_storage: false, my_member_id: 0, my_character_id: 0 });
 const newItemName = ref('');
@@ -57,7 +65,12 @@ async function load() {
     ]);
     party.value = partyResult;
     storageContext.value = contextResult;
-    await Promise.all([loadInvitations(), loadMessages(), loadStorage()]);
+    await Promise.all([
+      loadInvitations(),
+      loadMessages(),
+      loadStorage(),
+      loadFormerMembers(),
+    ]);
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить конст пати.';
   } finally {
@@ -75,6 +88,38 @@ async function loadMessages() {
 
 async function loadStorage() {
   storageItems.value = await constantPartiesApi.listStorageItems(partyId.value);
+}
+
+async function loadFormerMembers() {
+  formerMembers.value = await constantPartiesApi.listFormerMembers(partyId.value);
+}
+
+async function showCharacterHistory(characterId: number, characterName: string) {
+  const requestId = ++historyRequestId;
+  selectedHistoryCharacterId.value = characterId;
+  selectedHistoryCharacterName.value = characterName;
+  loadingCharacterGrants.value = true;
+  error.value = null;
+
+  try {
+    const grants = await constantPartiesApi.listCharacterGrants(
+      partyId.value,
+      characterId,
+    );
+    if (requestId === historyRequestId) {
+      characterGrants.value = grants;
+    }
+  } catch (e) {
+    if (requestId === historyRequestId) {
+      error.value = e instanceof Error
+        ? e.message
+        : 'Не удалось загрузить историю полученных предметов.';
+    }
+  } finally {
+    if (requestId === historyRequestId) {
+      loadingCharacterGrants.value = false;
+    }
+  }
 }
 
 async function searchInviteCandidates() {
@@ -179,6 +224,12 @@ async function grantItem() {
     });
     grantReason.value = '';
     await loadStorage();
+    if (selectedHistoryCharacterId.value === grantCharacterId.value) {
+      await showCharacterHistory(
+        grantCharacterId.value,
+        selectedHistoryCharacterName.value,
+      );
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось выдать предмет.';
   }
@@ -238,23 +289,83 @@ watch(inviteQuery, () => {
         </div>
 
         <section v-if="activeTab === 'members'" class="grid gap-4 lg:grid-cols-[1fr_20rem]">
-          <div class="overflow-hidden rounded-lg border bg-background">
-            <div v-for="member in members" :key="member.id" class="flex flex-wrap items-center justify-between gap-3 border-b p-4 last:border-b-0">
-              <div>
-                <p class="font-medium">{{ member.character?.name ?? 'Персонаж' }}</p>
-                <p class="mt-1 text-xs text-muted-foreground">
-                  {{ member.role === 'leader' ? 'Лидер' : 'Участник' }}
-                  <span v-if="member.can_manage_storage"> · хранилище</span>
-                </p>
-              </div>
-              <div v-if="myMember?.role === 'leader' && member.role !== 'leader'" class="flex items-center gap-2">
-                <label class="flex items-center gap-2 text-xs text-muted-foreground">
-                  <input type="checkbox" :checked="member.can_manage_storage" @change="toggleStorageRight(member.id, ($event.target as HTMLInputElement).checked)" />
-                  Хранилище
-                </label>
-                <button type="button" class="h-8 rounded-md border px-3 text-xs font-medium text-destructive" @click="removeMember(member.id)">
-                  Исключить
+          <div class="space-y-4">
+            <div class="overflow-hidden rounded-lg border bg-background">
+              <div
+                v-for="member in members"
+                :key="member.id"
+                class="flex flex-wrap items-center justify-between gap-3 border-b p-4 last:border-b-0"
+                :class="selectedHistoryCharacterId === member.character_id ? 'bg-muted/50' : ''"
+              >
+                <button
+                  type="button"
+                  class="min-w-0 flex-1 text-left"
+                  @click="showCharacterHistory(member.character_id, member.character?.name ?? 'Персонаж')"
+                >
+                  <span class="block font-medium">{{ member.character?.name ?? 'Персонаж' }}</span>
+                  <span class="mt-1 block text-xs text-muted-foreground">
+                    {{ member.role === 'leader' ? 'Лидер' : 'Участник' }}
+                    <span v-if="member.can_manage_storage"> · хранилище</span>
+                  </span>
                 </button>
+                <div v-if="myMember?.role === 'leader' && member.role !== 'leader'" class="flex items-center gap-2">
+                  <label class="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input type="checkbox" :checked="member.can_manage_storage" @change="toggleStorageRight(member.id, ($event.target as HTMLInputElement).checked)" />
+                    Хранилище
+                  </label>
+                  <button type="button" class="h-8 rounded-md border px-3 text-xs font-medium text-destructive" @click="removeMember(member.id)">
+                    Исключить
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="formerMembers.length > 0" class="border-t bg-muted/20">
+                <p class="px-4 pb-1 pt-3 text-xs font-medium text-muted-foreground">
+                  Бывшие участники
+                </p>
+                <button
+                  v-for="formerMember in formerMembers"
+                  :key="formerMember.id"
+                  type="button"
+                  class="flex w-full items-center justify-between gap-3 border-t px-4 py-3 text-left opacity-55 transition-opacity hover:opacity-80"
+                  :class="selectedHistoryCharacterId === formerMember.character_id ? 'bg-muted opacity-80' : ''"
+                  @click="showCharacterHistory(formerMember.character_id, formerMember.character?.name ?? 'Персонаж')"
+                >
+                  <span class="font-medium">{{ formerMember.character?.name ?? 'Персонаж' }}</span>
+                  <span class="shrink-0 text-xs text-muted-foreground">
+                    Вышел {{ formatDate(formerMember.left_at) }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="selectedHistoryCharacterId !== null" class="overflow-hidden rounded-lg border bg-background">
+              <div class="border-b px-4 py-3">
+                <h2 class="text-sm font-semibold">История полученных предметов</h2>
+                <p class="mt-1 text-xs text-muted-foreground">{{ selectedHistoryCharacterName }}</p>
+              </div>
+              <div v-if="loadingCharacterGrants" class="flex justify-center py-8">
+                <Spinner class="h-6 w-6" />
+              </div>
+              <div v-else-if="characterGrants.length === 0" class="p-6 text-center text-sm text-muted-foreground">
+                Полученных предметов пока нет.
+              </div>
+              <div
+                v-for="grant in characterGrants"
+                v-else
+                :key="grant.id"
+                class="border-b px-4 py-3 last:border-b-0"
+              >
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                  <p class="font-medium">{{ grant.item?.name ?? 'Предмет' }}</p>
+                  <span class="text-xs text-muted-foreground">{{ formatDate(grant.granted_at) }}</span>
+                </div>
+                <p v-if="grant.reason" class="mt-1 text-sm text-muted-foreground">
+                  {{ grant.reason }}
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                  Выдал: {{ grant.granted_by_character?.name ?? 'Персонаж' }}
+                </p>
               </div>
             </div>
           </div>

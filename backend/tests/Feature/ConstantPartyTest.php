@@ -3,6 +3,7 @@
 use App\Actions\Server\MergeServersAction;
 use Domains\Character\Models\Character;
 use Domains\ConstantParty\Models\ConstantParty;
+use Domains\ConstantParty\Models\ConstantPartyFormerMember;
 use Domains\ConstantParty\Models\ConstantPartyMember;
 use Domains\ConstantParty\Models\ConstantPartyStorageItem;
 use Domains\ConstantParty\Models\ConstantPartyStorageItemGrant;
@@ -248,6 +249,70 @@ it('allows storage manager to add and grant item', function () {
         ->where('constant_party_id', $partyId)
         ->where('item_id', $itemId)
         ->count())->toBe(1);
+});
+
+it('keeps item history available after member leaves constant party', function () {
+    $ctx = seedConstantPartyContext();
+
+    $partyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'Static Squad',
+            'leader_character_id' => $ctx['leader']->id,
+        ])
+        ->json('data.id');
+
+    $member = ConstantPartyMember::query()->create([
+        'constant_party_id' => $partyId,
+        'character_id' => $ctx['member']->id,
+        'role' => ConstantPartyMember::ROLE_MEMBER,
+        'can_manage_storage' => false,
+        'joined_at' => now()->subDay(),
+    ]);
+
+    $itemId = actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/storage/items", [
+            'name' => 'Sword',
+            'quantity' => 1,
+            'actor_character_id' => $ctx['leader']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/storage/grants", [
+            'item_id' => $itemId,
+            'received_by_character_id' => $ctx['member']->id,
+            'granted_by_character_id' => $ctx['leader']->id,
+            'reason' => 'Raid',
+        ])
+        ->assertCreated();
+
+    actingAs($ctx['leaderUser'])
+        ->deleteJson("/api/v1/constant-parties/{$partyId}/members/{$member->id}")
+        ->assertNoContent();
+
+    expect(ConstantPartyFormerMember::query()
+        ->where('constant_party_id', $partyId)
+        ->where('character_id', $ctx['member']->id)
+        ->exists())->toBeTrue();
+
+    actingAs($ctx['leaderUser'])
+        ->getJson("/api/v1/constant-parties/{$partyId}/storage/former-members")
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.character.name', 'Member');
+
+    actingAs($ctx['leaderUser'])
+        ->getJson("/api/v1/constant-parties/{$partyId}/storage/characters/{$ctx['member']->id}/grants")
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.item.name', 'Sword')
+        ->assertJsonPath('data.0.reason', 'Raid');
+
+    actingAs($ctx['leaderUser'])
+        ->getJson("/api/v1/constant-parties/{$partyId}/storage/characters/{$ctx['otherServerCharacter']->id}/grants")
+        ->assertNotFound();
 });
 
 it('moves constant party to target server and preserves its storage when servers are merged', function () {

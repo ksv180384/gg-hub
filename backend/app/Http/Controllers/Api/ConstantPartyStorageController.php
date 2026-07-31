@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ConstantParty\StoreConstantPartyStorageGrantRequest;
 use App\Http\Requests\ConstantParty\StoreConstantPartyStorageItemRequest;
 use App\Http\Requests\ConstantParty\StoreConstantPartyStorageTierRequest;
+use App\Http\Resources\ConstantParty\ConstantPartyFormerMemberResource;
 use App\Http\Resources\ConstantParty\ConstantPartyStorageGrantResource;
 use App\Http\Resources\ConstantParty\ConstantPartyStorageItemResource;
 use App\Http\Resources\ConstantParty\ConstantPartyStorageItemTierResource;
+use Domains\Character\Models\Character;
 use Domains\ConstantParty\Models\ConstantParty;
+use Domains\ConstantParty\Models\ConstantPartyFormerMember;
 use Domains\ConstantParty\Models\ConstantPartyMember;
 use Domains\ConstantParty\Models\ConstantPartyStorageItem;
 use Domains\ConstantParty\Models\ConstantPartyStorageItemGrant;
@@ -104,6 +107,55 @@ class ConstantPartyStorageController extends Controller
             ->get();
 
         return ConstantPartyStorageItemResource::collection($items);
+    }
+
+    public function formerMembers(Request $request, ConstantParty $constantParty): AnonymousResourceCollection
+    {
+        $this->ensureMember($constantParty, $request->user()->id);
+
+        $formerMembers = ConstantPartyFormerMember::query()
+            ->where('constant_party_id', $constantParty->id)
+            ->whereNotIn(
+                'character_id',
+                ConstantPartyMember::query()
+                    ->select('character_id')
+                    ->where('constant_party_id', $constantParty->id),
+            )
+            ->with(['character.gameClasses', 'character.server'])
+            ->orderByDesc('left_at')
+            ->get();
+
+        return ConstantPartyFormerMemberResource::collection($formerMembers);
+    }
+
+    public function characterGrants(
+        Request $request,
+        ConstantParty $constantParty,
+        Character $character,
+    ): AnonymousResourceCollection {
+        $this->ensureMember($constantParty, $request->user()->id);
+
+        $isKnownCharacter = ConstantPartyMember::query()
+            ->where('constant_party_id', $constantParty->id)
+            ->where('character_id', $character->id)
+            ->exists()
+            || ConstantPartyFormerMember::query()
+                ->where('constant_party_id', $constantParty->id)
+                ->where('character_id', $character->id)
+                ->exists();
+
+        if (! $isKnownCharacter) {
+            abort(404);
+        }
+
+        $grants = ConstantPartyStorageItemGrant::query()
+            ->where('constant_party_id', $constantParty->id)
+            ->where('received_by_character_id', $character->id)
+            ->with(['item.tier', 'receivedByCharacter', 'grantedByCharacter'])
+            ->orderByDesc('granted_at')
+            ->get();
+
+        return ConstantPartyStorageGrantResource::collection($grants);
     }
 
     public function storeItem(StoreConstantPartyStorageItemRequest $request, ConstantParty $constantParty): JsonResponse

@@ -27,6 +27,22 @@ class ConstantPartyMember extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::deleting(function (self $member): void {
+            ConstantPartyFormerMember::query()->updateOrCreate(
+                [
+                    'constant_party_id' => $member->constant_party_id,
+                    'character_id' => $member->character_id,
+                ],
+                [
+                    'joined_at' => $member->joined_at,
+                    'left_at' => now(),
+                ],
+            );
+        });
+    }
+
     public function constantParty(): BelongsTo
     {
         return $this->belongsTo(ConstantParty::class);

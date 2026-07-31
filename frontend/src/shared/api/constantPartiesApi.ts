@@ -12,6 +12,15 @@ export type ConstantPartyMember = {
   character?: Character;
 };
 
+export type ConstantPartyFormerMember = {
+  id: number;
+  constant_party_id: number;
+  character_id: number;
+  joined_at: string | null;
+  left_at: string | null;
+  character?: Character;
+};
+
 export type ConstantParty = {
   id: number;
   name: string;
@@ -194,6 +203,25 @@ export const constantPartiesApi = {
   async listStorageItems(partyId: number): Promise<ConstantPartyStorageItem[]> {
     const res = await http.fetchGet<{ data: ConstantPartyStorageItem[] }>(`/constant-parties/${partyId}/storage/items`);
     throwOnError(res, 'Не удалось загрузить хранилище.');
+    return res.data?.data ?? [];
+  },
+
+  async listFormerMembers(partyId: number): Promise<ConstantPartyFormerMember[]> {
+    const res = await http.fetchGet<{ data: ConstantPartyFormerMember[] }>(
+      `/constant-parties/${partyId}/storage/former-members`,
+    );
+    throwOnError(res, 'Не удалось загрузить бывших участников конст пати.');
+    return res.data?.data ?? [];
+  },
+
+  async listCharacterGrants(
+    partyId: number,
+    characterId: number,
+  ): Promise<ConstantPartyStorageGrant[]> {
+    const res = await http.fetchGet<{ data: ConstantPartyStorageGrant[] }>(
+      `/constant-parties/${partyId}/storage/characters/${characterId}/grants`,
+    );
+    throwOnError(res, 'Не удалось загрузить историю полученных предметов.');
     return res.data?.data ?? [];
   },
 

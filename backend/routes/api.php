@@ -135,6 +135,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/constant-parties/{constant_party}/storage/items', [ConstantPartyStorageController::class, 'storeItem']);
     Route::patch('/constant-parties/{constant_party}/storage/items/{item}', [ConstantPartyStorageController::class, 'updateItem']);
     Route::delete('/constant-parties/{constant_party}/storage/items/{item}', [ConstantPartyStorageController::class, 'destroyItem']);
+    Route::get('/constant-parties/{constant_party}/storage/former-members', [ConstantPartyStorageController::class, 'formerMembers']);
+    Route::get('/constant-parties/{constant_party}/storage/characters/{character}/grants', [ConstantPartyStorageController::class, 'characterGrants']);
     Route::get('/constant-parties/{constant_party}/storage/items/{item}/grants', [ConstantPartyStorageController::class, 'itemGrants']);
     Route::post('/constant-parties/{constant_party}/storage/grants', [ConstantPartyStorageController::class, 'storeGrant']);
     Route::delete('/constant-parties/{constant_party}/storage/grants/{grant}', [ConstantPartyStorageController::class, 'revokeGrant']);

@@ -57,6 +57,11 @@ class ConstantParty extends Model
         return $this->hasMany(ConstantPartyMember::class);
     }
 
+    public function formerMembers(): HasMany
+    {
+        return $this->hasMany(ConstantPartyFormerMember::class);
+    }
+
     public function invitations(): HasMany
     {
         return $this->hasMany(ConstantPartyInvitation::class);

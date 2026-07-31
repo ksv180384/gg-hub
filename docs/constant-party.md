@@ -180,7 +180,21 @@ DELETE /api/v1/constant-parties/{constant_party}/storage/items/{item}
 API:
 
 ```http
-POST /api/v1/constant-parties/{constant_party}/storage/items/{item}/grants
+POST /api/v1/constant-parties/{constant_party}/storage/grants
+GET /api/v1/constant-parties/{constant_party}/storage/items/{item}/grants
+```
+
+### История участника
+
+На вкладке состава участник выбирается нажатием на его ник. После выбора отображается история всех предметов, которые этот персонаж получил в КП: предмет, дата выдачи, причина и персонаж, выполнивший выдачу.
+
+При выходе или исключении персонажа его активное членство удаляется, но связь с КП сохраняется в `constant_party_former_members`. Бывшие участники отображаются внизу состава приглушенным цветом, и их история выдач остается доступной. Если персонаж повторно вступил в ту же КП, пока он активен, запись не показывается среди бывших участников.
+
+API:
+
+```http
+GET /api/v1/constant-parties/{constant_party}/storage/former-members
+GET /api/v1/constant-parties/{constant_party}/storage/characters/{character}/grants
 ```
 
 ## Модель данных
@@ -191,6 +205,7 @@ POST /api/v1/constant-parties/{constant_party}/storage/items/{item}/grants
 |---|---|
 | `constant_parties` | КП: игра, название, лидер, локализация и сервер |
 | `constant_party_members` | Участники КП и их права |
+| `constant_party_former_members` | Бывшие участники КП и даты их выхода |
 | `constant_party_invitations` | Приглашения персонажей в КП |
 | `constant_party_chat_messages` | Сообщения чата КП |
 | `constant_party_storage_item_tiers` | Тиры предметов хранилища |
@@ -246,6 +261,7 @@ backend/tests/Feature/ConstantPartyTest.php
 | Принятие приглашения | Персонаж входит в КП |
 | Отклонение приглашения | Отправитель получает уведомление об отказе |
 | Смена сервера | Участник исключается из КП при переходе на другой сервер |
+| История бывшего участника | После выхода участник остается доступен для просмотра полученных предметов |
 | Изоляция игр | Список, приглашения, создание и прямой просмотр ограничены выбранной игрой |
 
 Запуск:
