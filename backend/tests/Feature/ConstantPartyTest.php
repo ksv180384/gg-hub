@@ -7,6 +7,7 @@ use Domains\ConstantParty\Models\ConstantPartyFormerMember;
 use Domains\ConstantParty\Models\ConstantPartyMember;
 use Domains\ConstantParty\Models\ConstantPartyStorageItem;
 use Domains\ConstantParty\Models\ConstantPartyStorageItemGrant;
+use Domains\ConstantParty\Models\ConstantPartyStorageLog;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
@@ -251,6 +252,133 @@ it('allows storage manager to add and grant item', function () {
         ->count())->toBe(1);
 });
 
+it('allows storage manager to edit item name and quantity', function () {
+    $ctx = seedConstantPartyContext();
+
+    $partyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'Static Squad',
+            'leader_character_id' => $ctx['leader']->id,
+        ])
+        ->json('data.id');
+
+    $itemId = actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/storage/items", [
+            'name' => 'Sword',
+            'quantity' => 3,
+            'actor_character_id' => $ctx['leader']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    actingAs($ctx['leaderUser'])
+        ->patchJson("/api/v1/constant-parties/{$partyId}/storage/items/{$itemId}", [
+            'name' => 'Great Sword',
+            'quantity' => 12,
+            'actor_character_id' => $ctx['leader']->id,
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.name', 'Great Sword')
+        ->assertJsonPath('data.quantity', 12);
+
+    actingAs($ctx['leaderUser'])
+        ->patchJson("/api/v1/constant-parties/{$partyId}/storage/items/{$itemId}", [
+            'name' => 'Great Sword',
+            'quantity' => null,
+            'actor_character_id' => $ctx['leader']->id,
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.quantity', null);
+
+    expect(ConstantPartyStorageItem::query()->findOrFail($itemId))
+        ->name->toBe('Great Sword')
+        ->quantity->toBeNull();
+});
+
+it('records and lists constant party storage logs', function () {
+    $ctx = seedConstantPartyContext();
+
+    $partyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'Static Squad',
+            'leader_character_id' => $ctx['leader']->id,
+        ])
+        ->json('data.id');
+
+    ConstantPartyMember::query()->create([
+        'constant_party_id' => $partyId,
+        'character_id' => $ctx['member']->id,
+        'role' => ConstantPartyMember::ROLE_MEMBER,
+        'can_manage_storage' => false,
+        'joined_at' => now(),
+    ]);
+
+    $itemId = actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/storage/items", [
+            'name' => 'Sword',
+            'quantity' => 3,
+            'actor_character_id' => $ctx['leader']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    actingAs($ctx['leaderUser'])
+        ->patchJson("/api/v1/constant-parties/{$partyId}/storage/items/{$itemId}", [
+            'name' => 'Great Sword',
+            'quantity' => 7,
+            'actor_character_id' => $ctx['leader']->id,
+        ])
+        ->assertSuccessful();
+
+    $deletedItemId = actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/storage/items", [
+            'name' => 'Temporary Item',
+            'quantity' => 2,
+            'actor_character_id' => $ctx['leader']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    actingAs($ctx['leaderUser'])
+        ->deleteJson("/api/v1/constant-parties/{$partyId}/storage/items/{$deletedItemId}")
+        ->assertNoContent();
+
+    actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/storage/grants", [
+            'item_id' => $itemId,
+            'received_by_character_id' => $ctx['member']->id,
+            'granted_by_character_id' => $ctx['leader']->id,
+            'reason' => 'Raid reward',
+        ])
+        ->assertCreated();
+
+    actingAs($ctx['memberUser'])
+        ->getJson("/api/v1/constant-parties/{$partyId}/storage/logs")
+        ->assertSuccessful()
+        ->assertJsonCount(6, 'data')
+        ->assertJsonPath('data.0.action', ConstantPartyStorageLog::ACTION_ITEM_GRANTED)
+        ->assertJsonPath('data.0.item_name', 'Great Sword')
+        ->assertJsonPath('data.0.actor_character_name', 'Leader')
+        ->assertJsonPath('data.0.recipient_character_name', 'Member')
+        ->assertJsonPath('data.0.old_value.quantity', 7)
+        ->assertJsonPath('data.0.new_value.quantity', 6)
+        ->assertJsonPath('data.1.action', ConstantPartyStorageLog::ACTION_ITEM_DELETED)
+        ->assertJsonPath('data.1.item_id', null)
+        ->assertJsonPath('data.1.item_name', 'Temporary Item')
+        ->assertJsonPath('data.3.action', ConstantPartyStorageLog::ACTION_QUANTITY_CHANGED)
+        ->assertJsonPath('data.3.old_value.quantity', 3)
+        ->assertJsonPath('data.3.new_value.quantity', 7)
+        ->assertJsonPath('data.4.action', ConstantPartyStorageLog::ACTION_ITEM_RENAMED)
+        ->assertJsonPath('data.4.old_value.name', 'Sword')
+        ->assertJsonPath('data.4.new_value.name', 'Great Sword');
+
+    expect(ConstantPartyStorageLog::query()
+        ->where('constant_party_id', $partyId)
+        ->count())->toBe(6);
+});
+
 it('keeps item history available after member leaves constant party', function () {
     $ctx = seedConstantPartyContext();
 
@@ -469,4 +597,63 @@ it('lists only parties and invitations of selected game', function () {
             'leader_character_id' => $secondLeader->id,
         ])
         ->assertNotFound();
+});
+
+it('transfers constant party leadership atomically', function () {
+    $ctx = seedConstantPartyContext();
+
+    $partyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'Static Squad',
+            'leader_character_id' => $ctx['leader']->id,
+        ])
+        ->json('data.id');
+
+    $oldLeaderMember = ConstantPartyMember::query()
+        ->where('constant_party_id', $partyId)
+        ->where('character_id', $ctx['leader']->id)
+        ->firstOrFail();
+
+    $newLeaderMember = ConstantPartyMember::query()->create([
+        'constant_party_id' => $partyId,
+        'character_id' => $ctx['member']->id,
+        'role' => ConstantPartyMember::ROLE_MEMBER,
+        'can_manage_storage' => false,
+        'joined_at' => now(),
+    ]);
+
+    actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/members/{$newLeaderMember->id}/transfer-leadership")
+        ->assertSuccessful()
+        ->assertJsonPath('data.leader_character_id', $ctx['member']->id)
+        ->assertJsonPath('data.my_member.role', ConstantPartyMember::ROLE_MEMBER)
+        ->assertJsonPath('data.my_member.can_manage_storage', false);
+
+    expect(ConstantParty::query()->findOrFail($partyId)->leader_character_id)
+        ->toBe($ctx['member']->id)
+        ->and($oldLeaderMember->fresh()->role)
+        ->toBe(ConstantPartyMember::ROLE_MEMBER)
+        ->and($oldLeaderMember->fresh()->can_manage_storage)
+        ->toBeFalse()
+        ->and($newLeaderMember->fresh()->role)
+        ->toBe(ConstantPartyMember::ROLE_LEADER)
+        ->and($newLeaderMember->fresh()->can_manage_storage)
+        ->toBeTrue();
+
+    expect(Notification::query()
+        ->where('user_id', $ctx['memberUser']->id)
+        ->where('link', "/constant-parties/{$partyId}")
+        ->exists())->toBeTrue();
+
+    actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/members/{$newLeaderMember->id}/transfer-leadership")
+        ->assertForbidden();
+
+    actingAs($ctx['memberUser'])
+        ->patchJson("/api/v1/constant-parties/{$partyId}/members/{$oldLeaderMember->id}", [
+            'can_manage_storage' => true,
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.can_manage_storage', true);
 });

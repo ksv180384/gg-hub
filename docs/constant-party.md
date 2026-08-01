@@ -46,6 +46,18 @@ POST /api/v1/constant-parties
 | Лидер обязателен | КП создается только с персонажем-лидером |
 | Лидер управляет КП | Лидер может приглашать персонажей, отзывать приглашения и менять права хранилища |
 
+### Управление участниками
+
+Только текущий лидер может менять права участников, исключать их и передавать лидерство.
+
+~~~http
+PATCH  /api/v1/constant-parties/{constant_party}/members/{member}
+DELETE /api/v1/constant-parties/{constant_party}/members/{member}
+POST   /api/v1/constant-parties/{constant_party}/members/{member}/transfer-leadership
+~~~
+
+Передача лидерства выполняется в транзакции. Новый лидер получает роль **leader** и право **can_manage_storage**; прежний лидер становится обычным участником без права управления хранилищем. Новому лидеру отправляется уведомление. История выдачи предметов исключенного персонажа сохраняется.
+
 ## Смена сервера персонажа
 
 При смене сервера персонажа применяется серверное правило:
@@ -168,9 +180,27 @@ DELETE /api/v1/constant-parties/{constant_party}/storage/tiers/{tier}
 API:
 
 ```http
+GET /api/v1/constant-parties/{constant_party}/storage/items
 POST /api/v1/constant-parties/{constant_party}/storage/items
-PUT /api/v1/constant-parties/{constant_party}/storage/items/{item}
+PATCH /api/v1/constant-parties/{constant_party}/storage/items/{item}
 DELETE /api/v1/constant-parties/{constant_party}/storage/items/{item}
+```
+
+### Журнал хранилища
+
+Во вкладке **Логи** отображается неизменяемая история действий с хранилищем:
+
+- добавление и удаление предмета;
+- переименование предмета;
+- ручное изменение остатка;
+- выдача предмета и отмена выдачи.
+
+Запись хранит снимки названия предмета, автора и получателя, а также старое и новое значение. Поэтому журнал остается читаемым после удаления предмета или персонажа. Изменение данных и запись журнала выполняются в одной транзакции.
+
+API доступен всем текущим участникам КП и возвращает записи постранично:
+
+```http
+GET /api/v1/constant-parties/{constant_party}/storage/logs?page=1
 ```
 
 ### Выдачи
@@ -211,6 +241,7 @@ GET /api/v1/constant-parties/{constant_party}/storage/characters/{character}/gra
 | `constant_party_storage_item_tiers` | Тиры предметов хранилища |
 | `constant_party_storage_items` | Предметы хранилища |
 | `constant_party_storage_item_grants` | История выдачи предметов |
+| `constant_party_storage_logs` | Неизменяемый журнал действий с хранилищем |
 
 Для MariaDB у внешних ключей в миграции используются короткие имена ограничений, чтобы не упереться в лимит длины идентификатора.
 
@@ -278,4 +309,4 @@ php artisan test tests/Feature/ConstantPartyTest.php
 | Чат работает через REST | Добавить realtime через Socket.IO |
 | Права есть только для хранилища | Добавить расширенные роли КП |
 | Поиск кандидатов ограничен ником | Добавить фильтры по классу, роли или уровню |
-| История выдач фиксирует факт выдачи | Добавить статусы, откат выдачи или аудит изменений |
+| История выдач фиксирует факт выдачи | Добавить расширенные статусы выдачи |

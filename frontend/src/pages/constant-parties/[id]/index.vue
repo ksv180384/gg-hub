@@ -3,7 +3,22 @@ import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import type { DateRange } from 'radix-vue';
 import {
+  Crown,
+  Gift,
+  KeyRound,
+  MoreHorizontal,
+  PackagePlus,
+  Pencil,
+  UserMinus,
+} from '@lucide/vue';
+import {
   Badge,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   DateRangePicker,
   Select,
   Spinner,
@@ -24,9 +39,15 @@ import {
   type ConstantPartyInvitation,
   type ConstantPartyStorageGrant,
   type ConstantPartyStorageItem,
+  type ConstantPartyStorageLog,
 } from '@/shared/api/constantPartiesApi';
 import { useSiteContextStore } from '@/stores/siteContext';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
+import AddStorageItemDialog from './AddStorageItemDialog.vue';
+import EditStorageItemDialog from './EditStorageItemDialog.vue';
+import GrantStorageItemDialog from './GrantStorageItemDialog.vue';
 import InviteCharacterDialog from './InviteCharacterDialog.vue';
+import StorageLogsTab from './StorageLogsTab.vue';
 
 const route = useRoute();
 const siteContext = useSiteContextStore();
@@ -35,6 +56,16 @@ const party = ref<ConstantParty | null>(null);
 const invitations = ref<ConstantPartyInvitation[]>([]);
 const messages = ref<ConstantPartyChatMessage[]>([]);
 const storageItems = ref<ConstantPartyStorageItem[]>([]);
+const storageLogs = ref<ConstantPartyStorageLog[]>([]);
+const storageLogsLoading = ref(false);
+const storageLogsPage = ref(0);
+const storageLogsLastPage = ref(1);
+const addStorageItemDialogOpen = ref(false);
+const addStorageItemSaving = ref(false);
+const grantStorageItemDialogOpen = ref(false);
+const grantStorageItemSaving = ref(false);
+const editingStorageItem = ref<ConstantPartyStorageItem | null>(null);
+const storageItemSaving = ref(false);
 const formerMembers = ref<ConstantPartyFormerMember[]>([]);
 const selectedHistoryCharacterId = ref<number | null>(null);
 const selectedHistoryCharacterName = ref('');
@@ -42,7 +73,7 @@ const characterGrants = ref<ConstantPartyStorageGrant[]>([]);
 const loadingCharacterGrants = ref(false);
 const loading = ref(true);
 const error = ref<string | null>(null);
-const activeTab = ref<'members' | 'chat' | 'storage' | 'invitations'>('members');
+const activeTab = ref<'members' | 'chat' | 'storage' | 'logs' | 'invitations'>('members');
 const inviteQuery = ref('');
 const inviteCandidates = ref<Character[]>([]);
 const searchingInviteCandidates = ref(false);
@@ -53,11 +84,6 @@ let inviteSearchRequestId = 0;
 let historyRequestId = 0;
 const chatBody = ref('');
 const storageContext = ref({ can_manage_storage: false, my_member_id: 0, my_character_id: 0 });
-const newItemName = ref('');
-const newItemQuantity = ref<number | null>(null);
-const grantItemId = ref<number | null>(null);
-const grantCharacterId = ref<number | null>(null);
-const grantReason = ref('');
 const rosterFilter = ref<'all' | 'active' | 'inactive'>('active');
 const historySearch = ref('');
 const historyDateRange = shallowRef<DateRange>({
@@ -84,9 +110,16 @@ type RosterCharacter = {
   leftAt: string | null;
 };
 
+const memberActionLoading = ref(false);
+const transferLeadershipTarget = ref<RosterCharacter | null>(null);
+const removeMemberTarget = ref<RosterCharacter | null>(null);
+
 const myMember = computed(() => party.value?.my_member ?? null);
 const canManageStorage = computed(() => storageContext.value.can_manage_storage || myMember.value?.role === 'leader');
 const myCharacterId = computed(() => storageContext.value.my_character_id || myMember.value?.character_id || null);
+const isCurrentUserLeader = computed(() => (
+  party.value?.leader_character_id === myCharacterId.value
+));
 const members = computed(() => party.value?.members ?? []);
 const rosterCharacters = computed<RosterCharacter[]>(() => [
   ...members.value.map((member) => ({
@@ -138,6 +171,7 @@ const filteredCharacterGrants = computed(() => {
   });
 });
 const visibleCharacterGrants = computed(() => filteredCharacterGrants.value.slice(0, visibleGrantCount.value));
+const storageLogsHasMore = computed(() => storageLogsPage.value < storageLogsLastPage.value);
 const invitationStatusOptions: SelectOption[] = [
   { value: 'all', label: 'Все статусы' },
   { value: 'pending', label: 'Ожидает ответа' },
@@ -204,6 +238,33 @@ async function loadMessages() {
 
 async function loadStorage() {
   storageItems.value = await constantPartiesApi.listStorageItems(partyId.value);
+}
+
+async function loadStorageLogs(reset = false) {
+  if (storageLogsLoading.value) return;
+  if (!reset && storageLogsPage.value >= storageLogsLastPage.value) return;
+
+  storageLogsLoading.value = true;
+  error.value = null;
+  try {
+    const page = reset ? 1 : storageLogsPage.value + 1;
+    const result = await constantPartiesApi.listStorageLogs(partyId.value, page);
+    storageLogs.value = reset
+      ? result.logs
+      : [...storageLogs.value, ...result.logs];
+    storageLogsPage.value = result.currentPage;
+    storageLogsLastPage.value = result.lastPage;
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось загрузить журнал хранилища.';
+  } finally {
+    storageLogsLoading.value = false;
+  }
+}
+
+function invalidateStorageLogs() {
+  storageLogs.value = [];
+  storageLogsPage.value = 0;
+  storageLogsLastPage.value = 1;
 }
 
 async function loadFormerMembers() {
@@ -305,22 +366,67 @@ async function invite(character: Character) {
 }
 
 async function toggleStorageRight(memberId: number, value: boolean) {
+  memberActionLoading.value = true;
+  error.value = null;
   try {
-    await constantPartiesApi.updateMember(partyId.value, memberId, { can_manage_storage: value });
-    await load();
+    const updatedMember = await constantPartiesApi.updateMember(
+      partyId.value,
+      memberId,
+      { can_manage_storage: value },
+    );
+    const currentMember = party.value?.members?.find((member) => member.id === memberId);
+    if (currentMember) {
+      currentMember.can_manage_storage = updatedMember.can_manage_storage;
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось обновить права.';
+  } finally {
+    memberActionLoading.value = false;
   }
 }
 
-async function removeMember(memberId: number) {
+function openTransferLeadershipDialog(character: RosterCharacter) {
+  transferLeadershipTarget.value = character;
+}
+
+async function confirmTransferLeadership() {
+  const target = transferLeadershipTarget.value;
+  if (target?.memberId === null || target?.memberId === undefined) return;
+
+  memberActionLoading.value = true;
+  error.value = null;
   try {
-    await constantPartiesApi.deleteMember(partyId.value, memberId);
+    await constantPartiesApi.transferLeadership(partyId.value, target.memberId);
+    transferLeadershipTarget.value = null;
+    await load();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось передать лидерство.';
+  } finally {
+    memberActionLoading.value = false;
+  }
+}
+
+function openRemoveMemberDialog(character: RosterCharacter) {
+  removeMemberTarget.value = character;
+}
+
+async function confirmRemoveMember() {
+  const target = removeMemberTarget.value;
+  if (target?.memberId === null || target?.memberId === undefined) return;
+
+  memberActionLoading.value = true;
+  error.value = null;
+  try {
+    await constantPartiesApi.deleteMember(partyId.value, target.memberId);
+    removeMemberTarget.value = null;
     await load();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось исключить участника.';
+  } finally {
+    memberActionLoading.value = false;
   }
 }
+
 
 async function sendMessage() {
   if (!myCharacterId.value || !chatBody.value.trim()) return;
@@ -336,41 +442,96 @@ async function sendMessage() {
   }
 }
 
-async function addStorageItem() {
-  if (!canManageStorage.value || !myCharacterId.value || !newItemName.value.trim()) return;
+async function addStorageItem(payload: { name: string; quantity: number | null }) {
+  if (!canManageStorage.value || !myCharacterId.value) return;
+
+  addStorageItemSaving.value = true;
+  error.value = null;
   try {
     await constantPartiesApi.createStorageItem(partyId.value, {
-      name: newItemName.value.trim(),
-      quantity: newItemQuantity.value,
+      name: payload.name,
+      quantity: payload.quantity,
       actor_character_id: myCharacterId.value,
     });
-    newItemName.value = '';
-    newItemQuantity.value = null;
+    addStorageItemDialogOpen.value = false;
+    invalidateStorageLogs();
     await loadStorage();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось добавить предмет.';
+  } finally {
+    addStorageItemSaving.value = false;
   }
 }
 
-async function grantItem() {
-  if (!canManageStorage.value || !myCharacterId.value || !grantItemId.value || !grantCharacterId.value) return;
+function openStorageItemEditor(item: ConstantPartyStorageItem) {
+  editingStorageItem.value = item;
+}
+
+async function saveStorageItem(payload: { name: string; quantity: number | null }) {
+  const item = editingStorageItem.value;
+  if (!item || !myCharacterId.value) return;
+
+  storageItemSaving.value = true;
+  error.value = null;
+  try {
+    const updatedItem = await constantPartiesApi.updateStorageItem(
+      partyId.value,
+      item.id,
+      {
+        name: payload.name,
+        description: item.description,
+        quantity: payload.quantity,
+        tier_id: item.tier_id,
+        actor_character_id: myCharacterId.value,
+      },
+    );
+    const itemIndex = storageItems.value.findIndex((currentItem) => currentItem.id === item.id);
+    if (itemIndex !== -1) {
+      storageItems.value[itemIndex] = {
+        ...item,
+        ...updatedItem,
+        grants_count: item.grants_count,
+      };
+    }
+    editingStorageItem.value = null;
+    invalidateStorageLogs();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось обновить предмет.';
+  } finally {
+    storageItemSaving.value = false;
+  }
+}
+
+
+async function grantItem(payload: {
+  itemId: number;
+  characterId: number;
+  reason: string | null;
+}) {
+  if (!canManageStorage.value || !myCharacterId.value) return;
+
+  grantStorageItemSaving.value = true;
+  error.value = null;
   try {
     await constantPartiesApi.createGrant(partyId.value, {
-      item_id: grantItemId.value,
-      received_by_character_id: grantCharacterId.value,
+      item_id: payload.itemId,
+      received_by_character_id: payload.characterId,
       granted_by_character_id: myCharacterId.value,
-      reason: grantReason.value.trim() || null,
+      reason: payload.reason,
     });
-    grantReason.value = '';
+    grantStorageItemDialogOpen.value = false;
+    invalidateStorageLogs();
     await loadStorage();
-    if (selectedHistoryCharacterId.value === grantCharacterId.value) {
+    if (selectedHistoryCharacterId.value === payload.characterId) {
       await showCharacterHistory(
-        grantCharacterId.value,
+        payload.characterId,
         selectedHistoryCharacterName.value,
       );
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось выдать предмет.';
+  } finally {
+    grantStorageItemSaving.value = false;
   }
 }
 
@@ -405,6 +566,12 @@ function formatDate(value?: string | null) {
 
 onMounted(load);
 
+watch(activeTab, (tab) => {
+  if (tab === 'logs' && storageLogs.value.length === 0) {
+    void loadStorageLogs(true);
+  }
+});
+
 watch(
   [historySearch, historyDateFrom, historyDateTo],
   () => {
@@ -438,7 +605,7 @@ watch(inviteQuery, () => {
           {{ error }}
         </div>
 
-        <div class="mb-4 flex gap-1 border-b">
+        <div class="mb-4 flex gap-1 overflow-x-auto whitespace-nowrap border-b">
           <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'members' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'members'">
             Состав
           </button>
@@ -447,6 +614,9 @@ watch(inviteQuery, () => {
           </button>
           <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'storage' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'storage'">
             Хранилище
+          </button>
+          <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'logs' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'logs'">
+            Логи
           </button>
           <button
             v-if="canManageStorage"
@@ -542,15 +712,30 @@ watch(inviteQuery, () => {
                     {{ characterInitials(character.name) }}
                   </span>
                   <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-medium">{{ character.name }}</span>
-                    <span class="mt-0.5 block truncate text-xs text-muted-foreground">
-                      <template v-if="character.isActive">
+                    <span class="block truncate text-sm font-medium">
+                      {{ character.name }}
+                    </span>
+                    <span
+                      v-if="character.isActive"
+                      class="mt-1 flex min-w-0 items-center gap-1.5"
+                    >
+                      <span class="truncate text-xs text-muted-foreground">
                         {{ character.role === 'leader' ? 'Лидер' : 'Участник' }}
-                        <span v-if="character.canManageStorage"> · Хранилище</span>
-                      </template>
-                      <template v-else>
-                        Неактивен
-                      </template>
+                      </span>
+                      <Badge
+                        v-if="character.canManageStorage"
+                        variant="outline"
+                        class="h-5 shrink-0 gap-1 border-emerald-600/25 px-1.5 py-0 text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
+                      >
+                        <KeyRound class="size-3" />
+                        Хранилище
+                      </Badge>
+                    </span>
+                    <span
+                      v-else
+                      class="mt-0.5 block truncate text-xs text-muted-foreground"
+                    >
+                      Неактивен
                     </span>
                   </span>
                   <span class="text-xl leading-none text-muted-foreground">›</span>
@@ -563,7 +748,7 @@ watch(inviteQuery, () => {
             <div class="min-w-0 space-y-4">
               <div
                 v-if="selectedRosterCharacter"
-                class="flex min-h-24 flex-wrap items-center gap-4 rounded-lg border bg-background px-5 py-4"
+                class="flex min-h-24 items-center gap-4 rounded-lg border bg-background px-5 py-4"
               >
                 <img
                   v-if="selectedRosterCharacter.avatarUrl"
@@ -578,48 +763,100 @@ watch(inviteQuery, () => {
                 >
                   {{ characterInitials(selectedRosterCharacter.name) }}
                 </span>
+
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-lg font-semibold">{{ selectedRosterCharacter.name }}</p>
-                  <p class="mt-1 text-sm text-muted-foreground">
-                    <template v-if="selectedRosterCharacter.isActive">
+                  <p class="truncate text-lg font-semibold">
+                    {{ selectedRosterCharacter.name }}
+                  </p>
+                  <div
+                    v-if="selectedRosterCharacter.isActive"
+                    class="mt-1.5 flex flex-wrap items-center gap-1.5"
+                  >
+                    <Badge
+                      :variant="selectedRosterCharacter.role === 'leader' ? 'default' : 'secondary'"
+                      class="gap-1"
+                    >
+                      <Crown
+                        v-if="selectedRosterCharacter.role === 'leader'"
+                        class="size-3"
+                      />
                       {{ selectedRosterCharacter.role === 'leader' ? 'Лидер' : 'Участник' }}
-                      <span v-if="selectedRosterCharacter.canManageStorage"> · Доступ к хранилищу</span>
-                    </template>
-                    <template v-else>
-                      Неактивен · вышел {{ formatHistoryDate(selectedRosterCharacter.leftAt) }}
-                    </template>
+                    </Badge>
+                    <Badge
+                      v-if="selectedRosterCharacter.canManageStorage"
+                      variant="outline"
+                      class="gap-1 border-emerald-600/25 text-emerald-700 dark:text-emerald-400"
+                    >
+                      <KeyRound class="size-3" />
+                      Управление хранилищем
+                    </Badge>
+                  </div>
+                  <p
+                    v-else
+                    class="mt-1 text-sm text-muted-foreground"
+                  >
+                    Неактивен · вышел {{ formatHistoryDate(selectedRosterCharacter.leftAt) }}
                   </p>
                 </div>
-                <div
+
+                <DropdownMenu
                   v-if="
-                    myMember?.role === 'leader'
+                    isCurrentUserLeader
                     && selectedRosterCharacter.isActive
                     && selectedRosterCharacter.role !== 'leader'
                     && selectedRosterCharacter.memberId !== null
                   "
-                  class="flex flex-wrap items-center gap-3"
                 >
-                  <label class="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      :checked="selectedRosterCharacter.canManageStorage"
-                      @change="
+                  <DropdownMenuTrigger as-child>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      class="shrink-0"
+                      :disabled="memberActionLoading"
+                      title="Управление участником"
+                      aria-label="Управление участником"
+                    >
+                      <MoreHorizontal class="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    class="w-64"
+                  >
+                    <DropdownMenuItem
+                      class="gap-2"
+                      @select="openTransferLeadershipDialog(selectedRosterCharacter)"
+                    >
+                      <Crown class="size-4 text-amber-600" />
+                      Передать лидерство
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      class="gap-2"
+                      @select="
                         toggleStorageRight(
                           selectedRosterCharacter.memberId!,
-                          ($event.target as HTMLInputElement).checked,
+                          !selectedRosterCharacter.canManageStorage,
                         )
                       "
-                    />
-                    Доступ к хранилищу
-                  </label>
-                  <button
-                    type="button"
-                    class="h-9 rounded-md border px-3 text-xs font-medium text-destructive hover:bg-destructive/5"
-                    @click="removeMember(selectedRosterCharacter.memberId)"
-                  >
-                    Исключить
-                  </button>
-                </div>
+                    >
+                      <KeyRound class="size-4 text-emerald-600" />
+                      {{
+                        selectedRosterCharacter.canManageStorage
+                          ? 'Запретить управление хранилищем'
+                          : 'Разрешить управление хранилищем'
+                      }}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      class="gap-2 text-destructive focus:text-destructive"
+                      @select="openRemoveMemberDialog(selectedRosterCharacter)"
+                    >
+                      <UserMinus class="size-4" />
+                      Исключить из КП
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div class="rounded-lg border bg-background">
@@ -743,6 +980,43 @@ watch(inviteQuery, () => {
             @update:message="inviteMessage = $event"
             @invite="invite"
           />
+          <ConfirmDialog
+            :open="transferLeadershipTarget !== null"
+            title="Передать лидерство?"
+            :description="
+              transferLeadershipTarget
+                ? `Персонаж «${transferLeadershipTarget.name}» станет лидером КП. Вы станете обычным участником без доступа к управлению хранилищем.`
+                : ''
+            "
+            confirm-label="Передать"
+            confirm-variant="default"
+            :loading="memberActionLoading"
+            @update:open="
+              (open) => {
+                if (!open) transferLeadershipTarget = null;
+              }
+            "
+            @confirm="confirmTransferLeadership"
+          />
+
+          <ConfirmDialog
+            :open="removeMemberTarget !== null"
+            title="Исключить персонажа из КП?"
+            :description="
+              removeMemberTarget
+                ? `Персонаж «${removeMemberTarget.name}» будет исключен из КП. История полученных им предметов сохранится.`
+                : ''
+            "
+            confirm-label="Исключить"
+            confirm-variant="destructive"
+            :loading="memberActionLoading"
+            @update:open="
+              (open) => {
+                if (!open) removeMemberTarget = null;
+              }
+            "
+            @confirm="confirmRemoveMember"
+          />
         </section>
 
         <section
@@ -800,6 +1074,14 @@ watch(inviteQuery, () => {
           </div>
         </section>
 
+        <StorageLogsTab
+          v-else-if="activeTab === 'logs'"
+          :logs="storageLogs"
+          :loading="storageLogsLoading"
+          :has-more="storageLogsHasMore"
+          @load-more="loadStorageLogs()"
+        />
+
         <section v-else-if="activeTab === 'chat'" class="space-y-4">
           <div class="max-h-[28rem] overflow-y-auto rounded-lg border bg-background">
             <div v-if="messages.length === 0" class="p-6 text-center text-sm text-muted-foreground">Сообщений пока нет.</div>
@@ -817,41 +1099,95 @@ watch(inviteQuery, () => {
           </form>
         </section>
 
-        <section v-else class="grid gap-4 lg:grid-cols-[1fr_20rem]">
-          <div class="overflow-hidden rounded-lg border bg-background">
-            <div v-if="storageItems.length === 0" class="p-6 text-center text-sm text-muted-foreground">В хранилище пока нет предметов.</div>
-            <div v-for="item in storageItems" :key="item.id" class="flex items-center justify-between gap-3 border-b p-4 last:border-b-0">
-              <div>
-                <p class="font-medium">{{ item.name }}</p>
-                <p class="mt-1 text-xs text-muted-foreground">
-                  Остаток: {{ item.quantity === null ? 'без ограничения' : item.quantity }} · выдач: {{ item.grants_count ?? 0 }}
-                </p>
-              </div>
+        <section v-else class="space-y-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="font-semibold">Предметы</h2>
+              <p class="mt-0.5 text-sm text-muted-foreground">
+                Предметов в хранилище: {{ storageItems.length }}
+              </p>
+            </div>
+            <div
+              v-if="canManageStorage"
+              class="flex flex-wrap gap-2"
+            >
+              <Button
+                type="button"
+                variant="outline"
+                class="border-emerald-700/30 text-emerald-800 hover:bg-emerald-500/10 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-200"
+                @click="addStorageItemDialogOpen = true"
+              >
+                <PackagePlus class="size-4" />
+                Добавить предмет
+              </Button>
+              <Button
+                type="button"
+                :disabled="storageItems.length === 0 || members.length === 0"
+                @click="grantStorageItemDialogOpen = true"
+              >
+                <Gift class="size-4" />
+                Выдать предмет
+              </Button>
             </div>
           </div>
 
-          <aside v-if="canManageStorage" class="space-y-4">
-            <form class="rounded-lg border bg-background p-4" @submit.prevent="addStorageItem">
-              <h2 class="mb-3 text-sm font-semibold">Добавить предмет</h2>
-              <input v-model="newItemName" class="mb-2 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Название" />
-              <input v-model.number="newItemQuantity" class="mb-3 h-9 w-full rounded-md border bg-background px-3 text-sm" min="0" placeholder="Количество" type="number" />
-              <button type="submit" class="h-9 w-full rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">Добавить</button>
-            </form>
+          <div class="overflow-hidden rounded-lg border bg-background">
+            <div
+              v-if="storageItems.length === 0"
+              class="p-6 text-center text-sm text-muted-foreground"
+            >
+              В хранилище пока нет предметов.
+            </div>
+            <div
+              v-for="item in storageItems"
+              :key="item.id"
+              class="flex items-center justify-between gap-3 border-b p-4 last:border-b-0"
+            >
+              <div class="min-w-0">
+                <p class="truncate font-medium">{{ item.name }}</p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                  Остаток: {{ item.quantity === null ? 'без ограничения' : item.quantity }}
+                  · выдач: {{ item.grants_count ?? 0 }}
+                </p>
+              </div>
+              <Button
+                v-if="canManageStorage"
+                type="button"
+                variant="ghost"
+                size="icon"
+                class="shrink-0"
+                title="Редактировать предмет"
+                aria-label="Редактировать предмет"
+                @click="openStorageItemEditor(item)"
+              >
+                <Pencil class="size-4" />
+              </Button>
+            </div>
+          </div>
 
-            <form class="rounded-lg border bg-background p-4" @submit.prevent="grantItem">
-              <h2 class="mb-3 text-sm font-semibold">Выдать предмет</h2>
-              <select v-model.number="grantItemId" class="mb-2 h-9 w-full rounded-md border bg-background px-3 text-sm">
-                <option :value="null">Предмет</option>
-                <option v-for="item in storageItems" :key="item.id" :value="item.id">{{ item.name }}</option>
-              </select>
-              <select v-model.number="grantCharacterId" class="mb-2 h-9 w-full rounded-md border bg-background px-3 text-sm">
-                <option :value="null">Получатель</option>
-                <option v-for="member in members" :key="member.id" :value="member.character_id">{{ member.character?.name }}</option>
-              </select>
-              <input v-model="grantReason" class="mb-3 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Причина" />
-              <button type="submit" class="h-9 w-full rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">Выдать</button>
-            </form>
-          </aside>
+          <AddStorageItemDialog
+            v-model:open="addStorageItemDialogOpen"
+            :saving="addStorageItemSaving"
+            @save="addStorageItem"
+          />
+          <GrantStorageItemDialog
+            v-model:open="grantStorageItemDialogOpen"
+            :saving="grantStorageItemSaving"
+            :items="storageItems"
+            :members="members"
+            @save="grantItem"
+          />
+          <EditStorageItemDialog
+            :open="editingStorageItem !== null"
+            :item="editingStorageItem"
+            :saving="storageItemSaving"
+            @update:open="
+              (open) => {
+                if (!open) editingStorageItem = null;
+              }
+            "
+            @save="saveStorageItem"
+          />
         </section>
       </template>
 

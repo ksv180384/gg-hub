@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminCharacterController;
 use App\Http\Controllers\Api\AdminGuildApplicationCommentController;
 use App\Http\Controllers\Api\AdminLandingCtaClickController;
 use App\Http\Controllers\Api\AdminPollController;
@@ -116,6 +117,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/constant-parties', [ConstantPartyController::class, 'store']);
     Route::get('/constant-parties/{constant_party}', [ConstantPartyController::class, 'show']);
     Route::patch('/constant-parties/{constant_party}/members/{member}', [ConstantPartyController::class, 'updateMember']);
+    Route::post('/constant-parties/{constant_party}/members/{member}/transfer-leadership', [ConstantPartyController::class, 'transferLeadership']);
     Route::delete('/constant-parties/{constant_party}/members/{member}', [ConstantPartyController::class, 'destroyMember']);
     Route::get('/constant-parties/{constant_party}/invitations', [ConstantPartyController::class, 'invitations']);
     Route::get('/constant-parties/{constant_party}/invitations/candidates', [ConstantPartyController::class, 'inviteCandidates']);
@@ -131,6 +133,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/constant-parties/{constant_party}/storage/tiers', [ConstantPartyStorageController::class, 'storeTier']);
     Route::patch('/constant-parties/{constant_party}/storage/tiers/{tier}', [ConstantPartyStorageController::class, 'updateTier']);
     Route::delete('/constant-parties/{constant_party}/storage/tiers/{tier}', [ConstantPartyStorageController::class, 'destroyTier']);
+    Route::get('/constant-parties/{constant_party}/storage/logs', [ConstantPartyStorageController::class, 'logs']);
     Route::get('/constant-parties/{constant_party}/storage/items', [ConstantPartyStorageController::class, 'items']);
     Route::post('/constant-parties/{constant_party}/storage/items', [ConstantPartyStorageController::class, 'storeItem']);
     Route::patch('/constant-parties/{constant_party}/storage/items/{item}', [ConstantPartyStorageController::class, 'updateItem']);
@@ -294,6 +297,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:obshhie-roli');
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::get('/users/{user}', [AdminUserController::class, 'show']);
+        Route::get('/admin/characters', [AdminCharacterController::class, 'index']);
         Route::post('/testing/telegram', [AdminTestingController::class, 'telegram']);
         Route::post('/testing/email', [AdminTestingController::class, 'email']);
         Route::put('/users/{user}', [AdminUserController::class, 'update'])->middleware('permission:zablokirovat-polzovatelia');

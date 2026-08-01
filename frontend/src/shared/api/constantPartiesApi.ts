@@ -99,6 +99,28 @@ export type ConstantPartyStorageGrant = {
   granted_by_character?: Character;
 };
 
+export type ConstantPartyStorageLog = {
+  id: number;
+  constant_party_id: number;
+  item_id: number | null;
+  actor_character_id: number | null;
+  recipient_character_id: number | null;
+  action:
+    | 'item_created'
+    | 'item_deleted'
+    | 'item_renamed'
+    | 'quantity_changed'
+    | 'item_granted'
+    | 'grant_revoked';
+  item_name: string;
+  actor_character_name: string;
+  recipient_character_name: string | null;
+  old_value: Record<string, unknown> | null;
+  new_value: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+};
+
 function unwrap<T>(res: { data: unknown }): T {
   const raw = res.data as { data?: T } | T | null;
   if (raw && typeof raw === 'object' && 'data' in raw) return (raw as { data: T }).data!;
@@ -180,6 +202,15 @@ export const constantPartiesApi = {
     throwOnError(res, 'Не удалось исключить участника.');
   },
 
+  async transferLeadership(partyId: number, memberId: number): Promise<ConstantParty> {
+    const res = await http.fetchPost<ConstantParty>(
+      `/constant-parties/${partyId}/members/${memberId}/transfer-leadership`,
+      {},
+    );
+    throwOnError(res, 'Не удалось передать лидерство.');
+    return unwrap<ConstantParty>(res as { data: unknown });
+  },
+
   async listMessages(partyId: number): Promise<ConstantPartyChatMessage[]> {
     const res = await http.fetchGet<{ data: ConstantPartyChatMessage[] }>(`/constant-parties/${partyId}/chat/messages`);
     throwOnError(res, 'Не удалось загрузить чат.');
@@ -204,6 +235,27 @@ export const constantPartiesApi = {
     const res = await http.fetchGet<{ data: ConstantPartyStorageItem[] }>(`/constant-parties/${partyId}/storage/items`);
     throwOnError(res, 'Не удалось загрузить хранилище.');
     return res.data?.data ?? [];
+  },
+
+  async listStorageLogs(partyId: number, page = 1): Promise<{
+    logs: ConstantPartyStorageLog[];
+    currentPage: number;
+    lastPage: number;
+  }> {
+    const res = await http.fetchGet<{
+      data: ConstantPartyStorageLog[];
+      meta?: {
+        current_page?: number;
+        last_page?: number;
+      };
+    }>(`/constant-parties/${partyId}/storage/logs?page=${page}`);
+    throwOnError(res, 'Не удалось загрузить журнал хранилища.');
+
+    return {
+      logs: res.data?.data ?? [],
+      currentPage: res.data?.meta?.current_page ?? page,
+      lastPage: res.data?.meta?.last_page ?? page,
+    };
   },
 
   async listFormerMembers(partyId: number): Promise<ConstantPartyFormerMember[]> {
@@ -235,6 +287,23 @@ export const constantPartiesApi = {
     const res = await http.fetchPost<ConstantPartyStorageItem>(`/constant-parties/${partyId}/storage/items`, payload);
     throwOnError(res, 'Не удалось добавить предмет.');
     return unwrap<ConstantPartyStorageItem>(res as { data: unknown });
+  },
+
+  async updateStorageItem(partyId: number, itemId: number, payload: {
+    name: string;
+    description?: string | null;
+    quantity?: number | null;
+    tier_id?: number | null;
+    actor_character_id: number;
+  }): Promise<ConstantPartyStorageItem> {
+    const res = await http.fetchFull<{ data: ConstantPartyStorageItem }>({
+      url: `/constant-parties/${partyId}/storage/items/${itemId}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: payload,
+    });
+    throwOnError(res, 'Не удалось обновить предмет.');
+    return res.data?.data ?? ({} as ConstantPartyStorageItem);
   },
 
   async createGrant(partyId: number, payload: {

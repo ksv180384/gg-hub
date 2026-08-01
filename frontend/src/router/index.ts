@@ -356,6 +356,12 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
         },
         {
+          path: 'admin/characters',
+          name: 'admin-characters',
+          component: () => import('@/pages/admin/characters/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN, title: 'Персонажи' },
+        },
+        {
           path: 'admin/testing',
           name: 'admin-testing',
           component: () => import('@/pages/admin/testing/index.vue'),

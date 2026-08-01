@@ -132,7 +132,7 @@ class ConstantPartyController extends Controller
             abort(404);
         }
 
-        $this->ensureMember($constantParty, $request->user()->id);
+        $currentMember = $this->ensureMember($constantParty, $request->user()->id);
 
         $constantParty->load([
             'leader.gameClasses',
@@ -145,6 +145,12 @@ class ConstantPartyController extends Controller
             'members.character.server',
             'members.character.user',
         ]);
+        $constantParty->my_member = [
+            'id' => $currentMember->id,
+            'character_id' => $currentMember->character_id,
+            'role' => $currentMember->role,
+            'can_manage_storage' => (bool) $currentMember->can_manage_storage,
+        ];
 
         return new ConstantPartyResource($constantParty);
     }
@@ -180,6 +186,87 @@ class ConstantPartyController extends Controller
         $member->delete();
 
         return response()->noContent();
+    }
+
+    public function transferLeadership(
+        Request $request,
+        ConstantParty $constantParty,
+        ConstantPartyMember $member
+    ): ConstantPartyResource {
+        $party = DB::transaction(function () use ($request, $constantParty, $member): ConstantParty {
+            /** @var ConstantParty $lockedParty */
+            $lockedParty = ConstantParty::query()
+                ->whereKey($constantParty->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $currentLeader = ConstantPartyMember::query()
+                ->where('constant_party_id', $lockedParty->id)
+                ->where('role', ConstantPartyMember::ROLE_LEADER)
+                ->whereHas('character', fn ($query) => $query->where('user_id', $request->user()->id))
+                ->lockForUpdate()
+                ->first();
+
+            if (! $currentLeader) {
+                abort(403);
+            }
+
+            /** @var ConstantPartyMember|null $newLeader */
+            $newLeader = ConstantPartyMember::query()
+                ->whereKey($member->id)
+                ->where('constant_party_id', $lockedParty->id)
+                ->with('character')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $newLeader) {
+                abort(404);
+            }
+            if ($newLeader->role === ConstantPartyMember::ROLE_LEADER) {
+                abort(422, 'Выбранный персонаж уже является лидером КП.');
+            }
+
+            $currentLeader->update([
+                'role' => ConstantPartyMember::ROLE_MEMBER,
+                'can_manage_storage' => false,
+            ]);
+            $newLeader->update([
+                'role' => ConstantPartyMember::ROLE_LEADER,
+                'can_manage_storage' => true,
+            ]);
+            $lockedParty->update([
+                'leader_character_id' => $newLeader->character_id,
+            ]);
+
+            Notification::query()->create([
+                'user_id' => $newLeader->character->user_id,
+                'message' => "Персонаж {$newLeader->character->name} стал лидером КП «{$lockedParty->name}».",
+                'link' => "/constant-parties/{$lockedParty->id}",
+            ]);
+
+            return $lockedParty;
+        });
+
+        $currentMember = $this->ensureMember($party, $request->user()->id);
+        $party->load([
+            'leader.gameClasses',
+            'leader.server',
+            'leader.localization',
+            'game',
+            'localization',
+            'server',
+            'members.character.gameClasses',
+            'members.character.server',
+            'members.character.user',
+        ]);
+        $party->my_member = [
+            'id' => $currentMember->id,
+            'character_id' => $currentMember->character_id,
+            'role' => $currentMember->role,
+            'can_manage_storage' => (bool) $currentMember->can_manage_storage,
+        ];
+
+        return new ConstantPartyResource($party);
     }
 
     public function invitations(Request $request, ConstantParty $constantParty): AnonymousResourceCollection
@@ -396,6 +483,10 @@ class ConstantPartyController extends Controller
         $member = ConstantPartyMember::query()
             ->where('constant_party_id', $party->id)
             ->whereHas('character', fn ($query) => $query->where('user_id', $userId))
+            ->orderByRaw(
+                'CASE WHEN role = ? THEN 0 WHEN can_manage_storage = ? THEN 1 ELSE 2 END',
+                [ConstantPartyMember::ROLE_LEADER, true]
+            )
             ->first();
 
         if (! $member) {
