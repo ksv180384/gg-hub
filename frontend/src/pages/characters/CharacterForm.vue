@@ -307,8 +307,6 @@ async function submitForm() {
 
 <template>
   <form class="flex flex-col gap-6" @submit.prevent="submitForm">
-    <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
-
     <div class="space-y-2">
       <Label for="char-name">Имя персонажа <span class="text-destructive">*</span></Label>
       <Input
@@ -521,6 +519,7 @@ async function submitForm() {
         Отмена
       </Button>
     </div>
+    <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
 
     <ConfirmDialog
       :open="tagDeleteDialogOpen"

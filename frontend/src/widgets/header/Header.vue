@@ -169,6 +169,7 @@ async function loadMoreNotifications() {
 
 async function loadPolls() {
   if (!auth.isAuthenticated) return;
+  if (loadingPolls.value) return;
   if (!hasUserGuilds.value) {
     polls.value = [];
     loadingPolls.value = false;
@@ -199,22 +200,29 @@ watch(pollsDrawerOpen, (open) => {
   if (open && auth.isAuthenticated) loadPolls();
 });
 
-watch(() => [siteContext.game?.id, auth.isAuthenticated], () => {
-  if (auth.isAuthenticated) loadPolls();
-}, { immediate: false });
-
 watch(() => siteContext.pollsRefreshTrigger, (val) => {
   if (val > 0 && auth.isAuthenticated) loadPolls();
 });
 
-watch(hasUserGuilds, (has) => {
-  if (!has) {
-    pollsDrawerOpen.value = false;
-    polls.value = [];
-  } else if (auth.isAuthenticated) {
-    loadPolls();
-  }
-});
+watch(
+  () => [
+    siteContext.data !== null,
+    siteContext.game?.id ?? null,
+    siteContext.isGameSubdomain,
+    auth.isAuthenticated,
+    hasUserGuilds.value,
+  ] as const,
+  ([contextReady, gameId, isGameSubdomain, isAuthenticated, hasGuilds]) => {
+    if (!isAuthenticated || !hasGuilds) {
+      pollsDrawerOpen.value = false;
+      polls.value = [];
+      return;
+    }
+    if (!contextReady || (isGameSubdomain && gameId === null)) return;
+    void loadPolls();
+  },
+  { immediate: true }
+);
 
 watch(notificationsDrawerOpen, (open) => {
   if (open && auth.isAuthenticated) loadNotifications();
@@ -223,11 +231,9 @@ watch(notificationsDrawerOpen, (open) => {
 watch(() => auth.isAuthenticated, (isAuth) => {
   if (isAuth) {
     loadNotifications();
-    loadPolls();
   } else {
     notifications.value = [];
     unreadCount.value = 0;
-    polls.value = [];
   }
 }, { immediate: true });
 

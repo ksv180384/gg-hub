@@ -67,7 +67,7 @@ onMounted(load);
 </script>
 
 <template>
-  <div class="container">
+  <div>
     <div class="mx-auto max-w-4xl">
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>

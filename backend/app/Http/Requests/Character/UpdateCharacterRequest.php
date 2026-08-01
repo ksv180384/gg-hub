@@ -118,7 +118,7 @@ class UpdateCharacterRequest extends FormRequest
             'name.unique' => 'На этом сервере уже есть персонаж с таким именем. Выберите другое имя.',
             'avatar.image' => 'Файл аватара должен быть изображением (JPEG, PNG, GIF или WebP).',
             'avatar.mimes' => 'Аватар должен быть в формате JPEG, PNG, GIF или WebP.',
-            'avatar.max' => 'Размер файла аватара не должен превышать 2 МБ.',
+            'avatar.max' => 'Размер файла аватара не должен превышать 5 МБ.',
             'game_class_ids.array' => 'Классы должны быть указаны списком.',
             'game_class_ids.max' => 'Можно выбрать не более :max классов для персонажа.',
             'game_class_ids.*.integer' => 'Каждый класс должен быть указан числом.',

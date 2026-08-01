@@ -89,7 +89,11 @@ const routes: RouteRecordRaw[] = [
           path: 'guilds/:id/roster',
           name: 'guild-roster',
           component: () => import('@/pages/guilds/[id]/roster/index.vue'),
-          meta: { requiresAuth: true, title: 'Состав гильдии', contentShell: true },
+          meta: {
+            requiresAuth: true,
+            title: 'Состав гильдии',
+            contentShell: true,
+          },
         },
         {
           path: 'guilds/:id/bank',
@@ -131,7 +135,6 @@ const routes: RouteRecordRaw[] = [
             requiresAuth: false,
             title: 'Подать заявку в гильдию',
             contentShell: true,
-            journalBanner: true,
           },
         },
         {
@@ -258,7 +261,11 @@ const routes: RouteRecordRaw[] = [
           path: 'my-constant-parties',
           name: 'my-constant-parties',
           component: () => import('@/pages/my-constant-parties/index.vue'),
-          meta: { requiresAuth: true, title: 'Мои КП', contentShell: true },
+          meta: {
+            requiresAuth: true,
+            title: 'Мои КП',
+            contentShell: true,
+          },
         },
         {
           path: 'my-constant-parties/create',
@@ -270,7 +277,11 @@ const routes: RouteRecordRaw[] = [
           path: 'constant-parties/:id',
           name: 'constant-party-show',
           component: () => import('@/pages/constant-parties/[id]/index.vue'),
-          meta: { requiresAuth: true, title: 'Конст пати' },
+          meta: {
+            requiresAuth: true,
+            title: 'Конст пати',
+            contentShell: true,
+          },
         },
         {
           path: 'change-password',

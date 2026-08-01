@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CharacterAvatarService
 {
@@ -18,7 +19,7 @@ class CharacterAvatarService
      */
     public function storeAvatar(UploadedFile $file, int $characterId): string
     {
-        $baseDir = 'characters/' . $characterId . '/avatar';
+        $baseDir = 'characters/' . $characterId . '/avatar/' . Str::uuid();
         $disk = Storage::disk('public');
 
         $disk->makeDirectory($baseDir);

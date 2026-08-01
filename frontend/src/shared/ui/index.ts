@@ -12,6 +12,7 @@ export { default as Avatar } from './avatar/Avatar.vue';
 export { default as PostCardPreview } from './post/PostCardPreview.vue';
 export { default as PostCardFull } from './post/PostCardFull.vue';
 export * from './calendar';
+export * from './date-range-picker';
 export { default as Badge } from './badge/Badge.vue';
 export { default as Skeleton } from './skeleton/Skeleton.vue';
 export { default as Spinner } from './spinner/Spinner.vue';

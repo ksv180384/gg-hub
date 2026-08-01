@@ -38,8 +38,9 @@ async function loadCharacter() {
   }
 }
 
-function onSaved() {
-  router.push({ name: 'my-characters' });
+async function onSaved() {
+  await router.push({ name: 'my-characters' });
+  window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 }
 
 function onCancel() {
@@ -72,8 +73,9 @@ watch(characterId, (id) => {
 
       <Card v-else-if="character">
       <CardHeader>
-        <CardTitle>Редактирование персонажа</CardTitle>
-        <p class="text-sm text-muted-foreground">{{ character.name }}</p>
+        <CardTitle class="truncate">
+          Редактирование персонажа {{ character.name }}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <CharacterForm
