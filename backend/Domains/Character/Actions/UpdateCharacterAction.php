@@ -3,21 +3,25 @@
 namespace Domains\Character\Actions;
 
 use App\Contracts\Repositories\CharacterRepositoryInterface;
-use Domains\Notification\Models\Notification;
 use App\Services\CharacterAvatarService;
 use Domains\Character\Models\Character;
+use Domains\ConstantParty\Actions\NotifyConstantPartyMembershipChangedAction;
+use Domains\ConstantParty\Actions\RecordConstantPartyMembershipLogAction;
 use Domains\ConstantParty\Models\ConstantPartyMember;
+use Domains\ConstantParty\Models\ConstantPartyStorageLog;
 use Illuminate\Http\UploadedFile;
 
 class UpdateCharacterAction
 {
     public function __construct(
         private CharacterRepositoryInterface $characterRepository,
-        private CharacterAvatarService $characterAvatarService
+        private CharacterAvatarService $characterAvatarService,
+        private RecordConstantPartyMembershipLogAction $recordMembershipLog,
+        private NotifyConstantPartyMembershipChangedAction $notifyMembershipChanged,
     ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function __invoke(Character $character, array $data, ?UploadedFile $avatar = null, bool $removeAvatar = false): Character
     {
@@ -75,6 +79,7 @@ class UpdateCharacterAction
             $this->removeFromConstantPartiesAfterServerChange($character);
         }
         $character->load(['game', 'localization', 'server', 'gameClasses', 'tags.createdByUser']);
+
         return $character;
     }
 
@@ -87,24 +92,23 @@ class UpdateCharacterAction
 
         foreach ($members as $member) {
             $party = $member->constantParty;
+            $recipientUserIds = $this->notifyMembershipChanged->recipientUserIds($party);
+            ($this->recordMembershipLog)(
+                $party,
+                ConstantPartyStorageLog::ACTION_MEMBER_REMOVED,
+                $character->id,
+                $character->id,
+                ['source' => 'server_changed'],
+            );
+            ($this->notifyMembershipChanged)(
+                $party,
+                ConstantPartyStorageLog::ACTION_MEMBER_REMOVED,
+                $character,
+                $character,
+                $recipientUserIds,
+                'server_changed',
+            );
             $member->delete();
-
-            Notification::query()->create([
-                'user_id' => $character->user_id,
-                'message' => "Персонаж {$character->name} исключен из конст пати «{$party->name}» из-за смены сервера.",
-                'link' => '/my-constant-parties',
-            ]);
-
-            $leaderUserId = Character::query()
-                ->whereKey($party->leader_character_id)
-                ->value('user_id');
-            if ($leaderUserId !== null && (int) $leaderUserId !== (int) $character->user_id) {
-                Notification::query()->create([
-                    'user_id' => $leaderUserId,
-                    'message' => "Персонаж {$character->name} исключен из конст пати «{$party->name}» из-за смены сервера.",
-                    'link' => "/constant-parties/{$party->id}",
-                ]);
-            }
         }
     }
 }

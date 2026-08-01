@@ -1,25 +1,48 @@
 <script setup lang="ts">
+import type { DateRange } from 'radix-vue';
 import {
+  ChevronLeft,
+  ChevronRight,
   Gift,
   History,
+  LogOut,
   PackagePlus,
   Pencil,
   RotateCcw,
   Trash2,
+  UserMinus,
+  UserPlus,
   Warehouse,
 } from '@lucide/vue';
-import { Badge, Button, Spinner } from '@/shared/ui';
+import {
+  Badge,
+  Button,
+  DateRangePicker,
+  Select,
+  Spinner,
+  type SelectOption,
+} from '@/shared/ui';
 import type { ConstantPartyStorageLog } from '@/shared/api/constantPartiesApi';
 
 defineProps<{
   logs: ConstantPartyStorageLog[];
   loading: boolean;
-  hasMore: boolean;
+  currentPage: number;
+  lastPage: number;
+  dateRange: DateRange;
+  sort: 'asc' | 'desc';
 }>();
 
 const emit = defineEmits<{
-  (event: 'load-more'): void;
+  (event: 'update:dateRange', value: DateRange): void;
+  (event: 'update:sort', value: 'asc' | 'desc'): void;
+  (event: 'page-change', page: number): void;
 }>();
+
+const sortOptions: SelectOption[] = [
+  { value: 'desc', label: 'Сначала новые' },
+  { value: 'asc', label: 'Сначала старые' },
+];
 
 function actionIcon(action: ConstantPartyStorageLog['action']) {
   if (action === 'item_created') return PackagePlus;
@@ -28,6 +51,9 @@ function actionIcon(action: ConstantPartyStorageLog['action']) {
   if (action === 'quantity_changed') return Warehouse;
   if (action === 'item_granted') return Gift;
   if (action === 'grant_revoked') return RotateCcw;
+  if (action === 'member_joined') return UserPlus;
+  if (action === 'member_left') return LogOut;
+  if (action === 'member_removed') return UserMinus;
   return History;
 }
 
@@ -38,20 +64,23 @@ function actionLabel(action: ConstantPartyStorageLog['action']) {
   if (action === 'quantity_changed') return 'Изменение остатка';
   if (action === 'item_granted') return 'Выдача';
   if (action === 'grant_revoked') return 'Отмена выдачи';
+  if (action === 'member_joined') return 'Вступление';
+  if (action === 'member_left') return 'Выход';
+  if (action === 'member_removed') return 'Исключение';
   return 'Действие';
 }
 
 function actionClass(action: ConstantPartyStorageLog['action']) {
-  if (action === 'item_created') {
+  if (action === 'item_created' || action === 'member_joined') {
     return 'border-emerald-600/25 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400';
   }
-  if (action === 'item_deleted') {
+  if (action === 'item_deleted' || action === 'member_removed') {
     return 'border-destructive/25 bg-destructive/5 text-destructive';
   }
   if (action === 'item_granted') {
     return 'border-primary/25 bg-primary/5 text-primary';
   }
-  if (action === 'grant_revoked') {
+  if (action === 'grant_revoked' || action === 'member_left') {
     return 'border-amber-600/25 bg-amber-500/5 text-amber-700 dark:text-amber-400';
   }
   return 'border-border text-muted-foreground';
@@ -64,7 +93,14 @@ function quantity(value: Record<string, unknown> | null) {
   return '—';
 }
 
+function grantedQuantity(log: ConstantPartyStorageLog) {
+  const value = log.metadata?.quantity;
+  return typeof value === 'number' ? value.toLocaleString('ru-RU') : '1';
+}
+
 function description(log: ConstantPartyStorageLog) {
+  const characterName = log.recipient_character_name ?? 'Персонаж';
+
   if (log.action === 'item_created') {
     return `Добавлен предмет «${log.item_name}», остаток: ${quantity(log.new_value)}.`;
   }
@@ -80,10 +116,21 @@ function description(log: ConstantPartyStorageLog) {
     return `Остаток «${log.item_name}»: ${quantity(log.old_value)} → ${quantity(log.new_value)}.`;
   }
   if (log.action === 'item_granted') {
-    return `«${log.item_name}» выдан персонажу ${log.recipient_character_name ?? 'Персонаж'}.`;
+    return `${grantedQuantity(log)} шт. «${log.item_name}» выдано персонажу ${characterName}.`;
   }
   if (log.action === 'grant_revoked') {
-    return `Выдача «${log.item_name}» персонажу ${log.recipient_character_name ?? 'Персонаж'} отменена.`;
+    return `Выдача ${grantedQuantity(log)} шт. «${log.item_name}» персонажу ${characterName} отменена.`;
+  }
+  if (log.action === 'member_joined') {
+    return `Персонаж ${characterName} вступил в КП.`;
+  }
+  if (log.action === 'member_left') {
+    return `Персонаж ${characterName} вышел из КП.`;
+  }
+  if (log.action === 'member_removed') {
+    return log.metadata?.source === 'server_changed'
+      ? `Персонаж ${characterName} исключён из КП из-за смены сервера.`
+      : `Персонаж ${characterName} исключён из КП.`;
   }
   return log.item_name;
 }
@@ -108,10 +155,23 @@ function formatTime(value: string) {
         <History class="size-4" />
       </span>
       <div>
-        <h2 class="font-semibold">Журнал хранилища</h2>
-        <p class="text-sm text-muted-foreground">История действий с предметами</p>
+        <h2 class="font-semibold">Журнал КП</h2>
+        <p class="text-sm text-muted-foreground">Последние действия участников</p>
       </div>
     </header>
+
+    <div class="grid gap-2 border-b px-4 py-3 sm:grid-cols-[15rem_12rem] sm:px-5">
+      <DateRangePicker
+        :model-value="dateRange"
+        @update:model-value="emit('update:dateRange', $event)"
+      />
+      <Select
+        :model-value="sort"
+        :options="sortOptions"
+        trigger-class="w-full"
+        @update:model-value="emit('update:sort', $event as 'asc' | 'desc')"
+      />
+    </div>
 
     <div
       v-if="logs.length === 0 && loading"
@@ -123,9 +183,12 @@ function formatTime(value: string) {
       v-else-if="logs.length === 0"
       class="px-4 py-12 text-center text-sm text-muted-foreground"
     >
-      Действий с хранилищем пока нет.
+      Действий за выбранный период нет.
     </div>
-    <div v-else>
+    <div
+      v-else
+      :class="{ 'opacity-60': loading }"
+    >
       <article
         v-for="log in logs"
         :key="log.id"
@@ -172,18 +235,35 @@ function formatTime(value: string) {
       </article>
     </div>
 
-    <div
-      v-if="hasMore || (loading && logs.length > 0)"
-      class="flex justify-center border-t p-4"
+    <footer
+      v-if="lastPage > 1"
+      class="flex items-center justify-center gap-3 border-t px-4 py-3"
     >
       <Button
         type="button"
         variant="outline"
-        :disabled="loading"
-        @click="emit('load-more')"
+        size="icon"
+        :disabled="loading || currentPage <= 1"
+        title="Предыдущая страница"
+        aria-label="Предыдущая страница"
+        @click="emit('page-change', currentPage - 1)"
       >
-        {{ loading ? 'Загрузка...' : 'Показать ещё' }}
+        <ChevronLeft class="size-4" />
       </Button>
-    </div>
+      <span class="min-w-20 text-center text-sm text-muted-foreground">
+        {{ currentPage }} из {{ lastPage }}
+      </span>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        :disabled="loading || currentPage >= lastPage"
+        title="Следующая страница"
+        aria-label="Следующая страница"
+        @click="emit('page-change', currentPage + 1)"
+      >
+        <ChevronRight class="size-4" />
+      </Button>
+    </footer>
   </section>
 </template>

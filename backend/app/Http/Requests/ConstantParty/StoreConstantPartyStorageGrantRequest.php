@@ -35,6 +35,7 @@ class StoreConstantPartyStorageGrantRequest extends FormRequest
                 'integer',
                 Rule::exists('constant_party_members', 'character_id')->where('constant_party_id', $constantParty->id),
             ],
+            'quantity' => ['required', 'integer', 'min:1', 'max:1000000000'],
             'reason' => ['nullable', 'string', 'max:1000'],
             'granted_at' => ['nullable', 'date'],
         ];

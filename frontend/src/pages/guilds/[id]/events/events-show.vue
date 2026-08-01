@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BackIconButton } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import {
   eventHistoryApi,
   type EventHistoryItem,

@@ -19,6 +19,7 @@ class ConstantPartyStorageGrantResource extends JsonResource
             'item_id' => $this->item_id,
             'received_by_character_id' => $this->received_by_character_id,
             'granted_by_character_id' => $this->granted_by_character_id,
+            'quantity' => (int) $this->quantity,
             'reason' => $this->reason,
             'granted_at' => $this->granted_at?->toIso8601String(),
             'item' => $this->whenLoaded('item', fn () => new ConstantPartyStorageItemResource($this->item)),

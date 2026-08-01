@@ -13,13 +13,17 @@ class ConstantPartyStorageItemGrant extends Model
         'item_id',
         'received_by_character_id',
         'granted_by_character_id',
+        'quantity',
         'reason',
         'granted_at',
     ];
 
     protected function casts(): array
     {
-        return ['granted_at' => 'datetime'];
+        return [
+            'quantity' => 'integer',
+            'granted_at' => 'datetime',
+        ];
     }
 
     public function constantParty(): BelongsTo

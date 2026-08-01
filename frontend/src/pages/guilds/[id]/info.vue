@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Button, Card, CardContent, Badge, BackIconButton } from '@/shared/ui';
+import { Button, Card, CardContent, Badge } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import { guildsApi, type Guild } from '@/shared/api/guildsApi';
 import { ref, computed, watch, onServerPrefetch } from 'vue';

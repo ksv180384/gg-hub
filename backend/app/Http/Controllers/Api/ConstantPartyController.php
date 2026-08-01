@@ -12,9 +12,13 @@ use App\Http\Resources\ConstantParty\ConstantPartyMemberResource;
 use App\Http\Resources\ConstantParty\ConstantPartyResource;
 use App\Services\SubdomainContext;
 use Domains\Character\Models\Character;
+use Domains\ConstantParty\Actions\DissolveConstantPartyAction;
+use Domains\ConstantParty\Actions\NotifyConstantPartyMembershipChangedAction;
+use Domains\ConstantParty\Actions\RecordConstantPartyMembershipLogAction;
 use Domains\ConstantParty\Models\ConstantParty;
 use Domains\ConstantParty\Models\ConstantPartyInvitation;
 use Domains\ConstantParty\Models\ConstantPartyMember;
+use Domains\ConstantParty\Models\ConstantPartyStorageLog;
 use Domains\Notification\Models\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +30,9 @@ class ConstantPartyController extends Controller
 {
     public function __construct(
         private SubdomainContext $subdomainContext,
+        private DissolveConstantPartyAction $dissolveConstantParty,
+        private RecordConstantPartyMembershipLogAction $recordMembershipLog,
+        private NotifyConstantPartyMembershipChangedAction $notifyMembershipChanged,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -116,6 +123,14 @@ class ConstantPartyController extends Controller
                 'joined_at' => now(),
             ]);
 
+            ($this->recordMembershipLog)(
+                $party,
+                ConstantPartyStorageLog::ACTION_MEMBER_JOINED,
+                $leader->id,
+                $leader->id,
+                ['source' => 'party_created'],
+            );
+
             return $party;
         });
 
@@ -155,6 +170,14 @@ class ConstantPartyController extends Controller
         return new ConstantPartyResource($constantParty);
     }
 
+    public function destroy(Request $request, ConstantParty $constantParty): Response
+    {
+        $leader = $this->ensureLeader($constantParty, $request->user()->id);
+        ($this->dissolveConstantParty)($constantParty, $leader);
+
+        return response()->noContent();
+    }
+
     public function updateMember(
         UpdateConstantPartyMemberRequest $request,
         ConstantParty $constantParty,
@@ -176,14 +199,44 @@ class ConstantPartyController extends Controller
 
     public function destroyMember(Request $request, ConstantParty $constantParty, ConstantPartyMember $member): Response
     {
-        $this->ensureLeader($constantParty, $request->user()->id);
         $this->ensureMemberBelongsToParty($constantParty, $member);
+        $member->loadMissing('character');
+        $isSelfLeave = (int) $member->character->user_id === (int) $request->user()->id;
+        $actor = $isSelfLeave
+            ? $member
+            : $this->ensureMember($constantParty, $request->user()->id);
+        $actor->loadMissing('character');
 
+        if (! $isSelfLeave && $actor->role !== ConstantPartyMember::ROLE_LEADER) {
+            abort(403);
+        }
         if ($member->role === ConstantPartyMember::ROLE_LEADER) {
-            abort(422, 'Нельзя исключить лидера КП.');
+            abort(422, 'Лидер должен передать лидерство перед выходом из КП.');
         }
 
-        $member->delete();
+        $recipientUserIds = $this->notifyMembershipChanged->recipientUserIds($constantParty);
+
+        DB::transaction(function () use ($actor, $constantParty, $isSelfLeave, $member, $recipientUserIds): void {
+            $action = $isSelfLeave
+                ? ConstantPartyStorageLog::ACTION_MEMBER_LEFT
+                : ConstantPartyStorageLog::ACTION_MEMBER_REMOVED;
+            ($this->recordMembershipLog)(
+                $constantParty,
+                $action,
+                $actor->character_id,
+                $member->character_id,
+                ['source' => $isSelfLeave ? 'self_leave' : 'leader_removed'],
+            );
+            ($this->notifyMembershipChanged)(
+                $constantParty,
+                $action,
+                $member->character,
+                $actor->character,
+                $recipientUserIds,
+                $isSelfLeave ? 'self_leave' : 'leader_removed',
+            );
+            $member->delete();
+        });
 
         return response()->noContent();
     }
@@ -399,16 +452,27 @@ class ConstantPartyController extends Controller
                 'joined_at' => now(),
             ]);
 
+            ($this->recordMembershipLog)(
+                $invitation->constantParty,
+                ConstantPartyStorageLog::ACTION_MEMBER_JOINED,
+                $invitation->invited_character_id,
+                $invitation->invited_character_id,
+                ['source' => 'invitation'],
+            );
+
+            ($this->notifyMembershipChanged)(
+                $invitation->constantParty,
+                ConstantPartyStorageLog::ACTION_MEMBER_JOINED,
+                $invitation->invitedCharacter,
+                $invitation->invitedByCharacter,
+                source: 'invitation',
+            );
+
             $invitation->update([
                 'status' => ConstantPartyInvitation::STATUS_ACCEPTED,
                 'responded_at' => now(),
             ]);
 
-            Notification::query()->create([
-                'user_id' => $invitation->invitedByCharacter->user_id,
-                'message' => "Персонаж {$invitation->invitedCharacter->name} принял приглашение в КП «{$invitation->constantParty->name}».",
-                'link' => "/constant-parties/{$invitation->constant_party_id}",
-            ]);
         });
 
         $invitation->load(['constantParty.leader', 'invitedCharacter', 'invitedByCharacter']);

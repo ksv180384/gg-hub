@@ -116,6 +116,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/constant-parties', [ConstantPartyController::class, 'index']);
     Route::post('/constant-parties', [ConstantPartyController::class, 'store']);
     Route::get('/constant-parties/{constant_party}', [ConstantPartyController::class, 'show']);
+    Route::delete('/constant-parties/{constant_party}', [ConstantPartyController::class, 'destroy']);
     Route::patch('/constant-parties/{constant_party}/members/{member}', [ConstantPartyController::class, 'updateMember']);
     Route::post('/constant-parties/{constant_party}/members/{member}/transfer-leadership', [ConstantPartyController::class, 'transferLeadership']);
     Route::delete('/constant-parties/{constant_party}/members/{member}', [ConstantPartyController::class, 'destroyMember']);

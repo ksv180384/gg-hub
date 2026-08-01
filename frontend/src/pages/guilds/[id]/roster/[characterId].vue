@@ -2,7 +2,9 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { watchDebounced } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Select, TagAddCombobox, BackIconButton } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Select } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
+import TagAddCombobox from '@/shared/ui/tag-add-combobox/TagAddCombobox.vue';
 import type { SelectOption } from '@/shared/ui';
 import Avatar from '@/shared/ui/avatar/Avatar.vue';
 import Badge from '@/shared/ui/badge/Badge.vue';

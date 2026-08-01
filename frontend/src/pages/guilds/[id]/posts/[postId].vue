@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Button, BackIconButton } from '@/shared/ui';
+import { Button } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import PostCardFull from '@/shared/ui/post/PostCardFull.vue';
 import PostComments from './PostComments.vue';
 import type { ApiError } from '@/shared/api/errors';
@@ -234,7 +235,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container py-6 md:py-8 overflow-x-hidden">
+  <div class="container py-6 md:py-8 overflow-x-clip">
     <!-- Mobile: одна плавающая кнопка справа -->
     <div class="fixed top-[100px] right-8 z-30 md:hidden">
       <BackIconButton

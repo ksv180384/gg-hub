@@ -6,7 +6,6 @@ import {
   Input,
   Label,
   Badge,
-  TagAddCombobox,
   SelectRoot,
   SelectTrigger,
   SelectValue,
@@ -14,6 +13,7 @@ import {
   SelectItem,
   Tooltip,
 } from '@/shared/ui';
+import TagAddCombobox from '@/shared/ui/tag-add-combobox/TagAddCombobox.vue';
 import type { Tag } from '@/shared/api/tagsApi';
 import type { GuildRosterMember } from '@/shared/api/guildsApi';
 

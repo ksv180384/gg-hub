@@ -3,7 +3,6 @@ import { ref, computed, onMounted, watch, onServerPrefetch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  BackIconButton,
   Card,
   CardContent,
   CardHeader,
@@ -14,6 +13,7 @@ import {
   Select,
   Spinner,
 } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import type { SelectOption } from '@/shared/ui';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import { guildsApi, type GuildApplicationFormData } from '@/shared/api/guildsApi';

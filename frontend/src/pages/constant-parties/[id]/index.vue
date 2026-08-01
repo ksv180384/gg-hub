@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import type { DateRange } from 'radix-vue';
 import {
   Crown,
   Gift,
   KeyRound,
+  LogOut,
   MoreHorizontal,
   PackagePlus,
   Pencil,
+  Trash2,
   UserMinus,
 } from '@lucide/vue';
 import {
@@ -42,6 +44,7 @@ import {
   type ConstantPartyStorageLog,
 } from '@/shared/api/constantPartiesApi';
 import { useSiteContextStore } from '@/stores/siteContext';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import AddStorageItemDialog from './AddStorageItemDialog.vue';
 import EditStorageItemDialog from './EditStorageItemDialog.vue';
@@ -50,6 +53,7 @@ import InviteCharacterDialog from './InviteCharacterDialog.vue';
 import StorageLogsTab from './StorageLogsTab.vue';
 
 const route = useRoute();
+const router = useRouter();
 const siteContext = useSiteContextStore();
 const partyId = computed(() => Number(route.params.id));
 const party = ref<ConstantParty | null>(null);
@@ -58,8 +62,13 @@ const messages = ref<ConstantPartyChatMessage[]>([]);
 const storageItems = ref<ConstantPartyStorageItem[]>([]);
 const storageLogs = ref<ConstantPartyStorageLog[]>([]);
 const storageLogsLoading = ref(false);
-const storageLogsPage = ref(0);
+const storageLogsPage = ref(1);
 const storageLogsLastPage = ref(1);
+const storageLogsSort = ref<'asc' | 'desc'>('desc');
+const storageLogsDateRange = shallowRef<DateRange>({
+  start: undefined,
+  end: undefined,
+});
 const addStorageItemDialogOpen = ref(false);
 const addStorageItemSaving = ref(false);
 const grantStorageItemDialogOpen = ref(false);
@@ -82,6 +91,7 @@ const inviteMessage = ref('');
 let inviteSearchTimer: ReturnType<typeof setTimeout> | null = null;
 let inviteSearchRequestId = 0;
 let historyRequestId = 0;
+let storageLogsRequestId = 0;
 const chatBody = ref('');
 const storageContext = ref({ can_manage_storage: false, my_member_id: 0, my_character_id: 0 });
 const rosterFilter = ref<'all' | 'active' | 'inactive'>('active');
@@ -92,6 +102,8 @@ const historyDateRange = shallowRef<DateRange>({
 });
 const historyDateFrom = computed(() => historyDateRange.value.start?.toString() ?? '');
 const historyDateTo = computed(() => historyDateRange.value.end?.toString() ?? '');
+const storageLogsDateFrom = computed(() => storageLogsDateRange.value.start?.toString() ?? '');
+const storageLogsDateTo = computed(() => storageLogsDateRange.value.end?.toString() ?? '');
 const visibleGrantCount = ref(5);
 type InvitationStatusFilter = 'all' | ConstantPartyInvitation['status'];
 
@@ -113,6 +125,9 @@ type RosterCharacter = {
 const memberActionLoading = ref(false);
 const transferLeadershipTarget = ref<RosterCharacter | null>(null);
 const removeMemberTarget = ref<RosterCharacter | null>(null);
+const leavePartyDialogOpen = ref(false);
+const dissolvePartyDialogOpen = ref(false);
+const dissolvePartyLoading = ref(false);
 
 const myMember = computed(() => party.value?.my_member ?? null);
 const canManageStorage = computed(() => storageContext.value.can_manage_storage || myMember.value?.role === 'leader');
@@ -171,7 +186,10 @@ const filteredCharacterGrants = computed(() => {
   });
 });
 const visibleCharacterGrants = computed(() => filteredCharacterGrants.value.slice(0, visibleGrantCount.value));
-const storageLogsHasMore = computed(() => storageLogsPage.value < storageLogsLastPage.value);
+const totalCharacterGrantQuantity = computed(() => characterGrants.value.reduce(
+  (total, grant) => total + grant.quantity,
+  0,
+));
 const invitationStatusOptions: SelectOption[] = [
   { value: 'all', label: 'Все статусы' },
   { value: 'pending', label: 'Ожидает ответа' },
@@ -240,31 +258,39 @@ async function loadStorage() {
   storageItems.value = await constantPartiesApi.listStorageItems(partyId.value);
 }
 
-async function loadStorageLogs(reset = false) {
-  if (storageLogsLoading.value) return;
-  if (!reset && storageLogsPage.value >= storageLogsLastPage.value) return;
-
+async function loadStorageLogs(page = 1) {
+  const requestId = ++storageLogsRequestId;
   storageLogsLoading.value = true;
   error.value = null;
   try {
-    const page = reset ? 1 : storageLogsPage.value + 1;
-    const result = await constantPartiesApi.listStorageLogs(partyId.value, page);
-    storageLogs.value = reset
-      ? result.logs
-      : [...storageLogs.value, ...result.logs];
-    storageLogsPage.value = result.currentPage;
-    storageLogsLastPage.value = result.lastPage;
+    const result = await constantPartiesApi.listStorageLogs(partyId.value, {
+      page,
+      dateFrom: storageLogsDateFrom.value || undefined,
+      dateTo: storageLogsDateTo.value || undefined,
+      sort: storageLogsSort.value,
+    });
+    if (requestId === storageLogsRequestId) {
+      storageLogs.value = result.logs;
+      storageLogsPage.value = result.currentPage;
+      storageLogsLastPage.value = result.lastPage;
+    }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось загрузить журнал хранилища.';
+    if (requestId === storageLogsRequestId) {
+      error.value = e instanceof Error ? e.message : 'Не удалось загрузить журнал КП.';
+    }
   } finally {
-    storageLogsLoading.value = false;
+    if (requestId === storageLogsRequestId) {
+      storageLogsLoading.value = false;
+    }
   }
 }
 
 function invalidateStorageLogs() {
+  storageLogsRequestId += 1;
   storageLogs.value = [];
-  storageLogsPage.value = 0;
+  storageLogsPage.value = 1;
   storageLogsLastPage.value = 1;
+  storageLogsLoading.value = false;
 }
 
 async function loadFormerMembers() {
@@ -427,6 +453,38 @@ async function confirmRemoveMember() {
   }
 }
 
+async function confirmLeaveParty() {
+  if (!myMember.value || myMember.value.role === 'leader') return;
+
+  memberActionLoading.value = true;
+  error.value = null;
+  try {
+    await constantPartiesApi.deleteMember(partyId.value, myMember.value.id);
+    leavePartyDialogOpen.value = false;
+    await router.push('/my-constant-parties');
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось покинуть КП.';
+  } finally {
+    memberActionLoading.value = false;
+  }
+}
+
+
+async function confirmDissolveParty() {
+  if (!isCurrentUserLeader.value) return;
+
+  dissolvePartyLoading.value = true;
+  error.value = null;
+  try {
+    await constantPartiesApi.deleteParty(partyId.value);
+    dissolvePartyDialogOpen.value = false;
+    await router.push('/my-constant-parties');
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось распустить КП.';
+  } finally {
+    dissolvePartyLoading.value = false;
+  }
+}
 
 async function sendMessage() {
   if (!myCharacterId.value || !chatBody.value.trim()) return;
@@ -506,6 +564,7 @@ async function saveStorageItem(payload: { name: string; quantity: number | null 
 async function grantItem(payload: {
   itemId: number;
   characterId: number;
+  quantity: number;
   reason: string | null;
 }) {
   if (!canManageStorage.value || !myCharacterId.value) return;
@@ -517,6 +576,7 @@ async function grantItem(payload: {
       item_id: payload.itemId,
       received_by_character_id: payload.characterId,
       granted_by_character_id: myCharacterId.value,
+      quantity: payload.quantity,
       reason: payload.reason,
     });
     grantStorageItemDialogOpen.value = false;
@@ -568,9 +628,18 @@ onMounted(load);
 
 watch(activeTab, (tab) => {
   if (tab === 'logs' && storageLogs.value.length === 0) {
-    void loadStorageLogs(true);
+    void loadStorageLogs(1);
   }
 });
+
+watch(
+  [storageLogsDateFrom, storageLogsDateTo, storageLogsSort],
+  () => {
+    if (activeTab.value === 'logs') {
+      void loadStorageLogs(1);
+    }
+  },
+);
 
 watch(
   [historySearch, historyDateFrom, historyDateTo],
@@ -591,14 +660,59 @@ watch(inviteQuery, () => {
 
 <template>
   <div>
-    <div class="mx-auto max-w-7xl">
+    <div class="fixed right-8 top-[100px] z-30 md:hidden">
+      <BackIconButton
+        aria-label="Назад"
+        title="Назад"
+        @click="router.back()"
+      />
+    </div>
+
+    <div class="relative mx-auto flex max-w-7xl md:gap-3">
+      <div class="sticky top-[100px] z-30 hidden h-9 shrink-0 self-start md:block">
+        <BackIconButton
+          aria-label="Назад"
+          title="Назад"
+          @click="router.back()"
+        />
+      </div>
+
+      <div class="min-w-0 flex-1">
       <div v-if="loading" class="flex justify-center py-10">
         <Spinner class="h-8 w-8" />
       </div>
 
       <template v-else-if="party">
-        <div class="mb-5">
-          <h1 class="text-2xl font-bold tracking-tight">{{ party.name }}</h1>
+        <div class="mb-5 flex items-center justify-between gap-3">
+          <h1 class="min-w-0 truncate text-2xl font-bold tracking-tight">
+            {{ party.name }}
+          </h1>
+          <Button
+            v-if="isCurrentUserLeader"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="shrink-0 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            :disabled="dissolvePartyLoading"
+            title="Распустить КП"
+            @click="dissolvePartyDialogOpen = true"
+          >
+            <Trash2 class="size-4" />
+            <span class="hidden sm:inline">Распустить КП</span>
+          </Button>
+          <Button
+            v-else-if="myMember && myMember.role !== 'leader'"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="shrink-0 gap-2 text-destructive hover:text-destructive"
+            :disabled="memberActionLoading"
+            title="Покинуть КП"
+            @click="leavePartyDialogOpen = true"
+          >
+            <LogOut class="size-4" />
+            <span class="hidden sm:inline">Покинуть КП</span>
+          </Button>
         </div>
 
         <div v-if="error" class="mb-4 rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -615,9 +729,6 @@ watch(inviteQuery, () => {
           <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'storage' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'storage'">
             Хранилище
           </button>
-          <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'logs' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'logs'">
-            Логи
-          </button>
           <button
             v-if="canManageStorage"
             type="button"
@@ -630,6 +741,9 @@ watch(inviteQuery, () => {
             @click="activeTab = 'invitations'"
           >
             Приглашения
+          </button>
+          <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'logs' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'logs'">
+            Логи
           </button>
         </div>
 
@@ -857,13 +971,14 @@ watch(inviteQuery, () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
               </div>
 
               <div class="rounded-lg border bg-background">
                 <div class="px-5 pb-3 pt-5">
                   <h2 class="text-base font-semibold">История полученных предметов</h2>
                   <p class="mt-2 text-sm text-muted-foreground">
-                    Всего предметов: {{ characterGrants.length }}
+                    Всего предметов: {{ totalCharacterGrantQuantity }}
                   </p>
                 </div>
 
@@ -931,7 +1046,7 @@ watch(inviteQuery, () => {
                               {{ grant.reason }}
                             </p>
                           </TableCell>
-                          <TableCell class="break-words px-1 py-4 align-top">1</TableCell>
+                          <TableCell class="break-words px-1 py-4 align-top">{{ grant.quantity }}</TableCell>
                           <TableCell class="break-words px-1 py-4 align-top">
                             {{ grant.granted_by_character?.name ?? 'Персонаж' }}
                           </TableCell>
@@ -1017,6 +1132,39 @@ watch(inviteQuery, () => {
             "
             @confirm="confirmRemoveMember"
           />
+
+          <ConfirmDialog
+            v-model:open="leavePartyDialogOpen"
+            title="Покинуть КП?"
+            description="Вы покинете состав КП. История полученных предметов сохранится."
+            confirm-label="Покинуть"
+            confirm-variant="destructive"
+            :loading="memberActionLoading"
+            @confirm="confirmLeaveParty"
+          />
+
+          <ConfirmDialog
+            v-model:open="dissolvePartyDialogOpen"
+            title="Распустить КП?"
+            confirm-label="Распустить навсегда"
+            confirm-variant="destructive"
+            :loading="dissolvePartyLoading"
+            @confirm="confirmDissolveParty"
+          >
+            <template #description>
+              <div class="space-y-3">
+                <p>
+                  КП «{{ party.name }}» будет распущена, а все участники получат уведомление.
+                </p>
+                <p>
+                  Будут навсегда удалены состав и бывшие участники, приглашения, чат, все предметы и остатки хранилища, история выдач и журнал действий.
+                </p>
+                <p class="font-medium text-destructive">
+                  Это действие нельзя отменить, а данные невозможно восстановить.
+                </p>
+              </div>
+            </template>
+          </ConfirmDialog>
         </section>
 
         <section
@@ -1076,10 +1224,13 @@ watch(inviteQuery, () => {
 
         <StorageLogsTab
           v-else-if="activeTab === 'logs'"
+          v-model:date-range="storageLogsDateRange"
+          v-model:sort="storageLogsSort"
           :logs="storageLogs"
           :loading="storageLogsLoading"
-          :has-more="storageLogsHasMore"
-          @load-more="loadStorageLogs()"
+          :current-page="storageLogsPage"
+          :last-page="storageLogsLastPage"
+          @page-change="loadStorageLogs"
         />
 
         <section v-else-if="activeTab === 'chat'" class="space-y-4">
@@ -1194,6 +1345,7 @@ watch(inviteQuery, () => {
       <div v-else class="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
         {{ error ?? 'Конст пати не найдена.' }}
       </div>
+    </div>
     </div>
   </div>
 </template>

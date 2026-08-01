@@ -11,8 +11,8 @@ import {
   SelectRoot,
   SelectTrigger,
   SelectValue,
-  TagAddCombobox,
 } from '@/shared/ui';
+import TagAddCombobox from '@/shared/ui/tag-add-combobox/TagAddCombobox.vue';
 import { storageImageUrl } from '@/shared/lib/storageImageUrl';
 import type { Game, GameClass, Localization, Server } from '@/shared/api/gamesApi';
 import {

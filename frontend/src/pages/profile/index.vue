@@ -8,8 +8,8 @@ import {
   CardContent,
   Input,
   Label,
-  TimezoneSelect,
 } from '@/shared/ui';
+import TimezoneSelect from '@/shared/ui/timezone-select/TimezoneSelect.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 import type { ThemePreference } from '@/shared/lib/themePreference';

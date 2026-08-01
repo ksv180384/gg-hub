@@ -15,7 +15,6 @@ export function attachHttpResponseInterceptor(
   axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
-      const { http } = await import('@/shared/api/http');
       if (error.response?.status === 419) {
         if (import.meta.env.SSR) {
           return Promise.reject(error);

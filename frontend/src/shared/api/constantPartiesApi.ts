@@ -92,6 +92,7 @@ export type ConstantPartyStorageGrant = {
   item_id: number;
   received_by_character_id: number;
   granted_by_character_id: number;
+  quantity: number;
   reason: string | null;
   granted_at: string | null;
   item?: ConstantPartyStorageItem;
@@ -111,7 +112,10 @@ export type ConstantPartyStorageLog = {
     | 'item_renamed'
     | 'quantity_changed'
     | 'item_granted'
-    | 'grant_revoked';
+    | 'grant_revoked'
+    | 'member_joined'
+    | 'member_left'
+    | 'member_removed';
   item_name: string;
   actor_character_name: string;
   recipient_character_name: string | null;
@@ -197,6 +201,11 @@ export const constantPartiesApi = {
     return res.data?.data ?? ({} as ConstantPartyMember);
   },
 
+  async deleteParty(partyId: number): Promise<void> {
+    const res = await http.fetchDelete(`/constant-parties/${partyId}`);
+    throwOnError(res, 'Не удалось распустить КП.');
+  },
+
   async deleteMember(partyId: number, memberId: number): Promise<void> {
     const res = await http.fetchDelete(`/constant-parties/${partyId}/members/${memberId}`);
     throwOnError(res, 'Не удалось исключить участника.');
@@ -237,19 +246,32 @@ export const constantPartiesApi = {
     return res.data?.data ?? [];
   },
 
-  async listStorageLogs(partyId: number, page = 1): Promise<{
+  async listStorageLogs(partyId: number, options: {
+    page?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    sort?: 'asc' | 'desc';
+  } = {}): Promise<{
     logs: ConstantPartyStorageLog[];
     currentPage: number;
     lastPage: number;
   }> {
+    const page = options.page ?? 1;
+    const params = new URLSearchParams({
+      page: String(page),
+      sort: options.sort ?? 'desc',
+    });
+    if (options.dateFrom) params.set('date_from', options.dateFrom);
+    if (options.dateTo) params.set('date_to', options.dateTo);
+
     const res = await http.fetchGet<{
       data: ConstantPartyStorageLog[];
       meta?: {
         current_page?: number;
         last_page?: number;
       };
-    }>(`/constant-parties/${partyId}/storage/logs?page=${page}`);
-    throwOnError(res, 'Не удалось загрузить журнал хранилища.');
+    }>(`/constant-parties/${partyId}/storage/logs?${params.toString()}`);
+    throwOnError(res, 'Не удалось загрузить журнал КП.');
 
     return {
       logs: res.data?.data ?? [],
@@ -310,6 +332,7 @@ export const constantPartiesApi = {
     item_id: number;
     received_by_character_id: number;
     granted_by_character_id: number;
+    quantity: number;
     reason?: string | null;
   }): Promise<ConstantPartyStorageGrant> {
     const res = await http.fetchPost<ConstantPartyStorageGrant>(`/constant-parties/${partyId}/storage/grants`, payload);

@@ -22,7 +22,7 @@ it('returns compact catalog for games', function () {
         'is_active' => false,
     ]);
 
-    $res = $this->getJson('/api/games/catalog');
+    $res = $this->getJson('/api/v1/games/catalog');
 
     $res->assertOk();
     $res->assertJsonCount(1, 'data');

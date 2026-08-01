@@ -22,6 +22,12 @@ class ConstantPartyStorageLog extends Model
 
     public const ACTION_GRANT_REVOKED = 'grant_revoked';
 
+    public const ACTION_MEMBER_JOINED = 'member_joined';
+
+    public const ACTION_MEMBER_LEFT = 'member_left';
+
+    public const ACTION_MEMBER_REMOVED = 'member_removed';
+
     protected $fillable = [
         'constant_party_id',
         'item_id',

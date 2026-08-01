@@ -114,12 +114,27 @@ class ConstantPartyStorageController extends Controller
     public function logs(Request $request, ConstantParty $constantParty): AnonymousResourceCollection
     {
         $this->ensureMember($constantParty, $request->user()->id);
+        $filters = $request->validate([
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'sort' => ['nullable', 'in:asc,desc'],
+        ]);
+        $sort = $filters['sort'] ?? 'desc';
 
         $logs = ConstantPartyStorageLog::query()
             ->where('constant_party_id', $constantParty->id)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->paginate(30);
+            ->when(
+                $filters['date_from'] ?? null,
+                fn ($query, $date) => $query->whereDate('created_at', '>=', $date),
+            )
+            ->when(
+                $filters['date_to'] ?? null,
+                fn ($query, $date) => $query->whereDate('created_at', '<=', $date),
+            )
+            ->orderBy('created_at', $sort)
+            ->orderBy('id', $sort)
+            ->paginate(50)
+            ->withQueryString();
 
         return ConstantPartyStorageLogResource::collection($logs);
     }
@@ -316,7 +331,8 @@ class ConstantPartyStorageController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($item->quantity !== null && (int) $item->quantity <= 0) {
+            $grantQuantity = (int) $data['quantity'];
+            if ($item->quantity !== null && (int) $item->quantity < $grantQuantity) {
                 abort(422, 'Недостаточно предметов на складе для выдачи.');
             }
 
@@ -326,12 +342,13 @@ class ConstantPartyStorageController extends Controller
                 'item_id' => $item->id,
                 'received_by_character_id' => $recipientCharacterId,
                 'granted_by_character_id' => $actorCharacterId,
+                'quantity' => $grantQuantity,
                 'reason' => isset($data['reason']) ? trim((string) $data['reason']) : null,
                 'granted_at' => $data['granted_at'] ?? now(),
             ]);
 
             if ($item->quantity !== null) {
-                $item->quantity = max(0, (int) $item->quantity - 1);
+                $item->quantity = (int) $item->quantity - $grantQuantity;
                 $item->save();
             }
 
@@ -345,6 +362,7 @@ class ConstantPartyStorageController extends Controller
                 newValue: ['quantity' => $item->quantity],
                 metadata: [
                     'grant_id' => $grant->id,
+                    'quantity' => $grantQuantity,
                     'reason' => $grant->reason,
                 ],
             );
@@ -369,7 +387,7 @@ class ConstantPartyStorageController extends Controller
             $item = ConstantPartyStorageItem::query()->whereKey($grant->item_id)->lockForUpdate()->firstOrFail();
             $oldQuantity = $item->quantity;
             if ($item->quantity !== null) {
-                $item->quantity = (int) $item->quantity + 1;
+                $item->quantity = (int) $item->quantity + (int) $grant->quantity;
                 $item->save();
             }
 
@@ -383,6 +401,7 @@ class ConstantPartyStorageController extends Controller
                 newValue: ['quantity' => $item->quantity],
                 metadata: [
                     'grant_id' => $grant->id,
+                    'quantity' => (int) $grant->quantity,
                     'reason' => $grant->reason,
                 ],
             );

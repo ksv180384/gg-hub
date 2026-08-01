@@ -33,12 +33,14 @@ const emit = defineEmits<{
   (event: 'save', payload: {
     itemId: number;
     characterId: number;
+    quantity: number;
     reason: string | null;
   }): void;
 }>();
 
 const itemId = ref<number | null>(null);
 const characterId = ref<number | null>(null);
+const quantity = ref('1');
 const reason = ref('');
 
 const itemOptions = computed(() => props.items.map((item) => ({
@@ -51,10 +53,15 @@ const memberOptions = computed(() => props.members.map((member) => ({
   label: member.character?.name ?? 'Персонаж',
 })));
 const selectedItem = computed(() => props.items.find((item) => item.id === itemId.value) ?? null);
+const quantityIsValid = computed(() => {
+  const value = Number(quantity.value);
+  if (!Number.isInteger(value) || value < 1 || value > 1_000_000_000) return false;
+  return selectedItem.value?.quantity === null || value <= (selectedItem.value?.quantity ?? 0);
+});
 const canSave = computed(() => (
   itemId.value !== null
   && characterId.value !== null
-  && selectedItem.value?.quantity !== 0
+  && quantityIsValid.value
   && !props.saving
 ));
 
@@ -64,6 +71,7 @@ watch(
     if (!open) return;
     itemId.value = null;
     characterId.value = null;
+    quantity.value = '1';
     reason.value = '';
   },
 );
@@ -78,6 +86,7 @@ function save() {
   emit('save', {
     itemId: itemId.value,
     characterId: characterId.value,
+    quantity: Number(quantity.value),
     reason: reason.value.trim() || null,
   });
 }
@@ -149,6 +158,27 @@ function save() {
                 empty-text="Персонажи не найдены"
                 aria-label="Получатель"
               />
+            </div>
+
+            <div class="space-y-1.5">
+              <Label for="constant-party-storage-grant-quantity">
+                Количество
+              </Label>
+              <Input
+                id="constant-party-storage-grant-quantity"
+                v-model="quantity"
+                type="number"
+                min="1"
+                :max="selectedItem?.quantity ?? 1000000000"
+                step="1"
+                required
+              />
+              <p
+                v-if="!quantityIsValid && itemId !== null"
+                class="text-xs text-destructive"
+              >
+                Укажите доступное количество предметов.
+              </p>
             </div>
 
             <div class="space-y-1.5">

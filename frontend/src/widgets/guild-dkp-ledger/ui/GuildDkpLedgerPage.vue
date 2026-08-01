@@ -2,7 +2,7 @@
 import { computed, reactive } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { Button, Input, Label, Select, Spinner, type SelectOption } from '@/shared/ui';
-import { BackIconButton } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import { ResponsiveFiltersToolbar } from '@/widgets/responsive-filters-toolbar';
 import { formatBankDateTime } from '@/features/guild-bank';
 import { formatLedgerDescription, formatLedgerSourceLabel, useGuildDkpLedger } from '@/features/guild-dkp';
