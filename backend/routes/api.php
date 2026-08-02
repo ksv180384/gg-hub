@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AdminTestingController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\ConstantPartyChatController;
+use App\Http\Controllers\Api\ConstantPartyChatSocketAuthController;
 use App\Http\Controllers\Api\ConstantPartyController;
 use App\Http\Controllers\Api\ConstantPartyStorageController;
 use App\Http\Controllers\Api\ContextController;
@@ -27,6 +28,8 @@ use App\Http\Controllers\Api\GuildApplicationFormFieldController;
 use App\Http\Controllers\Api\GuildAuctionController;
 use App\Http\Controllers\Api\GuildBankController;
 use App\Http\Controllers\Api\GuildController;
+use App\Http\Controllers\Api\GuildActivityLogController;
+use App\Http\Controllers\Api\GuildRouletteSocketController;
 use App\Http\Controllers\Api\GuildDkpController;
 use App\Http\Controllers\Api\GuildPollController;
 use App\Http\Controllers\Api\GuildPostCommentController;
@@ -45,6 +48,7 @@ use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRolePermissionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Middleware\EnsureConstantPartyChatEnabled;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +67,14 @@ Route::get('/php-info', function () {
 Route::get('/context', [ContextController::class, 'show']);
 
 Route::post('/email/resend-verification', [EmailVerificationController::class, 'resend']);
+
+Route::post('/constant-party-chat/socket-auth', ConstantPartyChatSocketAuthController::class)
+    ->middleware([EnsureConstantPartyChatEnabled::class, 'throttle:120,1']);
+
+Route::post('/guild-roulette/socket-auth', [GuildRouletteSocketController::class, 'authenticate'])
+    ->middleware('throttle:120,1');
+Route::post('/guild-roulette/audit', [GuildRouletteSocketController::class, 'audit'])
+    ->middleware('throttle:240,1');
 
 Route::post('/landing/cta-clicks', [LandingCtaClickController::class, 'store'])
     ->middleware('throttle:60,1');
@@ -126,9 +138,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/constant-parties/invitations/{invitation}/accept', [ConstantPartyController::class, 'acceptInvitation']);
     Route::post('/constant-parties/invitations/{invitation}/decline', [ConstantPartyController::class, 'declineInvitation']);
     Route::post('/constant-parties/{constant_party}/invitations/{invitation}/revoke', [ConstantPartyController::class, 'revokeInvitation']);
-    Route::get('/constant-parties/{constant_party}/chat/messages', [ConstantPartyChatController::class, 'index']);
-    Route::post('/constant-parties/{constant_party}/chat/messages', [ConstantPartyChatController::class, 'store']);
-    Route::delete('/constant-parties/{constant_party}/chat/messages/{message}', [ConstantPartyChatController::class, 'destroy']);
+    Route::middleware(EnsureConstantPartyChatEnabled::class)->group(function () {
+        Route::get('/constant-parties/{constant_party}/chat/messages', [ConstantPartyChatController::class, 'index']);
+        Route::post('/constant-parties/{constant_party}/chat/socket-token', [ConstantPartyChatController::class, 'socketToken']);
+        Route::post('/constant-parties/{constant_party}/chat/receipts/delivered', [ConstantPartyChatController::class, 'markDelivered']);
+        Route::post('/constant-parties/{constant_party}/chat/receipts/read', [ConstantPartyChatController::class, 'markRead']);
+        Route::post('/constant-parties/{constant_party}/chat/messages', [ConstantPartyChatController::class, 'store']);
+        Route::delete('/constant-parties/{constant_party}/chat/messages/{message}', [ConstantPartyChatController::class, 'destroy']);
+    });
     Route::get('/constant-parties/{constant_party}/storage/context', [ConstantPartyStorageController::class, 'context']);
     Route::get('/constant-parties/{constant_party}/storage/tiers', [ConstantPartyStorageController::class, 'tiers']);
     Route::post('/constant-parties/{constant_party}/storage/tiers', [ConstantPartyStorageController::class, 'storeTier']);
@@ -144,6 +161,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/constant-parties/{constant_party}/storage/items/{item}/grants', [ConstantPartyStorageController::class, 'itemGrants']);
     Route::post('/constant-parties/{constant_party}/storage/grants', [ConstantPartyStorageController::class, 'storeGrant']);
     Route::delete('/constant-parties/{constant_party}/storage/grants/{grant}', [ConstantPartyStorageController::class, 'revokeGrant']);
+
+    Route::post('/guilds/{guild}/roulette/socket-token', [GuildRouletteSocketController::class, 'token'])->middleware('guild.member');
 
     Route::get('/guilds/{guild}/events', [EventController::class, 'index'])->middleware('guild.member');
     Route::get('/guilds/{guild}/events/{event}', [EventController::class, 'show'])->middleware('guild.member');
@@ -194,6 +213,12 @@ Route::middleware(['auth'])->group(function () {
     Route::match(['put', 'patch'], '/guilds/{guild}/raids/{raid}', [RaidController::class, 'update'])->middleware('guild.member', 'guild.role.permission:formirovat-reidy');
     Route::delete('/guilds/{guild}/raids/{raid}', [RaidController::class, 'destroy'])->middleware('guild.member', 'guild.role.permission:udaliat-reidy');
     Route::put('/guilds/{guild}/raids/{raid}/composition', [RaidController::class, 'setComposition'])->middleware('guild.member', 'guild.role.permission:formirovat-reidy');
+    Route::get('/guilds/{guild}/raids/{raid}/descendant-users', [RaidController::class, 'descendantUsers'])->middleware('guild.member');
+    Route::match(['put', 'patch'], '/guilds/{guild}/raids/{raid}/recruitment', [RaidController::class, 'updateRecruitment'])->middleware('guild.member');
+    Route::get('/guilds/{guild}/raids/{raid}/applications', [RaidController::class, 'applications'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/raids/{raid}/applications', [RaidController::class, 'submitApplication'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/raids/{raid}/applications/{application}/accept', [RaidController::class, 'acceptApplication'])->middleware('guild.member');
+    Route::post('/guilds/{guild}/raids/{raid}/applications/{application}/reject', [RaidController::class, 'rejectApplication'])->middleware('guild.member');
 
     Route::get('/guilds/{guild}/roster', [GuildController::class, 'roster'])->middleware('guild.member');
     Route::get('/guilds/{guild}/roster/{character}', [GuildController::class, 'showRosterMember'])->middleware('guild.member');
@@ -203,6 +228,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guilds/{guild}/tags', [GuildController::class, 'storeTag'])->middleware('guild.member', 'guild.role.permission:dobavliat-teg-gildii');
     Route::delete('/guilds/{guild}/tags/{tag}', [GuildController::class, 'destroyTag'])->middleware('guild.member', 'guild.role.permission:udaliat-teg-gildii');
     Route::delete('/guilds/{guild}/members/{character}', [GuildController::class, 'excludeMember'])->middleware('guild.member', 'guild.role.permission:iskliucenie-polzovatelia-iz-gildii');
+    Route::get('/guilds/{guild}/activity', [GuildActivityLogController::class, 'index'])->middleware('guild.member');
     Route::get('/guilds/{guild}/settings', [GuildController::class, 'settings'])->middleware('guild.member');
     Route::get('/guilds/{guild}/polls', [GuildPollController::class, 'index'])->middleware('guild.member');
     Route::get('/guilds/{guild}/polls/{poll}', [GuildPollController::class, 'show'])->middleware('guild.member');

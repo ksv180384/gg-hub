@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { DateRange } from 'radix-vue';
 import {
@@ -37,6 +37,7 @@ import {
   constantPartiesApi,
   type ConstantParty,
   type ConstantPartyChatMessage,
+  type ConstantPartyChatReceiptSummary,
   type ConstantPartyFormerMember,
   type ConstantPartyInvitation,
   type ConstantPartyStorageGrant,
@@ -44,6 +45,7 @@ import {
   type ConstantPartyStorageLog,
 } from '@/shared/api/constantPartiesApi';
 import { useSiteContextStore } from '@/stores/siteContext';
+import { useConstantPartyChatSocket } from '@/shared/lib/useConstantPartyChatSocket';
 import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import AddStorageItemDialog from './AddStorageItemDialog.vue';
@@ -52,6 +54,13 @@ import GrantStorageItemDialog from './GrantStorageItemDialog.vue';
 import InviteCharacterDialog from './InviteCharacterDialog.vue';
 import StorageLogsTab from './StorageLogsTab.vue';
 
+const constantPartyChatEnabled = ['1', 'true', 'yes', 'on'].includes(
+  String(import.meta.env.VITE_CONSTANT_PARTY_CHAT_ENABLED ?? '').toLowerCase(),
+);
+const constantPartyChatEnabledRef = computed(() => constantPartyChatEnabled);
+const ConstantPartyChatTab = defineAsyncComponent(
+  () => import('./ConstantPartyChatTab.vue'),
+);
 const route = useRoute();
 const router = useRouter();
 const siteContext = useSiteContextStore();
@@ -93,6 +102,8 @@ let inviteSearchRequestId = 0;
 let historyRequestId = 0;
 let storageLogsRequestId = 0;
 const chatBody = ref('');
+const chatLoading = ref(false);
+const chatSending = ref(false);
 const storageContext = ref({ can_manage_storage: false, my_member_id: 0, my_character_id: 0 });
 const rosterFilter = ref<'all' | 'active' | 'inactive'>('active');
 const historySearch = ref('');
@@ -203,6 +214,20 @@ const filteredInvitations = computed(() => invitations.value.filter((invitation)
   || invitation.status === invitationStatusFilter.value
 )));
 
+const {
+  connected: chatSocketConnected,
+  authenticated: chatSocketAuthenticated,
+  onlineCharacters: chatOnlineCharacters,
+} = useConstantPartyChatSocket({
+  enabled: constantPartyChatEnabledRef,
+  partyId,
+  characterId: myCharacterId,
+  getToken: getChatSocketToken,
+  onMessageCreated: onSocketMessageCreated,
+  onReceiptsChanged: applyReceiptSummaries,
+  onMessageDeleted: onSocketMessageDeleted,
+});
+
 function invitationStatusLabel(status: ConstantPartyInvitation['status']) {
   return invitationStatusOptions.find((option) => option.value === status)?.label ?? status;
 }
@@ -251,7 +276,15 @@ async function loadInvitations() {
 }
 
 async function loadMessages() {
-  messages.value = await constantPartiesApi.listMessages(partyId.value);
+  if (!constantPartyChatEnabled) return;
+
+  chatLoading.value = true;
+  try {
+    messages.value = await constantPartiesApi.listMessages(partyId.value);
+    void acknowledgeIncomingMessages(false);
+  } finally {
+    chatLoading.value = false;
+  }
 }
 
 async function loadStorage() {
@@ -486,17 +519,115 @@ async function confirmDissolveParty() {
   }
 }
 
-async function sendMessage() {
-  if (!myCharacterId.value || !chatBody.value.trim()) return;
+async function getChatSocketToken(): Promise<string> {
+  if (!myCharacterId.value) {
+    throw new Error('Персонаж КП не выбран.');
+  }
+
+  const result = await constantPartiesApi.createChatSocketToken(
+    partyId.value,
+    myCharacterId.value,
+  );
+  return result.token;
+}
+
+function upsertChatMessage(message: ConstantPartyChatMessage) {
+  const index = messages.value.findIndex((item) => item.id === message.id);
+  if (index === -1) {
+    messages.value = [...messages.value, message].sort((left, right) => (
+      new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
+    ));
+    return;
+  }
+
+  messages.value[index] = {
+    ...messages.value[index],
+    ...message,
+  };
+}
+
+function applyReceiptSummaries(summaries: ConstantPartyChatReceiptSummary[]) {
+  for (const summary of summaries) {
+    const message = messages.value.find((item) => item.id === summary.id);
+    if (!message) continue;
+    Object.assign(message, summary);
+  }
+}
+
+function chatIsReadable(): boolean {
+  return activeTab.value === 'chat'
+    && (typeof document === 'undefined' || document.visibilityState === 'visible');
+}
+
+async function acknowledgeIncomingMessages(
+  markRead: boolean,
+  messageIds?: number[],
+) {
+  if (!myCharacterId.value) return;
+
+  const allowedIds = messageIds ? new Set(messageIds) : null;
+  const incomingIds = messages.value
+    .filter((message) => (
+      message.character_id !== myCharacterId.value
+      && (!allowedIds || allowedIds.has(message.id))
+    ))
+    .map((message) => message.id)
+    .slice(-100);
+  if (incomingIds.length === 0) return;
+
   try {
-    await constantPartiesApi.sendMessage(partyId.value, {
+    const updated = markRead
+      ? await constantPartiesApi.markChatMessagesRead(
+          partyId.value,
+          myCharacterId.value,
+          incomingIds,
+        )
+      : await constantPartiesApi.markChatMessagesDelivered(
+          partyId.value,
+          myCharacterId.value,
+          incomingIds,
+        );
+    for (const message of updated) {
+      upsertChatMessage(message);
+    }
+  } catch {
+    // Receipts are best-effort and will be retried when the chat becomes visible.
+  }
+}
+
+function onSocketMessageCreated(message: ConstantPartyChatMessage) {
+  upsertChatMessage(message);
+  if (message.character_id !== myCharacterId.value) {
+    void acknowledgeIncomingMessages(chatIsReadable(), [message.id]);
+  }
+}
+
+function onSocketMessageDeleted(messageId: number) {
+  messages.value = messages.value.filter((message) => message.id !== messageId);
+}
+
+function onChatVisibilityChanged() {
+  if (chatIsReadable()) {
+    void acknowledgeIncomingMessages(true);
+  }
+}
+
+async function sendMessage() {
+  if (!myCharacterId.value || !chatBody.value.trim() || chatSending.value) return;
+
+  chatSending.value = true;
+  error.value = null;
+  try {
+    const message = await constantPartiesApi.sendMessage(partyId.value, {
       character_id: myCharacterId.value,
       body: chatBody.value.trim(),
     });
+    upsertChatMessage(message);
     chatBody.value = '';
-    await loadMessages();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось отправить сообщение.';
+  } finally {
+    chatSending.value = false;
   }
 }
 
@@ -624,11 +755,25 @@ function formatDate(value?: string | null) {
   return new Date(value).toLocaleString('ru-RU');
 }
 
-onMounted(load);
+onMounted(() => {
+  if (constantPartyChatEnabled) {
+    document.addEventListener('visibilitychange', onChatVisibilityChanged);
+  }
+  void load();
+});
+
+onUnmounted(() => {
+  if (constantPartyChatEnabled) {
+    document.removeEventListener('visibilitychange', onChatVisibilityChanged);
+  }
+});
 
 watch(activeTab, (tab) => {
   if (tab === 'logs' && storageLogs.value.length === 0) {
     void loadStorageLogs(1);
+  }
+  if (tab === 'chat') {
+    void acknowledgeIncomingMessages(true);
   }
 });
 
@@ -723,7 +868,7 @@ watch(inviteQuery, () => {
           <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'members' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'members'">
             Состав
           </button>
-          <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'chat' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'chat'">
+          <button v-if="constantPartyChatEnabled" type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'chat' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'chat'">
             Чат
           </button>
           <button type="button" class="px-3 py-2 text-sm font-medium" :class="activeTab === 'storage' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'" @click="activeTab = 'storage'">
@@ -1200,7 +1345,7 @@ watch(inviteQuery, () => {
                 :key="invitation.id"
                 class="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0"
               >
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium">
                     {{ invitation.invited_character?.name ?? 'Персонаж' }}
                   </p>
@@ -1210,6 +1355,17 @@ watch(inviteQuery, () => {
                   >
                     {{ formatDate(invitation.created_at) }}
                   </p>
+                  <div
+                    v-if="invitation.message"
+                    class="mt-2 border-l-2 border-primary/30 pl-3"
+                  >
+                    <p class="text-xs font-medium text-muted-foreground">
+                      Сообщение
+                    </p>
+                    <p class="mt-1 whitespace-pre-wrap break-words text-sm">
+                      {{ invitation.message }}
+                    </p>
+                  </div>
                 </div>
                 <Badge
                   variant="outline"
@@ -1233,23 +1389,18 @@ watch(inviteQuery, () => {
           @page-change="loadStorageLogs"
         />
 
-        <section v-else-if="activeTab === 'chat'" class="space-y-4">
-          <div class="max-h-[28rem] overflow-y-auto rounded-lg border bg-background">
-            <div v-if="messages.length === 0" class="p-6 text-center text-sm text-muted-foreground">Сообщений пока нет.</div>
-            <div v-for="message in messages" :key="message.id" class="border-b p-4 last:border-b-0">
-              <div class="mb-1 flex items-baseline justify-between gap-3">
-                <p class="text-sm font-medium">{{ message.character?.name ?? 'Персонаж' }}</p>
-                <span class="text-xs text-muted-foreground">{{ formatDate(message.created_at) }}</span>
-              </div>
-              <p class="whitespace-pre-wrap text-sm">{{ message.body }}</p>
-            </div>
-          </div>
-          <form class="flex gap-2" @submit.prevent="sendMessage">
-            <input v-model="chatBody" class="h-10 flex-1 rounded-md border bg-background px-3 text-sm" placeholder="Сообщение" />
-            <button type="submit" class="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">Отправить</button>
-          </form>
-        </section>
-
+        <ConstantPartyChatTab
+          v-else-if="constantPartyChatEnabled && activeTab === 'chat'"
+          v-model:draft="chatBody"
+          :messages="messages"
+          :current-character-id="myCharacterId"
+          :online-characters="chatOnlineCharacters"
+          :socket-connected="chatSocketConnected"
+          :socket-authenticated="chatSocketAuthenticated"
+          :loading="chatLoading"
+          :sending="chatSending"
+          @send="sendMessage"
+        />
         <section v-else class="space-y-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>

@@ -337,6 +337,7 @@ function close() {
 
         <div class="flex shrink-0 items-center gap-2">
           <Button
+            v-if="!readonly"
             type="button"
             variant="outline"
             size="sm"
@@ -353,8 +354,13 @@ function close() {
 
       <div class="flex min-h-0 flex-1 overflow-hidden">
         <!-- Левая панель: состав гильдии -->
-        <div v-if="rosterPanelOpen" class="fixed inset-0 z-[60] bg-black/50 md:hidden" @click="rosterPanelOpen = false" />
+        <div
+          v-if="!readonly && rosterPanelOpen"
+          class="fixed inset-0 z-[60] bg-black/50 md:hidden"
+          @click="rosterPanelOpen = false"
+        />
         <aside
+          v-if="!readonly"
           class="bg-background flex w-72 max-w-[85vw] shrink-0 flex-col border-r overflow-hidden transition-transform duration-200 ease-out md:static md:w-64 md:max-w-none md:translate-x-0"
           :class="rosterPanelOpen ? 'fixed inset-y-0 left-0 z-[61] translate-x-0' : 'fixed inset-y-0 left-0 z-[61] -translate-x-full md:translate-x-0 md:static'"
         >

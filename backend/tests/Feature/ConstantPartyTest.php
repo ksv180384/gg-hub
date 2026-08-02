@@ -1,9 +1,12 @@
 <?php
 
 use App\Actions\Server\MergeServersAction;
+use App\Services\ConstantPartyChatSocketBroadcaster;
 use Domains\Character\Models\Character;
 use Domains\ConstantParty\Models\ConstantParty;
 use Domains\ConstantParty\Models\ConstantPartyChatMessage;
+use Domains\ConstantParty\Models\ConstantPartyChatMessageReceipt;
+use Domains\ConstantParty\Models\ConstantPartyChatSocketToken;
 use Domains\ConstantParty\Models\ConstantPartyFormerMember;
 use Domains\ConstantParty\Models\ConstantPartyInvitation;
 use Domains\ConstantParty\Models\ConstantPartyMember;
@@ -18,6 +21,7 @@ use Domains\Notification\Models\Notification;
 use Domains\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 use function Pest\Laravel\actingAs;
 
@@ -826,10 +830,21 @@ it('allows only the leader to dissolve a party and permanently deletes all relat
         'invited_by_character_id' => $ctx['leader']->id,
         'status' => ConstantPartyInvitation::STATUS_PENDING,
     ]);
-    ConstantPartyChatMessage::query()->create([
+    $chatMessage = ConstantPartyChatMessage::query()->create([
         'constant_party_id' => $partyId,
         'character_id' => $ctx['leader']->id,
         'body' => 'Party message',
+    ]);
+    ConstantPartyChatMessageReceipt::query()->create([
+        'message_id' => $chatMessage->id,
+        'character_id' => $ctx['member']->id,
+    ]);
+    ConstantPartyChatSocketToken::query()->create([
+        'token_hash' => str_repeat('a', 64),
+        'constant_party_id' => $partyId,
+        'character_id' => $ctx['leader']->id,
+        'user_id' => $ctx['leaderUser']->id,
+        'expires_at' => now()->addMinute(),
     ]);
     $tier = ConstantPartyStorageItemTier::query()->create([
         'constant_party_id' => $partyId,
@@ -876,6 +891,7 @@ it('allows only the leader to dissolve a party and permanently deletes all relat
         'constant_party_members',
         'constant_party_invitations',
         'constant_party_chat_messages',
+        'constant_party_chat_socket_tokens',
         'constant_party_storage_item_tiers',
         'constant_party_storage_items',
         'constant_party_storage_item_grants',
@@ -884,6 +900,9 @@ it('allows only the leader to dissolve a party and permanently deletes all relat
     ] as $table) {
         expect(DB::table($table)->where('constant_party_id', $partyId)->exists())->toBeFalse();
     }
+    expect(DB::table('constant_party_chat_message_receipts')
+        ->where('message_id', $chatMessage->id)
+        ->exists())->toBeFalse();
 
     $notifications = Notification::query()
         ->whereIn('user_id', [$ctx['leaderUser']->id, $ctx['memberUser']->id])
@@ -896,4 +915,117 @@ it('allows only the leader to dissolve a party and permanently deletes all relat
             && str_contains($notification->message, 'Инициатор: Leader')
             && $notification->link === '/my-constant-parties'
         ))->toBeTrue();
+});
+
+it('does not expose constant party chat endpoints while the feature is disabled', function () {
+    config()->set('features.constant_party_chat', false);
+    $ctx = seedConstantPartyContext();
+
+    $partyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'Silent Squad',
+            'leader_character_id' => $ctx['leader']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    actingAs($ctx['leaderUser'])
+        ->getJson("/api/v1/constant-parties/{$partyId}/chat/messages")
+        ->assertNotFound();
+
+    Http::fake();
+    app(ConstantPartyChatSocketBroadcaster::class)
+        ->broadcastDeleted((int) $partyId, 1);
+    Http::assertNothingSent();
+});
+it('tracks constant party chat delivery and read receipts with scoped socket tokens', function () {
+    config()->set('features.constant_party_chat', true);
+    putenv('SOCKET_SERVER_INTERNAL_TOKEN=test-internal-token');
+    Http::fake();
+    $ctx = seedConstantPartyContext();
+
+    $partyId = actingAs($ctx['leaderUser'])
+        ->postJson('/api/v1/constant-parties', [
+            'game_id' => $ctx['game']->id,
+            'name' => 'Static Squad',
+            'leader_character_id' => $ctx['leader']->id,
+        ])
+        ->assertCreated()
+        ->json('data.id');
+
+    ConstantPartyMember::query()->create([
+        'constant_party_id' => $partyId,
+        'character_id' => $ctx['member']->id,
+        'role' => ConstantPartyMember::ROLE_MEMBER,
+        'can_manage_storage' => false,
+        'joined_at' => now(),
+    ]);
+
+    $messageId = actingAs($ctx['leaderUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/chat/messages", [
+            'character_id' => $ctx['leader']->id,
+            'body' => 'Ready for raid?',
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.recipient_count', 1)
+        ->assertJsonPath('data.delivered_count', 0)
+        ->assertJsonPath('data.read_count', 0)
+        ->assertJsonPath('data.delivery_status', 'sent')
+        ->json('data.id');
+
+    Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/constant-party-chat/broadcast-created')
+        && $request->hasHeader('X-Socket-Internal-Token')
+    );
+
+    expect(ConstantPartyChatMessageReceipt::query()
+        ->where('message_id', $messageId)
+        ->where('character_id', $ctx['member']->id)
+        ->whereNull('delivered_at')
+        ->whereNull('read_at')
+        ->exists())->toBeTrue();
+
+    actingAs($ctx['memberUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/chat/receipts/delivered", [
+            'character_id' => $ctx['member']->id,
+            'message_ids' => [$messageId],
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.0.delivery_status', 'delivered')
+        ->assertJsonPath('data.0.delivered_count', 1)
+        ->assertJsonPath('data.0.read_count', 0);
+
+    actingAs($ctx['memberUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/chat/receipts/read", [
+            'character_id' => $ctx['member']->id,
+            'message_ids' => [$messageId],
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.0.delivery_status', 'read')
+        ->assertJsonPath('data.0.read_count', 1);
+
+    $plainToken = actingAs($ctx['memberUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/chat/socket-token", [
+            'character_id' => $ctx['member']->id,
+        ])
+        ->assertSuccessful()
+        ->json('data.token');
+
+    $this->postJson('/api/v1/constant-party-chat/socket-auth', [
+        'token' => $plainToken,
+    ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.party_id', $partyId)
+        ->assertJsonPath('data.character.id', $ctx['member']->id)
+        ->assertJsonPath('data.character.name', 'Member');
+
+    actingAs($ctx['memberUser'])
+        ->postJson("/api/v1/constant-parties/{$partyId}/chat/socket-token", [
+            'character_id' => $ctx['otherServerCharacter']->id,
+        ])
+        ->assertForbidden();
+
+    $this->postJson('/api/v1/constant-party-chat/socket-auth', [
+        'token' => 'invalid-token-that-cannot-authorize-a-private-chat-room',
+    ])->assertUnauthorized();
 });

@@ -332,17 +332,22 @@ function onItemMouseEnter(n: NotificationItem) {
               <span class="block break-words">
                 {{ expandedId === n.id && !selectionMode ? n.message : truncateMessage(n.message, 60) }}
               </span>
-              <span
-                v-if="n.created_at"
-                class="mt-1.5 block text-xs text-muted-foreground"
+              <div
+                v-if="n.game || n.guild || n.created_at"
+                class="mt-1.5 flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground"
               >
+                <span v-if="n.game">{{ n.game.name }}</span>
+                <span v-if="n.game && n.guild" aria-hidden="true">·</span>
+                <span v-if="n.guild">{{ n.guild.name }}</span>
+                <span v-if="(n.game || n.guild) && n.created_at" aria-hidden="true">·</span>
                 <RelativeTime
+                  v-if="n.created_at"
                   :date="n.created_at"
                   :timezone="timezone ?? undefined"
                   tag="time"
                   class="text-xs text-muted-foreground"
                 />
-              </span>
+              </div>
               <RouterLink
                 v-if="n.link && !selectionMode"
                 :to="n.link"

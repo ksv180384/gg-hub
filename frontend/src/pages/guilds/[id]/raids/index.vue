@@ -31,12 +31,18 @@ import {
   type CreateRaidPayload,
   type UpdateRaidPayload,
   type RaidCompositionMemberPayload,
+  type RaidApplicationItem,
+  type RaidDescendantUser,
 } from '@/shared/api/guildsApi';
 import type { ApiError } from '@/shared/api/errors';
 import { normalizeGuildRaidTree } from '@/shared/lib/normalizeGuildRaidTree';
+import { toastError } from '@/shared/lib/toast';
 import NotFoundPage from '@/pages/not-found/index.vue';
 import { Sortable } from 'sortablejs-vue3';
 import RaidTreeItem from './RaidTreeItem.vue';
+import ParentRaidUsersModal from './ParentRaidUsersModal.vue';
+import RaidApplicationsModal from './RaidApplicationsModal.vue';
+import RaidCharacterSelectModal from './RaidCharacterSelectModal.vue';
 import { RaidCompositionModal } from '@/widgets/raid-composition-modal';
 import { io, type Socket } from 'socket.io-client';
 
@@ -68,6 +74,87 @@ const canFormRaid = computed(
 const canDeleteRaid = computed(
   () => guild.value?.my_permission_slugs?.includes('udaliat-reidy') ?? false
 );
+const myCharacterIds = computed(() => guild.value?.my_characters?.map((character) => character.id) ?? []);
+
+const parentUsersModalOpen = ref(false);
+const parentUsersLoading = ref(false);
+const parentUsersRaid = ref<RaidItem | null>(null);
+const parentUsers = ref<RaidDescendantUser[]>([]);
+const applicationsModalOpen = ref(false);
+const applicationsLoading = ref(false);
+const applicationsRaid = ref<RaidItem | null>(null);
+const applications = ref<RaidApplicationItem[]>([]);
+const decidingApplicationId = ref<number | null>(null);
+const characterSelectOpen = ref(false);
+const applicationRaid = ref<RaidItem | null>(null);
+const applicationSubmitting = ref(false);
+const applicationError = ref<string | null>(null);
+
+async function updateRecruitment(raid: RaidItem, isRecruiting: boolean) {
+  try {
+    await guildsApi.updateRaidRecruitment(guildId.value, raid.id, isRecruiting);
+    await loadRaids();
+  } catch (e) {
+    toastError((e as Error)?.message ?? 'Не удалось изменить состояние набора.');
+  }
+}
+
+async function openApplications(raid: RaidItem) {
+  applicationsRaid.value = raid;
+  applications.value = [];
+  applicationsModalOpen.value = true;
+  applicationsLoading.value = true;
+  try {
+    applications.value = await guildsApi.getRaidApplications(guildId.value, raid.id);
+  } finally {
+    applicationsLoading.value = false;
+  }
+}
+
+async function decideApplication(applicationId: number, decision: 'accept' | 'reject') {
+  if (!applicationsRaid.value) return;
+  decidingApplicationId.value = applicationId;
+  try {
+    await guildsApi.decideRaidApplication(
+      guildId.value,
+      applicationsRaid.value.id,
+      applicationId,
+      decision
+    );
+    applications.value = applications.value.filter((application) => application.id !== applicationId);
+    await loadRaids();
+  } finally {
+    decidingApplicationId.value = null;
+  }
+}
+
+function startApplication(raid: RaidItem) {
+  applicationError.value = null;
+  applicationRaid.value = raid;
+  const characters = guild.value?.my_characters ?? [];
+  if (characters.length === 1) {
+    submitApplication(characters[0]!.id);
+    return;
+  }
+  characterSelectOpen.value = true;
+}
+
+async function submitApplication(characterId: number) {
+  if (!applicationRaid.value) return;
+  applicationSubmitting.value = true;
+  try {
+    await guildsApi.submitRaidApplication(guildId.value, applicationRaid.value.id, characterId);
+    applicationError.value = null;
+    characterSelectOpen.value = false;
+    await loadRaids();
+  } catch (e) {
+    const message = (e as Error)?.message ?? 'Не удалось подать заявку.';
+    applicationError.value = message;
+    toastError(message);
+  } finally {
+    applicationSubmitting.value = false;
+  }
+}
 
 /** Размер пати из параметров игры (число ячеек в ряду). */
 const partySize = computed(() => guild.value?.game?.party_size ?? 5);
@@ -91,6 +178,7 @@ async function saveFormRaid(members: RaidCompositionMemberPayload[]) {
   try {
     const updated = await guildsApi.setRaidComposition(guildId.value, selectedRaidId.value, members);
     selectedRaid.value = updated;
+    await loadRaids();
   } finally {
     formRaidSaving.value = false;
   }
@@ -433,6 +521,22 @@ const filteredUnifiedMembers = computed((): UnifiedMember[] => {
 });
 
 async function selectRaid(raid: RaidItem) {
+  if ((raid.children?.length ?? 0) > 0) {
+    selectedRaidId.value = raid.id;
+    parentUsersRaid.value = raid;
+    parentUsers.value = [];
+    parentUsersModalOpen.value = true;
+    parentUsersLoading.value = true;
+    try {
+      parentUsers.value = await guildsApi.getRaidDescendantUsers(guildId.value, raid.id);
+    } catch (e) {
+      toastError((e as Error)?.message ?? 'Не удалось загрузить участников.');
+    } finally {
+      parentUsersLoading.value = false;
+    }
+    return;
+  }
+
   // Повторный клик по тому же рейду — просто переоткрываем модалку.
   if (selectedRaidId.value === raid.id) {
     formRaidModalOpen.value = true;
@@ -783,6 +887,7 @@ watch(
                 :raid-total-members-map="Object.fromEntries(raidTotalMembers)"
                 :can-edit="canFormRaid"
                 :can-delete="canDeleteRaid"
+                :my-character-ids="myCharacterIds"
                 :selected-raid-id="selectedRaidId"
                 :sortable-options="raidSortableOptions"
                 :sortable-key="raidSortableKey"
@@ -790,6 +895,9 @@ watch(
                 @edit="openEdit"
                 @delete="openDelete"
                 @select="selectRaid"
+                @recruitment="updateRecruitment"
+                @applications="openApplications"
+                @apply="startApplication"
                 @sort-end="onRaidSortEnd"
               />
             </template>
@@ -941,17 +1049,47 @@ watch(
       @confirm="confirmDelete"
     />
 
-    <RaidCompositionModal
-      :open="formRaidModalOpen"
-      :raid="selectedRaid"
-      :roster="roster"
-      :party-size="partySize"
-      :guild-id="guildId"
-      :saving="formRaidSaving"
-      :readonly="!canFormRaid"
-      @close="closeFormRaidModal"
-      @save="saveFormRaid"
-    />
+    <ClientOnly>
+      <ParentRaidUsersModal
+        :open="parentUsersModalOpen"
+        :raid-name="parentUsersRaid?.name ?? ''"
+        :users="parentUsers"
+        :loading="parentUsersLoading"
+        @close="parentUsersModalOpen = false; selectedRaidId = null"
+      />
+
+      <RaidApplicationsModal
+        :open="applicationsModalOpen"
+        :raid-name="applicationsRaid?.name ?? ''"
+        :applications="applications"
+        :loading="applicationsLoading"
+        :deciding-id="decidingApplicationId"
+        @close="applicationsModalOpen = false"
+        @accept="decideApplication($event, 'accept')"
+        @reject="decideApplication($event, 'reject')"
+      />
+
+      <RaidCharacterSelectModal
+        :open="characterSelectOpen"
+        :raid-name="applicationRaid?.name ?? ''"
+        :characters="guild?.my_characters ?? []"
+        :submitting="applicationSubmitting"
+        :error="applicationError"
+        @close="characterSelectOpen = false"
+        @select="submitApplication"
+      />
+      <RaidCompositionModal
+        :open="formRaidModalOpen"
+        :raid="selectedRaid"
+        :roster="roster"
+        :party-size="partySize"
+        :guild-id="guildId"
+        :saving="formRaidSaving"
+        :readonly="!canFormRaid"
+        @close="closeFormRaidModal"
+        @save="saveFormRaid"
+      />
+    </ClientOnly>
     </div>
   </div>
 </template>

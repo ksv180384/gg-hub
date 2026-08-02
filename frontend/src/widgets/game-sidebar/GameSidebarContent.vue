@@ -52,6 +52,7 @@ const guildSubmenuItems: GuildSubmenuItem[] = [
   { pathSuffix: '/polls', label: 'Голосования' },
   { pathSuffix: '/roulette', label: 'Рулетка' },
   { pathSuffix: '/roles', label: 'Роли членов гильдии' },
+  { pathSuffix: '/activity', label: 'История гильдии' },
 ];
 
 function guildPath(guildId: number, pathSuffix: string): string {

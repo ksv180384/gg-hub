@@ -24,13 +24,13 @@ class CreatePollDeletedByAdminNotificationAction
 
         $message = "Ваше голосование «{$title}» в гильдии «{$guildName}» было удалено администратором.";
         if ($reason !== '') {
-            $message .= ' Причина: ' . $reason;
+            $message .= ' Причина: '.$reason;
         }
 
         return Notification::create([
             'user_id' => $userId,
             'message' => $message,
-            'link' => '',
+            'link' => $poll->guild ? '/guilds/'.$poll->guild->id.'/polls' : '',
         ]);
     }
 }

@@ -47,4 +47,8 @@ return [
         'redirect' => env('VKONTAKTE_REDIRECT_URI'),
     ],
 
+    'socket_server' => [
+        'internal_token' => env('SOCKET_SERVER_INTERNAL_TOKEN'),
+    ],
+
 ];

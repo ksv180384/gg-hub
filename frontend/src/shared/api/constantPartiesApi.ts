@@ -63,8 +63,17 @@ export type ConstantPartyChatMessage = {
   character_id: number;
   body: string;
   character?: Character;
+  recipient_count: number;
+  delivered_count: number;
+  read_count: number;
+  delivery_status: 'sent' | 'delivered' | 'read';
   created_at: string;
 };
+
+export type ConstantPartyChatReceiptSummary = Pick<
+  ConstantPartyChatMessage,
+  'id' | 'recipient_count' | 'delivered_count' | 'read_count' | 'delivery_status'
+>;
 
 export type ConstantPartyStorageTier = {
   id: number;
@@ -218,6 +227,41 @@ export const constantPartiesApi = {
     );
     throwOnError(res, 'Не удалось передать лидерство.');
     return unwrap<ConstantParty>(res as { data: unknown });
+  },
+
+  async createChatSocketToken(partyId: number, characterId: number): Promise<{ token: string; expires_at: string }> {
+    const res = await http.fetchPost<{ token: string; expires_at: string }>(
+      `/constant-parties/${partyId}/chat/socket-token`,
+      { character_id: characterId },
+    );
+    throwOnError(res, 'Не удалось подключиться к чату.');
+    return unwrap<{ token: string; expires_at: string }>(res as { data: unknown });
+  },
+
+  async markChatMessagesDelivered(
+    partyId: number,
+    characterId: number,
+    messageIds: number[],
+  ): Promise<ConstantPartyChatMessage[]> {
+    const res = await http.fetchPost<{ data: ConstantPartyChatMessage[] }>(
+      `/constant-parties/${partyId}/chat/receipts/delivered`,
+      { character_id: characterId, message_ids: messageIds },
+    );
+    throwOnError(res, 'Не удалось обновить доставку сообщений.');
+    return res.data?.data ?? [];
+  },
+
+  async markChatMessagesRead(
+    partyId: number,
+    characterId: number,
+    messageIds: number[],
+  ): Promise<ConstantPartyChatMessage[]> {
+    const res = await http.fetchPost<{ data: ConstantPartyChatMessage[] }>(
+      `/constant-parties/${partyId}/chat/receipts/read`,
+      { character_id: characterId, message_ids: messageIds },
+    );
+    throwOnError(res, 'Не удалось отметить сообщения прочитанными.');
+    return res.data?.data ?? [];
   },
 
   async listMessages(partyId: number): Promise<ConstantPartyChatMessage[]> {

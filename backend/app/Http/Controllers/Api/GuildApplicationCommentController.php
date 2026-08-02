@@ -52,6 +52,8 @@ class GuildApplicationCommentController extends Controller
             ->orderBy('created_at')
             ->get();
         $characters = $this->getAvailableCharacters($request->user()->id, $guild, $application);
+        $application->loadMissing('character:id,user_id');
+        $isApplicationOwner = (int) ($application->character?->user_id ?? 0) === (int) $request->user()->id;
 
         return response()->json([
             'data' => GuildApplicationCommentResource::collection($comments),
@@ -61,7 +63,9 @@ class GuildApplicationCommentController extends Controller
                     'name' => $c['name'],
                     'avatar_url' => $c['avatar_url'],
                 ])->values(),
-                'default_character_id' => $characters->first()['id'] ?? null,
+                'default_character_id' => $isApplicationOwner
+                    ? (int) $application->character_id
+                    : ($characters->first()['id'] ?? null),
             ],
         ]);
     }
@@ -194,26 +198,25 @@ class GuildApplicationCommentController extends Controller
             ->orderBy('joined_at')
             ->get();
 
-        if ($members->isNotEmpty()) {
-            return $members
-                ->filter(fn ($m) => $m->character)
-                ->map(fn ($m) => [
-                    'id' => (int) $m->character->id,
-                    'name' => $m->character->name,
-                    'avatar_url' => $m->character->resolved_avatar_url,
-                ])
-                ->values();
-        }
-
         $application->loadMissing('character.user');
+        $characters = $members
+            ->filter(fn ($m) => $m->character)
+            ->map(fn ($m) => [
+                'id' => (int) $m->character->id,
+                'name' => $m->character->name,
+                'avatar_url' => $m->character->resolved_avatar_url,
+            ]);
+
         if ((int) ($application->character?->user_id ?? 0) === $userId && $application->character) {
-            return collect([[
+            $characters->prepend([
                 'id' => (int) $application->character->id,
                 'name' => $application->character->name,
                 'avatar_url' => $application->character->resolved_avatar_url,
-            ]]);
+            ]);
         }
 
-        return collect();
+        return $characters
+            ->unique('id')
+            ->values();
     }
 }

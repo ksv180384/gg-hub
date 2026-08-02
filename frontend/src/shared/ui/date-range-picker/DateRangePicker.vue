@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { CalendarDays, ChevronLeft, ChevronRight, X } from '@lucide/vue';
 import type { DateRange } from 'radix-vue';
 import {
   PopoverContent,
@@ -59,7 +58,27 @@ function clearRange() {
           class="flex h-9 w-full items-center gap-2 rounded-md border bg-background px-3 pr-10 text-left text-xs font-normal hover:bg-muted/40"
           :class="model.start || model.end ? 'text-foreground' : 'text-muted-foreground'"
         >
-          <CalendarDays class="h-4 w-4 shrink-0" />
+          <svg
+            class="h-4 w-4 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M8 2v3" />
+            <path d="M16 2v3" />
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M3 9h18" />
+            <path d="M8 13h.01" />
+            <path d="M12 13h.01" />
+            <path d="M16 13h.01" />
+            <path d="M8 17h.01" />
+            <path d="M12 17h.01" />
+            <path d="M16 17h.01" />
+          </svg>
           <span class="truncate">{{ rangeLabel }}</span>
         </button>
       </PopoverTrigger>
@@ -71,7 +90,18 @@ function clearRange() {
         title="Очистить период"
         @click="clearRange"
       >
-        <X class="h-3.5 w-3.5" />
+        <svg
+          class="h-3.5 w-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
       </button>
     </div>
 
@@ -93,14 +123,36 @@ function clearRange() {
               class="flex h-8 w-8 items-center justify-center rounded-md border hover:bg-muted"
               title="Предыдущий месяц"
             >
-              <ChevronLeft class="h-4 w-4" />
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
             </RangeCalendarPrev>
             <RangeCalendarHeading class="text-sm font-medium" />
             <RangeCalendarNext
               class="flex h-8 w-8 items-center justify-center rounded-md border hover:bg-muted"
               title="Следующий месяц"
             >
-              <ChevronRight class="h-4 w-4" />
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
             </RangeCalendarNext>
           </RangeCalendarHeader>
 

@@ -6,14 +6,28 @@ use App\Contracts\Repositories\CharacterRepositoryInterface;
 use App\Contracts\Repositories\GameRepositoryInterface;
 use App\Contracts\Repositories\GuildRepositoryInterface;
 use App\Contracts\Repositories\LocalizationRepositoryInterface;
-use Domains\Notification\Models\Notification;
+use App\Observers\GuildActivityObserver;
 use App\Observers\NotificationObserver;
 use App\Observers\PollObserver;
 use App\Repositories\Eloquent\EloquentCharacterRepository;
 use App\Repositories\Eloquent\EloquentGameRepository;
 use App\Repositories\Eloquent\EloquentGuildRepository;
 use App\Repositories\Eloquent\EloquentLocalizationRepository;
+use Domains\Access\Models\GuildRole;
+use Domains\Event\Models\Event as GuildEvent;
+use Domains\Event\Models\EventHistory;
+use Domains\Event\Models\EventParticipant;
+use Domains\Guild\Models\Guild;
+use Domains\Guild\Models\GuildMember;
+use Domains\GuildAuction\Models\GuildAuctionBid;
+use Domains\GuildAuction\Models\GuildAuctionLot;
+use Domains\GuildBank\Models\GuildBankItem;
+use Domains\GuildBank\Models\GuildBankItemGrant;
+use Domains\GuildBank\Models\GuildBankItemTier;
+use Domains\Notification\Models\Notification;
 use Domains\Poll\Models\Poll;
+use Domains\Post\Models\Post;
+use Domains\Post\Models\PostComment;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -61,5 +75,23 @@ class AppServiceProvider extends ServiceProvider
 
         Notification::observe(NotificationObserver::class);
         Poll::observe(PollObserver::class);
+
+        foreach ([
+            Guild::class,
+            GuildMember::class,
+            GuildRole::class,
+            GuildBankItem::class,
+            GuildBankItemGrant::class,
+            GuildBankItemTier::class,
+            GuildAuctionLot::class,
+            GuildAuctionBid::class,
+            GuildEvent::class,
+            EventHistory::class,
+            EventParticipant::class,
+            Post::class,
+            PostComment::class,
+        ] as $model) {
+            $model::observe(GuildActivityObserver::class);
+        }
     }
 }

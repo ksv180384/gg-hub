@@ -14,6 +14,7 @@ class MarkNotificationReadAction
             throw new HttpException(403, 'Forbidden');
         }
         $notification->update(['read_at' => $notification->read_at ?? now()]);
-        return $notification->fresh();
+
+        return $notification->fresh(['game:id,name', 'guild:id,name']);
     }
 }

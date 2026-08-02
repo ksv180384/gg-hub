@@ -97,12 +97,23 @@ onMounted(load);
           <div class="overflow-hidden rounded-lg border bg-background">
             <div v-for="invitation in invitations" :key="invitation.id" class="border-b p-4 last:border-b-0">
               <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
+                <div class="min-w-0 flex-1">
                   <p class="font-medium">{{ invitation.constant_party?.name ?? 'Конст пати' }}</p>
                   <p class="mt-1 text-sm text-muted-foreground">
                     Персонаж: {{ invitation.invited_character?.name ?? '...' }}
                     <span v-if="invitation.invited_by_character"> · Пригласил: {{ invitation.invited_by_character.name }}</span>
                   </p>
+                  <div
+                    v-if="invitation.message"
+                    class="mt-3 border-l-2 border-primary/30 pl-3"
+                  >
+                    <p class="text-xs font-medium text-muted-foreground">
+                      Сообщение
+                    </p>
+                    <p class="mt-1 whitespace-pre-wrap break-words text-sm">
+                      {{ invitation.message }}
+                    </p>
+                  </div>
                 </div>
                 <div class="flex gap-2">
                   <button
@@ -142,7 +153,9 @@ onMounted(load);
               <div class="min-w-0">
                 <p class="truncate text-sm font-medium">{{ party.name }}</p>
                 <p class="mt-1 text-xs text-muted-foreground">
-                  {{ party.server?.name ?? 'Сервер' }} · {{ party.members_count ?? party.members?.length ?? 0 }} участников
+                  Сервер: {{ party.server?.name ?? '' }}
+                  · Лидер: {{ party.leader?.name ?? 'Не указан' }}
+                  · {{ party.members_count ?? party.members?.length ?? 0 }} участников
                 </p>
               </div>
               <span class="shrink-0 text-xs text-muted-foreground">

@@ -19,6 +19,10 @@ class ConstantPartyChatMessageResource extends JsonResource
             'character_id' => $this->character_id,
             'body' => $this->body,
             'character' => $this->whenLoaded('character', fn () => new CharacterResource($this->character)),
+            'recipient_count' => (int) ($this->recipient_count ?? 0),
+            'delivered_count' => (int) ($this->delivered_count ?? 0),
+            'read_count' => (int) ($this->read_count ?? 0),
+            'delivery_status' => $this->deliveryStatus(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

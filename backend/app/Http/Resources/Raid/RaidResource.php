@@ -22,6 +22,7 @@ class RaidResource extends JsonResource
             'created_by' => $this->created_by,
             'name' => $this->name,
             'description' => $this->description,
+            'is_recruiting' => (bool) $this->is_recruiting,
             'sort_order' => $this->sort_order,
             'leader' => $this->whenLoaded('leader', fn () => $this->leader ? [
                 'id' => $this->leader->id,
@@ -37,6 +38,12 @@ class RaidResource extends JsonResource
             ] : null),
             'children' => RaidResource::collection($this->whenLoaded('children')),
             'members_count' => $this->members_count ?? 0,
+            'pending_applications_count' => $this->pending_applications_count ?? 0,
+            'my_applications' => $this->whenLoaded('applications', fn () => $this->applications->map(fn ($application) => [
+                'id' => $application->id,
+                'character_id' => $application->character_id,
+                'status' => $application->status,
+            ])->values()->all()),
             'members' => $this->whenLoaded('members', fn () => $this->members->map(fn ($m) => [
                 'character_id' => $m->id,
                 'name' => $m->name,

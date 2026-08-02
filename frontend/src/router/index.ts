@@ -215,6 +215,16 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'Роли членов гильдии' },
         },
         {
+          path: 'guilds/:id/activity',
+          name: 'guild-activity',
+          component: () => import('@/pages/guilds/[id]/activity/index.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'История гильдии',
+            contentShell: true,
+          },
+        },
+        {
           path: 'guilds/create',
           name: 'guilds-create',
           component: () => import('@/pages/guilds/create/index.vue'),
@@ -520,6 +530,22 @@ export function createRouterInstance(history: RouterHistory) {
   const router = createRouter({
     history,
     routes,
+    scrollBehavior(to, _from, savedPosition) {
+      if (savedPosition) {
+        return savedPosition;
+      }
+
+      if (to.hash) {
+        return {
+          el: to.hash,
+        };
+      }
+
+      return {
+        top: 0,
+        left: 0,
+      };
+    },
   });
 
   router.beforeEach(async (to, from) => {

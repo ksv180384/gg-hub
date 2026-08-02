@@ -2,7 +2,9 @@
 
 namespace Domains\Guild\Actions;
 
+use App\Actions\GuildActivity\RecordGuildActivityAction;
 use App\Contracts\Repositories\GuildRepositoryInterface;
+use App\GuildActivityLog;
 use App\Http\Requests\Guild\UpdateGuildRequest;
 use App\Services\GuildLogoService;
 use Domains\Character\Models\Character;
@@ -70,13 +72,18 @@ class UpdateGuildAction
     public function __construct(
         private GuildRepositoryInterface $guildRepository,
         private GuildLogoService $guildLogoService,
-        private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction
+        private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
+        private RecordGuildActivityAction $recordGuildActivityAction,
     ) {}
 
     public function __invoke(Guild $guild, UpdateGuildRequest $request): Guild
     {
         $data = $request->validated();
         $user = $request->user();
+        $changedFields = array_keys($data);
+        if ($request->hasFile('logo') || $request->boolean('remove_logo')) {
+            $changedFields[] = 'logo';
+        }
 
         // Права определяем строго по действующим ролям в гильдии. Текущий лидер
         // (владелец персонажа leader_character_id) получает все slug'и гильдии
@@ -222,6 +229,22 @@ class UpdateGuildAction
         if ($logoWasReplaced) {
             $guild->touch();
         }
+
+        $fieldLabels = array_map(
+            fn (string $field): string => self::FIELD_LABELS[$field] ?? $field,
+            array_values(array_unique($changedFields)),
+        );
+        ($this->recordGuildActivityAction)(
+            $guild,
+            $user,
+            GuildActivityLog::CATEGORY_GUILD,
+            'guild.updated',
+            'Изменена информация о гильдии: '.implode(', ', $fieldLabels).'.',
+            $guild,
+            $guild->name,
+            metadata: ['changed_fields' => array_values(array_unique($changedFields))],
+        );
+
         $guild->loadCount('members')->load([
             'game',
             'localization',
