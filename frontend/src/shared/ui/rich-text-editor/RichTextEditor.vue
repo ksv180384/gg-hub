@@ -107,7 +107,7 @@ async function imageFileToEmbeddedDataUrl(file: File): Promise<string> {
   ctx.drawImage(img, 0, 0, w, h);
 
   // Сильно уменьшает размер по сравнению с исходным PNG/base64.
-  return canvas.toDataURL('image/jpeg', 0.85);
+  return canvas.toDataURL('image/webp', 0.85);
 }
 
 async function insertImageFiles(files: File[]) {

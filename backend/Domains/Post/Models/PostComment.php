@@ -2,8 +2,9 @@
 
 namespace Domains\Post\Models;
 
-use App\Models\User;
+use App\Core\Traits\HasFilter;
 use Domains\Character\Models\Character;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PostComment extends Model
 {
+    use HasFilter;
     use SoftDeletes;
 
     protected $fillable = ['post_id', 'user_id', 'character_id', 'parent_id', 'replied_to_comment_id', 'body', 'is_hidden', 'hidden_reason', 'delete_reason'];

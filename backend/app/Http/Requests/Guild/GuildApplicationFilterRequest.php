@@ -38,4 +38,3 @@ class GuildApplicationFilterRequest extends FormRequest
         ];
     }
 }
-

@@ -24,6 +24,7 @@ class GuildApplicationFormFieldController extends Controller
     {
         $data = $request->validated();
         $field = ($this->createAction)($guild, $data);
+
         return (new GuildApplicationFormFieldResource($field))->response()->setStatusCode(201);
     }
 
@@ -31,6 +32,7 @@ class GuildApplicationFormFieldController extends Controller
     {
         $field = $guild->applicationFormFields()->findOrFail($form_field);
         $field = ($this->updateAction)($field, $request->validated());
+
         return response()->json(new GuildApplicationFormFieldResource($field));
     }
 
@@ -38,6 +40,7 @@ class GuildApplicationFormFieldController extends Controller
     {
         $field = $guild->applicationFormFields()->findOrFail($form_field);
         ($this->deleteAction)($field);
+
         return response()->json(['message' => 'Поле удалено.']);
     }
 }

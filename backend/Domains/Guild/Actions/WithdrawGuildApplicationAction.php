@@ -2,9 +2,9 @@
 
 namespace Domains\Guild\Actions;
 
-use App\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
+use Domains\User\Models\User;
 use Illuminate\Validation\ValidationException;
 
 class WithdrawGuildApplicationAction
@@ -23,7 +23,7 @@ class WithdrawGuildApplicationAction
         }
 
         $application->loadMissing('character');
-        if (!$application->character || (int) $application->character->user_id !== (int) $user->id) {
+        if (! $application->character || (int) $application->character->user_id !== (int) $user->id) {
             throw ValidationException::withMessages(['application' => ['Заявка не найдена.']]);
         }
 

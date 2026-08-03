@@ -2,10 +2,10 @@
 
 namespace Domains\Guild\Actions;
 
+use App\Http\Resources\Guild\GuildRosterMemberResource;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use App\Http\Resources\Guild\GuildRosterMemberResource;
 
 /**
  * Возвращает состав гильдии (персонажи с аватаркой, классами, ролью, тегами).

@@ -30,7 +30,6 @@ class GuildApplicationFilter extends Filter
             return $this->builder;
         }
 
-        return $this->builder->whereHas('character', fn (Builder $q) => $q->where('name', 'like', '%' . $trimmed . '%'));
+        return $this->builder->whereHas('character', fn (Builder $q) => $q->where('name', 'like', '%'.$trimmed.'%'));
     }
 }
-

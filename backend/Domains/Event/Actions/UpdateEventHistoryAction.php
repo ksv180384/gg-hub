@@ -20,6 +20,7 @@ class UpdateEventHistoryAction
         private ResolveEventParticipantDkpCoefficient $resolveEventParticipantDkpCoefficient,
         private EventHistoryScreenshotService $eventHistoryScreenshotService,
     ) {}
+
     /**
      * @param  array{
      *     title?: string,

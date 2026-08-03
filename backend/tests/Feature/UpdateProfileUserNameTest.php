@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -35,4 +35,38 @@ it('updates profile when new name is unique', function () {
         ->assertSuccessful();
 
     expect($user->fresh()->name)->toBe('NewUniqueName');
+});
+
+it('updates and returns user theme preference', function () {
+    $user = User::factory()->create([
+        'name' => 'ThemeUser',
+        'timezone' => 'Europe/Moscow',
+        'theme_preference' => 'system',
+    ]);
+
+    $this->actingAs($user)
+        ->postJson('/api/v1/user', ['theme_preference' => 'dark'])
+        ->assertSuccessful()
+        ->assertJsonPath('user.theme_preference', 'dark');
+
+    expect($user->fresh())
+        ->theme_preference->toBe('dark')
+        ->name->toBe('ThemeUser')
+        ->timezone->toBe('Europe/Moscow');
+
+    $this->actingAs($user->fresh())
+        ->getJson('/api/v1/user')
+        ->assertSuccessful()
+        ->assertJsonPath('user.theme_preference', 'dark');
+});
+
+it('rejects an unsupported theme preference', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson('/api/v1/user', ['theme_preference' => 'sepia'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['theme_preference']);
+
+    expect($user->fresh()->theme_preference)->toBe('system');
 });

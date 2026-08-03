@@ -59,23 +59,26 @@ class StoreGuildRequest extends FormRequest
             $userId = $this->user()?->id;
             $serverId = (int) $this->input('server_id');
             $leaderId = (int) $this->input('leader_character_id');
-            if (!$userId || !$leaderId) {
+            if (! $userId || ! $leaderId) {
                 return;
             }
             $character = Character::query()->find($leaderId);
-            if (!$character) {
+            if (! $character) {
                 return;
             }
             if ((int) $character->user_id !== $userId) {
                 $validator->errors()->add('leader_character_id', 'Персонаж должен принадлежать вам.');
+
                 return;
             }
             if ((int) $character->server_id !== $serverId) {
                 $validator->errors()->add('leader_character_id', 'Персонаж должен находиться на том же сервере, что и гильдия.');
+
                 return;
             }
             if (GuildMember::query()->where('character_id', $leaderId)->exists()) {
                 $validator->errors()->add('leader_character_id', 'Этот персонаж уже состоит в гильдии. Персонаж может быть только в одной гильдии.');
+
                 return;
             }
             if (Guild::query()->where('leader_character_id', $leaderId)->exists()) {
@@ -92,7 +95,7 @@ class StoreGuildRequest extends FormRequest
     private function validateAssignableTagIds(Validator $validator): void
     {
         $raw = $this->input('tag_ids');
-        if (!is_array($raw) || $raw === []) {
+        if (! is_array($raw) || $raw === []) {
             return;
         }
         $tagIds = array_values(array_unique(array_filter(array_map('intval', $raw))));
@@ -115,7 +118,7 @@ class StoreGuildRequest extends FormRequest
             'К гильдии можно привязывать только общие теги или теги этой гильдии. Уберите личные теги.'
         );
         foreach ($invalidIds as $id) {
-            $validator->errors()->add('tag_ids.' . array_search($id, $tagIds, true), 'Этот тег нельзя привязать к гильдии.');
+            $validator->errors()->add('tag_ids.'.array_search($id, $tagIds, true), 'Этот тег нельзя привязать к гильдии.');
         }
     }
 
@@ -123,7 +126,7 @@ class StoreGuildRequest extends FormRequest
     {
         $serverId = (int) $this->input('server_id');
         $name = trim((string) $this->input('name'));
-        if (!$serverId || $name === '') {
+        if (! $serverId || $name === '') {
             return;
         }
 

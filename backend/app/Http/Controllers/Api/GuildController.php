@@ -9,16 +9,14 @@ use App\Http\Requests\Guild\StoreGuildRequest;
 use App\Http\Requests\Guild\StoreGuildTagRequest;
 use App\Http\Requests\Guild\UpdateGuildMemberDkpCoefficientRequest;
 use App\Http\Requests\Guild\UpdateGuildMemberRoleRequest;
-use App\Http\Requests\Guild\UpdateGuildRosterMemberTagsRequest;
 use App\Http\Requests\Guild\UpdateGuildRequest;
+use App\Http\Requests\Guild\UpdateGuildRosterMemberTagsRequest;
 use App\Http\Resources\Guild\GuildApplicationFormResource;
 use App\Http\Resources\Guild\GuildResource;
 use App\Http\Resources\Guild\GuildRosterMemberResource;
 use App\Http\Resources\Tag\TagResource;
+use Domains\Character\Models\Character;
 use Domains\Guild\Actions\CreateGuildAction;
-use Domains\Tag\Actions\CreateTagAction;
-use Domains\Tag\Actions\DeleteTagAction;
-use Domains\Tag\Models\Tag;
 use Domains\Guild\Actions\DeleteGuildAction;
 use Domains\Guild\Actions\ExcludeGuildMemberAction;
 use Domains\Guild\Actions\GetGuildAction;
@@ -27,17 +25,19 @@ use Domains\Guild\Actions\GetGuildRosterMemberAction;
 use Domains\Guild\Actions\GetUserGuildCharactersAction;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Actions\LeaveGuildAction;
-use Domains\Guild\Actions\UpdateGuildAction;
 use Domains\Guild\Actions\SyncGuildRosterMemberTagsAction;
-use Domains\Character\Models\Character;
+use Domains\Guild\Actions\UpdateGuildAction;
 use Domains\Guild\Actions\UpdateGuildMemberDkpCoefficientAction;
 use Domains\Guild\Actions\UpdateGuildMemberRoleAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
+use Domains\Tag\Actions\CreateTagAction;
+use Domains\Tag\Actions\DeleteTagAction;
+use Domains\Tag\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class GuildController extends Controller
 {
@@ -88,6 +88,7 @@ class GuildController extends Controller
             'leader',
             'tags' => fn ($q) => $q->notHidden(),
         ]);
+
         return response()->json(new GuildResource($guild));
     }
 
@@ -234,6 +235,7 @@ class GuildController extends Controller
     public function applicationForm(Guild $guild): JsonResponse
     {
         $guild->load(['game', 'server', 'applicationFormFields']);
+
         return response()->json(new GuildApplicationFormResource($guild));
     }
 
@@ -314,7 +316,7 @@ class GuildController extends Controller
      */
     private function computeCanChangeLocalizationServer(Guild $guild): bool
     {
-        if (!$guild->leader_character_id) {
+        if (! $guild->leader_character_id) {
             return false;
         }
         $membersCount = (int) ($guild->members_count ?? $guild->members()->count());
@@ -330,6 +332,7 @@ class GuildController extends Controller
     public function store(StoreGuildRequest $request): JsonResponse
     {
         $guild = ($this->createGuildAction)($request->user(), $request->validated());
+
         return (new GuildResource($guild))->response()->setStatusCode(201);
     }
 
@@ -340,13 +343,14 @@ class GuildController extends Controller
         // Возвращаем сохранённый webhook URL только тому, кто только что прошёл проверку
         // прав на редактирование данных гильдии в UpdateGuildAction.
         $data['discord_webhook_url'] = $guild->discord_webhook_url;
+
         return response()->json(['data' => $data]);
     }
 
     public function destroy(Request $request, Guild $guild): Response
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->noContent(401);
         }
 

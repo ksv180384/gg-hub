@@ -9,7 +9,9 @@ use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Http\Responses\Fortify\LoginResponse as FortifyLoginResponse;
 use App\Http\Responses\Fortify\RegisterResponse as FortifyRegisterResponse;
-use App\Models\User;
+use Domains\User\Models\User;
+use Illuminate\Auth\Events\Attempting;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -17,12 +19,10 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Auth\Events\Login;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Fortify;
-use Illuminate\Auth\Events\Attempting;
 
 class FortifyServiceProvider extends ServiceProvider
 {

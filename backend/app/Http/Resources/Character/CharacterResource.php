@@ -37,6 +37,7 @@ class CharacterResource extends JsonResource
             'tags' => TagResource::collection($this->whenLoaded('tags')),
             'guild' => $this->whenLoaded('guildMember', function () {
                 $guild = $this->guildMember?->guild;
+
                 return $guild ? ['id' => $guild->id, 'name' => $guild->name] : null;
             }),
             'created_at' => $this->created_at?->toIso8601String(),

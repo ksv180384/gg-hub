@@ -2,11 +2,11 @@
 
 namespace Domains\Event\Actions;
 
-use App\Models\User;
 use App\Services\GuildEventSocketBroadcaster;
 use Domains\Event\Models\Event;
 use Domains\Event\Models\EventParticipant;
 use Domains\Guild\Models\GuildMember;
+use Domains\User\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -34,6 +34,7 @@ class DeclineEventAction
 
             if ($existing) {
                 $existing->delete();
+
                 return;
             }
 
@@ -63,4 +64,3 @@ class DeclineEventAction
         return $row?->character_id ? (int) $row->character_id : null;
     }
 }
-

@@ -26,24 +26,28 @@ class RoleController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $roles = ($this->listRolesAction)();
+
         return RoleResource::collection($roles);
     }
 
     public function show(Role $role): RoleResource
     {
         $role = ($this->getRoleAction)($role);
+
         return new RoleResource($role);
     }
 
     public function store(StoreRoleRequest $request): JsonResponse
     {
         $role = ($this->createRoleAction)($request->validated());
+
         return (new RoleResource($role))->response()->setStatusCode(201);
     }
 
     public function update(UpdateRoleRequest $request, Role $role): RoleResource
     {
         $role = ($this->updateRoleAction)($role, $request->validated());
+
         return new RoleResource($role);
     }
 }

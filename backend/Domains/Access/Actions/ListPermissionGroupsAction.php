@@ -2,6 +2,7 @@
 
 namespace Domains\Access\Actions;
 
+use App\Filters\PermissionScopeFilter;
 use Domains\Access\Enums\PermissionScope;
 use Domains\Access\Models\PermissionGroup;
 use Illuminate\Database\Eloquent\Collection;
@@ -9,15 +10,18 @@ use Illuminate\Database\Eloquent\Collection;
 class ListPermissionGroupsAction
 {
     /**
-     * @param PermissionScope|null $scope Если передан — только группы с этим scope (site/guild).
      * @return Collection<int, PermissionGroup>
      */
-    public function __invoke(?PermissionScope $scope = null): Collection
+    public function __invoke(PermissionScopeFilter|PermissionScope|null $filter = null): Collection
     {
-        $query = PermissionGroup::with('permissions')->orderBy('name');
-        if ($scope !== null) {
-            $query->where('scope', $scope);
+        $query = PermissionGroup::query()->with('permissions');
+
+        if ($filter instanceof PermissionScopeFilter) {
+            $query->filter($filter);
+        } elseif ($filter instanceof PermissionScope) {
+            $query->where('scope', $filter);
         }
-        return $query->get();
+
+        return $query->orderBy('name')->get();
     }
 }

@@ -3,13 +3,14 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Game\GameResource;
+use Domains\Game\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Ресурс ответа GET /context: mode, subdomain, game.
  *
- * @param array{mode: string, subdomain: string|null, game: \App\Models\Game|\Domains\Game\Models\Game|null} $resource
+ * @param  array{mode: string, subdomain: string|null, game: Game|null}  $resource
  */
 class ContextResource extends JsonResource
 {
@@ -18,8 +19,9 @@ class ContextResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        /** @var array{mode: string, subdomain: string|null, game: \App\Models\Game|\Domains\Game\Models\Game|null} $context */
+        /** @var array{mode: string, subdomain: string|null, game: Game|null} $context */
         $context = $this->resource;
+
         return [
             'mode' => $context['mode'],
             'subdomain' => $context['subdomain'],

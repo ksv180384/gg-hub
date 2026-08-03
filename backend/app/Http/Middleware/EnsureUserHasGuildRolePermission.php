@@ -2,10 +2,10 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
 use Closure;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -20,12 +20,12 @@ class EnsureUserHasGuildRolePermission
     public function handle(Request $request, Closure $next, string $allowedSlugs): Response
     {
         $user = $request->user();
-        if (!$user instanceof User) {
+        if (! $user instanceof User) {
             return response()->json(['message' => 'Необходима авторизация.'], 401);
         }
 
         $guild = $request->route('guild');
-        if (!$guild instanceof Guild) {
+        if (! $guild instanceof Guild) {
             return response()->json(['message' => 'Гильдия не найдена.'], 404);
         }
 
@@ -36,7 +36,7 @@ class EnsureUserHasGuildRolePermission
 
         $hasAny = $userSlugs->contains(fn (string $slug): bool => in_array($slug, $required, true));
 
-        if (!$hasAny) {
+        if (! $hasAny) {
             return response()->json([
                 'message' => 'Недостаточно прав в гильдии для этого действия.',
             ], 403);

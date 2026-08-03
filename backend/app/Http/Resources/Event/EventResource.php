@@ -42,7 +42,10 @@ class EventResource extends JsonResource
                     ->all();
             }),
             'my_declined' => $this->whenLoaded('participants', function () use ($user) {
-                if (!$user) return false;
+                if (! $user) {
+                    return false;
+                }
+
                 return $this->participants->contains(function ($p) use ($user) {
                     return $p->relationLoaded('character')
                         && $p->character

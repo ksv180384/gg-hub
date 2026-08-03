@@ -2,11 +2,10 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Contracts\Repositories\GameRepositoryInterface;
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Illuminate\Support\Collection;
 
-class EloquentGameRepository implements GameRepositoryInterface
+class EloquentGameRepository
 {
     public function getActive(): Collection
     {
@@ -24,7 +23,7 @@ class EloquentGameRepository implements GameRepositoryInterface
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): Game
     {

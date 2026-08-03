@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Post\PostListResource;
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Domains\Post\Actions\ListGlobalPostsForJournalAction;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 

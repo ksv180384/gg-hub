@@ -28,4 +28,3 @@ class DeleteGuildBankItemAction
         $item->delete();
     }
 }
-

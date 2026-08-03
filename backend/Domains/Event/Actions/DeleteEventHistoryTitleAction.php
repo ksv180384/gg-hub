@@ -23,4 +23,3 @@ class DeleteEventHistoryTitleAction
         $title->delete();
     }
 }
-

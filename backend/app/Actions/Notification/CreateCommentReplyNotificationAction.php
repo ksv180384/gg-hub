@@ -2,7 +2,7 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
+use Domains\Notification\Models\Notification;
 use Domains\Post\Models\Post;
 use Domains\Post\Models\PostComment;
 

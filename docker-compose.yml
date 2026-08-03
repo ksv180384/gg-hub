@@ -38,6 +38,7 @@ services:
             - VITE_SSR_API_ORIGIN=${VITE_SSR_API_ORIGIN:-http://gg-nginx:80}
             # Прокси Vite dev → socket_server (браузер ходит на тот же origin, /socket.io)
             - VITE_SOCKET_DEV_PROXY_TARGET=${VITE_SOCKET_DEV_PROXY_TARGET:-http://socket-server-nodejs:3007}
+            - VITE_CONSTANT_PARTY_CHAT_ENABLED=${CONSTANT_PARTY_CHAT_ENABLED:-0}
         depends_on:
             - gg-nginx
             - socket-server-nodejs
@@ -61,6 +62,9 @@ services:
         # При падении любого из них контейнер завершится и Docker (restart: unless-stopped) поднимет его заново.
         command: ["bash", "/usr/local/bin/gg-start.sh"]
         restart: unless-stopped
+        environment:
+            SOCKET_SERVER_INTERNAL_TOKEN: ${SOCKET_SERVER_INTERNAL_TOKEN}
+            CONSTANT_PARTY_CHAT_ENABLED: ${CONSTANT_PARTY_CHAT_ENABLED:-0}
         depends_on:
             - gg-mariadb
         ports:
@@ -120,6 +124,11 @@ services:
             - socket_server_node_modules:/var/www/socket_server/node_modules
         environment:
             NODE_ENV: development
+            CONSTANT_PARTY_CHAT_AUTH_URL: ${CONSTANT_PARTY_CHAT_AUTH_URL:-http://gg-nginx/api/v1/constant-party-chat/socket-auth}
+            ROULETTE_AUTH_URL: ${ROULETTE_AUTH_URL:-http://gg-nginx/api/v1/guild-roulette/socket-auth}
+            ROULETTE_AUDIT_URL: ${ROULETTE_AUDIT_URL:-http://gg-nginx/api/v1/guild-roulette/audit}
+            SOCKET_SERVER_INTERNAL_TOKEN: ${SOCKET_SERVER_INTERNAL_TOKEN}
+            CONSTANT_PARTY_CHAT_ENABLED: ${CONSTANT_PARTY_CHAT_ENABLED:-0}
         command: sh -c "npm install && npm run dev"
         ports:
             - "3007:3007"

@@ -36,6 +36,7 @@ final class SitemapController extends Controller
     private function frontendBaseUrl(): string
     {
         $frontendUrl = (string) config('app.frontend_url', config('app.url'));
+
         return rtrim($frontendUrl, '/');
     }
 
@@ -74,7 +75,7 @@ final class SitemapController extends Controller
                     $lastmod = $game->updated_at ? Carbon::parse($game->updated_at) : null;
 
                     $sitemap->add(
-                        Url::create($this->frontendUrlForGame($frontendUrl, (string) $game->slug) . '/')
+                        Url::create($this->frontendUrlForGame($frontendUrl, (string) $game->slug).'/')
                             ->setLastModificationDate($lastmod)
                             ->setChangeFrequency(Url::CHANGE_FREQUENCY_DAILY)
                             ->setPriority(0.9)
@@ -137,11 +138,11 @@ final class SitemapController extends Controller
     private function frontendUrlForGame(string $frontendUrl, string $gameSlug): string
     {
         $parsed = parse_url($frontendUrl) ?: [];
-        $scheme = ($parsed['scheme'] ?? 'https') . '://';
+        $scheme = ($parsed['scheme'] ?? 'https').'://';
         $host = $parsed['host'] ?? 'gg-hub.ru';
-        $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+        $port = isset($parsed['port']) ? ':'.$parsed['port'] : '';
 
-        return $scheme . $gameSlug . '.' . $host . $port;
+        return $scheme.$gameSlug.'.'.$host.$port;
     }
 
     private function xmlResponse(Sitemap $sitemap): Response

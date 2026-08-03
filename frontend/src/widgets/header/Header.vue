@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   SiteLogo,
+  Spinner,
 } from '@/shared/ui';
 import { useAuthStore } from '@/stores/auth';
 import { useSiteContextStore } from '@/stores/siteContext';
@@ -168,6 +169,7 @@ async function loadMoreNotifications() {
 
 async function loadPolls() {
   if (!auth.isAuthenticated) return;
+  if (loadingPolls.value) return;
   if (!hasUserGuilds.value) {
     polls.value = [];
     loadingPolls.value = false;
@@ -198,22 +200,29 @@ watch(pollsDrawerOpen, (open) => {
   if (open && auth.isAuthenticated) loadPolls();
 });
 
-watch(() => [siteContext.game?.id, auth.isAuthenticated], () => {
-  if (auth.isAuthenticated) loadPolls();
-}, { immediate: false });
-
 watch(() => siteContext.pollsRefreshTrigger, (val) => {
   if (val > 0 && auth.isAuthenticated) loadPolls();
 });
 
-watch(hasUserGuilds, (has) => {
-  if (!has) {
-    pollsDrawerOpen.value = false;
-    polls.value = [];
-  } else if (auth.isAuthenticated) {
-    loadPolls();
-  }
-});
+watch(
+  () => [
+    siteContext.data !== null,
+    siteContext.game?.id ?? null,
+    siteContext.isGameSubdomain,
+    auth.isAuthenticated,
+    hasUserGuilds.value,
+  ] as const,
+  ([contextReady, gameId, isGameSubdomain, isAuthenticated, hasGuilds]) => {
+    if (!isAuthenticated || !hasGuilds) {
+      pollsDrawerOpen.value = false;
+      polls.value = [];
+      return;
+    }
+    if (!contextReady || (isGameSubdomain && gameId === null)) return;
+    void loadPolls();
+  },
+  { immediate: true }
+);
 
 watch(notificationsDrawerOpen, (open) => {
   if (open && auth.isAuthenticated) loadNotifications();
@@ -222,11 +231,9 @@ watch(notificationsDrawerOpen, (open) => {
 watch(() => auth.isAuthenticated, (isAuth) => {
   if (isAuth) {
     loadNotifications();
-    loadPolls();
   } else {
     notifications.value = [];
     unreadCount.value = 0;
-    polls.value = [];
   }
 }, { immediate: true });
 
@@ -316,11 +323,11 @@ function isNavActive(itemTo: string): boolean {
 </script>
 
 <template>
-  <header class="sticky top-0 z-20 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  <header class="fixed inset-x-0 bottom-0 z-40 w-full border-t bg-background pb-[env(safe-area-inset-bottom)] md:sticky md:top-0 md:bottom-auto md:z-20 md:border-b md:border-t-0 md:bg-background/95 md:pb-0 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/60">
     <div
-      class="flex h-14 items-center justify-between gap-2 px-4 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-4 md:px-6"
+      class="flex h-16 items-stretch justify-between px-1 md:grid md:h-14 md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-4 md:px-6"
     >
-      <div class="flex min-w-0 shrink-0 items-center gap-2 md:justify-self-start">
+      <div class="hidden min-w-0 shrink-0 items-center gap-2 md:flex md:justify-self-start">
         <a :href="mainSiteHref" class="group flex shrink-0 items-center gap-2 font-semibold">
           <SiteLogo :size="36" class="transition-transform group-hover:scale-105" />
         </a>
@@ -363,10 +370,10 @@ function isNavActive(itemTo: string): boolean {
         </template>
       </nav>
 
-      <div class="flex min-w-0 items-center justify-end gap-2 md:flex-none md:justify-self-end">
-        <DropdownMenu>
+      <div class="flex h-full w-full min-w-0 items-stretch justify-around gap-0 md:h-auto md:w-auto md:items-center md:justify-end md:gap-2 md:flex-none md:justify-self-end">
+        <DropdownMenu v-if="auth.initialized && !auth.isAuthenticated">
           <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Тема оформления" title="Тема оформления">
+            <Button variant="ghost" size="icon" class="h-14 min-w-0 flex-1 flex-col gap-1 rounded-md text-[10px] text-muted-foreground md:h-9 md:w-9 md:flex-none" aria-label="Тема оформления" title="Тема оформления">
               <span class="relative inline-flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center">
                 <svg v-show="theme.preference === 'light'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute inset-0 m-auto h-[1.125rem] w-[1.125rem]">
                   <circle cx="12" cy="12" r="4"/>
@@ -379,6 +386,7 @@ function isNavActive(itemTo: string): boolean {
                   <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
                 </svg>
               </span>
+              <span class="md:hidden">Тема</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent class="w-auto p-1" align="end">
@@ -481,19 +489,29 @@ function isNavActive(itemTo: string): boolean {
         </template>
         <!-- Тема: dropdown в стиле shadcn -->
         <!-- Авторизован: по клику на аватар — дропдаун с именем, профиль, выход -->
-        <template v-if="auth.isAuthenticated">
+        <div
+          v-if="!auth.initialized"
+          class="inline-flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 text-muted-foreground md:h-9 md:w-9 md:flex-none"
+          role="status"
+          aria-label="Загрузка пользователя"
+        >
+          <Spinner class="h-5 w-5" />
+          <span class="text-[10px] md:hidden">Загрузка</span>
+        </div>
+        <template v-else-if="auth.isAuthenticated">
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <button
                 type="button"
-                class="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                class="flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md text-[10px] text-muted-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:h-auto md:flex-none md:rounded-full"
                 aria-label="Меню пользователя"
               >
                 <Avatar
                   :src="auth.user?.avatar_url ?? undefined"
                   :fallback="(auth.user?.name?.slice(0, 2) || '??').toUpperCase()"
-                  class="h-8 w-8 cursor-pointer"
+                  class="h-6 w-6 cursor-pointer md:h-8 md:w-8"
                 />
+                <span class="md:hidden">Профиль</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent class="w-56" align="end">
@@ -505,6 +523,11 @@ function isNavActive(itemTo: string): boolean {
               <DropdownMenuItem as-child>
                 <RouterLink to="/my-characters" class="cursor-pointer">
                   Мои персонажи
+                </RouterLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem v-if="siteContext.game" as-child>
+                <RouterLink to="/my-constant-parties" class="cursor-pointer" title="Мои конст пати">
+                  Мои КП
                 </RouterLink>
               </DropdownMenuItem>
               <DropdownMenuItem as-child>
@@ -527,7 +550,7 @@ function isNavActive(itemTo: string): boolean {
         <template v-else>
           <RouterLink
             :to="{ name: 'login', query: { redirect: route.fullPath } }"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+            class="inline-flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md text-[10px] text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 md:h-9 md:w-9 md:flex-none"
             aria-label="Войти"
             title="Войти"
           >
@@ -547,15 +570,17 @@ function isNavActive(itemTo: string): boolean {
               <polyline points="10 17 15 12 10 7" />
               <line x1="15" x2="3" y1="12" y2="12" />
             </svg>
+            <span class="md:hidden">Войти</span>
           </RouterLink>
         </template>
 
         <Sheet v-model:open="mobileMenuOpen" side="right" class="md:hidden">
           <template #trigger>
-            <Button variant="ghost" size="icon" aria-label="Открыть меню" title="Меню" class="md:hidden">
+            <Button variant="ghost" size="icon" aria-label="Открыть меню" title="Меню" class="h-14 min-w-0 flex-1 flex-col gap-1 rounded-md text-[10px] text-muted-foreground md:hidden">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>
               </svg>
+              <span>Меню</span>
             </Button>
           </template>
           <template v-if="hasMobileMenuSidebar" #toolbar-start>

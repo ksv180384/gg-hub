@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\User\GetCurrentUserAction;
 use App\Actions\User\UpdateUserProfileAction;
+use App\Filters\EventFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\UpdateProfileRequest;
 use App\Http\Resources\Event\UserGuildCalendarEventResource;
+use App\Http\Resources\Guild\GuildApplicationResource;
 use App\Http\Resources\Poll\UserPollResource;
 use App\Http\Resources\UserResource;
-use App\Http\Resources\Guild\GuildApplicationResource;
 use Domains\Event\Actions\ListUserGuildCalendarEventsAction;
 use Domains\Guild\Actions\CountUserActiveGuildApplicationsAction;
 use Domains\Guild\Actions\GetUserGuildsForGameAction;
@@ -34,6 +35,7 @@ class UserController extends Controller
     public function show(Request $request): JsonResponse
     {
         $user = ($this->getCurrentUserAction)($request->user());
+
         return response()->json(['user' => $user ? (new UserResource($user))->resolve() : null]);
     }
 
@@ -60,6 +62,7 @@ class UserController extends Controller
             return response()->json(['data' => []], 200);
         }
         $guilds = ($this->getUserGuildsForGameAction)($request->user(), $gameId);
+
         return response()->json(['data' => $guilds->values()->all()]);
     }
 
@@ -70,11 +73,10 @@ class UserController extends Controller
     public function polls(Request $request): JsonResponse
     {
         $user = $request->user();
-        $gameId = $request->query('game_id');
-        $gameId = $gameId !== null && $gameId !== '' ? (int) $gameId : null;
-        $gameId = $gameId > 0 ? $gameId : null;
-
-        $polls = ($this->listUserPollsAction)($user, $gameId);
+        $polls = ($this->listUserPollsAction)(
+            $user,
+            new CharacterFilter($request),
+        );
 
         return UserPollResource::collection($polls)->response();
     }
@@ -95,10 +97,15 @@ class UserController extends Controller
         $from = is_string($from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ? $from : $today;
         $to = is_string($to) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) ? $to : $from;
 
-        $events = ($this->listUserGuildCalendarEventsAction)($user, [
+        $request->merge([
             'from' => $from,
             'to' => $to,
         ]);
+
+        $events = ($this->listUserGuildCalendarEventsAction)(
+            $user,
+            new EventFilter($request),
+        );
 
         return UserGuildCalendarEventResource::collection($events)->response();
     }

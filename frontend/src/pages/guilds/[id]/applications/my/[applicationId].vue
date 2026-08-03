@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BackIconButton, Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Spinner } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import { guildsApi, type GuildApplicationItem } from '@/shared/api/guildsApi';
 import ApplicationComments from '@/pages/guilds/[id]/applications/ApplicationComments.vue';
 import { CharacterClassBadge } from '@/entities/character';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 
 const route = useRoute();
 const router = useRouter();

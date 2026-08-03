@@ -68,6 +68,7 @@ class PostController extends Controller
     {
         $post = ($this->updateMyPostAction)($request, $post);
         $post->loadMissing(['character', 'character.user', 'user', 'guild']);
+
         return new PostResource($post);
     }
 }

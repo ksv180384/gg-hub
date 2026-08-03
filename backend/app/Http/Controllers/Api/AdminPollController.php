@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Filters\PollFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Poll\AdminDeletePollRequest;
 use App\Http\Resources\Poll\AdminPollResource;
@@ -29,10 +30,10 @@ class AdminPollController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $perPage = max(1, min(100, (int) $request->query('per_page', 20)));
-        $guildId = $request->query('guild_id');
-        $guildId = is_numeric($guildId) ? (int) $guildId : null;
-
-        $paginator = ($this->listAdminPollsAction)($perPage, $guildId);
+        $paginator = ($this->listAdminPollsAction)(
+            new PollFilter($request),
+            $perPage,
+        );
 
         return AdminPollResource::collection($paginator);
     }

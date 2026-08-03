@@ -10,6 +10,34 @@ export interface Server {
   name: string;
   slug: string;
   is_active: boolean;
+  is_merging: boolean;
+}
+
+export type ServerMergeStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+export interface ServerMergeStageProgress {
+  total: number;
+  processed: number;
+}
+
+export interface ServerMerge {
+  id: number;
+  game_id: number;
+  localization_id: number;
+  target_server_id: number;
+  source_server_ids: number[];
+  status: ServerMergeStatus;
+  current_stage: string | null;
+  total_records: number;
+  processed_records: number;
+  progress_percent: number;
+  progress: Record<string, ServerMergeStageProgress>;
+  error_message: string | null;
+  can_resume: boolean;
+  started_at: string | null;
+  finished_at: string | null;
+  failed_at: string | null;
+  created_at: string | null;
 }
 
 export interface GameClass {
@@ -282,17 +310,46 @@ export const gamesApi = {
     throwOnError(res, 'Ошибка удаления сервера');
   },
 
-  /** Объединить несколько серверов в один (персонажи и гильдии переносятся на целевой сервер). */
+  /** Запустить фоновое порционное объединение серверов. */
   async mergeServers(
     gameId: number,
     localizationId: number,
     payload: { target_server_id: number; source_server_ids: number[] }
-  ): Promise<{ message: string; target_server_id: number }> {
-    const res = await http.fetchPost<{ message: string; target_server_id: number }>(
+  ): Promise<ServerMerge> {
+    const res = await http.fetchPost<{ data: ServerMerge } | ServerMerge>(
       `/games/${gameId}/localizations/${localizationId}/servers/merge`,
       payload as unknown as Record<string, unknown>
     );
     throwOnError(res, 'Ошибка объединения');
-    return res.data as { message: string; target_server_id: number };
+    return unwrapData(res, {} as ServerMerge) as ServerMerge;
+  },
+
+  async getCurrentServerMerge(
+    gameId: number,
+    localizationId: number
+  ): Promise<ServerMerge | null> {
+    const res = await http.fetchGet<{ data: ServerMerge | null }>(
+      `/games/${gameId}/localizations/${localizationId}/server-merges/current`
+    );
+    throwOnError(res, 'Ошибка загрузки статуса объединения');
+    const raw = res.data as { data?: ServerMerge | null } | null;
+    return raw?.data ?? null;
+  },
+
+  async getServerMerge(serverMergeId: number): Promise<ServerMerge> {
+    const res = await http.fetchGet<{ data: ServerMerge } | ServerMerge>(
+      `/server-merges/${serverMergeId}`
+    );
+    throwOnError(res, 'Ошибка загрузки статуса объединения');
+    return unwrapData(res, {} as ServerMerge) as ServerMerge;
+  },
+
+  async resumeServerMerge(serverMergeId: number): Promise<ServerMerge> {
+    const res = await http.fetchPost<{ data: ServerMerge } | ServerMerge>(
+      `/server-merges/${serverMergeId}/resume`,
+      {}
+    );
+    throwOnError(res, 'Ошибка продолжения объединения');
+    return unwrapData(res, {} as ServerMerge) as ServerMerge;
   },
 };

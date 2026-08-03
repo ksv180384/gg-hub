@@ -24,6 +24,7 @@ class GuildBankGrantListResource extends JsonResource
                 'name' => $this->grantedByCharacter->name,
             ] : null),
             'granted_at' => $this->granted_at?->toIso8601String(),
+            'quantity' => (int) $this->quantity,
             'reason' => $this->reason,
             'dkp_charged' => $this->dkp_charged === null ? null : (int) $this->dkp_charged,
         ];

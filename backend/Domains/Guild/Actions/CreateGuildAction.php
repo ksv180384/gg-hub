@@ -3,23 +3,23 @@
 namespace Domains\Guild\Actions;
 
 use App\Actions\Notification\SendAdminTelegramNotificationAction;
-use App\Contracts\Repositories\GuildRepositoryInterface;
-use App\Models\User;
+use App\Repositories\Eloquent\EloquentGuildRepository;
 use Domains\Access\Models\GuildRole;
 use Domains\Game\Models\Server;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Domains\Tag\Models\Tag;
+use Domains\User\Models\User;
 use Illuminate\Support\Str;
 
 class CreateGuildAction
 {
     public function __construct(
-        private GuildRepositoryInterface $guildRepository
+        private EloquentGuildRepository $guildRepository
     ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function __invoke(User $user, array $data): Guild
     {

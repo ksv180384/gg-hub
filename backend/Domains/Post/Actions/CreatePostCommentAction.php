@@ -2,10 +2,10 @@
 
 namespace Domains\Post\Actions;
 
-use App\Models\User;
 use Domains\Guild\Models\GuildMember;
 use Domains\Post\Models\Post;
 use Domains\Post\Models\PostComment;
+use Domains\User\Models\User;
 use InvalidArgumentException;
 
 /**

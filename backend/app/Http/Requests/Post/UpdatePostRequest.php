@@ -18,7 +18,7 @@ class UpdatePostRequest extends FormRequest
         /** @var Post|null $post */
         $post = $this->route('post');
 
-        if (!$user || !$post) {
+        if (! $user || ! $post) {
             return false;
         }
 
@@ -85,17 +85,17 @@ class UpdatePostRequest extends FormRequest
             /** @var Post|null $post */
             $post = $this->route('post');
 
-            if (!$user || !$post) {
+            if (! $user || ! $post) {
                 return;
             }
 
             $guildId = $this->input('guild_id') ?? $post->guild_id;
-            if (!$guildId) {
+            if (! $guildId) {
                 return;
             }
 
             $guild = Guild::query()->find($guildId);
-            if (!$guild) {
+            if (! $guild) {
                 return;
             }
 
@@ -109,14 +109,14 @@ class UpdatePostRequest extends FormRequest
             // Право на редактирование постов гильдии требуется только при публикации в гильдию (не при сохранении заблокированного/скрытого поста).
             $statusGuild = $this->input('status_guild', $post->status_guild);
             $wantsGuildVisible = $isVisibleGuild && $statusGuild !== PostStatus::Hidden->value;
-            if ($wantsGuildVisible && !$slugs->contains('redaktirovat-post')) {
+            if ($wantsGuildVisible && ! $slugs->contains('redaktirovat-post')) {
                 $validator->errors()->add('guild_id', 'У вас нет прав редактировать посты этой гильдии.');
             }
 
             // Право «от имени гильдии» требуется только при публикации в общий журнал (не при сохранении заблокированного поста).
             $statusGlobal = $this->input('status_global', $post->status_global);
             $wantsGlobalVisibleAsGuild = $wantsGlobalAsGuild && $statusGlobal !== PostStatus::Hidden->value;
-            if ($wantsGlobalVisibleAsGuild && !$slugs->contains('sozdavat-posty-ot-imeni-gildii')) {
+            if ($wantsGlobalVisibleAsGuild && ! $slugs->contains('sozdavat-posty-ot-imeni-gildii')) {
                 $validator->errors()->add('global_visibility_type', 'У вас нет прав создавать посты от имени гильдии.');
             }
         });
@@ -149,4 +149,3 @@ class UpdatePostRequest extends FormRequest
         ];
     }
 }
-

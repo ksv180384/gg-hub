@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
 use Closure;
+use Domains\User\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -18,7 +18,7 @@ class EnsureUserHasPermission
     public function handle(Request $request, Closure $next, string $slug): Response
     {
         $user = $request->user();
-        if (!$user instanceof User) {
+        if (! $user instanceof User) {
             return response()->json(['message' => 'Необходима авторизация.'], 401);
         }
 
@@ -31,7 +31,7 @@ class EnsureUserHasPermission
                 break;
             }
         }
-        if (!$hasAny) {
+        if (! $hasAny) {
             return response()->json(['message' => 'Недостаточно прав.'], 403);
         }
 

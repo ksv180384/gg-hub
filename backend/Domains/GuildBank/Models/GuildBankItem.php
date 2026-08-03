@@ -3,9 +3,11 @@
 namespace Domains\GuildBank\Models;
 
 use Domains\Guild\Models\Guild;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Предмет каталога банка (хранилища) гильдии.
@@ -23,12 +25,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $guild_bank_item_tier_id Ссылка на тир; null — предмет без тира.
  * @property int|null $dkp_cost Стоимость в ДКП при выдаче; null или 0 — без списания очков.
  * @property int|null $quantity Остаток на складе; null — бесконечный остаток (∞ в интерфейсе).
- * @property \Illuminate\Support\Carbon|null $created_at Дата добавления предмета в каталог.
- * @property \Illuminate\Support\Carbon|null $updated_at Дата последнего изменения полей или остатка.
- *
+ * @property Carbon|null $created_at Дата добавления предмета в каталог.
+ * @property Carbon|null $updated_at Дата последнего изменения полей или остатка.
  * @property-read Guild $guild Гильдия, которой принадлежит каталогная позиция.
  * @property-read GuildBankItemTier|null $tier Тир для отображения названия и цвета в UI.
- * @property-read \Illuminate\Database\Eloquent\Collection<int, GuildBankItemGrant> $grants Все выдачи этого предмета, от новых к старым.
+ * @property-read Collection<int, GuildBankItemGrant> $grants Все выдачи этого предмета, от новых к старым.
  */
 class GuildBankItem extends Model
 {

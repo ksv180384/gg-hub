@@ -6,21 +6,25 @@ namespace App\Core\Filters;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 abstract class Filter
 {
     public const KEYS_TO_BOOL = [];
+
     public const KEYS_TO_INT = [];
+
     public const KEYS_TO_DATE = [];
+
     public const KEYS_STRING_TO_ARRAY = [];
+
     public const KEYS_TO_ARRAY = [];
 
     protected Builder $builder;
 
     public function __construct(
-        protected readonly FormRequest $request
+        protected readonly Request $request
     ) {}
 
     /**

@@ -2,7 +2,7 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ListNotificationsAction
@@ -15,6 +15,7 @@ class ListNotificationsAction
     public function __invoke(User $user, int $perPage = self::PER_PAGE): array
     {
         $paginator = $user->notifications()
+            ->with(['game:id,name', 'guild:id,name'])
             ->orderByDesc('created_at')
             ->paginate($perPage);
 

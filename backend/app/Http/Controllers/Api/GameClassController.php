@@ -10,8 +10,8 @@ use App\Http\Requests\GameClass\StoreGameClassRequest;
 use App\Http\Requests\GameClass\UpdateGameClassRequest;
 use App\Http\Resources\Game\GameClassCatalogResource;
 use App\Http\Resources\Game\GameClassResource;
-use App\Models\Game;
-use App\Models\GameClass;
+use Domains\Game\Models\Game;
+use Domains\Game\Models\GameClass;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -35,6 +35,7 @@ class GameClassController extends Controller
     {
         $data = $request->validated();
         $gameClass = ($this->createGameClassAction)($game, $data, $request->file('image'));
+
         return (new GameClassResource($gameClass))->response()->setStatusCode(201);
     }
 
@@ -47,12 +48,14 @@ class GameClassController extends Controller
             $request->file('image'),
             $request->boolean('remove_image')
         );
+
         return new GameClassResource($gameClass);
     }
 
     public function destroy(GameClass $game_class): Response
     {
         ($this->deleteGameClassAction)($game_class);
+
         return response()->noContent();
     }
 }

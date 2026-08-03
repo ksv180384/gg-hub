@@ -89,7 +89,11 @@ const routes: RouteRecordRaw[] = [
           path: 'guilds/:id/roster',
           name: 'guild-roster',
           component: () => import('@/pages/guilds/[id]/roster/index.vue'),
-          meta: { requiresAuth: true, title: 'Состав гильдии', contentShell: true },
+          meta: {
+            requiresAuth: true,
+            title: 'Состав гильдии',
+            contentShell: true,
+          },
         },
         {
           path: 'guilds/:id/bank',
@@ -112,6 +116,12 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'Аукцион' },
         },
         {
+          path: 'guilds/:id/auction/history',
+          name: 'guild-auction-history',
+          component: () => import('../pages/guilds/[id]/auction/index.vue'),
+          meta: { requiresAuth: true, title: 'История аукциона' },
+        },
+        {
           path: 'guilds/:id/auction/lots/:lotId',
           name: 'guild-auction-lot',
           component: () => import('../pages/guilds/[id]/auction/[lotId].vue'),
@@ -131,7 +141,6 @@ const routes: RouteRecordRaw[] = [
             requiresAuth: false,
             title: 'Подать заявку в гильдию',
             contentShell: true,
-            journalBanner: true,
           },
         },
         {
@@ -212,6 +221,16 @@ const routes: RouteRecordRaw[] = [
           meta: { requiresAuth: true, title: 'Роли членов гильдии' },
         },
         {
+          path: 'guilds/:id/activity',
+          name: 'guild-activity',
+          component: () => import('@/pages/guilds/[id]/activity/index.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'История гильдии',
+            contentShell: true,
+          },
+        },
+        {
           path: 'guilds/create',
           name: 'guilds-create',
           component: () => import('@/pages/guilds/create/index.vue'),
@@ -253,6 +272,32 @@ const routes: RouteRecordRaw[] = [
           name: 'my-posts-edit',
           component: () => import('@/pages/my-posts/[id]/edit.vue'),
           meta: { requiresAuth: true, title: 'Редактирование поста', contentShell: true },
+        },
+        {
+          path: 'my-constant-parties',
+          name: 'my-constant-parties',
+          component: () => import('@/pages/my-constant-parties/index.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Мои КП',
+            contentShell: true,
+          },
+        },
+        {
+          path: 'my-constant-parties/create',
+          name: 'my-constant-parties-create',
+          component: () => import('@/pages/my-constant-parties/create.vue'),
+          meta: { requiresAuth: true, title: 'Новая КП', contentShell: true },
+        },
+        {
+          path: 'constant-parties/:id',
+          name: 'constant-party-show',
+          component: () => import('@/pages/constant-parties/[id]/index.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Конст пати',
+            contentShell: true,
+          },
         },
         {
           path: 'change-password',
@@ -325,6 +370,12 @@ const routes: RouteRecordRaw[] = [
           name: 'admin-users',
           component: () => import('@/pages/admin/users/index.vue'),
           meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN },
+        },
+        {
+          path: 'admin/characters',
+          name: 'admin-characters',
+          component: () => import('@/pages/admin/characters/index.vue'),
+          meta: { requiresAuth: true, permission: PERMISSION_ACCESS_ADMIN, title: 'Персонажи' },
         },
         {
           path: 'admin/testing',
@@ -485,6 +536,22 @@ export function createRouterInstance(history: RouterHistory) {
   const router = createRouter({
     history,
     routes,
+    scrollBehavior(to, _from, savedPosition) {
+      if (savedPosition) {
+        return savedPosition;
+      }
+
+      if (to.hash) {
+        return {
+          el: to.hash,
+        };
+      }
+
+      return {
+        top: 0,
+        left: 0,
+      };
+    },
   });
 
   router.beforeEach(async (to, from) => {
@@ -523,7 +590,7 @@ export function createRouterInstance(history: RouterHistory) {
           return window.setTimeout(cb, 0);
         };
         schedule(() => {
-          if (!auth.loading && !auth.user) {
+          if (!auth.loading && !auth.initialized) {
             void auth.fetchUser();
           }
         });

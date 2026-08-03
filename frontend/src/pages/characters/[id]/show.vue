@@ -11,7 +11,7 @@ import {
   CardTitle,
   Spinner,
 } from '@/shared/ui';
-import { BackIconButton } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import {
   DialogRoot,
   DialogPortal,

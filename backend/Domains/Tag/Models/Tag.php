@@ -3,9 +3,9 @@
 namespace Domains\Tag\Models;
 
 use App\Core\Traits\HasFilter;
-use App\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,6 +51,7 @@ class Tag extends Model
     {
         $slug = $this->slug ?? '';
         $name = $this->name ?? '';
+
         return is_string($name) && $name !== '' && (trim((string) $slug) === '');
     }
 

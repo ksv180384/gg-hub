@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Button, Input, BackIconButton } from '@/shared/ui';
+import { Button, Input } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import { guildsApi, type GuildRosterMember } from '@/shared/api/guildsApi';
 import {
   eventHistoryApi,

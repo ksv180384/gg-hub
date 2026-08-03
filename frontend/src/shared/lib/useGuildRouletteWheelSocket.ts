@@ -1,4 +1,5 @@
 import type { SpinWheelServerParams } from '@/shared/lib/spinWheelTypes';
+import { guildActivityApi } from '@/shared/api/guildActivityApi';
 import {
   computed,
   nextTick,
@@ -178,6 +179,23 @@ export function useGuildRouletteWheelSocket(options: {
     return mod.io;
   }
 
+  async function joinCurrentGuild() {
+    const socket = socketRef.value;
+    const guildId = options.guildId.value;
+    if (!socket?.connected || guildId <= 0) return;
+
+    hasServerState.value = false;
+    try {
+      const token = await guildActivityApi.getRouletteSocketToken(guildId);
+      if (!socket.connected || guildId !== options.guildId.value) return;
+      socket.emit('roulette:join', { token });
+    } catch (caught: unknown) {
+      connectError.value = caught instanceof Error
+        ? caught.message
+        : 'Не удалось авторизовать подключение к рулетке';
+    }
+  }
+
   onMounted(() => {
     if (!configured || import.meta.env.SSR) return;
 
@@ -193,10 +211,7 @@ export function useGuildRouletteWheelSocket(options: {
         connected.value = true;
         connectError.value = null;
         hasServerState.value = false;
-        const gid = options.guildId.value;
-        if (gid > 0) {
-          s.emit('roulette:join', { guildId: gid });
-        }
+        void joinCurrentGuild();
       });
 
       s.on('connect_error', (err: Error) => {
@@ -210,26 +225,31 @@ export function useGuildRouletteWheelSocket(options: {
         hasServerState.value = false;
       });
 
+      s.on('roulette:auth-error', () => {
+        hasServerState.value = false;
+        connectError.value = 'Нет доступа к рулетке этой гильдии';
+      });
+
       s.on(
         'roulette:state',
         (msg: {
           entries?: unknown;
           enrollmentOpen?: unknown;
-            eliminationMode?: unknown;
-            useDkpCoefficients?: unknown;
-            dkpCoefficientOverrides?: unknown;
-            externalDkpCoefficientOverrides?: unknown;
-          }) => {
+          eliminationMode?: unknown;
+          useDkpCoefficients?: unknown;
+          dkpCoefficientOverrides?: unknown;
+          externalDkpCoefficientOverrides?: unknown;
+        }) => {
           applyRemoteEntries(msg?.entries);
           applyRemoteEnrollment(msg?.enrollmentOpen);
           applyRemoteEliminationMode(msg?.eliminationMode);
-            applyRemoteUseDkpCoefficients(msg?.useDkpCoefficients);
-            applyRemoteDkpCoefficientOverrides(msg?.dkpCoefficientOverrides);
-            applyRemoteExternalDkpCoefficientOverrides(
-              msg?.externalDkpCoefficientOverrides
-            );
-          }
-        );
+          applyRemoteUseDkpCoefficients(msg?.useDkpCoefficients);
+          applyRemoteDkpCoefficientOverrides(msg?.dkpCoefficientOverrides);
+          applyRemoteExternalDkpCoefficientOverrides(
+            msg?.externalDkpCoefficientOverrides
+          );
+        }
+      );
 
       s.on('roulette:entries', (msg: { entries?: unknown }) => {
         applyRemoteEntries(msg?.entries);
@@ -275,11 +295,10 @@ export function useGuildRouletteWheelSocket(options: {
       const s = socketRef.value;
       if (!s?.connected) return;
       if (prevId && prevId > 0) {
-        s.emit('roulette:leave', { guildId: prevId });
+        s.emit('roulette:leave');
       }
       if (id > 0) {
-        hasServerState.value = false;
-        s.emit('roulette:join', { guildId: id });
+        void joinCurrentGuild();
       }
     }
   );

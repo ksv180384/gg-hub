@@ -2,13 +2,16 @@
 
 namespace Domains\Guild\Models;
 
-use App\Models\User;
+use App\Core\Traits\HasFilter;
 use Domains\Access\Models\GuildRole;
 use Domains\Character\Models\Character;
+use Domains\Game\Models\Concerns\PreventsWritesOnMergingServer;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
-use App\Core\Traits\HasFilter;
+use Domains\Poll\Models\Poll;
+use Domains\Tag\Models\Tag;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,8 +21,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Guild extends Model
 {
-    use HasFilter;
     use HasFactory;
+    use HasFilter;
+    use PreventsWritesOnMergingServer;
     use SoftDeletes;
 
     protected $fillable = [
@@ -116,11 +120,11 @@ class Guild extends Model
 
     public function tags(): BelongsToMany
     {
-        return $this->belongsToMany(\Domains\Tag\Models\Tag::class, 'guild_tag');
+        return $this->belongsToMany(Tag::class, 'guild_tag');
     }
 
     public function polls(): HasMany
     {
-        return $this->hasMany(\Domains\Poll\Models\Poll::class, 'guild_id');
+        return $this->hasMany(Poll::class, 'guild_id');
     }
 }

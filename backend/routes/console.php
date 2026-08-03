@@ -1,7 +1,9 @@
 <?php
 
-use App\Console\Commands\NotifyDiscordEventsStartingCommand;
 use App\Console\Commands\CloseExpiredGuildAuctionLotsCommand;
+use App\Console\Commands\NotifyDiscordEventsStartingCommand;
+use App\Console\Commands\PruneExpiredGuildActivityLogsCommand;
+use App\Console\Commands\PruneExpiredNotificationsCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -22,3 +24,11 @@ Schedule::command(CloseExpiredGuildAuctionLotsCommand::class)
     ->everyMinute()
     ->withoutOverlapping(5)
     ->runInBackground();
+
+Schedule::command(PruneExpiredNotificationsCommand::class)
+    ->daily()
+    ->withoutOverlapping();
+
+Schedule::command(PruneExpiredGuildActivityLogsCommand::class)
+    ->daily()
+    ->withoutOverlapping();

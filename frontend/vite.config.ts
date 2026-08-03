@@ -49,8 +49,8 @@ function injectHomeSeoPlugin(mode: string): Plugin {
     };
 }
 
-export default defineConfig(({ mode }) => {
-    const ssrBuild = process.argv.includes('--ssr');
+export default defineConfig(({ mode, isSsrBuild }) => {
+    const ssrBuild = Boolean(isSsrBuild) || process.env.GG_SSR_BUILD === '1';
     const configRoot = path.dirname(fileURLToPath(import.meta.url));
     const env = loadEnv(mode, configRoot, '');
 
@@ -170,7 +170,7 @@ export default defineConfig(({ mode }) => {
                           },
                       },
                   },
-            chunkSizeWarningLimit: 900,
+            chunkSizeWarningLimit: ssrBuild ? 2000 : 1000,
         },
     }
 });

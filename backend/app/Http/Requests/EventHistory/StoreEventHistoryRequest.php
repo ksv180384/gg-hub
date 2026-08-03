@@ -3,6 +3,7 @@
 namespace App\Http\Requests\EventHistory;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -56,7 +57,7 @@ class StoreEventHistoryRequest extends FormRequest
             if (is_array($screenshots)) {
                 foreach ($screenshots as $screenshot) {
                     $file = is_array($screenshot) ? ($screenshot['file'] ?? null) : null;
-                    if ($file instanceof \Illuminate\Http\UploadedFile) {
+                    if ($file instanceof UploadedFile) {
                         $totalBytes += $file->getSize();
                     }
                 }

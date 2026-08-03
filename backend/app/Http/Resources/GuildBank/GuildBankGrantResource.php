@@ -18,6 +18,7 @@ class GuildBankGrantResource extends JsonResource
             'guild_bank_item_id' => $this->guild_bank_item_id,
             'received_by_character_id' => $this->received_by_character_id,
             'granted_by_character_id' => $this->granted_by_character_id,
+            'quantity' => (int) $this->quantity,
             'reason' => $this->reason,
             'granted_at' => $this->granted_at?->toIso8601String(),
             'dkp_charged' => $this->dkp_charged === null ? null : (int) $this->dkp_charged,
@@ -48,4 +49,3 @@ class GuildBankGrantResource extends JsonResource
         ];
     }
 }
-

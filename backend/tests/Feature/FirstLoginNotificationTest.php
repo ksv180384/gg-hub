@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Notification;
-use App\Models\User;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 

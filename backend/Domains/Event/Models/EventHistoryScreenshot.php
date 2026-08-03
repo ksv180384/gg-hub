@@ -19,4 +19,3 @@ class EventHistoryScreenshot extends Model
         return $this->belongsTo(EventHistory::class);
     }
 }
-

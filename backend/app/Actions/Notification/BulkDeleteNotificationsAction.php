@@ -2,9 +2,9 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
-use App\Models\User;
 use App\Services\NotificationSocketBroadcaster;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 
 /**
  * Массово удаляет оповещения пользователя по списку идентификаторов

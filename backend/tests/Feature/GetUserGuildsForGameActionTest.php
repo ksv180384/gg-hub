@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;

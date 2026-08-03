@@ -1,8 +1,8 @@
 <?php
 
 use App\Actions\Notification\CreateGuildInvitationRevokedForUserNotificationAction;
-use App\Models\Notification;
-use App\Models\User;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;

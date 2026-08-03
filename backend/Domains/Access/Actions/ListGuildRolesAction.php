@@ -2,9 +2,9 @@
 
 namespace Domains\Access\Actions;
 
+use Domains\Access\Models\GuildRole;
 use Domains\Guild\Models\Guild;
 use Illuminate\Database\Eloquent\Collection;
-use Domains\Access\Models\GuildRole;
 
 class ListGuildRolesAction
 {

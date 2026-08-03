@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Game\CreateGameAction;
+use App\Actions\Game\DeleteGameAction;
+use App\Actions\Game\GetGameAction;
+use App\Actions\Game\ListGamesAction;
+use App\Actions\Game\ListGamesCatalogAction;
+use App\Actions\Game\UpdateGameAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\StoreGameRequest;
 use App\Http\Requests\Game\UpdateGameRequest;
 use App\Http\Resources\Game\GameCatalogResource;
 use App\Http\Resources\Game\GameResource;
-use App\Actions\Game\CreateGameAction;
-use App\Actions\Game\DeleteGameAction;
-use App\Actions\Game\GetGameAction;
-use App\Actions\Game\ListGamesCatalogAction;
-use App\Actions\Game\ListGamesAction;
-use App\Actions\Game\UpdateGameAction;
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class GameController extends Controller
 {
@@ -32,18 +32,21 @@ class GameController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $games = ($this->listGamesAction)();
+
         return GameResource::collection($games);
     }
 
     public function catalog(): AnonymousResourceCollection
     {
         $games = ($this->listGamesCatalogAction)();
+
         return GameCatalogResource::collection($games);
     }
 
     public function show(Game $game): GameResource
     {
         $game = ($this->getGameAction)($game);
+
         return new GameResource($game);
     }
 
@@ -51,6 +54,7 @@ class GameController extends Controller
     {
         $validated = $request->validated();
         $game = ($this->createGameAction)($validated + ['is_active' => true], $request->file('image'));
+
         return (new GameResource($game))->response()->setStatusCode(201);
     }
 
@@ -63,12 +67,14 @@ class GameController extends Controller
             $request->file('image'),
             $request->boolean('remove_image')
         );
+
         return new GameResource($game);
     }
 
     public function destroy(Game $game): Response
     {
         ($this->deleteGameAction)($game);
+
         return response()->noContent();
     }
 }

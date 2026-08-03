@@ -29,7 +29,7 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
 </script>
 
 <template>
-  <div class="min-h-svh flex flex-col bg-background">
+  <div class="min-h-svh flex flex-col bg-background pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
     <Header :mobile-menu-sidebar-visible="showSidebar">
       <template #mobile-menu-sidebar="{ closeMenu }">
         <GameSidebarContent embedded suppress-embedded-heading @navigate="closeMenu" />
@@ -58,7 +58,7 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
           <div
             v-show="routeLoading.isLoading"
             :class="[
-              'fixed top-14 left-0 right-0 bottom-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm',
+              'fixed top-0 left-0 right-0 bottom-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm md:top-14',
               showSidebar && 'md:left-56',
             ]"
             aria-live="polite"
@@ -72,7 +72,7 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
           <div
             :class="
               useContentShell
-                ? 'flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-10'
+                ? 'flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-4'
                 : undefined
             "
           >

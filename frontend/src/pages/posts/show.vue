@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { BackIconButton, Skeleton } from '@/shared/ui';
+import { Skeleton } from '@/shared/ui';
+import BackIconButton from '@/shared/ui/back-icon-button/BackIconButton.vue';
 import PostCardFull from '@/shared/ui/post/PostCardFull.vue';
 import type { ApiError } from '@/shared/api/errors';
 import { postsApi, type Post } from '@/shared/api/postsApi';

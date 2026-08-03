@@ -196,8 +196,8 @@ useGuildAuctionsSocket({
               <div v-else class="mt-1 font-medium">—</div>
             </div>
             <div>
-              <div class="text-xs text-muted-foreground">Остаток в хранилище</div>
-              <div class="mt-1 font-medium">{{ lot.item?.quantity == null ? '∞' : formatNumber(lot.item.quantity) }}</div>
+              <div class="text-xs text-muted-foreground">Количество в лоте</div>
+              <div class="mt-1 font-medium">{{ formatNumber(lot.quantity) }}</div>
             </div>
             <div>
               <div class="text-xs text-muted-foreground">Стоимость из банка</div>
@@ -219,7 +219,7 @@ useGuildAuctionsSocket({
               <div class="text-xs text-muted-foreground">Выдача из хранилища</div>
               <div class="mt-1 font-medium">{{ lot.grant ? `#${lot.grant.id}` : '—' }}</div>
               <div v-if="lot.grant" class="text-xs text-muted-foreground">
-                {{ lot.grant.received_by_character_name ?? 'персонаж не указан' }} · {{ formatNumber(lot.grant.dkp_charged) }} ДКП · {{ formatDateTime(lot.grant.granted_at) }}
+                {{ lot.grant.received_by_character_name ?? 'персонаж не указан' }} · {{ formatNumber(lot.grant.quantity) }} шт. · {{ formatNumber(lot.grant.dkp_charged) }} ДКП · {{ formatDateTime(lot.grant.granted_at) }}
               </div>
             </div>
             <div>

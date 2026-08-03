@@ -41,4 +41,3 @@ class UpdateEventHistoryTitleAction
         return $title->fresh();
     }
 }
-

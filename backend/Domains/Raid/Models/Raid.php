@@ -2,9 +2,9 @@
 
 namespace Domains\Raid\Models;
 
-use App\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -19,6 +19,7 @@ class Raid extends Model
         'created_by',
         'name',
         'description',
+        'is_recruiting',
         'sort_order',
     ];
 
@@ -26,6 +27,7 @@ class Raid extends Model
     {
         return [
             'sort_order' => 'integer',
+            'is_recruiting' => 'boolean',
         ];
     }
 
@@ -62,6 +64,12 @@ class Raid extends Model
             'raid_members',
             'raid_id',
             'character_id'
-        )->withPivot(['role', 'accepted_at', 'slot_index'])->withTimestamps();
+        )->using(RaidMember::class)
+            ->withPivot(['role', 'accepted_at', 'slot_index'])->withTimestamps();
+    }
+
+    public function applications(): HasMany
+    {
+        return $this->hasMany(RaidApplication::class);
     }
 }

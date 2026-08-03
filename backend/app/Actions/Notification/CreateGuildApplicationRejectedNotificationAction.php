@@ -2,8 +2,8 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
 use Domains\Guild\Models\GuildApplication;
+use Domains\Notification\Models\Notification;
 
 /**
  * Создаёт оповещение пользователю, подавшему заявку в гильдию: заявка была отклонена.
@@ -15,12 +15,12 @@ class CreateGuildApplicationRejectedNotificationAction
         $application->loadMissing(['guild', 'character']);
         $guild = $application->guild;
         $character = $application->character;
-        if (!$character) {
+        if (! $character) {
             return null;
         }
 
         $userId = $character->user_id;
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
@@ -28,7 +28,7 @@ class CreateGuildApplicationRejectedNotificationAction
             'user_id' => $userId,
             'message' => "Ваша заявка в гильдию «{$guild->name}» была отклонена.",
             // Страница просмотра заявки пользователем, подавшим её
-            'link' => '/guilds/' . $guild->id . '/applications/my/' . $application->id,
+            'link' => '/guilds/'.$guild->id.'/applications/my/'.$application->id,
         ]);
     }
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Button, ColorPicker, Input, Label } from '@/shared/ui';
+import { Button, Input, Label } from '@/shared/ui';
+import ColorPicker from '@/shared/ui/color-picker/ColorPicker.vue';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import type { GuildBankTierForm } from '@/features/guild-bank';
 import type { GuildBankItemTier } from '@/shared/api/guildBankApi';

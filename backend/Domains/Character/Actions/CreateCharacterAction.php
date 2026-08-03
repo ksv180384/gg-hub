@@ -3,22 +3,22 @@
 namespace Domains\Character\Actions;
 
 use App\Actions\Character\HandleFirstCharacterCreatedAction;
-use App\Contracts\Repositories\CharacterRepositoryInterface;
-use App\Models\User;
+use App\Repositories\Eloquent\EloquentCharacterRepository;
 use App\Services\CharacterAvatarService;
 use Domains\Character\Models\Character;
+use Domains\User\Models\User;
 use Illuminate\Http\UploadedFile;
 
 class CreateCharacterAction
 {
     public function __construct(
-        private CharacterRepositoryInterface $characterRepository,
+        private EloquentCharacterRepository $characterRepository,
         private CharacterAvatarService $characterAvatarService,
         private HandleFirstCharacterCreatedAction $handleFirstCharacterCreatedAction,
     ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function __invoke(User $user, array $data, ?UploadedFile $avatar = null): Character
     {

@@ -12,6 +12,9 @@ import { emitGuildEventChanged } from '../guildEventSocketHandler.js';
 import { emitGuildAuctionChanged } from '../guildAuctionSocketHandler.js';
 import { emitGuildApplicationCommentChanged } from '../guildApplicationCommentSocketHandler.js';
 
+import { requireInternalRequest } from '../internalRequestAuth.js';
+import { isFeatureEnabled } from '../featureFlags.js';
+
 const routes = async (fastify, options) => {
     fastify.get('/', async (request, reply) => {
         return { hello: 'world' };
@@ -147,6 +150,40 @@ const routes = async (fastify, options) => {
     emitGuildAuctionChanged(fastify.io, guildId, lotId);
     return { ok: true };
   });
+
+  if (isFeatureEnabled('CONSTANT_PARTY_CHAT_ENABLED')) {
+    const {
+      emitConstantPartyChatMessageCreated,
+      emitConstantPartyChatMessageDeleted,
+      emitConstantPartyChatReceiptsChanged,
+    } = await import('../constantPartyChatSocketHandler.js');
+    fastify.post('/constant-party-chat/broadcast-created', { preHandler: requireInternalRequest }, async (request, reply) => {
+      const partyId = Number(request.body?.partyId);
+      const message = request.body?.message;
+      if (!Number.isFinite(partyId) || partyId <= 0) return reply.code(400).send({ ok: false });
+      if (!message || typeof message !== 'object') return reply.code(400).send({ ok: false });
+      emitConstantPartyChatMessageCreated(fastify.io, partyId, message);
+      return { ok: true };
+    });
+
+    fastify.post('/constant-party-chat/broadcast-receipts', { preHandler: requireInternalRequest }, async (request, reply) => {
+      const partyId = Number(request.body?.partyId);
+      const messages = Array.isArray(request.body?.messages) ? request.body.messages : [];
+      if (!Number.isFinite(partyId) || partyId <= 0) return reply.code(400).send({ ok: false });
+      if (messages.length === 0) return reply.code(400).send({ ok: false });
+      emitConstantPartyChatReceiptsChanged(fastify.io, partyId, messages);
+      return { ok: true };
+    });
+
+    fastify.post('/constant-party-chat/broadcast-deleted', { preHandler: requireInternalRequest }, async (request, reply) => {
+      const partyId = Number(request.body?.partyId);
+      const messageId = Number(request.body?.messageId);
+      if (!Number.isFinite(partyId) || partyId <= 0) return reply.code(400).send({ ok: false });
+      if (!Number.isFinite(messageId) || messageId <= 0) return reply.code(400).send({ ok: false });
+      emitConstantPartyChatMessageDeleted(fastify.io, partyId, messageId);
+      return { ok: true };
+    });
+  }
 
   fastify.post('/guild-application-comments/broadcast-changed', async (request, reply) => {
     const guildId = Number(request.body?.guildId);

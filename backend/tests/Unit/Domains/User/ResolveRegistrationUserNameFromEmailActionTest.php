@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\User\Actions\ResolveRegistrationUserNameFromEmailAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

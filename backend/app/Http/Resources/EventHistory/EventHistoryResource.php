@@ -68,4 +68,3 @@ class EventHistoryResource extends JsonResource
         ];
     }
 }
-

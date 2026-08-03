@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources\Game;
 
-use App\Models\GameClass;
 use App\Services\GameClassImageService;
+use Domains\Game\Models\GameClass;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;

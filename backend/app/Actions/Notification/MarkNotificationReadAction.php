@@ -2,8 +2,8 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
-use App\Models\User;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MarkNotificationReadAction
@@ -14,6 +14,7 @@ class MarkNotificationReadAction
             throw new HttpException(403, 'Forbidden');
         }
         $notification->update(['read_at' => $notification->read_at ?? now()]);
-        return $notification->fresh();
+
+        return $notification->fresh(['game:id,name', 'guild:id,name']);
     }
 }

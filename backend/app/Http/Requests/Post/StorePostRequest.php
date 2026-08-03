@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests\Post;
 
-use Domains\Guild\Models\Guild;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
-use Domains\Post\Enums\PostStatus;
+use Domains\Guild\Models\Guild;
 use Domains\Post\Enums\PostVisibilityType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -65,12 +64,12 @@ class StorePostRequest extends FormRequest
             $user = $this->user();
             $guildId = $this->input('guild_id');
 
-            if (!$user || !$guildId) {
+            if (! $user || ! $guildId) {
                 return;
             }
 
             $guild = Guild::query()->find($guildId);
-            if (!$guild) {
+            if (! $guild) {
                 return;
             }
 
@@ -81,11 +80,11 @@ class StorePostRequest extends FormRequest
             $globalVisibilityType = $this->input('global_visibility_type');
             $wantsGlobalAsGuild = $isVisibleGlobal && $globalVisibilityType === PostVisibilityType::Guild->value;
 
-            if ($isVisibleGuild && !$slugs->contains('dobavliat-post')) {
+            if ($isVisibleGuild && ! $slugs->contains('dobavliat-post')) {
                 $validator->errors()->add('guild_id', 'У вас нет прав добавлять посты в раздел гильдии.');
             }
 
-            if ($wantsGlobalAsGuild && !$slugs->contains('sozdavat-posty-ot-imeni-gildii')) {
+            if ($wantsGlobalAsGuild && ! $slugs->contains('sozdavat-posty-ot-imeni-gildii')) {
                 $validator->errors()->add('global_visibility_type', 'У вас нет прав создавать посты от имени гильдии.');
             }
         });
@@ -118,4 +117,3 @@ class StorePostRequest extends FormRequest
         ];
     }
 }
-

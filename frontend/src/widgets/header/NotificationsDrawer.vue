@@ -194,34 +194,37 @@ function onItemMouseEnter(n: NotificationItem) {
     <template #trigger>
       <button
         type="button"
-        class="relative flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+        class="relative flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 py-1 text-center text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:h-auto md:flex-none md:flex-row md:justify-between md:gap-2 md:rounded-lg md:px-3 md:py-2 md:text-left md:text-sm md:text-foreground"
         aria-label="Оповещения"
         title="Оповещения"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="h-[1.125rem] w-[1.125rem]"
-        >
-          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-        </svg>
-        <!-- Резервируем место под бейдж, чтобы его появление не давало CLS -->
-        <Badge
-          variant="destructive"
-          class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center bg-red-50 px-1 text-[10px] leading-none text-red-700 dark:bg-red-950 dark:text-red-300"
-          :class="badgeText ? 'opacity-100' : 'opacity-0 pointer-events-none'"
-          aria-hidden="true"
-        >
-          {{ badgeText || '0' }}
-        </Badge>
+        <span class="relative inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-[1.125rem] w-[1.125rem]"
+          >
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+          </svg>
+          <!-- Резервируем место под бейдж, чтобы его появление не давало CLS -->
+          <Badge
+            variant="destructive"
+            class="absolute -right-2 -top-2 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-50 px-1 text-[9px] leading-none text-red-700 dark:bg-red-950 dark:text-red-300"
+            :class="badgeText ? 'opacity-100' : 'pointer-events-none opacity-0'"
+            aria-hidden="true"
+          >
+            {{ badgeText || '0' }}
+          </Badge>
+        </span>
+        <span class="md:hidden">Оповещения</span>
       </button>
     </template>
     <template #title>Оповещения</template>
@@ -329,17 +332,22 @@ function onItemMouseEnter(n: NotificationItem) {
               <span class="block break-words">
                 {{ expandedId === n.id && !selectionMode ? n.message : truncateMessage(n.message, 60) }}
               </span>
-              <span
-                v-if="n.created_at"
-                class="mt-1.5 block text-xs text-muted-foreground"
+              <div
+                v-if="n.game || n.guild || n.created_at"
+                class="mt-1.5 flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground"
               >
+                <span v-if="n.game">{{ n.game.name }}</span>
+                <span v-if="n.game && n.guild" aria-hidden="true">·</span>
+                <span v-if="n.guild">{{ n.guild.name }}</span>
+                <span v-if="(n.game || n.guild) && n.created_at" aria-hidden="true">·</span>
                 <RelativeTime
+                  v-if="n.created_at"
                   :date="n.created_at"
                   :timezone="timezone ?? undefined"
                   tag="time"
                   class="text-xs text-muted-foreground"
                 />
-              </span>
+              </div>
               <RouterLink
                 v-if="n.link && !selectionMode"
                 :to="n.link"

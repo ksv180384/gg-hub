@@ -2,11 +2,11 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
-use App\Models\User;
 use Domains\Guild\Actions\GetGuildMemberUserIdsWithPermissionAction;
 use Domains\Guild\Models\Guild;
+use Domains\Notification\Models\Notification;
 use Domains\Post\Models\Post;
+use Domains\User\Models\User;
 use Illuminate\Support\Collection;
 
 /**
@@ -37,7 +37,7 @@ class CreatePostPendingGuildModerationNotificationAction
                 continue;
             }
             $user = User::query()->find($userId);
-            if (!$user) {
+            if (! $user) {
                 continue;
             }
             $notification = Notification::create([

@@ -56,20 +56,23 @@ async function decline(e: TodaysGuildEventOccurrence) {
     <template #trigger>
       <button
         type="button"
-        class="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        class="relative inline-flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:h-9 md:w-9 md:flex-none md:px-0 md:text-sm"
         aria-label="События сегодня"
         title="События сегодня"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-[1.125rem] w-[1.125rem]">
-          <path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M4 6h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>
-        </svg>
-        <Badge
-          v-if="badgeText"
-          class="absolute -right-1 -top-1 min-w-5 justify-center px-1.5 text-[0.65rem] leading-4"
-          variant="secondary"
-        >
-          {{ badgeText }}
-        </Badge>
+        <span class="relative inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-[1.125rem] w-[1.125rem]">
+            <path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M4 6h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>
+          </svg>
+          <Badge
+            v-if="badgeText"
+            class="absolute -right-2 -top-2 z-10 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] leading-none"
+            variant="secondary"
+          >
+            {{ badgeText }}
+          </Badge>
+        </span>
+        <span class="md:hidden">Сегодня</span>
       </button>
     </template>
 

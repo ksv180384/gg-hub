@@ -9,6 +9,7 @@ class GetPermissionAction
     public function __invoke(Permission $permission): Permission
     {
         $permission->load('group');
+
         return $permission;
     }
 }

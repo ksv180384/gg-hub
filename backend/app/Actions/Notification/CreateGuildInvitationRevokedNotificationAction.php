@@ -2,10 +2,10 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
-use App\Models\User;
 use Domains\Guild\Actions\GetGuildMemberUserIdsWithPermissionAction;
 use Domains\Guild\Models\GuildApplication;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use Illuminate\Support\Collection;
 
 /**
@@ -30,7 +30,7 @@ class CreateGuildInvitationRevokedNotificationAction
         $invitedCharacterName = $application->character?->name ?? 'Персонаж';
         $revokerName = $application->revokedByCharacter?->name ?? 'Участник гильдии';
 
-        $applicationLink = '/guilds/' . $guild->id . '/applications/list/' . $application->id;
+        $applicationLink = '/guilds/'.$guild->id.'/applications/list/'.$application->id;
         $message = "Приглашение «{$invitedCharacterName}» в гильдию «{$guild->name}» было отозвано. Отозвал(а): {$revokerName}.";
 
         $userIds = ($this->getUserIdsWithPermissionAction)($guild, self::PERMISSION_SLUG);
@@ -38,7 +38,7 @@ class CreateGuildInvitationRevokedNotificationAction
         $notifications = collect();
         foreach ($userIds as $userId) {
             $user = User::query()->find($userId);
-            if (!$user) {
+            if (! $user) {
                 continue;
             }
             $notification = Notification::create([

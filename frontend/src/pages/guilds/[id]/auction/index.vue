@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { RouterLink } from 'vue-router';
+import type { DateRange } from 'radix-vue';
 import {
   DialogContent,
   DialogOverlay,
@@ -9,7 +10,14 @@ import {
   DialogRoot,
   DialogTitle,
 } from 'radix-vue';
-import { Button, Input, Label, Tooltip } from '@/shared/ui';
+import {
+  Button,
+  DateRangePicker,
+  Input,
+  Label,
+  TableSortHead,
+  Tooltip,
+} from '@/shared/ui';
 import ClientOnly from '@/shared/ui/ClientOnly.vue';
 import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { guildAuctionApi, type GuildAuctionLot } from '@/shared/api/guildAuctionApi';
@@ -21,12 +29,21 @@ import NotFoundPage from '@/pages/not-found/index.vue';
 
 const route = useRoute();
 const guildId = computed(() => Number(route.params.id));
+const isHistory = computed(() => route.name === 'guild-auction-history');
 const socketGuildIds = computed(() => (Number.isFinite(guildId.value) && guildId.value > 0 ? [guildId.value] : []));
 
 const loading = ref(true);
 const error = ref('');
 const auctionAccessNotFound = ref(false);
 const lots = ref<GuildAuctionLot[]>([]);
+const closedLots = ref<GuildAuctionLot[]>([]);
+const closedLotsLoading = ref(false);
+const closedLotsError = ref('');
+const closedLotsCount = ref(0);
+const auctionBidsCount = ref(0);
+const closedLotsPage = ref(1);
+const closedLotsLastPage = ref(1);
+const closedLotsTotal = ref(0);
 const bankItems = ref<GuildBankItem[]>([]);
 const myPermissionSlugs = ref<string[]>([]);
 const dkpEnabled = ref(false);
@@ -35,12 +52,30 @@ const myCharacters = ref<Array<{ id: number; name: string }>>([]);
 const selectedLotId = ref<number | null>(null);
 const nowTs = ref(Date.now());
 let nowTimer: ReturnType<typeof window.setInterval> | null = null;
+let closedLotsRequestId = 0;
 
 const canAddLots = computed(() => myPermissionSlugs.value.includes('dobavliat-predmety-na-aukcion'));
 const canCloseLots = computed(() => myPermissionSlugs.value.includes('zakryvat-aukcion'));
+const closedLotsSort = ref<'asc' | 'desc'>('desc');
+const closedDateRange = shallowRef<DateRange>({
+  start: undefined,
+  end: undefined,
+});
+const closedDateFrom = computed(
+  () => closedDateRange.value.start?.toString().slice(0, 10) ?? '',
+);
+const closedDateTo = computed(
+  () => closedDateRange.value.end?.toString().slice(0, 10) ?? '',
+);
 const activeLots = computed(() => lots.value.filter((lot) => lot.status === 'active'));
-const closedLots = computed(() => lots.value.filter((lot) => lot.status !== 'active'));
-const selectedLot = computed(() => lots.value.find((lot) => lot.id === selectedLotId.value) ?? null);
+const displayedLots = computed(() => (isHistory.value ? closedLots.value : activeLots.value));
+const emptyLotsText = computed(() => {
+  if (!isHistory.value) return 'На аукционе пока нет активных лотов.';
+  return closedLotsCount.value === 0
+    ? 'История аукциона пока пуста.'
+    : 'За выбранный период закрытых лотов нет.';
+});
+const selectedLot = computed(() => displayedLots.value.find((lot) => lot.id === selectedLotId.value) ?? null);
 const selectedLotBids = computed(() => {
   const lot = selectedLot.value;
   if (!lot) return [];
@@ -51,8 +86,8 @@ const selectedLotBids = computed(() => {
 
 const stats = computed(() => [
   { key: 'lots', label: 'Активных лотов', value: activeLots.value.length },
-  { key: 'bids', label: 'Ставок', value: lots.value.reduce((sum, lot) => sum + lot.bids.length, 0) },
-  { key: 'closed', label: 'Закрыто', value: closedLots.value.length },
+  { key: 'bids', label: 'Ставок', value: auctionBidsCount.value },
+  { key: 'closed', label: 'Закрыто', value: closedLotsCount.value },
 ]);
 
 function formatNumber(value: number | null | undefined): string {
@@ -64,6 +99,7 @@ function formatDateTime(iso: string | null | undefined): string {
   return new Date(iso).toLocaleString('ru-RU', {
     day: '2-digit',
     month: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -88,24 +124,78 @@ function tierStyle(item: GuildAuctionLot['item'] | GuildBankItem | null): string
   return `background-color:${color};color:#fff`;
 }
 
+function applyClosedLotsPage(page: Awaited<ReturnType<typeof guildAuctionApi.listClosedLots>>) {
+  closedLots.value = page.lots;
+  closedLotsError.value = '';
+  closedLotsPage.value = page.currentPage;
+  closedLotsLastPage.value = page.lastPage;
+  closedLotsTotal.value = page.total;
+  ensureSelectedLot();
+}
+
+async function loadClosedLots(page = 1) {
+  if (!isHistory.value || !guildId.value) return;
+
+  const requestId = ++closedLotsRequestId;
+  closedLotsLoading.value = true;
+  closedLotsError.value = '';
+
+  try {
+    const result = await guildAuctionApi.listClosedLots(guildId.value, {
+      page,
+      dateFrom: closedDateFrom.value,
+      dateTo: closedDateTo.value,
+      sort: closedLotsSort.value,
+    });
+    if (requestId !== closedLotsRequestId) return;
+    applyClosedLotsPage(result);
+  } catch (e: unknown) {
+    if (requestId !== closedLotsRequestId) return;
+    closedLots.value = [];
+    closedLotsError.value = e instanceof Error
+      ? e.message
+      : 'Не удалось загрузить историю аукциона.';
+    ensureSelectedLot();
+  } finally {
+    if (requestId === closedLotsRequestId) {
+      closedLotsLoading.value = false;
+    }
+  }
+}
+
 async function loadPage() {
   if (!guildId.value || Number.isNaN(guildId.value)) return;
   loading.value = true;
   error.value = '';
   auctionAccessNotFound.value = false;
   try {
-    const [context, nextLots, items] = await Promise.all([
+    const historyRequest = isHistory.value
+      ? guildAuctionApi.listClosedLots(guildId.value, {
+          page: 1,
+          dateFrom: closedDateFrom.value,
+          dateTo: closedDateTo.value,
+          sort: closedLotsSort.value,
+        })
+      : Promise.resolve(null);
+    const [context, nextLots, items, historyPage] = await Promise.all([
       guildAuctionApi.getContext(guildId.value),
       guildAuctionApi.listLots(guildId.value),
       guildBankApi.listItems(guildId.value),
+      historyRequest,
     ]);
     myPermissionSlugs.value = context.my_permission_slugs ?? [];
     dkpEnabled.value = context.dkp_enabled;
     myDkpBalance.value = context.my_dkp_balance ?? 0;
     myCharacters.value = context.my_characters ?? [];
+    auctionBidsCount.value = context.auction_bids_count ?? 0;
+    closedLotsCount.value = context.closed_lots_count ?? 0;
     lots.value = nextLots;
-    ensureSelectedLot();
     bankItems.value = items;
+    if (historyPage) {
+      applyClosedLotsPage(historyPage);
+    } else {
+      ensureSelectedLot();
+    }
   } catch (e: unknown) {
     const status = (e as ApiError)?.status;
     if (status === 403 || status === 404) {
@@ -113,38 +203,65 @@ async function loadPage() {
     }
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить аукцион.';
     lots.value = [];
+    closedLots.value = [];
   } finally {
     loading.value = false;
   }
 }
 
-async function refreshLot(lotId: number) {
+async function refreshLot() {
   try {
-    const nextLots = await guildAuctionApi.listLots(guildId.value);
+    const [nextLots, context] = await Promise.all([
+      guildAuctionApi.listLots(guildId.value),
+      guildAuctionApi.getContext(guildId.value),
+    ]);
     lots.value = nextLots;
-    if (nextLots.some((lot) => lot.id === lotId)) {
-      const context = await guildAuctionApi.getContext(guildId.value);
-      myDkpBalance.value = context.my_dkp_balance ?? myDkpBalance.value;
+    myDkpBalance.value = context.my_dkp_balance ?? myDkpBalance.value;
+    auctionBidsCount.value = context.auction_bids_count ?? auctionBidsCount.value;
+    closedLotsCount.value = context.closed_lots_count ?? closedLotsCount.value;
+    if (isHistory.value) {
+      await loadClosedLots(closedLotsPage.value);
+    } else {
+      ensureSelectedLot();
     }
-    ensureSelectedLot();
   } catch {
     // best-effort realtime refresh
   }
 }
 
 function ensureSelectedLot() {
-  if (selectedLotId.value && lots.value.some((lot) => lot.id === selectedLotId.value)) {
+  if (selectedLotId.value && displayedLots.value.some((lot) => lot.id === selectedLotId.value)) {
     return;
   }
-  selectedLotId.value = activeLots.value[0]?.id ?? lots.value[0]?.id ?? null;
+  selectedLotId.value = displayedLots.value[0]?.id ?? null;
 }
 
 function selectLot(lot: GuildAuctionLot) {
   selectedLotId.value = lot.id;
 }
 
-watch(guildId, loadPage, { immediate: true });
+function toggleClosedLotsSort() {
+  closedLotsSort.value = closedLotsSort.value === 'desc' ? 'asc' : 'desc';
+}
 
+function changeClosedLotsPage(page: number) {
+  if (page < 1 || page > closedLotsLastPage.value || page === closedLotsPage.value) return;
+  void loadClosedLots(page);
+}
+
+watch(guildId, loadPage, { immediate: true });
+watch(isHistory, (history) => {
+  if (history) {
+    void loadClosedLots(1);
+  } else {
+    ensureSelectedLot();
+  }
+});
+watch([closedDateFrom, closedDateTo, closedLotsSort], () => {
+  if (isHistory.value && !loading.value) {
+    void loadClosedLots(1);
+  }
+});
 onMounted(() => {
   nowTimer = window.setInterval(() => {
     nowTs.value = Date.now();
@@ -162,13 +279,15 @@ useGuildAuctionsSocket({
   guildIds: socketGuildIds,
   onChanged: ({ guildId: eventGuildId, lotId }) => {
     if (eventGuildId !== guildId.value) return;
-    void refreshLot(lotId);
+    void refreshLot();
   },
 });
 
 const addDialogOpen = ref(false);
 const addEndsAt = ref('');
-const addRows = ref<Array<{ itemId: string; startPrice: string }>>([{ itemId: '', startPrice: '' }]);
+const addRows = ref<Array<{ itemId: string; quantity: string; startPrice: string }>>([
+  { itemId: '', quantity: '1', startPrice: '' },
+]);
 const addSaving = ref(false);
 const addError = ref('');
 
@@ -186,7 +305,7 @@ function defaultEndsAt(): string {
 
 function openAddDialog() {
   addEndsAt.value = defaultEndsAt();
-  addRows.value = [{ itemId: '', startPrice: '' }];
+  addRows.value = [{ itemId: '', quantity: '1', startPrice: '' }];
   addError.value = '';
   addDialogOpen.value = true;
 }
@@ -197,7 +316,7 @@ function closeAddDialog() {
 }
 
 function addLotRow() {
-  addRows.value.push({ itemId: '', startPrice: '' });
+  addRows.value.push({ itemId: '', quantity: '1', startPrice: '' });
 }
 
 function removeLotRow(index: number) {
@@ -225,6 +344,18 @@ async function submitAddLots() {
       return;
     }
 
+    const quantity = Number(row.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      addError.value = 'Количество должно быть целым положительным числом.';
+      return;
+    }
+
+    const item = selectedBankItem(row.itemId);
+    if (item && item.quantity !== null && quantity > item.quantity) {
+      addError.value = `На складе недостаточно предметов «${item.name}».`;
+      return;
+    }
+
     let startPrice: number | null = null;
     if (row.startPrice.trim()) {
       startPrice = parseDkpCostInput(row.startPrice);
@@ -233,7 +364,11 @@ async function submitAddLots() {
         return;
       }
     }
-    payloadLots.push({ guild_bank_item_id: itemId, start_price: startPrice });
+    payloadLots.push({
+      guild_bank_item_id: itemId,
+      quantity,
+      start_price: startPrice,
+    });
   }
 
   addSaving.value = true;
@@ -291,6 +426,7 @@ async function submitBid() {
   try {
     const updated = await guildAuctionApi.bid(guildId.value, bidLot.value.id, amount, characterId);
     lots.value = lots.value.map((lot) => (lot.id === updated.id ? updated : lot));
+    auctionBidsCount.value += 1;
     selectedLotId.value = updated.id;
     bidDialogOpen.value = false;
     bidLot.value = null;
@@ -319,6 +455,8 @@ async function confirmCloseLot() {
     selectedLotId.value = updated.id;
     const context = await guildAuctionApi.getContext(guildId.value);
     myDkpBalance.value = context.my_dkp_balance ?? myDkpBalance.value;
+    auctionBidsCount.value = context.auction_bids_count ?? auctionBidsCount.value;
+    closedLotsCount.value = context.closed_lots_count ?? closedLotsCount.value;
     closeDialogOpen.value = false;
     closeLot.value = null;
   } finally {
@@ -333,8 +471,12 @@ async function confirmCloseLot() {
     <div class="max-w-7xl">
       <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="min-w-0">
-          <h1 class="text-2xl font-bold tracking-tight">Аукцион</h1>
-          <p class="mt-1 text-sm text-muted-foreground">Лоты, ставки и выкуп предметов за ДКП</p>
+          <h1 class="text-2xl font-bold tracking-tight">
+            {{ isHistory ? 'История аукциона' : 'Аукцион' }}
+          </h1>
+          <p class="mt-1 text-sm text-muted-foreground">
+            {{ isHistory ? 'Закрытые лоты аукциона' : 'Лоты, ставки и выкуп предметов за ДКП' }}
+          </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
@@ -344,7 +486,13 @@ async function confirmCloseLot() {
               ДКП: {{ formatNumber(myDkpBalance) }}
             </span>
           </Tooltip>
-          <Button v-if="canAddLots" type="button" @click="openAddDialog">+ Добавить лот</Button>
+          <RouterLink
+            :to="{ name: isHistory ? 'guild-auction' : 'guild-auction-history', params: { id: guildId } }"
+            class="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm hover:bg-accent"
+          >
+            {{ isHistory ? 'К аукциону' : 'История аукциона' }}
+          </RouterLink>
+          <Button v-if="canAddLots && !isHistory" type="button" @click="openAddDialog">+ Добавить лот</Button>
         </div>
       </div>
 
@@ -417,15 +565,29 @@ async function confirmCloseLot() {
 
       <div v-else class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.8fr)]">
         <section class="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-          <div class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div class="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 class="font-semibold">Лоты аукциона</h2>
-              <p class="mt-0.5 text-xs text-muted-foreground">Ставка в последнюю минуту продлевает лот на 10 минут</p>
+              <h2 class="font-semibold">{{ isHistory ? 'Закрытые лоты' : 'Активные лоты' }}</h2>
+              <p class="mt-0.5 text-xs text-muted-foreground">
+                {{ isHistory ? 'Архив завершенных аукционов' : 'Ставка в последнюю минуту продлевает лот на 10 минут' }}
+              </p>
+            </div>
+            <div
+              v-if="isHistory"
+              class="w-full sm:w-60"
+            >
+              <DateRangePicker v-model="closedDateRange" />
             </div>
           </div>
 
-          <div v-if="lots.length === 0" class="px-4 py-8 text-center text-sm text-muted-foreground">
-            На аукционе пока нет лотов.
+          <div v-if="isHistory && closedLotsLoading" class="px-4 py-8 text-center text-sm text-muted-foreground">
+            Загрузка...
+          </div>
+          <div v-else-if="isHistory && closedLotsError" class="px-4 py-8 text-center text-sm text-destructive">
+            {{ closedLotsError }}
+          </div>
+          <div v-else-if="displayedLots.length === 0" class="px-4 py-8 text-center text-sm text-muted-foreground">
+            {{ emptyLotsText }}
           </div>
 
           <div v-else class="overflow-hidden">
@@ -434,17 +596,26 @@ async function confirmCloseLot() {
                 <tr>
                   <th class="w-[22%] px-4 py-3 text-left">Предмет</th>
                   <th class="w-[7%] px-2 py-3 text-left">Тип</th>
-                  <th class="w-[9%] px-2 py-3 text-right">Остаток</th>
+                  <th class="w-[9%] px-2 py-3 text-right">Кол-во</th>
                   <th class="w-[11%] px-2 py-3 text-right">Начальная</th>
                   <th class="w-[9%] px-2 py-3 text-right">Ставка</th>
-                  <th class="w-[13%] px-2 py-3 text-left">Лидер</th>
-                  <th class="w-[14%] px-2 py-3 text-left">До конца</th>
-                  <th class="w-[15%] px-4 py-3 text-right">Действия</th>
+                  <th class="w-[13%] px-2 py-3 text-left">{{ isHistory ? 'Победитель' : 'Лидер' }}</th>
+                  <TableSortHead
+                    v-if="isHistory"
+                    active
+                    :direction="closedLotsSort"
+                    class="w-[14%] px-0 normal-case tracking-normal"
+                    @click="toggleClosedLotsSort"
+                  >
+                    Дата закрытия
+                  </TableSortHead>
+                  <th v-else class="w-[14%] px-2 py-3 text-left">До конца</th>
+                  <th v-if="!isHistory" class="w-[15%] px-4 py-3 text-right">Действия</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
-                  v-for="lot in lots"
+                  v-for="lot in displayedLots"
                   :key="lot.id"
                   class="cursor-pointer border-b border-border last:border-b-0"
                   :class="[
@@ -473,7 +644,7 @@ async function confirmCloseLot() {
                     </span>
                     <span v-else class="text-muted-foreground">—</span>
                   </td>
-                  <td class="px-2 py-3 text-right tabular-nums">{{ lot.item?.quantity == null ? '∞' : formatNumber(lot.item.quantity) }}</td>
+                  <td class="px-2 py-3 text-right tabular-nums">{{ formatNumber(lot.quantity) }}</td>
                   <td class="px-2 py-3 text-right tabular-nums">{{ formatNumber(lot.start_price) }}</td>
                   <td class="px-2 py-3 text-right font-semibold tabular-nums text-foreground">
                     {{ lot.current_bid_amount == null ? '—' : formatNumber(lot.current_bid_amount) }}
@@ -483,13 +654,13 @@ async function confirmCloseLot() {
                   </td>
                   <td class="px-2 py-3">
                     <span v-if="lot.status === 'active'" class="font-medium text-foreground">{{ timeLeft(lot.ends_at) }}</span>
-                    <span v-else>закрыт {{ formatDateTime(lot.closed_at) }}</span>
+                    <span v-else>{{ formatDateTime(lot.closed_at) }}</span>
                   </td>
-                  <td class="px-2 py-3">
+                  <td v-if="!isHistory" class="px-2 py-3">
                     <div class="flex flex-wrap justify-end gap-1.5">
                       <Tooltip v-if="lot.status === 'active'" content="Сделать ставку" side="top">
                         <Button
-                          size="icon"
+                          size="sm"
                           variant="outlinePrimary"
                           aria-label="Сделать ставку"
                           @click.stop="openBidDialog(lot)"
@@ -506,11 +677,12 @@ async function confirmCloseLot() {
                             <path d="M12 2v20" />
                             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
                           </svg>
+                          Ставка
                         </Button>
                       </Tooltip>
                       <Tooltip v-if="lot.status === 'active' && canCloseLots" content="Закрыть лот" side="top">
                         <Button
-                          size="icon"
+                          size="sm"
                           variant="outline"
                           aria-label="Закрыть лот"
                           @click.stop="openCloseDialog(lot)"
@@ -527,6 +699,7 @@ async function confirmCloseLot() {
                             <path d="M18 6 6 18" />
                             <path d="m6 6 12 12" />
                           </svg>
+                          Закрыть
                         </Button>
                       </Tooltip>
                     </div>
@@ -534,6 +707,59 @@ async function confirmCloseLot() {
                 </tr>
               </tbody>
             </table>
+          <footer
+            v-if="isHistory && closedLotsLastPage > 1"
+            class="flex items-center justify-center gap-3 border-t border-border px-4 py-3"
+          >
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              :disabled="closedLotsLoading || closedLotsPage <= 1"
+              title="Предыдущая страница"
+              aria-label="Предыдущая страница"
+              @click="changeClosedLotsPage(closedLotsPage - 1)"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-4"
+                aria-hidden="true"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </Button>
+            <span class="min-w-32 text-center text-sm text-muted-foreground">
+              {{ closedLotsPage }} из {{ closedLotsLastPage }}
+              <span class="sr-only">, всего {{ closedLotsTotal }}</span>
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              :disabled="closedLotsLoading || closedLotsPage >= closedLotsLastPage"
+              title="Следующая страница"
+              aria-label="Следующая страница"
+              @click="changeClosedLotsPage(closedLotsPage + 1)"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-4"
+                aria-hidden="true"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </Button>
+          </footer>
           </div>
         </section>
 
@@ -597,7 +823,7 @@ async function confirmCloseLot() {
               </div>
 
               <div class="space-y-3">
-                <div v-for="(row, index) in addRows" :key="index" class="grid gap-3 rounded-lg border border-border p-3 md:grid-cols-[minmax(0,1fr)_160px_auto]">
+                <div v-for="(row, index) in addRows" :key="index" class="grid gap-3 rounded-lg border border-border p-3 md:grid-cols-[minmax(0,1fr)_110px_160px_auto]">
                   <div class="space-y-2">
                     <Label>Предмет</Label>
                     <select v-model="row.itemId" class="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
@@ -606,6 +832,16 @@ async function confirmCloseLot() {
                         {{ item.name }} · банк: {{ item.dkp_cost ?? 0 }} ДКП · остаток: {{ item.quantity == null ? '∞' : item.quantity }}
                       </option>
                     </select>
+                  </div>
+                  <div class="space-y-2">
+                    <Label>Количество</Label>
+                    <Input
+                      v-model="row.quantity"
+                      type="number"
+                      min="1"
+                      :max="selectedBankItem(row.itemId)?.quantity ?? undefined"
+                      inputmode="numeric"
+                    />
                   </div>
                   <div class="space-y-2">
                     <Label>Начальная цена</Label>

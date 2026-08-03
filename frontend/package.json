@@ -8,7 +8,7 @@
     "dev:ssr": "node server.mjs --dev",
     "build": "npm run build:client && npm run build:ssr",
     "build:client": "vite build --outDir dist/client",
-    "build:ssr": "vite build --ssr src/entry-server.ts --outDir dist/server",
+    "build:ssr": "GG_SSR_BUILD=1 vite build --ssr src/entry-server.ts --outDir dist/server",
     "preview": "vite preview",
     "start": "node server.mjs",
     "build-only": "npm run build",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@cyhnkckali/vue3-color-picker": "^2.1.7",
+    "@lucide/vue": "^1.28.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tiptap/extension-image": "^3.20.0",
     "@tiptap/extension-link": "^3.20.0",

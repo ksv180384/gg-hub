@@ -18,6 +18,7 @@ class StorePermissionGroupRequest extends FormRequest
     public function rules(): array
     {
         $scope = $this->input('scope', 'site');
+
         return [
             'scope' => ['sometimes', 'string', 'in:site,guild'],
             'name' => ['required', 'string', 'max:255'],

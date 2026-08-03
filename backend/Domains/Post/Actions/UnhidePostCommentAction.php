@@ -2,8 +2,8 @@
 
 namespace Domains\Post\Actions;
 
-use App\Models\User;
 use Domains\Post\Models\PostComment;
+use Domains\User\Models\User;
 use InvalidArgumentException;
 
 final class UnhidePostCommentAction

@@ -22,6 +22,7 @@ class StoreGuildRoleRequest extends FormRequest
         $slugRule = $guildId
             ? Rule::unique('guild_roles', 'slug')->where('guild_id', $guildId)
             : ['nullable', 'string', 'max:255'];
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', $slugRule],
@@ -44,7 +45,7 @@ class StoreGuildRoleRequest extends FormRequest
     {
         $slug = $this->input('slug');
         $name = $this->input('name', '');
-        if ((!is_string($slug) || trim($slug) === '') && is_string($name) && $name !== '') {
+        if ((! is_string($slug) || trim($slug) === '') && is_string($name) && $name !== '') {
             $this->merge(['slug' => Str::slug($name)]);
         }
     }

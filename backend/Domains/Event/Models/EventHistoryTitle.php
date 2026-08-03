@@ -2,11 +2,14 @@
 
 namespace Domains\Event\Models;
 
+use App\Core\Traits\HasFilter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EventHistoryTitle extends Model
 {
+    use HasFilter;
+
     protected $fillable = [
         'name',
         'dkp_base_points',
@@ -26,4 +29,3 @@ class EventHistoryTitle extends Model
         return $this->hasMany(EventHistory::class, 'event_history_title_id');
     }
 }
-

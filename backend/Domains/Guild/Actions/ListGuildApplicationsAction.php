@@ -2,10 +2,10 @@
 
 namespace Domains\Guild\Actions;
 
-use App\Models\User;
 use App\Core\Filters\Filter;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplicationVote;
+use Domains\User\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ListGuildApplicationsAction
@@ -15,16 +15,14 @@ class ListGuildApplicationsAction
         int $perPage = 20,
         ?User $user = null,
         ?Filter $filter = null
-    ): LengthAwarePaginator
-    {
+    ): LengthAwarePaginator {
         $query = $guild->applications()
             ->with(['character', 'invitedByCharacter', 'revokedByCharacter'])
             ->withCount([
                 'votes as likes_count' => fn ($q) => $q->where('vote', 1),
                 'votes as dislikes_count' => fn ($q) => $q->where('vote', -1),
             ])
-            ->orderByDesc('created_at')
-        ;
+            ->orderByDesc('created_at');
 
         if ($filter) {
             $query->filter($filter);

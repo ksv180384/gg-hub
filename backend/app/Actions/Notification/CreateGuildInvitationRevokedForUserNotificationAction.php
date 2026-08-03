@@ -2,8 +2,8 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
 use Domains\Guild\Models\GuildApplication;
+use Domains\Notification\Models\Notification;
 
 /**
  * Создаёт оповещение пользователю (владельцу персонажа): приглашение в гильдию было отозвано.
@@ -15,19 +15,19 @@ class CreateGuildInvitationRevokedForUserNotificationAction
         $application->loadMissing(['guild', 'character', 'revokedByCharacter']);
 
         $character = $application->character;
-        if (!$character) {
+        if (! $character) {
             return null;
         }
 
         $userId = $character->user_id;
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
         $guild = $application->guild;
         $revokerName = $application->revokedByCharacter?->name ?? 'Участник гильдии';
         $message = "Приглашение в гильдию «{$guild->name}» было отозвано. Отозвал(а): {$revokerName}.";
-        $link = '/guilds/' . $guild->id . '/applications/my/' . $application->id;
+        $link = '/guilds/'.$guild->id.'/applications/my/'.$application->id;
 
         return Notification::create([
             'user_id' => $userId,
@@ -36,4 +36,3 @@ class CreateGuildInvitationRevokedForUserNotificationAction
         ]);
     }
 }
-

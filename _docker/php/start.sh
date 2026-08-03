@@ -32,6 +32,12 @@ wait_for_db() {
 
 wait_for_db
 
+# Nginx serves uploaded files through public/storage. Create the Laravel
+# symlink on fresh environments before accepting requests.
+if [ ! -L public/storage ]; then
+    php artisan storage:link
+fi
+
 # Воркер очереди: --tries=3 ограничивает повторные попытки, --backoff=3 задаёт паузу между ретраями,
 # --sleep=3 — ожидание при пустой очереди, --max-time=3600 — мягкий рестарт раз в час, чтобы освободить память
 # и подхватить обновления кода после deploy.

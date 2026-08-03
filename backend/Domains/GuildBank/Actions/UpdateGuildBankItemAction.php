@@ -15,4 +15,3 @@ class UpdateGuildBankItemAction
         return $item->load('tier');
     }
 }
-

@@ -130,4 +130,3 @@ final class GlobalPostCommentController extends Controller
         return response()->json(['message' => 'Комментарий удалён.']);
     }
 }
-

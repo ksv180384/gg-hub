@@ -35,4 +35,3 @@ class ListGuildEventHistoriesAction
         return $query->get();
     }
 }
-

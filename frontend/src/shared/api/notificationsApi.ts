@@ -6,6 +6,10 @@ import { http } from '@/shared/api/http';
 
 export interface NotificationItem {
   id: number;
+  game_id?: number | null;
+  guild_id?: number | null;
+  game?: { id: number; name: string } | null;
+  guild?: { id: number; name: string } | null;
   message: string;
   /** Ссылка (например, на заявку в гильдию). */
   link?: string | null;

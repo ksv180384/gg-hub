@@ -8,7 +8,7 @@ use Domains\Access\Models\PermissionGroup;
 class CreatePermissionAction
 {
     /**
-     * @param array{name: string, slug?: string|null, description?: string|null, permission_group_id: int} $data
+     * @param  array{name: string, slug?: string|null, description?: string|null, permission_group_id: int}  $data
      */
     public function __invoke(array $data): Permission
     {
@@ -16,6 +16,7 @@ class CreatePermissionAction
         $data['scope'] = $group->scope;
         $permission = Permission::create($data);
         $permission->load('group');
+
         return $permission;
     }
 }

@@ -60,4 +60,3 @@ class UpdateGuildBankItemRequest extends FormRequest
         ];
     }
 }
-

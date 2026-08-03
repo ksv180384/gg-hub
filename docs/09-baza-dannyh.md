@@ -52,6 +52,9 @@
 | `guild_application_form_fields` | Кастомные поля формы |
 | `guild_application_votes`, `guild_application_comments` | Голоса, комментарии |
 | `guild_tag`, `character_guild_tag` | Теги гильдии на участниках |
+| `guild_activity_logs` | Неизменяемая история действий с инициатором, категорией, объектом и безопасными снимками изменений |
+
+Подробно: [guild-activity.md](guild-activity.md).
 
 ### Tag
 
@@ -87,8 +90,9 @@
 
 | Таблица | Назначение |
 |---------|------------|
-| `raids` | Дерево рейдов (parent_id) |
+| `raids` | Дерево рейдов (parent_id), состояние набора (`is_recruiting`) |
 | `raid_members` | Состав: character, slot_index |
+| `raid_applications` | Однократные заявки персонажей в рейд и решение по ним |
 
 ### GuildBank & GuildDkp
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\Notification\SendAdminTelegramNotificationAction;
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
@@ -70,7 +70,8 @@ class SocialAuthController extends Controller
 
         if ($user->isBanned()) {
             $frontendUrl = $this->frontendUrl();
-            return redirect($frontendUrl . '/login?error=banned');
+
+            return redirect($frontendUrl.'/login?error=banned');
         }
 
         Auth::login($user, remember: true);

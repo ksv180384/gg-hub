@@ -2,6 +2,7 @@
 
 namespace Domains\Access\Models;
 
+use App\Core\Traits\HasFilter;
 use Domains\Access\Enums\PermissionScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Support\Str;
 
 class PermissionGroup extends Model
 {
+    use HasFilter;
+
     protected $table = 'permission_groups';
 
     protected $fillable = [
@@ -34,6 +37,7 @@ class PermissionGroup extends Model
     {
         $slug = $this->slug ?? '';
         $name = $this->name ?? '';
+
         return is_string($name) && $name !== '' && (trim((string) $slug) === '');
     }
 

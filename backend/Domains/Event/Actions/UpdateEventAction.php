@@ -12,6 +12,7 @@ class UpdateEventAction
     public function __invoke(Event $event, array $data): Event
     {
         $event->update($data);
+
         return $event->fresh(['creator:id,name']);
     }
 }

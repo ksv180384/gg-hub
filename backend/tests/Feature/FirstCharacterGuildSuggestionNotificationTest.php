@@ -1,10 +1,10 @@
 <?php
 
-use App\Models\Game;
-use App\Models\Localization;
-use App\Models\Notification;
-use App\Models\Server;
-use App\Models\User;
+use Domains\Game\Models\Game;
+use Domains\Game\Models\Localization;
+use Domains\Notification\Models\Notification;
+use Domains\Game\Models\Server;
+use Domains\User\Models\User;
 use Domains\Character\Actions\CreateCharacterAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

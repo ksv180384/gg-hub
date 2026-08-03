@@ -4,8 +4,8 @@ namespace App\Actions\Post;
 
 use App\Actions\Notification\CreatePostPendingGuildModerationNotificationAction;
 use App\Actions\Notification\SendPostOrCommentNotificationAction;
-use App\Services\Notifications\GuildLinkBuilder;
 use App\Http\Requests\Post\UpdatePostRequest;
+use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\ApplyPostModerationRulesAction;
 use Domains\Post\Actions\BuildPostDataFromRequestAction;
@@ -87,7 +87,7 @@ class UpdateMyPostAction
             $this->sendPostOrCommentNotificationAction->postUpdated($post);
 
             $wasAlreadyPending = $previousStatusGuild === 'pending';
-            if (($result['notify_guild_id'] ?? null) !== null && !$wasAlreadyPending) {
+            if (($result['notify_guild_id'] ?? null) !== null && ! $wasAlreadyPending) {
                 $guild = Guild::query()->find($result['notify_guild_id']);
                 if ($guild) {
                     $link = $this->linkBuilder->postPath($guild, (int) $post->id);
@@ -99,4 +99,3 @@ class UpdateMyPostAction
         });
     }
 }
-

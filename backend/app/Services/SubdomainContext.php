@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Game;
+use Domains\Game\Models\Game;
 use Illuminate\Http\Request;
 
 class SubdomainContext

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Card, CardHeader, CardTitle, CardContent, LightboxImage } from '@/shared/ui';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/ui';
+import LightboxImage from '@/shared/ui/lightbox-image/LightboxImage.vue';
 import type { EventHistoryItem } from '@/shared/api/eventHistoryApi';
 
 defineProps<{

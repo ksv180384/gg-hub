@@ -10,7 +10,7 @@ class CreateGuildBankItemTierAction
     /** @param array{name:string,color:string} $data */
     public function __invoke(Guild $guild, array $data): GuildBankItemTier
     {
-        $tier = new GuildBankItemTier();
+        $tier = new GuildBankItemTier;
         $tier->fill($data);
         $tier->guild_id = $guild->id;
         $tier->save();

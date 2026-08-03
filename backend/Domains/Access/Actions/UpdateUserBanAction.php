@@ -2,8 +2,8 @@
 
 namespace Domains\Access\Actions;
 
-use App\Models\User;
 use Carbon\Carbon;
+use Domains\User\Models\User;
 
 class UpdateUserBanAction
 {
@@ -11,6 +11,7 @@ class UpdateUserBanAction
     {
         $user->banned_at = $banned ? Carbon::now() : null;
         $user->save();
+
         return $user->fresh();
     }
 }

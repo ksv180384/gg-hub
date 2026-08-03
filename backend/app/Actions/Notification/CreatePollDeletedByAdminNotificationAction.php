@@ -2,7 +2,7 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
+use Domains\Notification\Models\Notification;
 use Domains\Poll\Models\Poll;
 
 /**
@@ -24,13 +24,13 @@ class CreatePollDeletedByAdminNotificationAction
 
         $message = "Ваше голосование «{$title}» в гильдии «{$guildName}» было удалено администратором.";
         if ($reason !== '') {
-            $message .= ' Причина: ' . $reason;
+            $message .= ' Причина: '.$reason;
         }
 
         return Notification::create([
             'user_id' => $userId,
             'message' => $message,
-            'link' => '',
+            'link' => $poll->guild ? '/guilds/'.$poll->guild->id.'/polls' : '',
         ]);
     }
 }

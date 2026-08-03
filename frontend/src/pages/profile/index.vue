@@ -8,18 +8,28 @@ import {
   CardContent,
   Input,
   Label,
-  TimezoneSelect,
 } from '@/shared/ui';
+import TimezoneSelect from '@/shared/ui/timezone-select/TimezoneSelect.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
+import type { ThemePreference } from '@/shared/lib/themePreference';
 
 const router = useRouter();
 const auth = useAuthStore();
+const theme = useThemeStore();
 
 const name = ref('');
 const timezone = ref('UTC');
 const avatarFile = ref<File | null>(null);
 const avatarPreview = ref<string | null>(null);
 const profileSaving = ref(false);
+const themePreference = ref<ThemePreference>('system');
+const themeSaving = ref(false);
+const themeOptions: Array<{ value: ThemePreference; label: string }> = [
+  { value: 'light', label: 'Светлая' },
+  { value: 'dark', label: 'Тёмная' },
+  { value: 'system', label: 'Системная' },
+];
 
 const currentPassword = ref('');
 const password = ref('');
@@ -49,6 +59,7 @@ onMounted(() => {
   }
   name.value = auth.user?.name ?? '';
   timezone.value = auth.user?.timezone ?? 'UTC';
+  themePreference.value = auth.user?.theme_preference ?? 'system';
 });
 
 watch(
@@ -57,6 +68,7 @@ watch(
     if (u) {
       name.value = u.name ?? '';
       timezone.value = u.timezone ?? 'UTC';
+      themePreference.value = u.theme_preference ?? 'system';
     }
   },
   { deep: true }
@@ -71,6 +83,25 @@ function onAvatarChange(e: Event) {
     avatarPreview.value = URL.createObjectURL(file);
   }
   target.value = '';
+}
+
+async function selectThemePreference(value: ThemePreference) {
+  if (themeSaving.value || profileSaving.value || value === themePreference.value) return;
+
+  const previous = themePreference.value;
+  themePreference.value = value;
+  theme.setAccountPreference(value);
+  themeSaving.value = true;
+  auth.clearError();
+
+  try {
+    await auth.updateProfile({ theme_preference: value });
+  } catch {
+    themePreference.value = previous;
+    theme.setAccountPreference(previous);
+  } finally {
+    themeSaving.value = false;
+  }
 }
 
 async function saveProfile(e: Event) {
@@ -197,7 +228,78 @@ async function savePassword(e: Event) {
             <p class="text-xs text-muted-foreground">Время на сайте будет отображаться в выбранном поясе.</p>
           </div>
 
-          <Button type="submit" :disabled="profileSaving">
+          <fieldset class="space-y-2">
+            <legend class="text-sm font-medium">Тема оформления</legend>
+            <div class="grid grid-cols-3 gap-1 rounded-md border bg-muted/30 p-1">
+              <button
+                v-for="option in themeOptions"
+                :key="option.value"
+                type="button"
+                class="flex min-h-16 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-medium transition-colors"
+                :class="themePreference === option.value
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'"
+                :aria-pressed="themePreference === option.value"
+                :disabled="themeSaving || profileSaving"
+                @click="selectThemePreference(option.value)"
+              >
+                <svg
+                  v-if="option.value === 'light'"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+                <svg
+                  v-else-if="option.value === 'dark'"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+                <svg
+                  v-else
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="20" height="14" x="2" y="3" rx="2" />
+                  <line x1="8" x2="16" y1="21" y2="21" />
+                  <line x1="12" x2="12" y1="17" y2="21" />
+                </svg>
+                <span>{{ option.label }}</span>
+              </button>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              Выбор сохраняется сразу и применяется на всех устройствах после входа.
+            </p>
+          </fieldset>
+
+          <Button type="submit" :disabled="profileSaving || themeSaving">
             {{ profileSaving ? 'Сохранение...' : 'Сохранить профиль' }}
           </Button>
         </CardContent>

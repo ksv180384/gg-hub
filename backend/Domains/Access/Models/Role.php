@@ -2,7 +2,7 @@
 
 namespace Domains\Access\Models;
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
@@ -31,6 +31,7 @@ class Role extends Model
     {
         $slug = $this->slug ?? '';
         $name = $this->name ?? '';
+
         return is_string($name) && $name !== '' && (trim((string) $slug) === '');
     }
 

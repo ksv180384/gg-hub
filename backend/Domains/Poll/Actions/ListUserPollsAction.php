@@ -2,10 +2,11 @@
 
 namespace Domains\Poll\Actions;
 
-use App\Models\User;
+use App\Filters\CharacterFilter;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\GuildMember;
 use Domains\Poll\Models\Poll;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 
@@ -19,11 +20,11 @@ class ListUserPollsAction
         private CloseExpiredPollAction $closeExpiredPollAction
     ) {}
 
-    public function __invoke(User $user, ?int $gameId = null): Collection
+    public function __invoke(User $user, CharacterFilter $filter): Collection
     {
         $userCharacterIds = Character::query()
             ->where('user_id', $user->id)
-            ->when($gameId !== null, fn ($q) => $q->where('game_id', $gameId))
+            ->filter($filter)
             ->pluck('id');
 
         if ($userCharacterIds->isEmpty()) {

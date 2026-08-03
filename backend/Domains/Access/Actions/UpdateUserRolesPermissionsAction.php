@@ -2,12 +2,12 @@
 
 namespace Domains\Access\Actions;
 
-use App\Models\User;
+use Domains\User\Models\User;
 
 class UpdateUserRolesPermissionsAction
 {
     /**
-     * @param array{role_ids?: array<int>, permission_ids?: array<int>} $data
+     * @param  array{role_ids?: array<int>, permission_ids?: array<int>}  $data
      */
     public function __invoke(User $user, array $data): User
     {
@@ -19,6 +19,7 @@ class UpdateUserRolesPermissionsAction
             $user->directPermissions()->sync($data['permission_ids']);
         }
         $user->load('roles', 'directPermissions');
+
         return $user;
     }
 }

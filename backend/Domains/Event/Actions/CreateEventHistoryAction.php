@@ -20,6 +20,7 @@ class CreateEventHistoryAction
         private ResolveEventParticipantDkpCoefficient $resolveEventParticipantDkpCoefficient,
         private EventHistoryScreenshotService $eventHistoryScreenshotService,
     ) {}
+
     /**
      * @param  array{
      *     guild_id: int,

@@ -16,7 +16,7 @@ import { useSiteContextStore } from '@/stores/siteContext';
 import { charactersApi, type Character } from '@/shared/api/charactersApi';
 import { gamesApi, type Game, type Localization, type Server } from '@/shared/api/gamesApi';
 import { tagsApi, type Tag } from '@/shared/api/tagsApi';
-import { CharacterCard } from '@/entities/character';
+import CharacterCard from '@/entities/character/ui/CharacterCard.vue';
 
 const router = useRouter();
 const route = useRoute();

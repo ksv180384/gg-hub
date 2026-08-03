@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Guild\Actions\CountUserActiveGuildApplicationsAction;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use function Pest\Laravel\mock;

@@ -26,6 +26,7 @@ class GuildRosterMemberResource extends JsonResource
             'game_classes' => $character ? GameClassResource::collection($character->gameClasses) : [],
             'guild_role' => $this->whenLoaded('guildRole', function () {
                 $role = $this->guildRole;
+
                 return $role ? [
                     'id' => $role->id,
                     'name' => $role->name,

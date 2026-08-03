@@ -34,8 +34,9 @@ async function bootstrap() {
     setHydrating(true);
   }
 
+  const auth = useAuthStore(pinia);
   const theme = useThemeStore(pinia);
-  theme.init();
+  theme.init(auth.user?.theme_preference);
 
   await router.isReady();
   if (shouldHydrate) {
@@ -48,13 +49,12 @@ async function bootstrap() {
 
   // В SSR-гидрации router.beforeEach пропускается (isHydrating=true), поэтому для публичных страниц
   // нужно догрузить контекст/пользователя вручную после mount.
-  const auth = useAuthStore(pinia);
   const siteContext = useSiteContextStore(pinia);
   queueMicrotask(() => {
     if (!siteContext.loading && !siteContext.data) {
       void siteContext.fetchContext();
     }
-    if (!auth.loading && !auth.user) {
+    if (!auth.loading && !auth.initialized) {
       void auth.fetchUser();
     }
   });

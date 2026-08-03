@@ -23,6 +23,7 @@ const props = defineProps<{
   raidTotalMembersMap?: Record<string, number>;
   canEdit: boolean;
   canDelete: boolean;
+  myCharacterIds: number[];
   /** id выбранного рейда (для подсветки активного). */
   selectedRaidId?: number | null;
   /** Опции Sortable (sortablejs-vue3) для корня и вложенных списков. */
@@ -36,6 +37,9 @@ const emit = defineEmits<{
   (e: 'edit', raid: RaidItem): void;
   (e: 'delete', raid: RaidItem): void;
   (e: 'select', raid: RaidItem): void;
+  (e: 'recruitment', raid: RaidItem, isRecruiting: boolean): void;
+  (e: 'applications', raid: RaidItem): void;
+  (e: 'apply', raid: RaidItem): void;
   (e: 'sort-end', evt: { item: HTMLElement; to: HTMLElement }): void;
 }>();
 
@@ -50,6 +54,16 @@ const canAddChild = computed(() => {
   const d = props.depth ?? 0;
   return props.canEdit && ((props.raid.members_count ?? 0) === 0) && d < MAX_RAID_DEPTH - 1;
 });
+const canManageRecruitment = computed(
+  () => props.canEdit || (
+    props.raid.leader_character_id != null && props.myCharacterIds.includes(props.raid.leader_character_id)
+  )
+);
+const myApplication = computed(() => props.raid.my_applications?.[0] ?? null);
+const canApply = computed(() =>
+  !myApplication.value || ['rejected', 'removed'].includes(myApplication.value.status)
+);
+const isReapplying = computed(() => ['rejected', 'removed'].includes(myApplication.value?.status ?? ''));
 
 /** Корректное склонение слова «участник». */
 const totalMembersTitle = computed(() => {
@@ -76,8 +90,8 @@ const totalMembersTitle = computed(() => {
           : 'hover:border-border dark:hover:border-border dark:hover:bg-accent/35',
       ]"
       @click="emit('select', raid)"
-      @keydown.enter="emit('select', raid)"
-      @keydown.space.prevent="emit('select', raid)"
+      @keydown.enter.self="emit('select', raid)"
+      @keydown.space.self.prevent="emit('select', raid)"
     >
       <div class="flex items-center gap-1.5 sm:gap-2">
         <!-- Drag handle (внутри карточки) -->
@@ -133,6 +147,18 @@ const totalMembersTitle = computed(() => {
               {{ raid.name }}
             </span>
             <span
+              v-if="raid.is_recruiting"
+              class="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+            >
+              Набор открыт
+            </span>
+            <span
+              v-if="myApplication?.status === 'pending'"
+              class="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
+            >
+              Заявка подана
+            </span>
+            <span
               v-if="raid.members_count != null && raid.members_count > 0"
               class="inline-flex shrink-0 items-center rounded-full border border-border/50 bg-white/70 px-2 py-0.5 text-[11px] text-neutral-600 tabular-nums dark:border-border/60 dark:bg-background/40 dark:text-muted-foreground"
               :title="`Своих участников: ${raid.members_count}`"
@@ -166,16 +192,39 @@ const totalMembersTitle = computed(() => {
               </svg>
               <span class="min-w-0 truncate">Лидер: <span class="font-semibold text-neutral-900 dark:text-card-foreground">{{ raid.leader.name }}</span></span>
             </span>
+            <span
+              v-if="raid.leader && (raid.pending_applications_count ?? 0) > 0"
+              class="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary tabular-nums"
+              :title="`Активных заявок: ${raid.pending_applications_count}`"
+            >
+              Заявки: {{ raid.pending_applications_count }}
+            </span>
             <Tooltip
               v-if="raid.description"
               :content="raid.description"
               class="max-w-md whitespace-pre-wrap break-words"
             >
               <span
-                class="inline-flex min-w-0 shrink items-center overflow-hidden rounded-md border border-transparent bg-neutral-200 px-2 py-0.5 dark:border-border/50 dark:bg-muted"
+                class="inline-flex h-5 w-5 shrink-0 cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Описание рейда"
                 @click.stop
               >
-                <span class="block min-w-0 truncate text-neutral-800 dark:text-foreground/95">{{ raid.description }}</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
               </span>
             </Tooltip>
           </div>
@@ -183,6 +232,21 @@ const totalMembersTitle = computed(() => {
 
         <!-- Бейдж количества участников + меню -->
         <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <Button
+            v-if="raid.is_recruiting && myCharacterIds.length > 0 && canApply"
+            type="button"
+            size="sm"
+            class="h-7 px-2 text-xs"
+            @click.stop="emit('apply', raid)"
+          >
+            {{ isReapplying ? 'Подать снова' : 'Подать заявку' }}
+          </Button>
+          <span
+            v-else-if="myApplication?.status === 'rejected' || myApplication?.status === 'removed'"
+            class="hidden text-xs text-muted-foreground sm:inline"
+          >
+            {{ myApplication.status === 'removed' ? 'Исключён из рейда' : 'Заявка отклонена' }}
+          </span>
           <span
             v-if="totalMembers != null"
             class="inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-border/50 bg-white/80 px-2.5 text-xs text-neutral-800 tabular-nums dark:border-border/60 dark:bg-background/50 dark:text-card-foreground"
@@ -207,7 +271,7 @@ const totalMembersTitle = computed(() => {
             </svg>
             {{ totalMembers }}
           </span>
-          <DropdownMenu v-if="canEdit || canDelete">
+          <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button
                 variant="ghost"
@@ -224,11 +288,26 @@ const totalMembersTitle = computed(() => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem @click="emit('select', raid)">
+                {{ hasChildren ? 'Участники' : 'Открыть состав' }}
+              </DropdownMenuItem>
               <DropdownMenuItem v-if="canAddChild" @click="emit('add-child', raid.id)">
                 Добавить подрейд
               </DropdownMenuItem>
               <DropdownMenuItem v-if="canEdit" @click="emit('edit', raid)">
                 Редактировать
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                v-if="canManageRecruitment && !hasChildren"
+                @click="emit('recruitment', raid, !raid.is_recruiting)"
+              >
+                {{ raid.is_recruiting ? 'Закрыть набор' : 'Открыть набор' }}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                v-if="canManageRecruitment && !hasChildren"
+                @click="emit('applications', raid)"
+              >
+                Заявки
               </DropdownMenuItem>
               <DropdownMenuItem
                 v-if="canDelete"
@@ -265,11 +344,15 @@ const totalMembersTitle = computed(() => {
           :can-delete="canDelete"
           :selected-raid-id="selectedRaidId"
           :sortable-options="sortableOptions"
+          :my-character-ids="myCharacterIds"
           :sortable-key="sortableKey"
           @add-child="emit('add-child', $event)"
           @edit="emit('edit', $event)"
           @delete="emit('delete', $event)"
           @select="emit('select', $event)"
+          @recruitment="(raid, isRecruiting) => emit('recruitment', raid, isRecruiting)"
+          @applications="emit('applications', $event)"
+          @apply="emit('apply', $event)"
           @sort-end="emit('sort-end', $event)"
         />
       </template>

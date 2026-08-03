@@ -2,8 +2,8 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
 use Domains\Guild\Models\GuildApplication;
+use Domains\Notification\Models\Notification;
 
 /**
  * Создаёт оповещение пользователю, подавшему заявку в гильдию: заявка была одобрена.
@@ -15,12 +15,12 @@ class CreateGuildApplicationApprovedNotificationAction
         $application->loadMissing(['guild', 'character']);
         $guild = $application->guild;
         $character = $application->character;
-        if (!$character) {
+        if (! $character) {
             return null;
         }
 
         $userId = $character->user_id;
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
@@ -28,7 +28,7 @@ class CreateGuildApplicationApprovedNotificationAction
             'user_id' => $userId,
             'message' => "Ваша заявка в гильдию «{$guild->name}» была одобрена. Вы приняты в гильдию.",
             // После одобрения ведём на публичную страницу информации гильдии.
-            'link' => '/guilds/' . $guild->id . '/info',
+            'link' => '/guilds/'.$guild->id.'/info',
         ]);
     }
 }

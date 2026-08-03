@@ -28,4 +28,3 @@ class DeclineEventRequest extends FormRequest
         ];
     }
 }
-

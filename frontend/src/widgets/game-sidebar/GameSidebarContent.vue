@@ -52,6 +52,7 @@ const guildSubmenuItems: GuildSubmenuItem[] = [
   { pathSuffix: '/polls', label: 'Голосования' },
   { pathSuffix: '/roulette', label: 'Рулетка' },
   { pathSuffix: '/roles', label: 'Роли членов гильдии' },
+  { pathSuffix: '/activity', label: 'История гильдии' },
 ];
 
 function guildPath(guildId: number, pathSuffix: string): string {
@@ -91,6 +92,7 @@ const adminItems: { to: string; label: string; permission?: string }[] = [
   { to: '/admin/polls', label: 'Голосования', permission: PERMISSION_VIEW_POLLS },
   { to: '/admin/games', label: 'Игры' },
   { to: '/admin/users', label: 'Пользователи' },
+  { to: '/admin/characters', label: 'Персонажи' },
   { to: '/admin/testing', label: 'Тестирование' },
   { to: '/admin/roles', label: 'Роли пользователей' },
   { to: '/admin/permissions', label: 'Права пользователей' },
@@ -246,7 +248,6 @@ function guildSubmenuWrapClass() {
 
 onMounted(() => {
   loadUserGuilds();
-  loadAdminPendingCount();
   loadMyActiveApplicationsCount();
 });
 

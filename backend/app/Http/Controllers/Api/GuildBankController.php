@@ -10,12 +10,12 @@ use App\Http\Requests\GuildBank\StoreGuildBankItemTierRequest;
 use App\Http\Requests\GuildBank\UpdateGuildBankItemRequest;
 use App\Http\Requests\GuildBank\UpdateGuildBankItemTierRequest;
 use App\Http\Resources\GuildBank\GuildBankGrantListResource;
-use App\Http\Resources\GuildBank\GuildBankMemberGrantListResource;
 use App\Http\Resources\GuildBank\GuildBankGrantResource;
 use App\Http\Resources\GuildBank\GuildBankItemListResource;
 use App\Http\Resources\GuildBank\GuildBankItemResource;
 use App\Http\Resources\GuildBank\GuildBankItemTierListResource;
 use App\Http\Resources\GuildBank\GuildBankItemTierResource;
+use App\Http\Resources\GuildBank\GuildBankMemberGrantListResource;
 use App\Http\Resources\GuildBank\GuildBankPageContextResource;
 use Domains\Guild\Models\Guild;
 use Domains\GuildBank\Actions\CreateGuildBankItemAction;
@@ -105,12 +105,14 @@ class GuildBankController extends Controller
     public function items(Guild $guild): AnonymousResourceCollection
     {
         $items = ($this->listGuildBankItemsAction)($guild);
+
         return GuildBankItemListResource::collection($items);
     }
 
     public function storeItem(StoreGuildBankItemRequest $request, Guild $guild): JsonResponse
     {
         $item = ($this->createGuildBankItemAction)($guild, $request->validated());
+
         return (new GuildBankItemResource($item))->response()->setStatusCode(201);
     }
 
@@ -120,6 +122,7 @@ class GuildBankController extends Controller
             abort(404);
         }
         $updated = ($this->updateGuildBankItemAction)($item, $request->validated());
+
         return new GuildBankItemResource($updated);
     }
 
@@ -129,6 +132,7 @@ class GuildBankController extends Controller
             abort(404);
         }
         ($this->deleteGuildBankItemAction)($item);
+
         return response()->json(['message' => 'Предмет удалён.']);
     }
 
@@ -138,6 +142,7 @@ class GuildBankController extends Controller
             abort(404);
         }
         $grants = ($this->listGuildBankItemGrantsAction)($guild, $item);
+
         return GuildBankGrantListResource::collection($grants);
     }
 
@@ -154,6 +159,7 @@ class GuildBankController extends Controller
             'receivedByCharacter:id,name',
             'grantedByCharacter:id,name',
         ]);
+
         return (new GuildBankGrantResource($grant))->response()->setStatusCode(201);
     }
 
@@ -176,6 +182,7 @@ class GuildBankController extends Controller
     public function memberGrants(Guild $guild, int $character): AnonymousResourceCollection
     {
         $grants = ($this->listGuildMemberBankGrantsAction)($guild, $character);
+
         return GuildBankMemberGrantListResource::collection($grants);
     }
 }

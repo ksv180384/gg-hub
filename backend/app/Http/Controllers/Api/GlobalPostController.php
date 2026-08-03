@@ -7,8 +7,8 @@ use App\Http\Resources\Post\PostResource;
 use Domains\Post\Actions\RecordPostViewAction;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Публичная страница поста из раздела «Общие».

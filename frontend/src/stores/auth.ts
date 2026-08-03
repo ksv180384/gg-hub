@@ -11,10 +11,12 @@ import {
 } from '@/shared/api/authApi';
 import { getErrorMessage } from '@/shared/lib/errorMessage';
 import { getActiveRouter } from '@/router/activeRouter';
+import { useThemeStore } from '@/stores/theme';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
   const loading = ref(false);
+  const initialized = ref(false);
   const error = ref<string | null>(null);
 
   const isAuthenticated = computed(() => !!user.value);
@@ -39,10 +41,10 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     try {
       const data = await authApi.getUser();
-      user.value = data ?? null;
+      setUser(data ?? null);
       return user.value;
     } catch {
-      user.value = null;
+      setUser(null);
       return null;
     } finally {
       loading.value = false;
@@ -54,7 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     try {
       const data = await authApi.login(email, password, remember);
-      user.value = data.user;
+      setUser(data.user);
       return data;
     } catch (e: unknown) {
       error.value = getErrorMessage(e, { fields: ['email'], fallback: 'Ошибка входа' });
@@ -70,10 +72,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const data = await authApi.register(payload);
       if (data.requires_email_verification) {
-        user.value = null;
+        setUser(null);
         return data;
       }
-      user.value = data.user ?? null;
+      setUser(data.user ?? null);
       return data;
     } catch (e: unknown) {
       error.value = getErrorMessage(e, { fields: ['name', 'email'], fallback: 'Ошибка регистрации' });
@@ -101,10 +103,10 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     try {
       await authApi.logout();
-      user.value = null;
+      setUser(null);
       await getActiveRouter()?.push('/login');
     } catch {
-      user.value = null;
+      setUser(null);
     } finally {
       loading.value = false;
     }
@@ -157,10 +159,10 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     try {
       const data = await authApi.updateProfile(payload);
-      user.value = data.user;
+      setUser(data.user);
       return data;
     } catch (e: unknown) {
-      error.value = getErrorMessage(e, { fields: ['name', 'timezone', 'avatar'], fallback: 'Ошибка сохранения профиля' });
+      error.value = getErrorMessage(e, { fields: ['name', 'timezone', 'theme_preference', 'avatar'], fallback: 'Ошибка сохранения профиля' });
       throw e;
     } finally {
       loading.value = false;
@@ -169,6 +171,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setUser(u: User | null) {
     user.value = u;
+    initialized.value = true;
+    const theme = useThemeStore();
+    if (u) {
+      theme.setAccountPreference(u.theme_preference ?? 'system');
+    } else {
+      theme.restoreGuestPreference();
+    }
   }
 
   function clearError() {
@@ -182,6 +191,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     loading,
+    initialized,
     error,
     isAuthenticated,
     isAdmin,

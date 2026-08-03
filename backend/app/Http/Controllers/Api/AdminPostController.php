@@ -2,25 +2,26 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\Post\PostListResource;
-use App\Http\Resources\Post\PostResource;
 use App\Actions\Notification\CreatePostBlockedNotificationAction;
-use App\Actions\Notification\CreatePostHiddenNotificationAction;
 use App\Actions\Notification\CreatePostGlobalPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGlobalRejectedNotificationAction;
 use App\Actions\Notification\CreatePostGuildPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGuildRejectedNotificationAction;
+use App\Actions\Notification\CreatePostHiddenNotificationAction;
+use App\Filters\PostFilter;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\Post\PostListResource;
+use App\Http\Resources\Post\PostResource;
+use Domains\Game\Models\Game;
+use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\BlockPostAction;
 use Domains\Post\Actions\HidePostAction;
-use Domains\Post\Actions\ShowHiddenPostAdminAction;
-use Domains\Post\Actions\UnblockPostAction;
 use Domains\Post\Actions\PublishGlobalPostAction;
 use Domains\Post\Actions\PublishGuildPostAction;
 use Domains\Post\Actions\RejectGlobalPostAction;
 use Domains\Post\Actions\RejectGuildPostAction;
-use Domains\Game\Models\Game;
-use Domains\Guild\Models\Guild;
+use Domains\Post\Actions\ShowHiddenPostAdminAction;
+use Domains\Post\Actions\UnblockPostAction;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 use Illuminate\Http\JsonResponse;
@@ -64,46 +65,8 @@ class AdminPostController extends Controller
         $query = Post::query()
             ->withCount(['postComments as comments_count'])
             ->with(['character', 'character.user', 'user', 'game'])
+            ->filter(new PostFilter($request))
             ->orderByDesc('created_at');
-
-        $filter = $request->query('filter');
-        if ($filter === 'pending_global') {
-            $query
-                ->where('status_global', PostStatus::Pending->value)
-                // Вкладка «Ожидают» — только модерация общего журнала.
-                // Посты, ожидающие публикации в гильдии (status_guild = pending), сюда не попадают.
-                ->where(function ($q) {
-                    $q->whereNull('status_guild')
-                        ->orWhere('status_guild', '!=', PostStatus::Pending->value);
-                });
-        }
-
-        $scope = $request->query('scope');
-        if ($scope === 'global') {
-            $query->where('is_visible_global', true);
-        }
-        if ($scope === 'guild') {
-            $query->whereNotNull('guild_id');
-            $guildId = $request->query('guild_id');
-            if ($guildId && is_numeric($guildId)) {
-                $query->where('guild_id', (int) $guildId);
-            }
-        }
-
-        $status = $request->query('status');
-        if ($status !== null && $status !== '' && \in_array($status, PostStatus::values(), true)) {
-            if ($scope === 'global') {
-                $query->where('status_global', $status);
-            }
-            if ($scope === 'guild') {
-                $query->where('status_guild', $status);
-            }
-        }
-
-        $gameId = $request->query('game_id');
-        if ($gameId && is_numeric($gameId)) {
-            $query->where('game_id', (int) $gameId);
-        }
 
         $posts = $query->get();
 
@@ -176,7 +139,7 @@ class AdminPostController extends Controller
         $posts = Post::query()
             ->select('id', 'title', 'guild_id')
             ->with('guild:id,name')
-            ->where('title', 'like', '%' . trim($q) . '%')
+            ->filter(new PostFilter($request))
             ->orderByDesc('created_at')
             ->limit(15)
             ->get();

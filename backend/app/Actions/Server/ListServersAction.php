@@ -2,9 +2,9 @@
 
 namespace App\Actions\Server;
 
-use App\Models\Game;
-use App\Models\Localization;
-use App\Models\Server;
+use Domains\Game\Models\Game;
+use Domains\Game\Models\Localization;
+use Domains\Game\Models\Server;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -18,6 +18,7 @@ class ListServersAction
         if ($localization->game_id !== (int) $game->id) {
             throw new HttpException(404, 'Локализация не принадлежит этой игре.');
         }
+
         return $localization->servers()
             ->whereNull('merged_into_server_id')
             ->orderBy('name')

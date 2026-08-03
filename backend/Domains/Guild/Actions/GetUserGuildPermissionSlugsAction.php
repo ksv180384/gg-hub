@@ -2,10 +2,10 @@
 
 namespace Domains\Guild\Actions;
 
-use App\Models\User;
 use Domains\Access\Actions\ListPermissionGroupsAction;
 use Domains\Access\Enums\PermissionScope;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Support\Collection;
 
 class GetUserGuildPermissionSlugsAction
@@ -35,9 +35,10 @@ class GetUserGuildPermissionSlugsAction
 
         $slugs = $members->flatMap(function ($member) {
             $role = $member->guildRole;
-            if (!$role || !$role->relationLoaded('permissions')) {
+            if (! $role || ! $role->relationLoaded('permissions')) {
                 return [];
             }
+
             return $role->permissions->pluck('slug');
         })->unique()->values();
 

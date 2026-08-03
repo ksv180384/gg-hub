@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use App\Models\User;
 use App\Services\UserAvatarService;
+use Domains\User\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
@@ -34,6 +34,7 @@ class UserResource extends JsonResource
                 : null,
             'avatar_url' => $avatarUrl,
             'timezone' => $this->timezone ?? 'UTC',
+            'theme_preference' => $this->theme_preference ?? 'system',
             'banned_at' => $this->banned_at?->toIso8601String(),
             'permissions' => $this->getAllPermissionSlugs(),
             'guild_ids' => $this->guildIds(),

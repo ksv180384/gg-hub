@@ -7,7 +7,7 @@ use Domains\Access\Models\Role;
 class CreateRoleAction
 {
     /**
-     * @param array{name: string, slug?: string|null, description?: string|null, permission_ids?: array<int>} $data
+     * @param  array{name: string, slug?: string|null, description?: string|null, permission_ids?: array<int>}  $data
      */
     public function __invoke(array $data): Role
     {
@@ -16,6 +16,7 @@ class CreateRoleAction
         $role = Role::create($data);
         $role->permissions()->sync($permissionIds);
         $role->load('permissions');
+
         return $role;
     }
 }

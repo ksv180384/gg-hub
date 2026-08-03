@@ -31,10 +31,10 @@ class BuildPostDataFromRequestAction
 
         $statusGlobal = $request->input('status_global', PostStatus::Draft->value);
         $statusGuild = $request->input('status_guild', PostStatus::Draft->value);
-        if (!\in_array($statusGlobal, PostStatus::values(), true)) {
+        if (! \in_array($statusGlobal, PostStatus::values(), true)) {
             $statusGlobal = PostStatus::Draft->value;
         }
-        if (!\in_array($statusGuild, PostStatus::values(), true)) {
+        if (! \in_array($statusGuild, PostStatus::values(), true)) {
             $statusGuild = PostStatus::Draft->value;
         }
 
@@ -43,10 +43,10 @@ class BuildPostDataFromRequestAction
         // - Если только «Для гильдии»   → global = hidden
         // - Если обе галочки            → оба из запроса
         // - Если обе выключены          → оба hidden
-        if (!$isVisibleGlobal) {
+        if (! $isVisibleGlobal) {
             $statusGlobal = PostStatus::Hidden->value;
         }
-        if (!$isVisibleGuild) {
+        if (! $isVisibleGuild) {
             $statusGuild = PostStatus::Hidden->value;
         }
 
@@ -73,4 +73,3 @@ class BuildPostDataFromRequestAction
         ];
     }
 }
-

@@ -2,11 +2,11 @@
 
 namespace Domains\Post\Actions;
 
-use App\Models\User;
 use Carbon\Carbon;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Enums\PostStatus;
+use Domains\User\Models\User;
 
 /**
  * Применяет правила модерации к данным поста при сохранении как «опубликован»:

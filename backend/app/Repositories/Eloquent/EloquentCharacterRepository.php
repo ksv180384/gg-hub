@@ -2,12 +2,12 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Contracts\Repositories\CharacterRepositoryInterface;
+use App\Filters\CharacterFilter;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Illuminate\Support\Collection;
 
-class EloquentCharacterRepository implements CharacterRepositoryInterface
+class EloquentCharacterRepository
 {
     public function getByGameWithContext(int $gameId): Collection
     {
@@ -35,7 +35,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
             ->first();
     }
 
-    public function getByUserWithContext(int $userId, ?int $gameId = null): Collection
+    public function getByUserWithContext(int $userId, CharacterFilter $filter): Collection
     {
         $query = Character::query()
             ->where('user_id', $userId)
@@ -48,13 +48,12 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
                 'guildMember.guild',
                 'user',
             ]);
-        if ($gameId !== null) {
-            $query->where('game_id', $gameId);
-        }
+        $query->filter($filter);
+
         return $query->get();
     }
 
-    public function getByUserAvailableForGuildLeader(int $userId, int $gameId, int $serverId): Collection
+    public function getByUserAvailableForGuildLeader(int $userId, CharacterFilter $filter): Collection
     {
         $leaderIds = Guild::query()
             ->whereNotNull('leader_character_id')
@@ -62,8 +61,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
 
         return Character::query()
             ->where('user_id', $userId)
-            ->where('game_id', $gameId)
-            ->where('server_id', $serverId)
+            ->filter($filter)
             ->whereDoesntHave('guildMember')
             ->whereNotIn('id', $leaderIds)
             ->with([
@@ -95,7 +93,7 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): Character
     {
@@ -103,11 +101,12 @@ class EloquentCharacterRepository implements CharacterRepositoryInterface
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Character $character, array $data): Character
     {
         $character->update($data);
+
         return $character->fresh();
     }
 }

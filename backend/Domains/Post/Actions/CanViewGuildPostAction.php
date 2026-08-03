@@ -2,11 +2,11 @@
 
 namespace Domains\Post\Actions;
 
-use App\Models\User;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
+use Domains\User\Models\User;
 
 /**
  * Проверяет право просмотра поста гильдии.
@@ -48,4 +48,3 @@ final class CanViewGuildPostAction
         return $userSlugs->contains(self::PERMISSION_PUBLISH_POST);
     }
 }
-

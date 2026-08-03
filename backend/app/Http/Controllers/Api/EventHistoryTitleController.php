@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Filters\EventHistoryTitleFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EventHistory\StoreEventHistoryTitleRequest;
 use App\Http\Requests\EventHistory\UpdateEventHistoryTitleRequest;
@@ -27,13 +28,13 @@ class EventHistoryTitleController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = $request->query('query');
         $limit = $request->query('limit');
+        $limit = is_numeric($limit) ? max(1, (int) $limit) : 10;
 
-        $titles = ($this->listEventHistoryTitlesAction)([
-            'query' => is_string($query) ? $query : null,
-            'limit' => is_numeric($limit) ? (int) $limit : 10,
-        ]);
+        $titles = ($this->listEventHistoryTitlesAction)(
+            new EventHistoryTitleFilter($request),
+            $limit,
+        );
 
         return EventHistoryTitleResource::collection($titles);
     }

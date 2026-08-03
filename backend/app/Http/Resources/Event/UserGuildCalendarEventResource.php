@@ -23,9 +23,10 @@ class UserGuildCalendarEventResource extends JsonResource
 
         $base['game'] = $this->whenLoaded('guild', function () {
             $g = $this->guild;
-            if (!$g || !$g->relationLoaded('game') || !$g->game) {
+            if (! $g || ! $g->relationLoaded('game') || ! $g->game) {
                 return null;
             }
+
             return [
                 'id' => $g->game->id,
                 'name' => $g->game->name,
@@ -35,4 +36,3 @@ class UserGuildCalendarEventResource extends JsonResource
         return $base;
     }
 }
-

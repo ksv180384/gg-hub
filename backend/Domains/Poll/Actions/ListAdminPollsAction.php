@@ -2,6 +2,7 @@
 
 namespace Domains\Poll\Actions;
 
+use App\Filters\PollFilter;
 use Domains\Poll\Models\Poll;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -11,20 +12,19 @@ class ListAdminPollsAction
         private CloseExpiredPollAction $closeExpiredPollAction
     ) {}
 
-    /**
-     * Список всех голосований для админки с пагинацией.
-     */
-    public function __invoke(int $perPage = 20, ?int $guildId = null): LengthAwarePaginator
+    public function __invoke(PollFilter $filter, int $perPage = 20): LengthAwarePaginator
     {
-        $query = Poll::query()
-            ->with(['options' => fn ($q) => $q->withCount('votes')->with(['votes' => fn ($q2) => $q2->with('character:id,name')]), 'creatorCharacter:id,name', 'guild:id,name'])
-            ->orderByDesc('created_at');
-
-        if ($guildId !== null) {
-            $query->where('guild_id', $guildId);
-        }
-
-        $polls = $query->paginate($perPage);
+        $polls = Poll::query()
+            ->with([
+                'options' => fn ($query) => $query
+                    ->withCount('votes')
+                    ->with(['votes' => fn ($voteQuery) => $voteQuery->with('character:id,name')]),
+                'creatorCharacter:id,name',
+                'guild:id,name',
+            ])
+            ->filter($filter)
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
 
         foreach ($polls as $poll) {
             ($this->closeExpiredPollAction)($poll);

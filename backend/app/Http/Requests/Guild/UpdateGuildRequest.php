@@ -4,6 +4,7 @@ namespace App\Http\Requests\Guild;
 
 use Domains\Character\Models\Character;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
+use Domains\Guild\Actions\UpdateGuildAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Domains\Tag\Models\Tag;
@@ -35,13 +36,13 @@ class UpdateGuildRequest extends FormRequest
      * или пользователя с хотя бы одним slug'ом на редактирование гильдии.
      * Создатель гильдии (owner_id) не имеет особых прав — после смены лидера
      * бывший лидер теряет доступ к настройкам. Конкретные поля проверяет
-     * {@see \Domains\Guild\Actions\UpdateGuildAction}.
+     * {@see UpdateGuildAction}.
      */
     public function authorize(): bool
     {
         $guild = $this->route('guild');
         $user = $this->user();
-        if (!$guild || !$user) {
+        if (! $guild || ! $user) {
             return false;
         }
         if ($guild->leader_character_id) {
@@ -150,7 +151,7 @@ class UpdateGuildRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            /** @var \Domains\Guild\Models\Guild $guild */
+            /** @var Guild $guild */
             $guild = $this->route('guild');
 
             $this->validateAssignableTagIds($validator, $guild);
@@ -164,7 +165,7 @@ class UpdateGuildRequest extends FormRequest
                         ->where('guild_id', $guild->id)
                         ->where('character_id', $guild->leader_character_id)
                         ->exists();
-                if (!$isOnlyLeader) {
+                if (! $isOnlyLeader) {
                     $message = 'Изменить локализацию или сервер можно только пока в гильдии один участник — Лидер гильдии.';
                     if ($this->has('server_id')) {
                         $validator->errors()->add('server_id', $message);
@@ -175,18 +176,18 @@ class UpdateGuildRequest extends FormRequest
                 }
             }
 
-            if (!$this->has('leader_character_id')) {
+            if (! $this->has('leader_character_id')) {
                 return;
             }
-            /** @var \Domains\Guild\Models\Guild $guild */
+            /** @var Guild $guild */
             $guild = $this->route('guild');
             $serverId = (int) ($this->input('server_id') ?? $guild->server_id);
             $leaderId = (int) $this->input('leader_character_id');
-            if (!$leaderId) {
+            if (! $leaderId) {
                 return;
             }
             $character = Character::query()->find($leaderId);
-            if (!$character) {
+            if (! $character) {
                 return;
             }
             if (! GuildMember::query()->where('guild_id', $guild->id)->where('character_id', $leaderId)->exists()) {
@@ -199,7 +200,7 @@ class UpdateGuildRequest extends FormRequest
                 // персонаж-лидер будет синхронно перенесён на новый сервер в UpdateGuildAction.
                 $isSameLeader = (int) $guild->leader_character_id === $leaderId;
                 $serverIsChanging = $this->has('server_id');
-                if (!($isSameLeader && $serverIsChanging)) {
+                if (! ($isSameLeader && $serverIsChanging)) {
                     $validator->errors()->add('leader_character_id', 'Персонаж должен находиться на том же сервере, что и гильдия.');
 
                     return;
@@ -218,15 +219,15 @@ class UpdateGuildRequest extends FormRequest
      *
      * Проверяются только «новые» идентификаторы — те, которых ещё нет в `guild->tags`.
      * Уже привязанные легаси-записи (если остались с прошлых версий) не блокируют сохранение,
-     * их снимет {@see \Domains\Guild\Actions\UpdateGuildAction} на следующем `sync()`.
+     * их снимет {@see UpdateGuildAction} на следующем `sync()`.
      */
     private function validateAssignableTagIds(Validator $validator, Guild $guild): void
     {
-        if (!$this->has('tag_ids')) {
+        if (! $this->has('tag_ids')) {
             return;
         }
         $raw = $this->input('tag_ids');
-        if (!is_array($raw) || $raw === []) {
+        if (! is_array($raw) || $raw === []) {
             return;
         }
         $tagIds = array_values(array_unique(array_filter(array_map('intval', $raw))));
@@ -257,19 +258,19 @@ class UpdateGuildRequest extends FormRequest
             'К гильдии можно привязывать только общие теги или теги этой гильдии. Уберите личные теги и теги других гильдий.'
         );
         foreach ($invalidIds as $id) {
-            $validator->errors()->add('tag_ids.' . array_search($id, $tagIds, true), 'Этот тег нельзя привязать к этой гильдии.');
+            $validator->errors()->add('tag_ids.'.array_search($id, $tagIds, true), 'Этот тег нельзя привязать к этой гильдии.');
         }
     }
 
     private function validateUniqueActiveGuildSlug(Validator $validator, Guild $guild): void
     {
-        if (!$this->has('name') && !$this->has('server_id')) {
+        if (! $this->has('name') && ! $this->has('server_id')) {
             return;
         }
 
         $serverId = (int) ($this->input('server_id') ?? $guild->server_id);
         $name = trim((string) ($this->input('name') ?? $guild->name));
-        if (!$serverId || $name === '') {
+        if (! $serverId || $name === '') {
             return;
         }
 

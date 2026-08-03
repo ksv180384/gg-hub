@@ -2,11 +2,11 @@
 
 namespace Domains\GuildBank\Actions;
 
-use App\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
 use Domains\GuildDkp\Actions\ReverseBankGrantDkpAction;
+use Domains\User\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class RevokeGuildBankItemGrantAction
@@ -33,7 +33,7 @@ class RevokeGuildBankItemGrantAction
                 ->firstOrFail();
 
             if ($item->quantity !== null) {
-                $item->quantity = (int) $item->quantity + 1;
+                $item->quantity = (int) $item->quantity + max(1, (int) $lockedGrant->quantity);
                 $item->save();
             }
 

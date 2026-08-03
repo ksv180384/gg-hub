@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Domains\User\Models\User;
 use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryTitle;
 use Domains\Character\Models\Character;

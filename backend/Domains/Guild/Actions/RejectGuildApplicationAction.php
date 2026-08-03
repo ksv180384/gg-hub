@@ -2,9 +2,9 @@
 
 namespace Domains\Guild\Actions;
 
-use App\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
+use Domains\User\Models\User;
 use Illuminate\Validation\ValidationException;
 
 class RejectGuildApplicationAction
@@ -19,7 +19,7 @@ class RejectGuildApplicationAction
         $isInvitation = $application->status === 'invitation';
         $isPending = $application->status === 'pending';
         $canRejectInvitation = $isInvitation && (int) $application->character?->user_id === (int) $reviewer->id;
-        if (!$isPending && !$canRejectInvitation) {
+        if (! $isPending && ! $canRejectInvitation) {
             throw ValidationException::withMessages(['application' => ['Заявку уже рассмотрели или у вас нет прав.']]);
         }
 

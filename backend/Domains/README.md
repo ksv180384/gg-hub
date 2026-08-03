@@ -13,17 +13,21 @@
 | Домен | Описание | Основные сущности |
 |-------|----------|-------------------|
 | **Access** | Права и роли сайта и гильдии | `Role`, `Permission`, `PermissionGroup`, `GuildRole` |
+| **Analytics** | События продуктовой аналитики | `LandingCtaClick` |
 | **Character** | Персонажи пользователя | `Character` |
 | **Event** | Календарь и история событий (DKP) | `Event`, `EventHistory`, `EventHistoryTitle`, участники, скриншоты |
-| **Game** | Справочники игр | `Game`, `Localization`, `Server` |
+| **Game** | Справочники игр и объединение серверов | `Game`, `Localization`, `Server`, `ServerMerge`, `GameClass` |
 | **Guild** | Гильдии, состав, заявки | `Guild`, `GuildMember`, `GuildApplication`, форма заявки |
 | **GuildBank** | Хранилище гильдии | `GuildBankItem`, `GuildBankItemTier`, `GuildBankItemGrant` |
 | **GuildDkp** | ДКП: балансы и журнал | `GuildUserDkpBalance`, `GuildDkpLedgerEntry` |
+| **Notification** | Внутренние уведомления пользователей | `Notification` |
 | **Poll** | Голосования гильдии | `Poll`, `PollOption`, `PollVote` |
 | **Post** | Посты и комментарии | `Post`, `PostComment`, `PostView` |
 | **Raid** | Рейды и состав | `Raid`, участники (character) |
 | **Tag** | Теги (личные / гильдейские / общие) | `Tag` |
-| **User** | Вспомогательная логика пользователя | Actions без собственной модели (`User` в `app/Models`) |
+| **User** | Пользователи и аутентификация | `User` |
+
+Все Eloquent-модели размещаются в `Domains\<Domain>\Models`. Каталог `app/Models` не используется.
 
 ## Правила
 

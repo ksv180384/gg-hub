@@ -28,7 +28,7 @@ class SendPostOrCommentNotificationAction
 
     public function postCreated(Post $post): void
     {
-        $message = 'Создан пост: ' . $this->buildPostUrl($post);
+        $message = 'Создан пост: '.$this->buildPostUrl($post);
         $channel = $this->channel();
         dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
 
@@ -39,7 +39,7 @@ class SendPostOrCommentNotificationAction
 
     public function postUpdated(Post $post): void
     {
-        $message = 'Отредактирован пост: ' . $this->buildPostUrl($post);
+        $message = 'Отредактирован пост: '.$this->buildPostUrl($post);
         $channel = $this->channel();
         dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
@@ -58,14 +58,14 @@ class SendPostOrCommentNotificationAction
 
     public function commentCreated(Post $post, PostComment $comment): void
     {
-        $message = 'Создан комментарий к посту: ' . $this->buildCommentUrl($post, $comment);
+        $message = 'Создан комментарий к посту: '.$this->buildCommentUrl($post, $comment);
         $channel = $this->channel();
         dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
 
     public function commentUpdated(Post $post, PostComment $comment): void
     {
-        $message = 'Отредактирован комментарий к посту: ' . $this->buildCommentUrl($post, $comment);
+        $message = 'Отредактирован комментарий к посту: '.$this->buildCommentUrl($post, $comment);
         $channel = $this->channel();
         dispatch(fn () => Log::channel($channel)->info($message))->afterResponse();
     }
@@ -80,7 +80,7 @@ class SendPostOrCommentNotificationAction
         }
 
         $title = trim((string) $post->title);
-        $titleLine = $title !== '' ? "«{$title}»" : '#' . $post->id;
+        $titleLine = $title !== '' ? "«{$title}»" : '#'.$post->id;
         $url = $this->linkBuilder->postUrl($guild, (int) $post->id);
         $message = "Опубликован новый пост гильдии: {$titleLine}\n{$url}";
 
@@ -108,7 +108,8 @@ class SendPostOrCommentNotificationAction
         }
 
         $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
-        return $base . '/user/posts/' . $post->id;
+
+        return $base.'/user/posts/'.$post->id;
     }
 
     private function buildCommentUrl(Post $post, PostComment $comment): string
@@ -118,11 +119,12 @@ class SendPostOrCommentNotificationAction
             /** @var Guild|null $guild */
             $guild = $post->guild;
             if ($guild) {
-                return $this->linkBuilder->postUrl($guild, (int) $post->id) . '#comment-' . $comment->id;
+                return $this->linkBuilder->postUrl($guild, (int) $post->id).'#comment-'.$comment->id;
             }
         }
 
         $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
-        return $base . '/posts/' . $post->id . '#comment-' . $comment->id;
+
+        return $base.'/posts/'.$post->id.'#comment-'.$comment->id;
     }
 }

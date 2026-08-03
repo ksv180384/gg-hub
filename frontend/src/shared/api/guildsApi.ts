@@ -1026,6 +1026,73 @@ export const guildsApi = {
     throwOnError(res, 'Ошибка удаления рейда');
   },
 
+  async updateRaidRecruitment(
+    guildId: number,
+    raidId: number,
+    isRecruiting: boolean
+  ): Promise<RaidItem> {
+    const res = await http.fetchPut<{ data: RaidItem } | RaidItem>(
+      `/guilds/${guildId}/raids/${raidId}/recruitment`,
+      { is_recruiting: isRecruiting }
+    );
+    throwOnError(res, 'Ошибка изменения набора в рейд');
+    const raw = res.data as { data?: RaidItem } | RaidItem;
+    return raw && typeof raw === 'object' && 'data' in raw
+      ? (raw as { data: RaidItem }).data
+      : raw as RaidItem;
+  },
+
+  async getRaidApplications(guildId: number, raidId: number): Promise<RaidApplicationItem[]> {
+    const res = await http.fetchGet<{ data: RaidApplicationItem[] } | RaidApplicationItem[]>(
+      `/guilds/${guildId}/raids/${raidId}/applications`
+    );
+    throwOnError(res, 'Ошибка загрузки заявок');
+    const raw = res.data as { data?: RaidApplicationItem[] } | RaidApplicationItem[];
+    return Array.isArray(raw) ? raw : raw.data ?? [];
+  },
+
+  async submitRaidApplication(
+    guildId: number,
+    raidId: number,
+    characterId: number
+  ): Promise<RaidApplicationItem> {
+    const res = await http.fetchPost<{ data: RaidApplicationItem } | RaidApplicationItem>(
+      `/guilds/${guildId}/raids/${raidId}/applications`,
+      { character_id: characterId }
+    );
+    throwOnError(res, 'Ошибка подачи заявки');
+    const raw = res.data as { data?: RaidApplicationItem } | RaidApplicationItem;
+    return raw && typeof raw === 'object' && 'data' in raw
+      ? (raw as { data: RaidApplicationItem }).data
+      : raw as RaidApplicationItem;
+  },
+
+  async decideRaidApplication(
+    guildId: number,
+    raidId: number,
+    applicationId: number,
+    decision: 'accept' | 'reject'
+  ): Promise<RaidApplicationItem> {
+    const res = await http.fetchPost<{ data: RaidApplicationItem } | RaidApplicationItem>(
+      `/guilds/${guildId}/raids/${raidId}/applications/${applicationId}/${decision}`,
+      {}
+    );
+    throwOnError(res, decision === 'accept' ? 'Ошибка принятия заявки' : 'Ошибка отклонения заявки');
+    const raw = res.data as { data?: RaidApplicationItem } | RaidApplicationItem;
+    return raw && typeof raw === 'object' && 'data' in raw
+      ? (raw as { data: RaidApplicationItem }).data
+      : raw as RaidApplicationItem;
+  },
+
+  async getRaidDescendantUsers(guildId: number, raidId: number): Promise<RaidDescendantUser[]> {
+    const res = await http.fetchGet<{ data: RaidDescendantUser[] } | RaidDescendantUser[]>(
+      `/guilds/${guildId}/raids/${raidId}/descendant-users`
+    );
+    throwOnError(res, 'Ошибка загрузки участников дочерних рейдов');
+    const raw = res.data as { data?: RaidDescendantUser[] } | RaidDescendantUser[];
+    return Array.isArray(raw) ? raw : raw.data ?? [];
+  },
+
   /** Голосования пользователя: активные + закрытые не более 3 дней назад (GET /user/polls). */
   async getUserPolls(gameId?: number | null): Promise<UserPollItem[]> {
     const params = gameId != null && gameId > 0 ? { game_id: gameId } : undefined;
@@ -1292,7 +1359,10 @@ export interface RaidItem {
   created_by: number | null;
   name: string;
   description: string | null;
+  is_recruiting: boolean;
   sort_order: number;
+  pending_applications_count?: number;
+  my_applications?: { id: number; character_id: number; status: 'pending' | 'accepted' | 'rejected' | 'removed' }[];
   leader?: { id: number; name: string } | null;
   parent?: { id: number; name: string } | null;
   creator?: { id: number; name: string } | null;
@@ -1319,4 +1389,54 @@ export interface UpdateRaidPayload {
   parent_id?: number | null;
   leader_character_id?: number | null;
   sort_order?: number | null;
+}
+
+export interface RaidApplicationItem {
+  id: number;
+  raid_id: number;
+  character_id: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  character?: {
+    id: number;
+    name: string;
+    game_classes: {
+      id: number;
+      name: string;
+      name_ru?: string | null;
+      slug: string;
+    }[];
+    tags: {
+      id: number;
+      name: string;
+      slug: string;
+    }[];
+    personal_tags: {
+      id: number;
+      name: string;
+      slug: string;
+    }[];
+  } | null;
+  created_at?: string | null;
+  decided_at?: string | null;
+}
+
+export interface RaidDescendantUser {
+  user_id: number;
+  user_name: string | null;
+  characters: {
+    id: number;
+    name: string;
+    game_classes: {
+      id: number;
+      name: string;
+      name_ru?: string | null;
+      slug: string;
+    }[];
+    tags: {
+      id: number;
+      name: string;
+      slug: string;
+    }[];
+    raids: { id: number; name: string }[];
+  }[];
 }

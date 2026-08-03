@@ -28,4 +28,3 @@ final class RejectGuildPostAction
         return $post;
     }
 }
-
