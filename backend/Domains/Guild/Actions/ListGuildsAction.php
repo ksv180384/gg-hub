@@ -2,15 +2,15 @@
 
 namespace Domains\Guild\Actions;
 
-use App\Contracts\Repositories\GuildRepositoryInterface;
 use App\Filters\GuildFilter;
+use App\Repositories\Eloquent\EloquentGuildRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
 class ListGuildsAction
 {
     public function __construct(
-        private GuildRepositoryInterface $guildRepository
+        private EloquentGuildRepository $guildRepository
     ) {}
 
     public function __invoke(Request $request): LengthAwarePaginator

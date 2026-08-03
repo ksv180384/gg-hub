@@ -2,14 +2,14 @@
 
 namespace App\Actions\Game;
 
-use App\Contracts\Repositories\GameRepositoryInterface;
+use App\Repositories\Eloquent\EloquentGameRepository;
 use Domains\Game\Models\Game;
 use Illuminate\Support\Collection;
 
 class ListGamesCatalogAction
 {
     public function __construct(
-        private GameRepositoryInterface $gameRepository
+        private EloquentGameRepository $gameRepository
     ) {}
 
     /**

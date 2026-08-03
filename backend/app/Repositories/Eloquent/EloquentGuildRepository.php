@@ -2,12 +2,11 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Contracts\Repositories\GuildRepositoryInterface;
 use App\Filters\GuildFilter;
 use Domains\Guild\Models\Guild;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class EloquentGuildRepository implements GuildRepositoryInterface
+class EloquentGuildRepository
 {
     /**
      * @param  array{game_id?: int, localization_id?: int, server_id?: int}  $filters

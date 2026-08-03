@@ -2,17 +2,9 @@
 
 namespace App\Providers;
 
-use App\Contracts\Repositories\CharacterRepositoryInterface;
-use App\Contracts\Repositories\GameRepositoryInterface;
-use App\Contracts\Repositories\GuildRepositoryInterface;
-use App\Contracts\Repositories\LocalizationRepositoryInterface;
 use App\Observers\GuildActivityObserver;
 use App\Observers\NotificationObserver;
 use App\Observers\PollObserver;
-use App\Repositories\Eloquent\EloquentCharacterRepository;
-use App\Repositories\Eloquent\EloquentGameRepository;
-use App\Repositories\Eloquent\EloquentGuildRepository;
-use App\Repositories\Eloquent\EloquentLocalizationRepository;
 use Domains\Access\Models\GuildRole;
 use Domains\Event\Models\Event as GuildEvent;
 use Domains\Event\Models\EventHistory;
@@ -41,13 +33,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      */
-    public function register(): void
-    {
-        $this->app->bind(CharacterRepositoryInterface::class, EloquentCharacterRepository::class);
-        $this->app->bind(GameRepositoryInterface::class, EloquentGameRepository::class);
-        $this->app->bind(GuildRepositoryInterface::class, EloquentGuildRepository::class);
-        $this->app->bind(LocalizationRepositoryInterface::class, EloquentLocalizationRepository::class);
-    }
+    public function register(): void {}
 
     /**
      * Bootstrap any application services.

@@ -2,13 +2,12 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Contracts\Repositories\CharacterRepositoryInterface;
 use App\Filters\CharacterFilter;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Illuminate\Support\Collection;
 
-class EloquentCharacterRepository implements CharacterRepositoryInterface
+class EloquentCharacterRepository
 {
     public function getByGameWithContext(int $gameId): Collection
     {

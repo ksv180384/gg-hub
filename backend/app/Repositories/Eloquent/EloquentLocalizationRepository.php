@@ -2,14 +2,13 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Contracts\Repositories\LocalizationRepositoryInterface;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
 
-class EloquentLocalizationRepository implements LocalizationRepositoryInterface
+class EloquentLocalizationRepository
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function createForGame(Game $game, array $data): Localization
     {

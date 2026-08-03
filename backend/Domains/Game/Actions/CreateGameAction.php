@@ -2,13 +2,13 @@
 
 namespace Domains\Game\Actions;
 
-use App\Contracts\Repositories\GameRepositoryInterface;
+use App\Repositories\Eloquent\EloquentGameRepository;
 use Domains\Game\Models\Game;
 
 class CreateGameAction
 {
     public function __construct(
-        private GameRepositoryInterface $gameRepository
+        private EloquentGameRepository $gameRepository
     ) {}
 
     public function __invoke(array $data): Game

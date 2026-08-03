@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Contracts\Repositories\CharacterRepositoryInterface;
 use App\Filters\CharacterFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Character\CharacterFilterRequest;
 use App\Http\Requests\Character\StoreCharacterRequest;
 use App\Http\Requests\Character\UpdateCharacterRequest;
 use App\Http\Resources\Character\CharacterResource;
+use App\Repositories\Eloquent\EloquentCharacterRepository;
 use Domains\Character\Actions\CreateCharacterAction;
 use Domains\Character\Actions\DeleteCharacterAction;
 use Domains\Character\Actions\UpdateCharacterAction;
@@ -23,7 +23,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class CharacterController extends Controller
 {
     public function __construct(
-        private CharacterRepositoryInterface $characterRepository,
+        private EloquentCharacterRepository $characterRepository,
         private CreateCharacterAction $createCharacterAction,
         private UpdateCharacterAction $updateCharacterAction,
         private DeleteCharacterAction $deleteCharacterAction

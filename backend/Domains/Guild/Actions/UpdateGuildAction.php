@@ -3,9 +3,9 @@
 namespace Domains\Guild\Actions;
 
 use App\Actions\GuildActivity\RecordGuildActivityAction;
-use App\Contracts\Repositories\GuildRepositoryInterface;
 use App\GuildActivityLog;
 use App\Http\Requests\Guild\UpdateGuildRequest;
+use App\Repositories\Eloquent\EloquentGuildRepository;
 use App\Services\GuildLogoService;
 use Domains\Character\Models\Character;
 use Domains\Game\Models\Server;
@@ -71,7 +71,7 @@ class UpdateGuildAction
     ];
 
     public function __construct(
-        private GuildRepositoryInterface $guildRepository,
+        private EloquentGuildRepository $guildRepository,
         private GuildLogoService $guildLogoService,
         private GetUserGuildPermissionSlugsAction $getUserGuildPermissionSlugsAction,
         private RecordGuildActivityAction $recordGuildActivityAction,

@@ -2,7 +2,7 @@
 
 namespace App\Actions\Game;
 
-use App\Contracts\Repositories\GameRepositoryInterface;
+use App\Repositories\Eloquent\EloquentGameRepository;
 use App\Services\GameImageService;
 use Domains\Game\Models\Game;
 use Illuminate\Http\UploadedFile;
@@ -10,7 +10,7 @@ use Illuminate\Http\UploadedFile;
 class CreateGameAction
 {
     public function __construct(
-        private GameRepositoryInterface $gameRepository,
+        private EloquentGameRepository $gameRepository,
         private GameImageService $gameImageService
     ) {}
 

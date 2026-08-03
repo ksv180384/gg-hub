@@ -3,7 +3,7 @@
 namespace Domains\Guild\Actions;
 
 use App\Actions\Notification\SendAdminTelegramNotificationAction;
-use App\Contracts\Repositories\GuildRepositoryInterface;
+use App\Repositories\Eloquent\EloquentGuildRepository;
 use Domains\Access\Models\GuildRole;
 use Domains\Game\Models\Server;
 use Domains\Guild\Models\Guild;
@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 class CreateGuildAction
 {
     public function __construct(
-        private GuildRepositoryInterface $guildRepository
+        private EloquentGuildRepository $guildRepository
     ) {}
 
     /**
