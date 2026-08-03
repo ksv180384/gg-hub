@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\User\GetCurrentUserAction;
 use App\Actions\User\UpdateUserProfileAction;
+use App\Filters\CharacterFilter;
 use App\Filters\EventFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\UpdateProfileRequest;
