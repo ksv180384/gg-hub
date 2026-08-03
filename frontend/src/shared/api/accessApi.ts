@@ -91,6 +91,8 @@ export interface AdminUserDto {
   id: number;
   name: string;
   email: string;
+  email_verified_at: string | null;
+  can_resend_email_verification: boolean;
   created_at: string;
   last_activity_at?: string | null;
   banned_at: string | null;
@@ -246,5 +248,10 @@ export const accessApi = {
     const res = await http.fetchPut<UserResponse>(`/users/${userId}`, { banned } as unknown as Record<string, unknown>);
     throwOnError(res, 'Ошибка запроса');
     return unwrapResponse<AdminUserDto>(res.data)!;
+  },
+
+  async resendUserEmailVerification(userId: number): Promise<void> {
+    const res = await http.fetchPost(`/users/${userId}/resend-verification`, {});
+    throwOnError(res, 'Ошибка отправки письма');
   },
 };

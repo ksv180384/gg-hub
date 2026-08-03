@@ -29,6 +29,8 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'created_at' => $this->created_at?->toIso8601String(),
+            'email_verified_at' => $this->email_verified_at?->toIso8601String(),
+            'can_resend_email_verification' => $this->isEmailRegistered() && ! $this->hasVerifiedEmail(),
             'last_activity_at' => $this->last_activity_at
                 ? Carbon::createFromTimestampUTC((int) $this->last_activity_at)->toIso8601String()
                 : null,

@@ -1,7 +1,7 @@
 <?php
 
-use Domains\User\Models\User;
 use App\Notifications\VerifyEmailNotification;
+use Domains\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -22,7 +22,7 @@ it('renders the verification email with the gg-hub auth design', function () {
     $html = (string) (new VerifyEmailNotification)->toMail($user)->render();
 
     expect($html)
-        ->toContain('data:image/png;base64,')
+        ->toContain('https://gg-hub.ru/images/mail/gg-hub-logo.png')
         ->toContain('Здравствуйте, test77!')
         ->toContain('Спасибо за регистрацию на GG-hub')
         ->toContain('Подтвердите email')

@@ -63,17 +63,6 @@ class VerifyEmailNotification extends Notification implements ShouldQueue
             return $configuredLogo;
         }
 
-        $logoPath = Config::get(
-            'mail.logo_path',
-            public_path('images/mail/gg-hub-logo.png'),
-        );
-
-        if (is_string($logoPath) && is_file($logoPath)) {
-            return 'data:image/png;base64,'.base64_encode(
-                (string) file_get_contents($logoPath),
-            );
-        }
-
         return $frontendUrl.'/images/mail/gg-hub-logo.png';
     }
 }

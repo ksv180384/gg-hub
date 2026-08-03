@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   Tooltip,
 } from '@/shared/ui';
+import ConfirmDialog from '@/shared/ui/confirm-dialog/ConfirmDialog.vue';
 import { useAuthStore } from '@/stores/auth';
 import {
   accessApi,
@@ -46,6 +47,9 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const saving = ref(false);
 const banning = ref(false);
+const resendConfirmationOpen = ref(false);
+const resending = ref(false);
+const notice = ref<string | null>(null);
 
 function formatUserDate(value: string | null | undefined): string {
   return formatDateTimeFull(value) || 'Нет данных';
@@ -133,12 +137,33 @@ async function toggleBan() {
   }
 }
 
+async function resendVerification() {
+  if (!user.value) {
+    return;
+  }
+
+  resending.value = true;
+  error.value = null;
+  notice.value = null;
+
+  try {
+    await accessApi.resendUserEmailVerification(user.value.id);
+    resendConfirmationOpen.value = false;
+    notice.value = 'Письмо для подтверждения email отправлено.';
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Ошибка отправки письма';
+  } finally {
+    resending.value = false;
+  }
+}
+
 const hasAnyPermissions = computed(() => groups.value.some((g) => g.permissions?.length));
 </script>
 
 <template>
   <div class="container max-w-5xl py-6">
     <p v-if="error" class="mb-4 text-sm text-destructive">{{ error }}</p>
+    <p v-if="notice" class="mb-4 text-sm text-emerald-600">{{ notice }}</p>
     <div v-if="loading" class="text-sm text-muted-foreground">Загрузка…</div>
     <template v-else-if="user">
       <div class="mb-4 flex items-center gap-2">
@@ -155,6 +180,12 @@ const hasAnyPermissions = computed(() => groups.value.some((g) => g.permissions?
                 <p>Дата регистрации: {{ formatUserDate(user.created_at) }}</p>
                 <p>Последнее посещение: {{ formatUserDate(user.last_activity_at) }}</p>
               </div>
+              <div
+                v-if="user.can_resend_email_verification"
+                class="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+              >
+                Email не подтверждён
+              </div>
             </CardHeader>
             <CardContent class="space-y-4">
               <div v-if="user.banned_at" class="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -170,6 +201,14 @@ const hasAnyPermissions = computed(() => groups.value.some((g) => g.permissions?
                   {{ isBanned ? 'Разблокировать' : 'Заблокировать' }}
                 </Button>
               </div>
+              <Button
+                v-if="user.can_resend_email_verification"
+                variant="outline"
+                :disabled="resending"
+                @click="resendConfirmationOpen = true"
+              >
+                Отправить письмо подтверждения
+              </Button>
             </CardContent>
           </Card>
           <Card v-if="user.characters !== undefined" class="mt-4">
@@ -280,5 +319,15 @@ const hasAnyPermissions = computed(() => groups.value.some((g) => g.permissions?
         </div>
       </div>
     </template>
+    <ConfirmDialog
+      v-model:open="resendConfirmationOpen"
+      title="Отправить письмо повторно?"
+      :description="'Письмо для подтверждения email будет отправлено на ' + (user?.email ?? '') + '.'"
+      confirm-label="Отправить"
+      cancel-label="Отмена"
+      confirm-variant="default"
+      :loading="resending"
+      @confirm="resendVerification"
+    />
   </div>
 </template>

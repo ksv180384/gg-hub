@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Access\UpdateUserRequest;
 use App\Http\Resources\UserResource;
+use App\Notifications\VerifyEmailNotification;
 use Domains\Access\Actions\GetUserAction;
 use Domains\Access\Actions\ListUsersAction;
 use Domains\Access\Actions\UpdateUserBanAction;
@@ -40,5 +41,16 @@ class AdminUserController extends Controller
         $user = ($this->getUserAction)($user);
 
         return (new UserResource($user))->response();
+    }
+
+    public function resendVerification(User $user): JsonResponse
+    {
+        abort_unless($user->isEmailRegistered() && ! $user->hasVerifiedEmail(), 422, 'Email пользователя уже подтверждён или недоступен для подтверждения.');
+
+        $user->notifyNow(new VerifyEmailNotification);
+
+        return response()->json([
+            'message' => 'Письмо для подтверждения email отправлено.',
+        ]);
     }
 }
