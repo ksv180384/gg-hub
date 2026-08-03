@@ -26,10 +26,18 @@ const useContentShell = computed(
 );
 
 const showJournalBanner = computed(() => route.meta.journalBanner === true);
+const useLandingFooter = computed(
+  () => route.name === 'home' && siteContext.mode === 'main',
+);
 </script>
 
 <template>
-  <div class="min-h-svh flex flex-col bg-background pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+  <div
+    :class="[
+      'min-h-svh flex flex-col bg-background pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0',
+      useLandingFooter && 'landing-page',
+    ]"
+  >
     <Header :mobile-menu-sidebar-visible="showSidebar">
       <template #mobile-menu-sidebar="{ closeMenu }">
         <GameSidebarContent embedded suppress-embedded-heading @navigate="closeMenu" />
@@ -57,10 +65,7 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
         >
           <div
             v-show="routeLoading.isLoading"
-            :class="[
-              'fixed top-0 left-0 right-0 bottom-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm md:top-14',
-              showSidebar && 'md:left-56',
-            ]"
+            class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm"
             aria-live="polite"
             :aria-busy="routeLoading.isLoading"
           >
@@ -119,7 +124,7 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
 
 <style>
 /* Глобально: html.dark + класс футера без data-v, чтобы фон точно перекрывал тему. */
-.landing-home-footer {
+.landing-page .landing-home-footer {
   background-color: #080a0d;
   background-image: url('/assets/images/footer.webp');
   background-position: center;
@@ -128,7 +133,7 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
   color: rgba(232, 225, 214, 0.82);
 }
 
-.landing-home-footer::before {
+.landing-page .landing-home-footer::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -139,22 +144,22 @@ const showJournalBanner = computed(() => route.meta.journalBanner === true);
   pointer-events: none;
 }
 
-.landing-home-footer p,
-.landing-home-footer a {
+.landing-page .landing-home-footer p,
+.landing-page .landing-home-footer a {
   color: rgba(232, 225, 214, 0.82) !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.58);
 }
 
-.landing-home-footer .text-muted-foreground {
+.landing-page .landing-home-footer .text-muted-foreground {
   color: rgba(220, 214, 205, 0.62) !important;
 }
 
-.landing-home-footer a {
+.landing-page .landing-home-footer a {
   font-weight: 600;
   text-decoration-color: rgba(214, 181, 104, 0.5);
 }
 
-.landing-home-footer a:hover {
+.landing-page .landing-home-footer a:hover {
   color: rgba(232, 200, 126, 0.9) !important;
 }
 </style>

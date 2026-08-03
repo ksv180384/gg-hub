@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "start": "node server.mjs",
     "build-only": "npm run build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --build",
+    "test": "node --test tests/main-layout.test.mjs"
   },
   "dependencies": {
     "@cyhnkckali/vue3-color-picker": "^2.1.7",
