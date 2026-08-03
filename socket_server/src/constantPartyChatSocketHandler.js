@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const DEFAULT_AUTH_URL = 'http://gg-nginx/api/v1/constant-party-chat/socket-auth';
+const DEFAULT_AUTH_URL = 'http://gg-nginx:81/api/v1/constant-party-chat/socket-auth';
 
 function constantPartyChatRoom(partyId) {
   return `constant-party:${partyId}:chat`;

@@ -177,9 +177,9 @@ function clampSpinDurationMs(raw) {
 
 export function registerRouletteSocketHandlers(io, log = console) {
     const authUrl = process.env.ROULETTE_AUTH_URL
-        ?? 'http://gg-nginx/api/v1/guild-roulette/socket-auth';
+        ?? 'http://gg-nginx:81/api/v1/guild-roulette/socket-auth';
     const auditUrl = process.env.ROULETTE_AUDIT_URL
-        ?? 'http://gg-nginx/api/v1/guild-roulette/audit';
+        ?? 'http://gg-nginx:81/api/v1/guild-roulette/audit';
     const internalToken = process.env.SOCKET_SERVER_INTERNAL_TOKEN ?? '';
 
     async function authenticateToken(token) {

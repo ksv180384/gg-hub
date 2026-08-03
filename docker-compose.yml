@@ -124,9 +124,9 @@ services:
             - socket_server_node_modules:/var/www/socket_server/node_modules
         environment:
             NODE_ENV: development
-            CONSTANT_PARTY_CHAT_AUTH_URL: ${CONSTANT_PARTY_CHAT_AUTH_URL:-http://gg-nginx/api/v1/constant-party-chat/socket-auth}
-            ROULETTE_AUTH_URL: ${ROULETTE_AUTH_URL:-http://gg-nginx/api/v1/guild-roulette/socket-auth}
-            ROULETTE_AUDIT_URL: ${ROULETTE_AUDIT_URL:-http://gg-nginx/api/v1/guild-roulette/audit}
+            CONSTANT_PARTY_CHAT_AUTH_URL: ${CONSTANT_PARTY_CHAT_AUTH_URL:-http://gg-nginx:81/api/v1/constant-party-chat/socket-auth}
+            ROULETTE_AUTH_URL: ${ROULETTE_AUTH_URL:-http://gg-nginx:81/api/v1/guild-roulette/socket-auth}
+            ROULETTE_AUDIT_URL: ${ROULETTE_AUDIT_URL:-http://gg-nginx:81/api/v1/guild-roulette/audit}
             SOCKET_SERVER_INTERNAL_TOKEN: ${SOCKET_SERVER_INTERNAL_TOKEN}
             CONSTANT_PARTY_CHAT_ENABLED: ${CONSTANT_PARTY_CHAT_ENABLED:-0}
         command: sh -c "npm install && npm run dev"
