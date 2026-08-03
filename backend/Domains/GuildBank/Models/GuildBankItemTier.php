@@ -3,9 +3,11 @@
 namespace Domains\GuildBank\Models;
 
 use Domains\Guild\Models\Guild;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Тир (категория) предметов банка гильдии.
@@ -18,11 +20,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $guild_id Гильдия, для которой заведён тир.
  * @property string $name Отображаемое название тира в списках и на карточках предметов.
  * @property string|null $color Цвет в формате, принятом в UI (например HEX); null — нейтральное оформление.
- * @property \Illuminate\Support\Carbon|null $created_at Дата создания тира.
- * @property \Illuminate\Support\Carbon|null $updated_at Дата последнего изменения названия или цвета.
- *
+ * @property Carbon|null $created_at Дата создания тира.
+ * @property Carbon|null $updated_at Дата последнего изменения названия или цвета.
  * @property-read Guild $guild Гильдия-владелец справочника тиров.
- * @property-read \Illuminate\Database\Eloquent\Collection<int, GuildBankItem> $items Предметы каталога, привязанные к этому тиру.
+ * @property-read Collection<int, GuildBankItem> $items Предметы каталога, привязанные к этому тиру.
  */
 class GuildBankItemTier extends Model
 {

@@ -2,10 +2,10 @@
 
 namespace Domains\Guild\Actions;
 
-use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
+use Domains\User\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 
@@ -13,11 +13,11 @@ class DeleteGuildAction
 {
     public function __invoke(User $user, Guild $guild): void
     {
-        if (!$this->isLeaderOwner($user, $guild)) {
+        if (! $this->isLeaderOwner($user, $guild)) {
             $this->deny('Удалить гильдию может только текущий лидер.');
         }
 
-        if (!$this->hasOnlyLeaderMember($guild)) {
+        if (! $this->hasOnlyLeaderMember($guild)) {
             $this->deny('Удалить гильдию можно только когда в ней остался один участник — лидер гильдии.');
         }
 
@@ -32,7 +32,7 @@ class DeleteGuildAction
 
     public function canDelete(Guild $guild, ?User $user = null): bool
     {
-        if (!$user || !$this->isLeaderOwner($user, $guild)) {
+        if (! $user || ! $this->isLeaderOwner($user, $guild)) {
             return false;
         }
 
@@ -41,7 +41,7 @@ class DeleteGuildAction
 
     private function isLeaderOwner(User $user, Guild $guild): bool
     {
-        if (!$guild->leader_character_id) {
+        if (! $guild->leader_character_id) {
             return false;
         }
 
@@ -53,7 +53,7 @@ class DeleteGuildAction
 
     private function hasOnlyLeaderMember(Guild $guild): bool
     {
-        if (!$guild->leader_character_id) {
+        if (! $guild->leader_character_id) {
             return false;
         }
 

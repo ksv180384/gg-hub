@@ -29,4 +29,3 @@ class HandleFirstCharacterCreatedAction
         ($this->createFirstCharacterGuildSuggestionNotificationAction)($character);
     }
 }
-

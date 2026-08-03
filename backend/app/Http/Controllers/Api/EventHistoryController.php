@@ -26,8 +26,7 @@ class EventHistoryController extends Controller
         private readonly CreateEventHistoryAction $createEventHistoryAction,
         private readonly UpdateEventHistoryAction $updateEventHistoryAction,
         private readonly DeleteEventHistoryAction $deleteEventHistoryAction,
-    ) {
-    }
+    ) {}
 
     /**
      * История событий гильдии.

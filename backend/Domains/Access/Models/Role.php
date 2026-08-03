@@ -31,6 +31,7 @@ class Role extends Model
     {
         $slug = $this->slug ?? '';
         $name = $this->name ?? '';
+
         return is_string($name) && $name !== '' && (trim((string) $slug) === '');
     }
 

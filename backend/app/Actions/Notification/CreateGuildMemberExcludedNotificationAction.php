@@ -2,9 +2,9 @@
 
 namespace App\Actions\Notification;
 
+use Domains\Guild\Models\Guild;
 use Domains\Notification\Models\Notification;
 use Domains\User\Models\User;
-use Domains\Guild\Models\Guild;
 use Illuminate\Support\Collection;
 
 /**

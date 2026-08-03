@@ -18,6 +18,7 @@ export type GuildAuctionLot = {
   id: number;
   status: 'active' | 'closed' | 'cancelled';
   guild_bank_item_id: number;
+  quantity: number;
   item: {
     id: number;
     name: string;
@@ -48,6 +49,7 @@ export type GuildAuctionLot = {
     id: number;
     received_by_character_id: number | null;
     received_by_character_name: string | null;
+    quantity: number;
     dkp_charged: number | null;
     reason: string | null;
     granted_at: string | null;
@@ -60,6 +62,8 @@ export type GuildAuctionLot = {
 
 export type GuildAuctionContext = {
   my_permission_slugs: string[];
+  auction_bids_count: number;
+  closed_lots_count: number;
   dkp_enabled: boolean;
   my_dkp_balance: number;
   my_characters: Array<{ id: number; name: string }>;
@@ -69,8 +73,31 @@ export type CreateGuildAuctionPayload = {
   ends_at: string;
   lots: Array<{
     guild_bank_item_id: number;
+    quantity: number;
     start_price?: number | null;
   }>;
+};
+
+export type GuildAuctionHistoryParams = {
+  page?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  sort?: 'asc' | 'desc';
+};
+
+export type GuildAuctionHistoryPage = {
+  lots: GuildAuctionLot[];
+  currentPage: number;
+  lastPage: number;
+  perPage: number;
+  total: number;
+};
+
+type PaginationMeta = {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
 };
 
 export const guildAuctionApi = {
@@ -83,13 +110,47 @@ export const guildAuctionApi = {
   async getContext(guildId: number): Promise<GuildAuctionContext> {
     const res = await http.fetchGet<{ data: GuildAuctionContext }>(`/guilds/${guildId}/auction/context`);
     throwOnError(res, 'Не удалось загрузить контекст аукциона.');
-    return res.data?.data ?? { my_permission_slugs: [], dkp_enabled: false, my_dkp_balance: 0, my_characters: [] };
+    return res.data?.data ?? {
+      my_permission_slugs: [],
+      dkp_enabled: false,
+      my_dkp_balance: 0,
+      my_characters: [],
+      auction_bids_count: 0,
+      closed_lots_count: 0,
+    };
   },
 
   async listLots(guildId: number): Promise<GuildAuctionLot[]> {
     const res = await http.fetchGet<{ data: GuildAuctionLot[] }>(`/guilds/${guildId}/auction/lots`);
     throwOnError(res, 'Не удалось загрузить лоты аукциона.');
     return res.data?.data ?? [];
+  },
+
+  async listClosedLots(
+    guildId: number,
+    params: GuildAuctionHistoryParams = {},
+  ): Promise<GuildAuctionHistoryPage> {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', String(params.page));
+    if (params.dateFrom) query.set('date_from', params.dateFrom);
+    if (params.dateTo) query.set('date_to', params.dateTo);
+    if (params.sort) query.set('sort', params.sort);
+
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    const res = await http.fetchGet<{
+      data: GuildAuctionLot[];
+      meta: PaginationMeta;
+    }>(`/guilds/${guildId}/auction/history${suffix}`);
+    throwOnError(res, 'Не удалось загрузить историю аукциона.');
+
+    const meta = res.data?.meta;
+    return {
+      lots: res.data?.data ?? [],
+      currentPage: meta?.current_page ?? 1,
+      lastPage: meta?.last_page ?? 1,
+      perPage: meta?.per_page ?? 50,
+      total: meta?.total ?? 0,
+    };
   },
 
   async getLot(guildId: number, lotId: number): Promise<GuildAuctionLot> {

@@ -19,6 +19,7 @@ class ContextController extends Controller
     public function show(Request $request): ContextResource
     {
         $context = $this->subdomainContext->getContext($request);
+
         return new ContextResource($context);
     }
 }

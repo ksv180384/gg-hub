@@ -6,6 +6,7 @@ use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Факт выдачи предмета из банка гильдии конкретному персонажу.
@@ -22,11 +23,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $received_by_character_id Персонаж-получатель; ДКП списывается с user_id владельца персонажа.
  * @property int|null $granted_by_character_id Персонаж офицера, оформившего выдачу (необязательно).
  * @property string $reason Основание выдачи; пустая строка, если в форме не заполнено.
- * @property \Illuminate\Support\Carbon $granted_at Дата и время выдачи для истории и журнала ДКП.
+ * @property Carbon $granted_at Дата и время выдачи для истории и журнала ДКП.
  * @property int|null $dkp_charged Фактически списанные ДКП при выдаче; снимок на момент операции, не текущий dkp_cost предмета.
- * @property \Illuminate\Support\Carbon|null $created_at Дата создания записи в БД.
- * @property \Illuminate\Support\Carbon|null $updated_at Дата последнего обновления записи.
- *
+ * @property Carbon|null $created_at Дата создания записи в БД.
+ * @property Carbon|null $updated_at Дата последнего обновления записи.
  * @property-read Guild $guild Гильдия, в которой оформлена выдача.
  * @property-read GuildBankItem $item Каталогная позиция, с которой связана выдача.
  * @property-read Character $receivedByCharacter Персонаж, которому выдан предмет.
@@ -41,6 +41,7 @@ class GuildBankItemGrant extends Model
         'guild_bank_item_id',
         'received_by_character_id',
         'granted_by_character_id',
+        'quantity',
         'reason',
         'granted_at',
         'dkp_charged',
@@ -49,6 +50,7 @@ class GuildBankItemGrant extends Model
     protected function casts(): array
     {
         return [
+            'quantity' => 'integer',
             'granted_at' => 'datetime',
             'dkp_charged' => 'integer',
         ];

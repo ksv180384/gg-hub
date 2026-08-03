@@ -9,15 +9,15 @@ use App\Http\Requests\Character\CharacterFilterRequest;
 use App\Http\Requests\Character\StoreCharacterRequest;
 use App\Http\Requests\Character\UpdateCharacterRequest;
 use App\Http\Resources\Character\CharacterResource;
-use Domains\Game\Models\Game;
-use Domains\Character\Models\Character;
 use Domains\Character\Actions\CreateCharacterAction;
 use Domains\Character\Actions\DeleteCharacterAction;
 use Domains\Character\Actions\UpdateCharacterAction;
+use Domains\Character\Models\Character;
+use Domains\Game\Models\Game;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class CharacterController extends Controller
@@ -61,6 +61,7 @@ class CharacterController extends Controller
         if ($model === null) {
             throw new NotFoundHttpException('Персонаж не найден.');
         }
+
         return response()->json(new CharacterResource($model));
     }
 
@@ -71,10 +72,12 @@ class CharacterController extends Controller
         $serverId = $request->query('server_id') ? (int) $request->query('server_id') : null;
         $availableForGuildLeader = $request->boolean('available_for_guild_leader');
 
+        $filter = new CharacterFilter($request);
+
         if ($availableForGuildLeader && $gameId !== null && $serverId !== null) {
-            $characters = $this->characterRepository->getByUserAvailableForGuildLeader($userId, $gameId, $serverId);
+            $characters = $this->characterRepository->getByUserAvailableForGuildLeader($userId, $filter);
         } else {
-            $characters = $this->characterRepository->getByUserWithContext($userId, $gameId);
+            $characters = $this->characterRepository->getByUserWithContext($userId, $filter);
         }
 
         return CharacterResource::collection($characters);
@@ -86,6 +89,7 @@ class CharacterController extends Controller
         if ($model === null) {
             throw new NotFoundHttpException('Персонаж не найден.');
         }
+
         return new CharacterResource($model);
     }
 
@@ -96,6 +100,7 @@ class CharacterController extends Controller
             $request->validated(),
             $request->file('avatar')
         );
+
         return (new CharacterResource($character))->response()->setStatusCode(201);
     }
 
@@ -112,6 +117,7 @@ class CharacterController extends Controller
             $request->file('avatar'),
             $request->boolean('remove_avatar')
         );
+
         return new CharacterResource($updated);
     }
 
@@ -122,6 +128,7 @@ class CharacterController extends Controller
             throw new NotFoundHttpException('Персонаж не найден.');
         }
         ($this->deleteCharacterAction)($model);
+
         return response()->noContent();
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Actions\Game;
 
 use App\Contracts\Repositories\GameRepositoryInterface;
-use Domains\Game\Models\Game;
 use App\Services\GameImageService;
+use Domains\Game\Models\Game;
 use Illuminate\Http\UploadedFile;
 
 class CreateGameAction
@@ -15,7 +15,7 @@ class CreateGameAction
     ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function __invoke(array $data, ?UploadedFile $image = null): Game
     {
@@ -26,6 +26,7 @@ class CreateGameAction
             $game->update(['image' => $path]);
         }
         $game->load('localizations');
+
         return $game;
     }
 }

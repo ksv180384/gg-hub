@@ -28,9 +28,13 @@ use Domains\Notification\Models\Notification;
 use Domains\Poll\Models\Poll;
 use Domains\Post\Models\Post;
 use Domains\Post\Models\PostComment;
+use Domains\Tag\Models\Tag;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Yandex\Provider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -64,12 +68,12 @@ class AppServiceProvider extends ServiceProvider
                 .'&email='.$email;
         });
 
-        \Illuminate\Support\Facades\Route::bind('tag', function (string $value) {
-            return \Domains\Tag\Models\Tag::findOrFail($value);
+        Route::bind('tag', function (string $value) {
+            return Tag::findOrFail($value);
         });
 
-        Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event) {
-            $event->extendSocialite('yandex', \SocialiteProviders\Yandex\Provider::class);
+        Event::listen(function (SocialiteWasCalled $event) {
+            $event->extendSocialite('yandex', Provider::class);
             $event->extendSocialite('vkontakte', \SocialiteProviders\VKontakte\Provider::class);
         });
 

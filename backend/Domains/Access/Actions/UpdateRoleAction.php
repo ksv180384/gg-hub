@@ -7,7 +7,7 @@ use Domains\Access\Models\Role;
 class UpdateRoleAction
 {
     /**
-     * @param array{name?: string, slug?: string|null, description?: string|null, permission_ids?: array<int>} $data
+     * @param  array{name?: string, slug?: string|null, description?: string|null, permission_ids?: array<int>}  $data
      */
     public function __invoke(Role $role, array $data): Role
     {
@@ -17,6 +17,7 @@ class UpdateRoleAction
         }
         $role->update($data);
         $role->load('permissions');
+
         return $role;
     }
 }

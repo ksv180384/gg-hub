@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Notification\CreateGuildApplicationCommentHiddenNotificationAction;
 use App\Actions\Notification\CreateGuildApplicationCommentDeletedNotificationAction;
+use App\Actions\Notification\CreateGuildApplicationCommentHiddenNotificationAction;
+use App\Filters\GuildApplicationCommentFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guild\AdminDeleteGuildApplicationCommentRequest;
 use App\Http\Requests\Guild\AdminHideGuildApplicationCommentRequest;
@@ -28,9 +29,6 @@ class AdminGuildApplicationCommentController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $perPage = max(1, min(100, (int) $request->query('per_page', 20)));
-        $applicationId = $request->query('application_id');
-        $applicationId = is_numeric($applicationId) ? (int) $applicationId : null;
-
         $query = GuildApplicationComment::query()
             ->withTrashed()
             ->with([
@@ -38,11 +36,8 @@ class AdminGuildApplicationCommentController extends Controller
                 'user',
                 'application.guild',
             ])
+            ->filter(new GuildApplicationCommentFilter($request))
             ->orderByDesc('created_at');
-
-        if ($applicationId !== null) {
-            $query->where('guild_application_id', $applicationId);
-        }
 
         return AdminGuildApplicationCommentResource::collection($query->paginate($perPage));
     }

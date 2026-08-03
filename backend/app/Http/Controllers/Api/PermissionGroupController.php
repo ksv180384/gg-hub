@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Filters\PermissionScopeFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Access\StorePermissionGroupRequest;
 use App\Http\Requests\Access\UpdatePermissionGroupRequest;
@@ -10,7 +11,6 @@ use Domains\Access\Actions\CreatePermissionGroupAction;
 use Domains\Access\Actions\DeletePermissionGroupAction;
 use Domains\Access\Actions\ListPermissionGroupsAction;
 use Domains\Access\Actions\UpdatePermissionGroupAction;
-use Domains\Access\Enums\PermissionScope;
 use Domains\Access\Models\PermissionGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,11 +28,10 @@ class PermissionGroupController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $scope = $request->query('scope');
-        $scopeEnum = $scope && in_array($scope, ['site', 'guild'], true)
-            ? PermissionScope::from($scope)
-            : null;
-        $groups = ($this->listPermissionGroupsAction)($scopeEnum);
+        $groups = ($this->listPermissionGroupsAction)(
+            new PermissionScopeFilter($request),
+        );
+
         return PermissionGroupResource::collection($groups);
     }
 
@@ -44,12 +43,14 @@ class PermissionGroupController extends Controller
     public function store(StorePermissionGroupRequest $request): JsonResponse
     {
         $group = ($this->createPermissionGroupAction)($request->validated());
+
         return (new PermissionGroupResource($group))->response()->setStatusCode(201);
     }
 
     public function update(UpdatePermissionGroupRequest $request, PermissionGroup $permissionGroup): PermissionGroupResource
     {
         ($this->updatePermissionGroupAction)($permissionGroup, $request->validated());
+
         return new PermissionGroupResource($permissionGroup);
     }
 
@@ -57,6 +58,7 @@ class PermissionGroupController extends Controller
     {
         try {
             ($this->deletePermissionGroupAction)($permissionGroup);
+
             return response()->json(null, 204);
         } catch (ValidationException $e) {
             return response()->json(['message' => 'Невозможно удалить группу.', 'errors' => $e->errors()], 422);

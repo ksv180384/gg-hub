@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Poll;
 
+use Domains\Poll\Models\Poll;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class VotePollRequest extends FormRequest
         $guild = $this->route('guild');
         $pollId = $this->route('poll');
         $poll = $guild && $pollId
-            ? \Domains\Poll\Models\Poll::where('guild_id', $guild->id)->with('options')->find($pollId)
+            ? Poll::where('guild_id', $guild->id)->with('options')->find($pollId)
             : null;
         $optionIds = $poll?->options->pluck('id')->toArray() ?? [];
 

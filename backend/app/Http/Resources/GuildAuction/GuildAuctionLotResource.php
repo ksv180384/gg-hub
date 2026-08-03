@@ -28,6 +28,7 @@ class GuildAuctionLotResource extends JsonResource
             'id' => $this->id,
             'status' => $this->status,
             'guild_bank_item_id' => $this->guild_bank_item_id,
+            'quantity' => (int) $this->quantity,
             'item' => $item ? [
                 'id' => $item->id,
                 'name' => $item->name,
@@ -60,6 +61,7 @@ class GuildAuctionLotResource extends JsonResource
                 'id' => $this->grant->id,
                 'received_by_character_id' => $this->grant->received_by_character_id,
                 'received_by_character_name' => $this->grant->receivedByCharacter?->name,
+                'quantity' => (int) $this->grant->quantity,
                 'dkp_charged' => $this->grant->dkp_charged === null ? null : (int) $this->grant->dkp_charged,
                 'reason' => $this->grant->reason,
                 'granted_at' => $this->grant->granted_at?->toIso8601String(),

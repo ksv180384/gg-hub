@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Poll;
 
-use Domains\Guild\Models\Guild;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

@@ -2,8 +2,9 @@
 
 namespace Domains\GuildAuction\Models;
 
-use Domains\User\Models\User;
+use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -41,6 +42,6 @@ class GuildAuctionBid extends Model
 
     public function character(): BelongsTo
     {
-        return $this->belongsTo(\Domains\Character\Models\Character::class);
+        return $this->belongsTo(Character::class);
     }
 }

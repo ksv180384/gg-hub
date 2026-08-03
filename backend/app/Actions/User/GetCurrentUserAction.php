@@ -12,6 +12,7 @@ class GetCurrentUserAction
             return null;
         }
         $user->load('roles', 'directPermissions');
+
         return $user;
     }
 }

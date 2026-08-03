@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
-use Domains\User\Models\User;
 use Closure;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,12 +17,12 @@ class EnsureUserIsGuildMember
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (!$user instanceof User) {
+        if (! $user instanceof User) {
             return response()->json(['message' => 'Необходима авторизация.'], 401);
         }
 
         $guild = $request->route('guild');
-        if (!$guild instanceof Guild) {
+        if (! $guild instanceof Guild) {
             return response()->json(['message' => 'Страница не найдена.'], 404);
         }
 
@@ -30,7 +30,7 @@ class EnsureUserIsGuildMember
             ->whereHas('character', fn ($q) => $q->where('user_id', $user->id))
             ->exists();
 
-        if (!$isMember) {
+        if (! $isMember) {
             return response()->json([
                 'message' => 'Страница не найдена.',
             ], 404);

@@ -2,23 +2,31 @@
 
 namespace Domains\GuildAuction\Models;
 
-use Domains\User\Models\User;
+use App\Core\Traits\HasFilter;
+use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GuildAuctionLot extends Model
 {
+    use HasFilter;
+
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_CLOSED = 'closed';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     protected $fillable = [
         'guild_id',
         'guild_bank_item_id',
+        'quantity',
+        'stock_reserved_at',
         'created_by_user_id',
         'closed_by_user_id',
         'winner_user_id',
@@ -35,6 +43,8 @@ class GuildAuctionLot extends Model
     protected function casts(): array
     {
         return [
+            'quantity' => 'integer',
+            'stock_reserved_at' => 'datetime',
             'start_price' => 'integer',
             'current_bid_amount' => 'integer',
             'ends_at' => 'datetime',
@@ -69,7 +79,7 @@ class GuildAuctionLot extends Model
 
     public function currentBidCharacter(): BelongsTo
     {
-        return $this->belongsTo(\Domains\Character\Models\Character::class, 'current_bid_character_id');
+        return $this->belongsTo(Character::class, 'current_bid_character_id');
     }
 
     public function winner(): BelongsTo

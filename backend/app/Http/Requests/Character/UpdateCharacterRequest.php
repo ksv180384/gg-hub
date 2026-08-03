@@ -32,7 +32,7 @@ class UpdateCharacterRequest extends FormRequest
         $localizationId = $this->input('localization_id');
         $characterId = $this->route('character');
         $character = is_numeric($characterId)
-            ? \Domains\Character\Models\Character::with('game')->find($characterId)
+            ? Character::with('game')->find($characterId)
             : null;
         $game = $character?->game;
         $maxClasses = $game ? (int) $game->max_classes_per_character : 1;
@@ -55,13 +55,14 @@ class UpdateCharacterRequest extends FormRequest
             'remove_avatar' => ['nullable', 'boolean'],
             'use_profile_avatar' => ['nullable', 'boolean'],
             'is_main' => ['nullable', 'boolean'],
-            'game_class_ids' => ['nullable', 'array', 'max:' . $maxClasses],
+            'game_class_ids' => ['nullable', 'array', 'max:'.$maxClasses],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['integer', 'exists:tags,id'],
         ];
         if ($gameId) {
             $rules['game_class_ids.*'] = ['integer', Rule::exists('game_classes', 'id')->where('game_id', $gameId)];
         }
+
         return $rules;
     }
 

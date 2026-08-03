@@ -18,6 +18,7 @@ class GetUserAction
             'last_activity_at',
             DB::table('sessions')->where('user_id', $user->id)->max('last_activity'),
         );
+
         return $user;
     }
 }

@@ -114,3 +114,6 @@ docker compose restart socket-server-nodejs
 
 Основные feature-тесты находятся в `backend/tests/Feature/GuildActivityLogTest.php`. Они проверяют изоляцию по гильдии, пагинацию по 50, фильтры, observer-запись, авторизацию рулетки и внутренний аудит.
 
+## Срок хранения
+
+Логи гильдии хранятся три месяца с момента создания. Записи, достигшие этого срока, ежедневно удаляются командой `guild-activity:prune-expired`.

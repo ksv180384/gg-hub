@@ -3,6 +3,7 @@
 namespace App\Actions\Game;
 
 use App\Contracts\Repositories\GameRepositoryInterface;
+use Domains\Game\Models\Game;
 use Illuminate\Support\Collection;
 
 class ListGamesCatalogAction
@@ -12,11 +13,10 @@ class ListGamesCatalogAction
     ) {}
 
     /**
-     * @return Collection<int, \Domains\Game\Models\Game>
+     * @return Collection<int, Game>
      */
     public function __invoke(): Collection
     {
         return $this->gameRepository->getActiveCatalog();
     }
 }
-

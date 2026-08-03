@@ -23,13 +23,14 @@ class PollResource extends JsonResource
                 'sort_order' => $opt->sort_order,
                 'votes_count' => $opt->votes_count ?? $opt->votes()->count(),
             ];
-            if (!$this->is_anonymous && $opt->relationLoaded('votes')) {
+            if (! $this->is_anonymous && $opt->relationLoaded('votes')) {
                 $item['voters'] = $opt->votes
                     ->filter(fn ($v) => $v->relationLoaded('character') && $v->character)
                     ->map(fn ($v) => ['character_id' => $v->character_id, 'name' => $v->character->name])
                     ->values()
                     ->all();
             }
+
             return $item;
         })->values()->all();
 

@@ -12,6 +12,7 @@ class UpdateRaidAction
     public function __invoke(Raid $raid, array $data): Raid
     {
         $raid->update($data);
+
         return $raid->fresh(['leader:id,name', 'parent:id,name']);
     }
 }

@@ -2,10 +2,11 @@
 
 namespace Domains\Post\Models;
 
-use Domains\User\Models\User;
+use App\Core\Traits\HasFilter;
 use Domains\Character\Models\Character;
 use Domains\Game\Models\Game;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,6 +33,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Post extends Model
 {
+    use HasFilter;
+
     protected $fillable = [
         'user_id',
         'character_id',

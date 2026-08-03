@@ -2,6 +2,7 @@
 
 namespace Domains\Event\Models;
 
+use App\Core\Traits\HasFilter;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Event extends Model
 {
+    use HasFilter;
+
     protected $fillable = [
         'guild_id',
         'created_by_character_id',

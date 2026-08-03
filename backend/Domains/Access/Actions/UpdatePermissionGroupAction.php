@@ -7,11 +7,12 @@ use Domains\Access\Models\PermissionGroup;
 class UpdatePermissionGroupAction
 {
     /**
-     * @param array{name?: string, slug?: string|null} $data
+     * @param  array{name?: string, slug?: string|null}  $data
      */
     public function __invoke(PermissionGroup $group, array $data): PermissionGroup
     {
         $group->update($data);
+
         return $group;
     }
 }

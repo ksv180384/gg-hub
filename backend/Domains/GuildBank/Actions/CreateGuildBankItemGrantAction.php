@@ -2,13 +2,13 @@
 
 namespace Domains\GuildBank\Actions;
 
-use Domains\User\Models\User;
 use Carbon\CarbonImmutable;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
 use Domains\GuildDkp\Actions\ApplyBankGrantDkpAction;
+use Domains\User\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 
@@ -44,12 +44,13 @@ class CreateGuildBankItemGrantAction
 
             $reason = isset($data['reason']) ? trim((string) $data['reason']) : '';
 
-            $grant = new GuildBankItemGrant();
+            $grant = new GuildBankItemGrant;
             $grant->fill([
                 'guild_id' => $guild->id,
                 'guild_bank_item_id' => $data['guild_bank_item_id'],
                 'received_by_character_id' => $data['received_by_character_id'],
                 'granted_by_character_id' => $this->resolveGrantedByCharacterId($guild, $data, $actor),
+                'quantity' => 1,
                 'reason' => $reason,
                 'granted_at' => ! empty($data['granted_at']) ? $data['granted_at'] : CarbonImmutable::now(),
             ]);

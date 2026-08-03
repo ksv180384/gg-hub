@@ -8,32 +8,34 @@ use Illuminate\Support\Facades\Storage;
 class UserAvatarService
 {
     private const LARGE_SIZE = 1024;
+
     private const SMALL_SIZE = 300;
-    private const EXT = 'jpg';
+
+    private const EXT = 'webp';
 
     /**
      * Сохраняет аватар в users/{userId}/avatar/ в двух размерах:
-     * large.jpg — макс. 1024×1024, small.jpg — макс. 300×300.
-     * Сохраняем в jpg для единообразия.
+     * large.webp — макс. 1024×1024, small.webp — макс. 300×300.
+     * Сохраняем в WebP для единообразия.
      *
      * @return string Путь к папке аватара (users/{id}/avatar) для записи в user.avatar
      */
     public function storeAvatar(UploadedFile $file, int $userId): string
     {
-        $baseDir = 'users/' . $userId . '/avatar';
+        $baseDir = 'users/'.$userId.'/avatar';
         $disk = Storage::disk('public');
 
         $disk->makeDirectory($baseDir);
-        $largePath = $baseDir . '/large.' . self::EXT;
-        $smallPath = $baseDir . '/small.' . self::EXT;
+        $largePath = $baseDir.'/large.'.self::EXT;
+        $smallPath = $baseDir.'/small.'.self::EXT;
         $largePathDisk = $disk->path($largePath);
         $smallPathDisk = $disk->path($smallPath);
 
         $manager = app('image');
         $image = $manager->read($file->getRealPath());
-        $image->scaleDown(self::LARGE_SIZE, self::LARGE_SIZE)->toJpeg(quality: 90)->save($largePathDisk);
+        $image->scaleDown(self::LARGE_SIZE, self::LARGE_SIZE)->toWebp(quality: 90)->save($largePathDisk);
         $image = $manager->read($file->getRealPath());
-        $image->scaleDown(self::SMALL_SIZE, self::SMALL_SIZE)->toJpeg(quality: 85)->save($smallPathDisk);
+        $image->scaleDown(self::SMALL_SIZE, self::SMALL_SIZE)->toWebp(quality: 85)->save($smallPathDisk);
 
         return $baseDir;
     }
@@ -43,15 +45,25 @@ class UserAvatarService
      */
     public static function largePath(string $avatarDir): string
     {
-        return rtrim($avatarDir, '/') . '/large.' . self::EXT;
+        return self::variantPath($avatarDir, 'large');
     }
 
     /**
-     * Путь к малой версии аватара (300px) — для отображения в интерфейсе.
+     * Path to the small avatar variant used in the interface.
      */
     public static function smallPath(string $avatarDir): string
     {
-        return rtrim($avatarDir, '/') . '/small.' . self::EXT;
+        return self::variantPath($avatarDir, 'small');
+    }
+
+    private static function variantPath(string $avatarDir, string $variant): string
+    {
+        $basePath = rtrim($avatarDir, '/').'/'.$variant;
+        $webpPath = $basePath.'.'.self::EXT;
+
+        return Storage::disk('public')->exists($webpPath)
+            ? $webpPath
+            : $basePath.'.jpg';
     }
 
     /**

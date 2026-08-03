@@ -9,6 +9,7 @@ use Throwable;
 class GuildApplicationCommentSocketBroadcaster
 {
     private const DEFAULT_SOCKET_URL = 'http://socket-server-nodejs:3007';
+
     private const HTTP_TIMEOUT_SECONDS = 1.5;
 
     public function broadcastChangedFor(int $guildId, int $applicationId, int $commentId, string $action): void
@@ -33,7 +34,7 @@ class GuildApplicationCommentSocketBroadcaster
         $base = rtrim((string) env('SOCKET_SERVER_URL', self::DEFAULT_SOCKET_URL), '/');
 
         try {
-            Http::timeout(self::HTTP_TIMEOUT_SECONDS)->post($base . $path, $payload);
+            Http::timeout(self::HTTP_TIMEOUT_SECONDS)->post($base.$path, $payload);
         } catch (Throwable $e) {
             Log::debug('guild application comment socket broadcast failed', [
                 'path' => $path,

@@ -2,11 +2,11 @@
 
 namespace Domains\GuildDkp\Actions;
 
-use Domains\User\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
 use Domains\GuildDkp\Enums\GuildDkpLedgerSource;
+use Domains\User\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class ApplyBankGrantDkpAction

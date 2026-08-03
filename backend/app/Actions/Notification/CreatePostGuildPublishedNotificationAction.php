@@ -2,8 +2,8 @@
 
 namespace App\Actions\Notification;
 
-use Domains\Notification\Models\Notification;
 use Domains\Guild\Models\Guild;
+use Domains\Notification\Models\Notification;
 use Domains\Post\Models\Post;
 
 /**
@@ -16,7 +16,7 @@ class CreatePostGuildPublishedNotificationAction
         $post->loadMissing(['user', 'character']);
 
         $user = $post->user;
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -25,8 +25,7 @@ class CreatePostGuildPublishedNotificationAction
         return Notification::create([
             'user_id' => $user->id,
             'message' => "Ваш пост «{$post->title}» от {$authorName} в гильдии «{$guild->name}» был опубликован.",
-            'link' => '/my-posts/' . $post->id . '/edit',
+            'link' => '/my-posts/'.$post->id.'/edit',
         ]);
     }
 }
-

@@ -27,6 +27,7 @@ class NotificationController extends Controller
         $user = $request->user();
         $result = ($this->listNotificationsAction)($user);
         $paginator = $result['paginator'];
+
         return response()->json([
             'data' => NotificationResource::collection($paginator->items()),
             'unread_count' => $result['unread_count'],
@@ -40,12 +41,14 @@ class NotificationController extends Controller
     public function markAsRead(Request $request, Notification $notification): JsonResponse
     {
         $notification = ($this->markNotificationReadAction)($request->user(), $notification);
+
         return response()->json(['data' => (new NotificationResource($notification))->resolve()]);
     }
 
     public function destroy(Request $request, Notification $notification): JsonResponse
     {
         ($this->deleteNotificationAction)($request->user(), $notification);
+
         return response()->json(null, 204);
     }
 

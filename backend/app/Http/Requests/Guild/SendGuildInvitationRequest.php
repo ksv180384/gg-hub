@@ -42,24 +42,27 @@ class SendGuildInvitationRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             $user = $this->user();
             $guild = $this->route('guild');
-            if (!$user || !$guild instanceof Guild) {
+            if (! $user || ! $guild instanceof Guild) {
                 return;
             }
             $characterId = (int) $this->input('character_id');
             $character = Character::query()->with('game')->find($characterId);
-            if (!$character) {
+            if (! $character) {
                 return;
             }
             if ((int) $character->game_id !== (int) $guild->game_id) {
                 $validator->errors()->add('character_id', 'Персонаж должен быть из той же игры, что и гильдия.');
+
                 return;
             }
             if ((int) $character->server_id !== (int) $guild->server_id) {
                 $validator->errors()->add('character_id', 'Персонаж должен быть на том же сервере, что и гильдия.');
+
                 return;
             }
             if (GuildMember::query()->where('character_id', $characterId)->exists()) {
                 $validator->errors()->add('character_id', 'Этот персонаж уже состоит в гильдии.');
+
                 return;
             }
             if (GuildApplication::query()
@@ -68,6 +71,7 @@ class SendGuildInvitationRequest extends FormRequest
                 ->whereIn('status', ['pending', 'invitation'])
                 ->exists()) {
                 $validator->errors()->add('character_id', 'Этому персонажу уже отправлена заявка или приглашение в эту гильдию.');
+
                 return;
             }
         });

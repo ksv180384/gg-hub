@@ -2,10 +2,10 @@
 
 namespace App\Actions\Notification;
 
-use Domains\Notification\Models\Notification;
-use Domains\User\Models\User;
 use Domains\Guild\Actions\GetGuildMemberUserIdsWithPermissionAction;
 use Domains\Guild\Models\GuildApplication;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use Illuminate\Support\Collection;
 
 /**
@@ -34,7 +34,7 @@ class CreateGuildApplicationNotificationAction
         $notifications = collect();
         foreach ($userIds as $userId) {
             $user = User::query()->find($userId);
-            if (!$user) {
+            if (! $user) {
                 continue;
             }
             $notification = Notification::create([

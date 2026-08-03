@@ -2,8 +2,8 @@
 
 namespace Domains\Guild\Models;
 
-use Domains\Character\Models\Character;
 use Domains\Access\Models\GuildRole;
+use Domains\Character\Models\Character;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

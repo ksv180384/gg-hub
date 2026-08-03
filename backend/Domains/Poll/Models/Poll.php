@@ -2,15 +2,18 @@
 
 namespace Domains\Poll\Models;
 
-use Domains\User\Models\User;
+use App\Core\Traits\HasFilter;
 use Domains\Character\Models\Character;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Poll extends Model
 {
+    use HasFilter;
+
     protected $table = 'guild_polls';
 
     protected $fillable = [

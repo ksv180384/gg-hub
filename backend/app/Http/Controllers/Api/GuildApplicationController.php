@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Notification\CreateGuildApplicationApprovedNotificationAction;
 use App\Actions\Notification\CreateGuildApplicationNotificationAction;
 use App\Actions\Notification\CreateGuildApplicationRejectedNotificationAction;
-use App\Actions\Notification\CreateGuildApplicationApprovedNotificationAction;
 use App\Actions\Notification\CreateGuildInvitationNotificationAction;
-use App\Actions\Notification\CreateGuildInvitationRevokedNotificationAction;
 use App\Actions\Notification\CreateGuildInvitationRevokedForUserNotificationAction;
+use App\Actions\Notification\CreateGuildInvitationRevokedNotificationAction;
+use App\Filters\GuildApplicationFilter;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Guild\GuildApplicationFilterRequest;
 use App\Http\Requests\Guild\SendGuildInvitationRequest;
 use App\Http\Requests\Guild\SubmitGuildApplicationRequest;
 use App\Http\Requests\Guild\VoteGuildApplicationRequest;
-use App\Http\Requests\Guild\GuildApplicationFilterRequest;
-use App\Filters\GuildApplicationFilter;
 use App\Http\Resources\Guild\GuildApplicationResource;
 use Domains\Guild\Actions\ApproveGuildApplicationAction;
 use Domains\Guild\Actions\CreateGuildInvitationAction;
@@ -25,8 +25,10 @@ use Domains\Guild\Actions\WithdrawGuildApplicationAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\GuildApplicationVote;
+use Domains\Guild\Models\GuildMember;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class GuildApplicationController extends Controller
 {
@@ -96,7 +98,7 @@ class GuildApplicationController extends Controller
         $formData = $validated['form_data'] ?? [];
         $application = ($this->submitAction)($guild, $characterId, $formData);
 
-        $applicationLink = '/guilds/' . $guild->id . '/applications/list/' . $application->id;
+        $applicationLink = '/guilds/'.$guild->id.'/applications/list/'.$application->id;
         ($this->createNotificationAction)($application, $applicationLink);
 
         return (new GuildApplicationResource($application))->response()->setStatusCode(201);
@@ -109,11 +111,11 @@ class GuildApplicationController extends Controller
     public function invite(SendGuildInvitationRequest $request, Guild $guild): JsonResponse
     {
         $characterId = (int) $request->validated('character_id');
-        $inviterCharacterId = \Domains\Guild\Models\GuildMember::query()
+        $inviterCharacterId = GuildMember::query()
             ->where('guild_id', $guild->id)
             ->whereHas('character', fn ($q) => $q->where('user_id', $request->user()->id))
             ->value('character_id');
-        if (!$inviterCharacterId) {
+        if (! $inviterCharacterId) {
             return response()->json(['message' => 'У вас нет персонажа в этой гильдии.'], 403);
         }
         $application = ($this->createInvitationAction)($guild, $characterId, (int) $inviterCharacterId);
@@ -167,7 +169,7 @@ class GuildApplicationController extends Controller
         $application->loadMissing(['character', 'invitedByCharacter', 'revokedByCharacter']);
         $character = $application->character;
 
-        if (!$user || !$character || (int) $character->user_id !== (int) $user->id) {
+        if (! $user || ! $character || (int) $character->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Заявка не найдена.'], 404);
         }
 
@@ -193,8 +195,9 @@ class GuildApplicationController extends Controller
         try {
             $application = ($this->withdrawAction)($request->user(), $guild, $application);
             $application->load(['character', 'guild']);
+
             return response()->json(new GuildApplicationResource($application));
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'message' => $e->getMessage(),
                 'errors' => $e->errors(),
@@ -211,12 +214,13 @@ class GuildApplicationController extends Controller
             return response()->json(['message' => 'Заявка не найдена.'], 404);
         }
         $application->loadMissing('character');
-        if ($application->status !== 'invitation' || !$application->character || (int) $application->character->user_id !== (int) $request->user()->id) {
+        if ($application->status !== 'invitation' || ! $application->character || (int) $application->character->user_id !== (int) $request->user()->id) {
             return response()->json(['message' => 'Заявка не найдена или приглашение уже рассмотрено.'], 404);
         }
         $application = ($this->approveAction)($request->user(), $guild, $application);
         $application->load('character');
         ($this->createApprovedNotificationAction)($application);
+
         return response()->json(new GuildApplicationResource($application));
     }
 
@@ -235,8 +239,9 @@ class GuildApplicationController extends Controller
             $application->load(['character', 'revokedByCharacter']);
             ($this->createInvitationRevokedNotificationAction)($application);
             ($this->createInvitationRevokedForUserNotificationAction)($application);
+
             return response()->json(new GuildApplicationResource($application));
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'message' => $e->getMessage(),
                 'errors' => $e->errors(),
@@ -253,12 +258,13 @@ class GuildApplicationController extends Controller
             return response()->json(['message' => 'Заявка не найдена.'], 404);
         }
         $application->loadMissing('character');
-        if ($application->status !== 'invitation' || !$application->character || (int) $application->character->user_id !== (int) $request->user()->id) {
+        if ($application->status !== 'invitation' || ! $application->character || (int) $application->character->user_id !== (int) $request->user()->id) {
             return response()->json(['message' => 'Заявка не найдена или приглашение уже рассмотрено.'], 404);
         }
         $application = ($this->rejectAction)($request->user(), $guild, $application);
         $application->load('character');
         ($this->createRejectedNotificationAction)($application);
+
         return response()->json(new GuildApplicationResource($application));
     }
 
@@ -316,14 +322,14 @@ class GuildApplicationController extends Controller
 
     private function resolveMyVote(GuildApplication $application, Guild $guild, ?int $userId): ?int
     {
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
         $isMember = $guild->members()
             ->whereHas('character', fn ($q) => $q->where('user_id', $userId))
             ->exists();
-        if (!$isMember) {
+        if (! $isMember) {
             return null;
         }
 

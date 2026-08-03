@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources\Game;
 
-use Domains\Game\Models\Game;
 use App\Services\GameImageService;
+use Domains\Game\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
@@ -28,4 +28,3 @@ class GameCatalogResource extends JsonResource
         ];
     }
 }
-

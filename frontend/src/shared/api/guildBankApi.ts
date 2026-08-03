@@ -36,6 +36,7 @@ export type GuildBankGrant = {
   granted_at: string;
   reason: string;
   dkp_charged?: number | null;
+  quantity?: number;
   guild_bank_item_id?: number;
   guild_id?: number;
   granted_by_character_id?: number | null;

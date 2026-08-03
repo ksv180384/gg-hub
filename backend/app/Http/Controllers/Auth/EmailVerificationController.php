@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Domains\User\Models\User;
 use App\Notifications\VerifyEmailNotification;
+use Domains\User\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,7 +64,7 @@ class EmailVerificationController extends Controller
             ->first();
 
         if ($user) {
-            $user->notifyNow(new VerifyEmailNotification());
+            $user->notifyNow(new VerifyEmailNotification);
             RateLimiter::hit($rateLimitKey, self::RESEND_DECAY_SECONDS);
         }
 

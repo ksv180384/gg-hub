@@ -32,4 +32,3 @@ class GuildBankItemResource extends JsonResource
         ];
     }
 }
-

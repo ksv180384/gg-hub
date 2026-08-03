@@ -12,9 +12,9 @@ use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\GuildApplicationComment;
 use Domains\Guild\Models\GuildMember;
-use Illuminate\Support\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class GuildApplicationCommentController extends Controller
 {

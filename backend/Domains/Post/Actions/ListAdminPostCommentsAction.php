@@ -2,19 +2,15 @@
 
 namespace Domains\Post\Actions;
 
+use App\Filters\PostCommentFilter;
 use Domains\Post\Models\PostComment;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-/**
- * Список комментариев для модерации в админке (все в одном месте, с привязкой к посту).
- *
- * @param  int|null  $postId  Фильтр по посту: при указании возвращаются только комментарии этого поста.
- */
 final class ListAdminPostCommentsAction
 {
-    public function __invoke(int $perPage = 20, ?int $postId = null): LengthAwarePaginator
+    public function __invoke(PostCommentFilter $filter, int $perPage = 20): LengthAwarePaginator
     {
-        $query = PostComment::query()
+        return PostComment::query()
             ->withTrashed()
             ->with([
                 'post:id,title,guild_id',
@@ -23,12 +19,8 @@ final class ListAdminPostCommentsAction
                 'character.user:id,name,avatar',
                 'user:id,name,avatar',
             ])
-            ->orderByDesc('created_at');
-
-        if ($postId !== null) {
-            $query->where('post_id', $postId);
-        }
-
-        return $query->paginate($perPage);
+            ->filter($filter)
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
     }
 }

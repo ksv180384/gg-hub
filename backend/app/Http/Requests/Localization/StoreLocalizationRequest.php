@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Localization;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreLocalizationRequest extends FormRequest
 {
@@ -23,7 +24,7 @@ class StoreLocalizationRequest extends FormRequest
                 'required',
                 'string',
                 'max:16',
-                \Illuminate\Validation\Rule::unique('localizations', 'code')->where('game_id', $gameId),
+                Rule::unique('localizations', 'code')->where('game_id', $gameId),
             ],
             'name' => ['required', 'string', 'max:255'],
         ];

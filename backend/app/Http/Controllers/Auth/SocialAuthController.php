@@ -70,7 +70,8 @@ class SocialAuthController extends Controller
 
         if ($user->isBanned()) {
             $frontendUrl = $this->frontendUrl();
-            return redirect($frontendUrl . '/login?error=banned');
+
+            return redirect($frontendUrl.'/login?error=banned');
         }
 
         Auth::login($user, remember: true);

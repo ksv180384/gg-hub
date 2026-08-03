@@ -5,7 +5,6 @@ namespace App\Http\Resources\Guild;
 use App\Http\Resources\Game\GameGuildEmbedResource;
 use App\Http\Resources\Game\LocalizationGuildEmbedResource;
 use App\Http\Resources\Game\ServerGuildEmbedResource;
-use App\Http\Resources\Guild\GuildLeaderNameResource;
 use App\Http\Resources\Tag\TagLabelResource;
 use App\Services\GuildLogoService;
 use Domains\Guild\Models\Guild;
@@ -67,12 +66,12 @@ class GuildResource extends JsonResource
      */
     private function logoUrlWithVersion(?string $url): ?string
     {
-        if (!$url) {
+        if (! $url) {
             return null;
         }
         $ts = $this->updated_at?->timestamp ?? null;
         $separator = str_contains($url, '?') ? '&' : '?';
 
-        return $ts !== null ? $url . $separator . 'v=' . $ts : $url;
+        return $ts !== null ? $url.$separator.'v='.$ts : $url;
     }
 }

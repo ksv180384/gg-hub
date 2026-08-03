@@ -2,10 +2,10 @@
 
 namespace App\Actions\Notification;
 
-use Domains\Notification\Models\Notification;
-use Domains\User\Models\User;
 use Domains\Guild\Actions\GetGuildMemberUserIdsWithPermissionAction;
 use Domains\Guild\Models\Guild;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use Illuminate\Support\Collection;
 
 /**
@@ -27,7 +27,7 @@ class CreateGuildMemberLeftNotificationAction
     {
         $guild->loadMissing(['leader']);
 
-        $link = '/guilds/' . $guild->id . '/roster';
+        $link = '/guilds/'.$guild->id.'/roster';
         $message = "Участник {$leftCharacterName} покинул(а) гильдию «{$guild->name}».";
 
         $userIds = ($this->getUserIdsWithPermissionAction)($guild, self::PERMISSION_SLUG);
@@ -35,7 +35,7 @@ class CreateGuildMemberLeftNotificationAction
         $notifications = collect();
         foreach ($userIds as $userId) {
             $user = User::query()->find($userId);
-            if (!$user) {
+            if (! $user) {
                 continue;
             }
             $notification = Notification::create([

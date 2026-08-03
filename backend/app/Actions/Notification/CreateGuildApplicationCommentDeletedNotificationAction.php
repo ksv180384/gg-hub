@@ -2,8 +2,8 @@
 
 namespace App\Actions\Notification;
 
-use Domains\Notification\Models\Notification;
 use Domains\Guild\Models\GuildApplicationComment;
+use Domains\Notification\Models\Notification;
 
 /**
  * Оповещение автору комментария к заявке: комментарий удалён модератором с указанием причины.
@@ -25,7 +25,7 @@ class CreateGuildApplicationCommentDeletedNotificationAction
 
         $message = "Ваш комментарий к заявке #{$comment->guild_application_id} в гильдии «{$guildName}» был удалён модератором. Причина: {$cleanReason}";
         $link = $application?->guild_id
-            ? '/guilds/' . $application->guild_id . '/applications'
+            ? '/guilds/'.$application->guild_id.'/applications'
             : '';
 
         return Notification::create([

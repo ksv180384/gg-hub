@@ -19,6 +19,7 @@ use Domains\Poll\Actions\ResetPollAction;
 use Domains\Poll\Actions\UpdatePollAction;
 use Domains\Poll\Actions\VotePollAction;
 use Domains\Poll\Actions\WithdrawPollVoteAction;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -53,7 +54,7 @@ class GuildPollController extends Controller
     {
         try {
             $model = ($this->getPollAction)($guild, $poll);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             throw new NotFoundHttpException('Голосование не найдено.');
         }
 
@@ -78,7 +79,7 @@ class GuildPollController extends Controller
     {
         try {
             $model = ($this->getPollAction)($guild, $poll);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             throw new NotFoundHttpException('Голосование не найдено.');
         }
 
@@ -91,7 +92,7 @@ class GuildPollController extends Controller
     {
         try {
             $model = ($this->getPollAction)($guild, $poll);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             throw new NotFoundHttpException('Голосование не найдено.');
         }
 
@@ -104,7 +105,7 @@ class GuildPollController extends Controller
     {
         try {
             $model = ($this->getPollAction)($guild, $poll);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             throw new NotFoundHttpException('Голосование не найдено.');
         }
 
@@ -117,7 +118,7 @@ class GuildPollController extends Controller
     {
         try {
             $model = ($this->getPollAction)($guild, $poll);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             throw new NotFoundHttpException('Голосование не найдено.');
         }
 
@@ -130,7 +131,7 @@ class GuildPollController extends Controller
     {
         try {
             $model = ($this->getPollAction)($guild, $poll);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             throw new NotFoundHttpException('Голосование не найдено.');
         }
 
@@ -143,7 +144,7 @@ class GuildPollController extends Controller
     {
         try {
             $model = ($this->getPollAction)($guild, $poll);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             throw new NotFoundHttpException('Голосование не найдено.');
         }
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ConstantPartyMember extends Model
 {
     public const ROLE_LEADER = 'leader';
+
     public const ROLE_MEMBER = 'member';
 
     protected $fillable = [

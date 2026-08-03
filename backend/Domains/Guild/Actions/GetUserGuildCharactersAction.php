@@ -2,8 +2,8 @@
 
 namespace Domains\Guild\Actions;
 
-use Domains\User\Models\User;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Support\Collection;
 
 /**

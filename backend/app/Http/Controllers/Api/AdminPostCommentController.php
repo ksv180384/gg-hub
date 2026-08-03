@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Actions\Notification\CreateCommentDeletedNotificationAction;
 use App\Actions\Notification\CreateCommentHiddenNotificationAction;
 use App\Actions\Notification\CreateCommentShownNotificationAction;
+use App\Filters\PostCommentFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\AdminDeletePostCommentRequest;
 use App\Http\Requests\Post\AdminHidePostCommentRequest;
@@ -41,10 +42,10 @@ class AdminPostCommentController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $perPage = max(1, min(100, (int) $request->query('per_page', 20)));
-        $postId = $request->query('post_id');
-        $postId = is_numeric($postId) ? (int) $postId : null;
-
-        $paginator = ($this->listAdminPostCommentsAction)($perPage, $postId);
+        $paginator = ($this->listAdminPostCommentsAction)(
+            new PostCommentFilter($request),
+            $perPage,
+        );
 
         return AdminPostCommentResource::collection($paginator);
     }

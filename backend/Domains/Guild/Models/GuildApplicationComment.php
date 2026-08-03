@@ -2,8 +2,9 @@
 
 namespace Domains\Guild\Models;
 
-use Domains\User\Models\User;
+use App\Core\Traits\HasFilter;
 use Domains\Character\Models\Character;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class GuildApplicationComment extends Model
 {
+    use HasFilter;
     use SoftDeletes;
 
     protected $fillable = [

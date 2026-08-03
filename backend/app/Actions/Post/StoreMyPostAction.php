@@ -4,8 +4,8 @@ namespace App\Actions\Post;
 
 use App\Actions\Notification\CreatePostPendingGuildModerationNotificationAction;
 use App\Actions\Notification\SendPostOrCommentNotificationAction;
-use App\Services\Notifications\GuildLinkBuilder;
 use App\Http\Requests\Post\StorePostRequest;
+use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Guild\Models\Guild;
 use Domains\Post\Actions\ApplyPostModerationRulesAction;
 use Domains\Post\Actions\BuildPostDataFromRequestAction;
@@ -62,7 +62,7 @@ class StoreMyPostAction
             } catch (\Throwable $e) {
                 // БД транзакция откатится, но файлы в storage — нет.
                 // Для нового поста безопасно удалить всё post/{id}.
-                Storage::disk('public')->deleteDirectory('post/' . $post->id);
+                Storage::disk('public')->deleteDirectory('post/'.$post->id);
                 throw $e;
             }
 
@@ -80,4 +80,3 @@ class StoreMyPostAction
         });
     }
 }
-

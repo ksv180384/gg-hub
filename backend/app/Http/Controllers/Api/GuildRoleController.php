@@ -35,6 +35,7 @@ class GuildRoleController extends Controller
     public function permissionGroups(Guild $guild): AnonymousResourceCollection
     {
         $groups = ($this->listPermissionGroupsAction)(PermissionScope::Guild);
+
         return PermissionGroupResource::collection($groups);
     }
 
@@ -53,6 +54,7 @@ class GuildRoleController extends Controller
     {
         $role = ($this->createGuildRoleAction)($guild, $request->validated());
         $role->load('permissions');
+
         return (new GuildRoleResource($role))->response()->setStatusCode(201);
     }
 
@@ -63,6 +65,7 @@ class GuildRoleController extends Controller
         }
         ($this->updateGuildRolePermissionsAction)($guildRole, $request->validated()['permission_ids']);
         $guildRole->load('permissions');
+
         return new GuildRoleResource($guildRole);
     }
 
@@ -72,6 +75,7 @@ class GuildRoleController extends Controller
             abort(404);
         }
         ($this->deleteGuildRoleAction)($guildRole);
+
         return response()->json(['message' => 'Роль удалена.']);
     }
 }

@@ -2,9 +2,9 @@
 
 namespace Domains\Guild\Actions;
 
-use Domains\User\Models\User;
 use Domains\Guild\Enums\GuildApplicationStatus;
 use Domains\Guild\Models\GuildApplication;
+use Domains\User\Models\User;
 
 class CountUserActiveGuildApplicationsAction
 {
@@ -19,4 +19,3 @@ class CountUserActiveGuildApplicationsAction
             ->count();
     }
 }
-

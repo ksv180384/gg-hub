@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Filters\EventFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Event\DeclineEventRequest;
 use App\Http\Requests\Event\StoreEventRequest;
 use App\Http\Requests\Event\UpdateEventRequest;
 use App\Http\Resources\Event\EventResource;
 use Domains\Event\Actions\CreateEventAction;
-use Domains\Event\Actions\DeleteEventAction;
 use Domains\Event\Actions\DeclineEventAction;
+use Domains\Event\Actions\DeleteEventAction;
 use Domains\Event\Actions\GetEventAction;
 use Domains\Event\Actions\ListGuildEventsAction;
 use Domains\Event\Actions\UpdateEventAction;
@@ -36,12 +37,10 @@ class EventController extends Controller
      */
     public function index(Request $request, Guild $guild): AnonymousResourceCollection
     {
-        $from = $request->query('from');
-        $to = $request->query('to');
-        $events = ($this->listGuildEventsAction)($guild, [
-            'from' => is_string($from) ? $from : null,
-            'to' => is_string($to) ? $to : null,
-        ]);
+        $events = ($this->listGuildEventsAction)(
+            $guild,
+            new EventFilter($request),
+        );
 
         return EventResource::collection($events);
     }

@@ -8,7 +8,7 @@ use Domains\Guild\Models\GuildApplicationFormField;
 class CreateGuildApplicationFormFieldAction
 {
     /**
-     * @param array{name: string, type: string, required?: bool, sort_order?: int, options?: string[]} $data
+     * @param  array{name: string, type: string, required?: bool, sort_order?: int, options?: string[]}  $data
      */
     public function __invoke(Guild $guild, array $data): GuildApplicationFormField
     {
@@ -23,6 +23,7 @@ class CreateGuildApplicationFormFieldAction
         if (array_key_exists('options', $data) && is_array($data['options'])) {
             $payload['options'] = array_values(array_filter(array_map('trim', $data['options'])));
         }
+
         return GuildApplicationFormField::create($payload);
     }
 }

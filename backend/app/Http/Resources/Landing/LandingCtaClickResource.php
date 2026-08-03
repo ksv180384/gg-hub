@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources\Landing;
 
+use Domains\Analytics\Models\LandingCtaClick;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \Domains\Analytics\Models\LandingCtaClick
+ * @mixin LandingCtaClick
  */
 class LandingCtaClickResource extends JsonResource
 {

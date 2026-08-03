@@ -20,4 +20,3 @@ class GetEventHistoryAction
             ->find($id);
     }
 }
-

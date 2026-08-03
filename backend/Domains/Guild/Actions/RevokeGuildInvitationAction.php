@@ -2,10 +2,10 @@
 
 namespace Domains\Guild\Actions;
 
-use Domains\User\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\GuildMember;
+use Domains\User\Models\User;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -29,7 +29,7 @@ class RevokeGuildInvitationAction
             ->whereHas('character', fn ($q) => $q->where('user_id', $revoker->id))
             ->value('character_id');
 
-        if (!$revokerCharacterId) {
+        if (! $revokerCharacterId) {
             throw ValidationException::withMessages(['application' => ['У вас нет персонажа в этой гильдии.']]);
         }
 

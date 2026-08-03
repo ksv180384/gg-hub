@@ -9,7 +9,6 @@ use App\Http\Requests\Guild\UpdateGuildRequest;
 use App\Services\GuildLogoService;
 use Domains\Character\Models\Character;
 use Domains\Game\Models\Server;
-use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
 use Domains\Tag\Models\Tag;
@@ -57,6 +56,8 @@ class UpdateGuildAction
         'is_recruiting' => 'статус набора в гильдию',
         'dkp_enabled' => 'систему ДКП',
         'application_form_description' => 'описание формы заявки',
+        'leader_character_id' => 'лидера',
+        'logo' => 'логотип',
         'discord_webhook_url' => 'URL Discord-вебхука',
         'discord_notify_application_new' => 'оповещение «Новая заявка вступления в гильдию»',
         'discord_notify_member_joined' => 'оповещение «Пользователь вступил в гильдию»',
@@ -80,10 +81,7 @@ class UpdateGuildAction
     {
         $data = $request->validated();
         $user = $request->user();
-        $changedFields = array_keys($data);
-        if ($request->hasFile('logo') || $request->boolean('remove_logo')) {
-            $changedFields[] = 'logo';
-        }
+        $requestedFields = array_keys($data);
 
         // Права определяем строго по действующим ролям в гильдии. Текущий лидер
         // (владелец персонажа leader_character_id) получает все slug'и гильдии
@@ -95,12 +93,12 @@ class UpdateGuildAction
             : [];
 
         foreach (self::FIELD_PERMISSION_MAP as $field => $requiredSlug) {
-            if (!array_key_exists($field, $data)) {
+            if (! array_key_exists($field, $data)) {
                 continue;
             }
-            if (!in_array($requiredSlug, $userSlugs, true)) {
+            if (! in_array($requiredSlug, $userSlugs, true)) {
                 $label = self::FIELD_LABELS[$field] ?? $field;
-                $this->denyWithMessage('Недостаточно прав, чтобы изменить ' . $label . '.');
+                $this->denyWithMessage('Недостаточно прав, чтобы изменить '.$label.'.');
             }
         }
 
@@ -112,7 +110,7 @@ class UpdateGuildAction
                 $leaderByCharacter = $leaderCharacter
                     && (int) $leaderCharacter->user_id === (int) $user->id;
             }
-            if (!$leaderByCharacter) {
+            if (! $leaderByCharacter) {
                 $this->denyWithMessage(
                     'Сменить лидера гильдии может только текущий лидер.'
                 );
@@ -123,7 +121,8 @@ class UpdateGuildAction
         $canEditGuildData = in_array('redaktirovanie-dannyx-gildii', $userSlugs, true);
         $hasLogoFile = $request->hasFile('logo');
         $removeLogoRequested = $request->boolean('remove_logo');
-        if (($hasLogoFile || $removeLogoRequested) && !$canEditGuildData) {
+        $logoChanged = $hasLogoFile || ($removeLogoRequested && $guild->logo_path !== null);
+        if (($hasLogoFile || $removeLogoRequested) && ! $canEditGuildData) {
             $this->denyWithMessage('Недостаточно прав, чтобы изменить логотип гильдии.');
         }
 
@@ -156,6 +155,7 @@ class UpdateGuildAction
         }
 
         unset($data['logo'], $data['remove_logo']);
+        $tagsChanged = false;
         if (array_key_exists('tag_ids', $data)) {
             $tagIds = is_array($data['tag_ids']) ? array_map('intval', $data['tag_ids']) : [];
             $tagIds = array_values(array_unique(array_filter($tagIds)));
@@ -185,7 +185,16 @@ class UpdateGuildAction
                 ->map(fn ($v) => (int) $v)
                 ->all();
             $finalIds = array_values(array_unique(array_merge($allowedIds, $hiddenAttachedIds)));
-            $guild->tags()->sync($finalIds);
+            $currentIds = $guild->tags()
+                ->pluck('tags.id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+            sort($currentIds);
+            sort($finalIds);
+            $tagsChanged = $currentIds !== $finalIds;
+            if ($tagsChanged) {
+                $guild->tags()->sync($finalIds);
+            }
             unset($data['tag_ids']);
         }
         $logoWasReplaced = $request->hasFile('logo');
@@ -201,6 +210,26 @@ class UpdateGuildAction
         $leaderChanged = array_key_exists('leader_character_id', $data)
             && $newLeaderCharacterId !== 0
             && $newLeaderCharacterId !== $previousLeaderCharacterId;
+
+        $candidateGuild = clone $guild;
+        $candidateGuild->fill($data);
+        $changedFields = array_values(array_filter(
+            $requestedFields,
+            function (string $field) use ($candidateGuild, $tagsChanged): bool {
+                if ($field === 'tag_ids') {
+                    return $tagsChanged;
+                }
+
+                if (in_array($field, ['logo', 'remove_logo'], true)) {
+                    return false;
+                }
+
+                return $candidateGuild->isDirty($field);
+            },
+        ));
+        if ($logoChanged) {
+            $changedFields[] = 'logo';
+        }
 
         $guild = DB::transaction(function () use (
             $guild,
@@ -230,20 +259,23 @@ class UpdateGuildAction
             $guild->touch();
         }
 
-        $fieldLabels = array_map(
-            fn (string $field): string => self::FIELD_LABELS[$field] ?? $field,
-            array_values(array_unique($changedFields)),
-        );
-        ($this->recordGuildActivityAction)(
-            $guild,
-            $user,
-            GuildActivityLog::CATEGORY_GUILD,
-            'guild.updated',
-            'Изменена информация о гильдии: '.implode(', ', $fieldLabels).'.',
-            $guild,
-            $guild->name,
-            metadata: ['changed_fields' => array_values(array_unique($changedFields))],
-        );
+        $changedFields = array_values(array_unique($changedFields));
+        if ($changedFields !== []) {
+            $fieldLabels = array_map(
+                fn (string $field): string => self::FIELD_LABELS[$field] ?? $field,
+                $changedFields,
+            );
+            ($this->recordGuildActivityAction)(
+                $guild,
+                $user,
+                GuildActivityLog::CATEGORY_GUILD,
+                'guild.updated',
+                'Изменена информация о гильдии: '.implode(', ', $fieldLabels).'.',
+                $guild,
+                $guild->name,
+                metadata: ['changed_fields' => $changedFields],
+            );
+        }
 
         $guild->loadCount('members')->load([
             'game',
@@ -252,6 +284,7 @@ class UpdateGuildAction
             'leader',
             'tags' => fn ($q) => $q->notHidden(),
         ]);
+
         return $guild;
     }
 

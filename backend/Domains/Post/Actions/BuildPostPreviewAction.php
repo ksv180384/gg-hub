@@ -30,16 +30,16 @@ class BuildPostPreviewAction
      */
     private function extractHtmlPreview(string $html): string
     {
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
         $dom->loadHTML(
-            '<?xml encoding="UTF-8"><div id="__preview-wrap">' . $html . '</div>',
+            '<?xml encoding="UTF-8"><div id="__preview-wrap">'.$html.'</div>',
             \LIBXML_HTML_NOIMPLIED | \LIBXML_HTML_NODEFDTD
         );
         libxml_clear_errors();
 
         $wrap = $dom->getElementById('__preview-wrap');
-        if (!$wrap) {
+        if (! $wrap) {
             return $this->fallbackPlainPreview($html);
         }
 
@@ -83,10 +83,10 @@ class BuildPostPreviewAction
                 return $this->nodeToHtml($node);
             }
 
-            $html = '<' . $tagName;
+            $html = '<'.$tagName;
             if ($node->hasAttributes()) {
                 foreach ($node->attributes as $attr) {
-                    $html .= ' ' . $attr->name . '="' . htmlspecialchars($attr->value, \ENT_QUOTES | \ENT_HTML5, 'UTF-8') . '"';
+                    $html .= ' '.$attr->name.'="'.htmlspecialchars($attr->value, \ENT_QUOTES | \ENT_HTML5, 'UTF-8').'"';
                 }
             }
             $html .= '>';
@@ -98,7 +98,7 @@ class BuildPostPreviewAction
                 }
             }
 
-            $html .= '</' . $tagName . '>';
+            $html .= '</'.$tagName.'>';
 
             return $html;
         }
@@ -111,11 +111,11 @@ class BuildPostPreviewAction
      */
     private function nodeToHtml(\DOMNode $node): string
     {
-        if (!$node instanceof \DOMElement) {
+        if (! $node instanceof \DOMElement) {
             return '';
         }
         $dom = $node->ownerDocument;
-        if (!$dom) {
+        if (! $dom) {
             return '';
         }
         $html = $dom->saveHTML($node);

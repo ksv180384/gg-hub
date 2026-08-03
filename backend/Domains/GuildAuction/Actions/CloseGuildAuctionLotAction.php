@@ -3,8 +3,6 @@
 namespace Domains\GuildAuction\Actions;
 
 use App\Actions\Notification\SendGuildDiscordNotificationAction;
-use Domains\Notification\Models\Notification;
-use Domains\User\Models\User;
 use App\Services\GuildAuctionSocketBroadcaster;
 use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Character\Models\Character;
@@ -16,6 +14,8 @@ use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
 use Domains\GuildDkp\Actions\RecordGuildDkpLedgerEntryAction;
 use Domains\GuildDkp\Enums\GuildDkpLedgerSource;
+use Domains\Notification\Models\Notification;
+use Domains\User\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -56,7 +56,10 @@ class CloseGuildAuctionLotAction
             $lockedLot->status = GuildAuctionLot::STATUS_CLOSED;
             $lockedLot->closed_at = now();
             $lockedLot->closed_by_user_id = $actor?->id;
-            $itemName = 'Лот #' . $lockedLot->id;
+            $itemName = 'Лот #'.$lockedLot->id;
+
+            $lotQuantity = max(1, (int) $lockedLot->quantity);
+            $stockWasReserved = $lockedLot->stock_reserved_at !== null;
 
             if ($lockedLot->current_bid_user_id && $lockedLot->current_bid_amount) {
                 $item = GuildBankItem::query()
@@ -66,8 +69,8 @@ class CloseGuildAuctionLotAction
                     ->firstOrFail();
                 $itemName = $item->name;
 
-                if ($item->quantity !== null && (int) $item->quantity <= 0) {
-                    throw ValidationException::withMessages(['lot' => 'Предмета больше нет на складе.']);
+                if (! $stockWasReserved && $item->quantity !== null && (int) $item->quantity < $lotQuantity) {
+                    throw ValidationException::withMessages(['lot' => 'На складе недостаточно предметов для закрытия лота.']);
                 }
 
                 $characterId = $lockedLot->current_bid_character_id
@@ -79,6 +82,7 @@ class CloseGuildAuctionLotAction
                     'guild_bank_item_id' => $item->id,
                     'received_by_character_id' => $characterId,
                     'granted_by_character_id' => null,
+                    'quantity' => $lotQuantity,
                     'reason' => 'Выкуплено на аукционе',
                     'granted_at' => now(),
                     'dkp_charged' => (int) $lockedLot->current_bid_amount,
@@ -95,8 +99,8 @@ class CloseGuildAuctionLotAction
                     'reason' => "Выкуп предмета «{$item->name}» на аукционе",
                 ]);
 
-                if ($item->quantity !== null) {
-                    $item->quantity = max(0, (int) $item->quantity - 1);
+                if (! $stockWasReserved && $item->quantity !== null) {
+                    $item->quantity = max(0, (int) $item->quantity - $lotQuantity);
                     $item->save();
                 }
 
@@ -112,10 +116,17 @@ class CloseGuildAuctionLotAction
                     'lot_id' => (int) $lockedLot->id,
                 ];
             } else {
-                $itemName = GuildBankItem::query()
+                $item = GuildBankItem::query()
                     ->where('guild_id', $guild->id)
                     ->whereKey($lockedLot->guild_bank_item_id)
-                    ->value('name') ?? $itemName;
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $itemName = $item->name;
+
+                if ($stockWasReserved && $item->quantity !== null) {
+                    $item->quantity = (int) $item->quantity + $lotQuantity;
+                    $item->save();
+                }
             }
 
             $lockedLot->save();
@@ -164,7 +175,7 @@ class CloseGuildAuctionLotAction
     }
 
     /**
-     * @param array{winner_name:string,item_name:string,amount:int,lot_id:int} $data
+     * @param  array{winner_name:string,item_name:string,amount:int,lot_id:int}  $data
      */
     private function notifyAuctionManagers(Guild $guild, array $data): void
     {
@@ -183,7 +194,7 @@ class CloseGuildAuctionLotAction
     }
 
     /**
-     * @param array{winner_name:string|null,item_name:string,amount:int|null,lot_id:int} $data
+     * @param  array{winner_name:string|null,item_name:string,amount:int|null,lot_id:int}  $data
      */
     private function sendDiscordNotification(Guild $guild, array $data): void
     {
@@ -191,7 +202,7 @@ class CloseGuildAuctionLotAction
         $message = "Лот «{$data['item_name']}» закрыт.\n";
         if ($data['winner_name'] !== null && $data['amount'] !== null) {
             $message .= "Победитель: {$data['winner_name']}.\n"
-                . "Ставка: {$data['amount']} ДКП.\n";
+                ."Ставка: {$data['amount']} ДКП.\n";
         } else {
             $message .= "Победителя нет.\n";
         }

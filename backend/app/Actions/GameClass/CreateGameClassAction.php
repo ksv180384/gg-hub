@@ -2,9 +2,9 @@
 
 namespace App\Actions\GameClass;
 
+use App\Services\GameClassImageService;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\GameClass;
-use App\Services\GameClassImageService;
 use Illuminate\Http\UploadedFile;
 
 class CreateGameClassAction
@@ -14,7 +14,7 @@ class CreateGameClassAction
     ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function __invoke(Game $game, array $data, ?UploadedFile $image = null): GameClass
     {
@@ -29,6 +29,7 @@ class CreateGameClassAction
             $path = $this->gameClassImageService->storeWithVariants($image, $gameClass->id);
             $gameClass->update(['image' => $path]);
         }
+
         return $gameClass;
     }
 
@@ -38,6 +39,7 @@ class CreateGameClassAction
         $slug = preg_replace('/\s+/u', '-', $slug) ?? $slug;
         $slug = preg_replace('/[^a-z0-9\-]/u', '', $slug) ?? $slug;
         $slug = preg_replace('/-+/', '-', $slug) ?? $slug;
+
         return trim($slug, '-') ?: 'class';
     }
 }

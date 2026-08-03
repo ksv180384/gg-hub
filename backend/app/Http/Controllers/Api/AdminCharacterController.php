@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Filters\AdminCharacterFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Character\AdminCharacterIndexRequest;
 use App\Http\Resources\Character\AdminCharacterResource;
@@ -16,7 +17,10 @@ class AdminCharacterController extends Controller
 
     public function index(AdminCharacterIndexRequest $request): AnonymousResourceCollection
     {
-        $characters = ($this->listAdminCharactersAction)($request->validated());
+        $characters = ($this->listAdminCharactersAction)(
+            new AdminCharacterFilter($request),
+            $request->validated(),
+        );
 
         return AdminCharacterResource::collection($characters);
     }

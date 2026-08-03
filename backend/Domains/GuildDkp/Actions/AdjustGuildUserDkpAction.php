@@ -2,10 +2,10 @@
 
 namespace Domains\GuildDkp\Actions;
 
-use Domains\User\Models\User;
 use Domains\Guild\Models\Guild;
 use Domains\GuildDkp\Enums\GuildDkpLedgerSource;
 use Domains\GuildDkp\Models\GuildDkpLedgerEntry;
+use Domains\User\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class AdjustGuildUserDkpAction

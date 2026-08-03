@@ -14,6 +14,7 @@ class GetGameAction
             ]),
             'gameClasses',
         ]);
+
         return $game;
     }
 }

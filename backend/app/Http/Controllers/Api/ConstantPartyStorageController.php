@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Filters\ConstantPartyStorageLogFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ConstantParty\StoreConstantPartyStorageGrantRequest;
 use App\Http\Requests\ConstantParty\StoreConstantPartyStorageItemRequest;
@@ -123,14 +124,7 @@ class ConstantPartyStorageController extends Controller
 
         $logs = ConstantPartyStorageLog::query()
             ->where('constant_party_id', $constantParty->id)
-            ->when(
-                $filters['date_from'] ?? null,
-                fn ($query, $date) => $query->whereDate('created_at', '>=', $date),
-            )
-            ->when(
-                $filters['date_to'] ?? null,
-                fn ($query, $date) => $query->whereDate('created_at', '<=', $date),
-            )
+            ->filter(new ConstantPartyStorageLogFilter($request))
             ->orderBy('created_at', $sort)
             ->orderBy('id', $sort)
             ->paginate(50)

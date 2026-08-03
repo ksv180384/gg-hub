@@ -35,6 +35,7 @@ class GameClassController extends Controller
     {
         $data = $request->validated();
         $gameClass = ($this->createGameClassAction)($game, $data, $request->file('image'));
+
         return (new GameClassResource($gameClass))->response()->setStatusCode(201);
     }
 
@@ -47,12 +48,14 @@ class GameClassController extends Controller
             $request->file('image'),
             $request->boolean('remove_image')
         );
+
         return new GameClassResource($gameClass);
     }
 
     public function destroy(GameClass $game_class): Response
     {
         ($this->deleteGameClassAction)($game_class);
+
         return response()->noContent();
     }
 }

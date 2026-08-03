@@ -18,6 +18,7 @@ class ListServersAction
         if ($localization->game_id !== (int) $game->id) {
             throw new HttpException(404, 'Локализация не принадлежит этой игре.');
         }
+
         return $localization->servers()
             ->whereNull('merged_into_server_id')
             ->orderBy('name')

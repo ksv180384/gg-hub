@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources\Post;
 
-use App\Services\UserAvatarService;
 use App\Services\GuildLogoService;
+use App\Services\UserAvatarService;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
 use Illuminate\Http\Request;

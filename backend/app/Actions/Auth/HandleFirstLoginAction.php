@@ -34,4 +34,3 @@ class HandleFirstLoginAction
         ($this->createFirstLoginCreateCharacterNotificationAction)($authenticatable);
     }
 }
-

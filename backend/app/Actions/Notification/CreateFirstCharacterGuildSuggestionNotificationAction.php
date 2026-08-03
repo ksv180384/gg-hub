@@ -2,8 +2,8 @@
 
 namespace App\Actions\Notification;
 
-use Domains\Notification\Models\Notification;
 use Domains\Character\Models\Character;
+use Domains\Notification\Models\Notification;
 
 /**
  * Создаёт оповещение пользователю при создании первого персонажа:
@@ -28,8 +28,7 @@ class CreateFirstCharacterGuildSuggestionNotificationAction
         return Notification::create([
             'user_id' => (int) $character->user_id,
             'message' => 'Персонаж создан! Хотите создать гильдию или вступить в существующую? В каталоге уже включены фильтры по вашему серверу и открытому набору.',
-            'link' => '/guilds' . ($query !== '' ? ('?' . $query) : ''),
+            'link' => '/guilds'.($query !== '' ? ('?'.$query) : ''),
         ]);
     }
 }
-

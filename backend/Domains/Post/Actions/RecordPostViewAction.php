@@ -2,9 +2,9 @@
 
 namespace Domains\Post\Actions;
 
-use Domains\User\Models\User;
 use Domains\Post\Models\Post;
 use Domains\Post\Models\PostView;
+use Domains\User\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**

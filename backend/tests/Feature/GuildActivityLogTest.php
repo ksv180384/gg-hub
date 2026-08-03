@@ -1,6 +1,9 @@
 <?php
 
 use App\GuildActivityLog;
+use Domains\Access\Enums\PermissionScope;
+use Domains\Access\Models\Permission;
+use Domains\Access\Models\PermissionGroup;
 use Domains\Character\Models\Character;
 use Domains\Game\Models\Game;
 use Domains\Game\Models\Localization;
@@ -129,6 +132,46 @@ it('filters activity by inclusive date range category actor and search', functio
         ->assertSuccessful()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.action', 'auction.bid_placed');
+});
+
+it('records only guild fields whose values actually changed', function () {
+    $context = seedGuildActivityContext('update');
+    $permissionGroup = PermissionGroup::query()->create([
+        'scope' => PermissionScope::Guild,
+        'name' => 'Guild settings',
+        'slug' => 'guild-settings',
+    ]);
+    foreach (['redaktirovanie-dannyx-gildii', 'izmeniat-tegi-gildii'] as $slug) {
+        Permission::query()->create([
+            'scope' => PermissionScope::Guild,
+            'permission_group_id' => $permissionGroup->id,
+            'name' => $slug,
+            'slug' => $slug,
+        ]);
+    }
+    GuildActivityLog::query()->delete();
+
+    $payload = [
+        'name' => 'Renamed guild',
+        'dkp_enabled' => false,
+        'leader_character_id' => $context['character']->id,
+        'tag_ids' => [],
+    ];
+
+    actingAs($context['user'])
+        ->patchJson("/api/v1/guilds/{$context['guild']->id}", $payload)
+        ->assertSuccessful();
+
+    $log = GuildActivityLog::query()->sole();
+
+    expect($log->description)->toBe('Изменена информация о гильдии: название.')
+        ->and($log->metadata['changed_fields'])->toBe(['name']);
+
+    actingAs($context['user'])
+        ->patchJson("/api/v1/guilds/{$context['guild']->id}", $payload)
+        ->assertSuccessful();
+
+    expect(GuildActivityLog::query()->count())->toBe(1);
 });
 
 it('records storage mutations with the authenticated actor', function () {

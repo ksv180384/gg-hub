@@ -1,6 +1,5 @@
 <?php
 
-use Domains\User\Models\User;
 use Domains\Access\Enums\PermissionScope;
 use Domains\Access\Models\GuildRole;
 use Domains\Access\Models\Permission;
@@ -12,10 +11,14 @@ use Domains\Game\Models\Localization;
 use Domains\Game\Models\Server;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildMember;
+use Domains\GuildAuction\Actions\CloseGuildAuctionLotAction;
+use Domains\GuildAuction\Models\GuildAuctionLot;
 use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
 use Domains\GuildBank\Models\GuildBankItemTier;
+use Domains\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+
 use function Pest\Laravel\actingAs;
 
 uses(RefreshDatabase::class);
@@ -482,3 +485,132 @@ it('returns dkp fields for event history when dkp is enabled', function () {
         ->assertJsonPath('dkp.base_points', 10);
 });
 
+it('creates an auction lot with quantity and reserves that stock', function () {
+    $ctx = seedMinimalGuildContext();
+    $ctx['guild']->update(['leader_character_id' => $ctx['char']->id]);
+
+    $auctionGroup = PermissionGroup::query()->firstOrCreate(
+        [
+            'scope' => PermissionScope::Guild,
+            'slug' => 'auction',
+        ],
+        [
+            'name' => 'Аукцион',
+        ]
+    );
+    Permission::query()->firstOrCreate(
+        [
+            'scope' => PermissionScope::Guild,
+            'slug' => 'dobavliat-predmety-na-aukcion',
+        ],
+        [
+            'name' => 'Добавлять лоты',
+            'description' => 'Добавлять лоты',
+            'permission_group_id' => $auctionGroup->id,
+        ]
+    );
+
+    $item = GuildBankItem::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'name' => 'Stack of Test Items',
+        'quantity' => 5,
+        'dkp_cost' => 10,
+    ]);
+
+    $payload = [
+        'ends_at' => now()->addHour()->toIso8601String(),
+        'lots' => [[
+            'guild_bank_item_id' => $item->id,
+            'quantity' => 3,
+            'start_price' => 10,
+        ]],
+    ];
+
+    actingAs($ctx['user'])
+        ->postJson("/api/v1/guilds/{$ctx['guild']->id}/auction/lots", $payload)
+        ->assertOk()
+        ->assertJsonPath('data.0.quantity', 3);
+
+    $lot = GuildAuctionLot::query()->where('guild_id', $ctx['guild']->id)->firstOrFail();
+    expect($lot->quantity)->toBe(3)
+        ->and($lot->stock_reserved_at)->not->toBeNull();
+
+    $item->refresh();
+    expect($item->quantity)->toBe(2);
+
+    actingAs($ctx['user'])
+        ->postJson("/api/v1/guilds/{$ctx['guild']->id}/auction/lots", $payload)
+        ->assertUnprocessable();
+
+    app(CloseGuildAuctionLotAction::class)($ctx['guild'], $lot, $ctx['user']);
+
+    $item->refresh();
+    expect($item->quantity)->toBe(5);
+
+    actingAs($ctx['user'])
+        ->postJson("/api/v1/guilds/{$ctx['guild']->id}/auction/lots", $payload)
+        ->assertOk();
+
+    $winningLot = GuildAuctionLot::query()
+        ->where('guild_id', $ctx['guild']->id)
+        ->where('status', GuildAuctionLot::STATUS_ACTIVE)
+        ->firstOrFail();
+    $winningLot->update([
+        'current_bid_amount' => 10,
+        'current_bid_user_id' => $ctx['user']->id,
+        'current_bid_character_id' => $ctx['char']->id,
+    ]);
+
+    app(CloseGuildAuctionLotAction::class)($ctx['guild'], $winningLot, $ctx['user']);
+
+    $item->refresh();
+    expect($item->quantity)->toBe(2)
+        ->and(GuildBankItemGrant::query()->latest('id')->value('quantity'))->toBe(3);
+});
+
+it('paginates closed auction lots by 50 in closing date order', function () {
+    $ctx = seedMinimalGuildContext();
+
+    $item = GuildBankItem::query()->create([
+        'guild_id' => $ctx['guild']->id,
+        'name' => 'Auction history item',
+        'quantity' => null,
+        'dkp_cost' => 10,
+    ]);
+
+    $lotIds = [];
+    for ($index = 0; $index < 51; $index++) {
+        $closedAt = now()->subMinutes($index);
+        $lotIds[] = GuildAuctionLot::query()->create([
+            'guild_id' => $ctx['guild']->id,
+            'guild_bank_item_id' => $item->id,
+            'quantity' => 1,
+            'start_price' => 10,
+            'status' => GuildAuctionLot::STATUS_CLOSED,
+            'ends_at' => $closedAt,
+            'closed_at' => $closedAt,
+        ])->id;
+    }
+
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/auction/history")
+        ->assertSuccessful()
+        ->assertJsonCount(50, 'data')
+        ->assertJsonPath('data.0.id', $lotIds[0])
+        ->assertJsonPath('meta.current_page', 1)
+        ->assertJsonPath('meta.last_page', 2)
+        ->assertJsonPath('meta.per_page', 50)
+        ->assertJsonPath('meta.total', 51);
+
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/auction/history?page=2")
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $lotIds[50])
+        ->assertJsonPath('meta.current_page', 2);
+    actingAs($ctx['user'])
+        ->getJson("/api/v1/guilds/{$ctx['guild']->id}/auction/history?sort=asc")
+        ->assertSuccessful()
+        ->assertJsonCount(50, 'data')
+        ->assertJsonPath('data.0.id', $lotIds[50]);
+});

@@ -3,11 +3,11 @@
 namespace Domains\Guild\Actions;
 
 use App\Actions\Notification\SendGuildDiscordNotificationAction;
-use Domains\User\Models\User;
 use App\Services\Notifications\GuildLinkBuilder;
 use Domains\Guild\Models\Guild;
 use Domains\Guild\Models\GuildApplication;
 use Domains\Guild\Models\GuildMember;
+use Domains\User\Models\User;
 use Illuminate\Validation\ValidationException;
 
 class ApproveGuildApplicationAction

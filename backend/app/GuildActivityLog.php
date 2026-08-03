@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Core\Traits\HasFilter;
+use Database\Factories\GuildActivityLogFactory;
 use Domains\Guild\Models\Guild;
 use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,19 +14,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GuildActivityLog extends Model
 {
-    /** @use HasFactory<\Database\Factories\GuildActivityLogFactory> */
+    /** @use HasFactory<GuildActivityLogFactory> */
     use HasFactory;
+
     use HasFilter;
 
     public const UPDATED_AT = null;
 
     public const CATEGORY_AUCTION = 'auction';
+
     public const CATEGORY_ROULETTE = 'roulette';
+
     public const CATEGORY_STORAGE = 'storage';
+
     public const CATEGORY_MEMBERS = 'members';
+
     public const CATEGORY_ACCESS = 'access';
+
     public const CATEGORY_GUILD = 'guild';
+
     public const CATEGORY_JOURNAL = 'journal';
+
     public const CATEGORY_EVENTS = 'events';
 
     public const CATEGORIES = [

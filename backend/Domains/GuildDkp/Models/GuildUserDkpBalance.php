@@ -2,10 +2,11 @@
 
 namespace Domains\GuildDkp\Models;
 
-use Domains\User\Models\User;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Текущий баланс ДКП пользователя в конкретной гильдии.
@@ -19,9 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $guild_id Гильдия, в которой ведётся учёт ДКП.
  * @property int $user_id Пользователь-владелец очков (не персонаж).
  * @property int $balance Текущее количество ДКП; может быть меньше нуля.
- * @property \Illuminate\Support\Carbon|null $created_at Дата первого появления баланса у пользователя в гильдии.
- * @property \Illuminate\Support\Carbon|null $updated_at Дата последнего изменения balance.
- *
+ * @property Carbon|null $created_at Дата первого появления баланса у пользователя в гильдии.
+ * @property Carbon|null $updated_at Дата последнего изменения balance.
  * @property-read Guild $guild Гильдия, к которой относится баланс.
  * @property-read User $user Пользователь, чей остаток ДКП хранится в этой строке.
  */

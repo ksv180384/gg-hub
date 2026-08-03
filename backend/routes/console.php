@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CloseExpiredGuildAuctionLotsCommand;
 use App\Console\Commands\NotifyDiscordEventsStartingCommand;
+use App\Console\Commands\PruneExpiredGuildActivityLogsCommand;
 use App\Console\Commands\PruneExpiredNotificationsCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -25,5 +26,9 @@ Schedule::command(CloseExpiredGuildAuctionLotsCommand::class)
     ->runInBackground();
 
 Schedule::command(PruneExpiredNotificationsCommand::class)
+    ->daily()
+    ->withoutOverlapping();
+
+Schedule::command(PruneExpiredGuildActivityLogsCommand::class)
     ->daily()
     ->withoutOverlapping();

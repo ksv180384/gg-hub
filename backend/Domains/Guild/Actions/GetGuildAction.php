@@ -17,6 +17,7 @@ class GetGuildAction
         if ($guild) {
             $guild->loadCount('members')->load(['game', 'localization', 'server', 'leader']);
         }
+
         return $guild;
     }
 }

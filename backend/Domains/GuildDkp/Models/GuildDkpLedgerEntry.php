@@ -2,17 +2,18 @@
 
 namespace Domains\GuildDkp\Models;
 
-use Domains\User\Models\User;
+use App\Core\Traits\HasFilter;
 use Domains\Character\Models\Character;
 use Domains\Event\Models\EventHistory;
 use Domains\Event\Models\EventHistoryParticipant;
 use Domains\Guild\Models\Guild;
 use Domains\GuildBank\Models\GuildBankItem;
 use Domains\GuildBank\Models\GuildBankItemGrant;
-use App\Core\Traits\HasFilter;
 use Domains\GuildDkp\Enums\GuildDkpLedgerSource;
+use Domains\User\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Запись журнала движения ДКП в гильдии.
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $guild_id Гильдия, в рамках которой изменился баланс ДКП.
  * @property int $user_id Пользователь-владелец баланса (ДКП ведётся на аккаунт, не на персонажа).
  * @property int $amount Изменение в очках: положительное — начисление, отрицательное — списание.
- * @property \Illuminate\Support\Carbon $occurred_at Момент операции для отображения в истории (дата выдачи, события или ручной корректировки).
+ * @property Carbon $occurred_at Момент операции для отображения в истории (дата выдачи, события или ручной корректировки).
  * @property GuildDkpLedgerSource $source Тип операции: event, manual, bank_grant, bank_grant_revoke.
  * @property int|null $event_history_id Событие истории гильдии, по которому начислены очки (только при source = event).
  * @property int|null $event_history_participant_id Участник события, для которого рассчитано начисление; при пересохранении ДКП события старые записи по event_history_id откатываются.
@@ -37,9 +38,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $actor_user_id Пользователь, выполнивший операцию (выдал предмет, отменил выдачу, вручную изменил баланс).
  * @property string|null $reason Комментарий: основание выдачи, текст ручной корректировки или название события.
  * @property int $balance_after Баланс пользователя в гильдии сразу после применения amount.
- * @property \Illuminate\Support\Carbon|null $created_at Дата создания строки в БД.
- * @property \Illuminate\Support\Carbon|null $updated_at Дата последнего обновления строки.
- *
+ * @property Carbon|null $created_at Дата создания строки в БД.
+ * @property Carbon|null $updated_at Дата последнего обновления строки.
  * @property-read Guild $guild Гильдия, к которой относится движение ДКП.
  * @property-read User $user Пользователь, чей баланс изменился.
  * @property-read EventHistory|null $eventHistory Событие истории, если начисление привязано к рейду/событию.

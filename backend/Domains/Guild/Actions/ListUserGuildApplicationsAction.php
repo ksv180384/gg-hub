@@ -2,8 +2,8 @@
 
 namespace Domains\Guild\Actions;
 
-use Domains\User\Models\User;
 use Domains\Guild\Models\GuildApplication;
+use Domains\User\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ListUserGuildApplicationsAction
@@ -17,4 +17,3 @@ class ListUserGuildApplicationsAction
             ->paginate($perPage);
     }
 }
-

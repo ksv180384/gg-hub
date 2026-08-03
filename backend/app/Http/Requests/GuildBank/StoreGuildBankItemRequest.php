@@ -60,4 +60,3 @@ class StoreGuildBankItemRequest extends FormRequest
         ];
     }
 }
-

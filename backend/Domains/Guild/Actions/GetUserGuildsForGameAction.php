@@ -2,10 +2,10 @@
 
 namespace Domains\Guild\Actions;
 
-use Domains\User\Models\User;
 use Domains\Character\Models\Character;
 use Domains\Guild\Enums\GuildApplicationStatus;
 use Domains\Guild\Models\Guild;
+use Domains\User\Models\User;
 use Illuminate\Support\Collection;
 
 class GetUserGuildsForGameAction

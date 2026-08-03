@@ -2,12 +2,15 @@
 
 namespace Domains\ConstantParty\Models;
 
+use App\Core\Traits\HasFilter;
 use Domains\Character\Models\Character;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ConstantPartyStorageLog extends Model
 {
+    use HasFilter;
+
     public const UPDATED_AT = null;
 
     public const ACTION_ITEM_CREATED = 'item_created';

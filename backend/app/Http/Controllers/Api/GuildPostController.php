@@ -2,27 +2,28 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\Post\PostListResource;
-use App\Http\Resources\Post\PostResource;
 use App\Actions\Notification\CreatePostGuildPublishedNotificationAction;
 use App\Actions\Notification\CreatePostGuildRejectedNotificationAction;
 use App\Actions\Notification\SendPostOrCommentNotificationAction;
+use App\Filters\GuildPostFilter;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\Post\PostListResource;
+use App\Http\Resources\Post\PostResource;
 use Domains\Guild\Actions\GetUserGuildPermissionSlugsAction;
 use Domains\Guild\Models\Guild;
+use Domains\Post\Actions\BlockGuildPostAction;
+use Domains\Post\Actions\CanViewGuildPostAction;
 use Domains\Post\Actions\ListGuildPendingPostsForModerationAction;
 use Domains\Post\Actions\ListGuildPostsForJournalAction;
-use Domains\Post\Actions\CanViewGuildPostAction;
-use Domains\Post\Actions\BlockGuildPostAction;
 use Domains\Post\Actions\PublishGuildPostAction;
-use Domains\Post\Actions\UnblockGuildPostAction;
 use Domains\Post\Actions\RecordPostViewAction;
 use Domains\Post\Actions\RejectGuildPostAction;
+use Domains\Post\Actions\UnblockGuildPostAction;
 use Domains\Post\Enums\PostStatus;
 use Domains\Post\Models\Post;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\JsonResponse;
 
 class GuildPostController extends Controller
 {
@@ -59,12 +60,15 @@ class GuildPostController extends Controller
             }
         }
 
-        $params = ['per_page' => $perPage];
-        if ($filterBlocked) {
-            $params['filter'] = 'blocked';
-        }
+        $request->merge([
+            'filter' => $filterBlocked ? 'blocked' : null,
+        ]);
 
-        $posts = ($this->listGuildPostsForJournalAction)($guild, $params);
+        $posts = ($this->listGuildPostsForJournalAction)(
+            $guild,
+            new GuildPostFilter($request),
+            $perPage,
+        );
 
         $posts->loadMissing(['character', 'character.user', 'user', 'guild']);
 
