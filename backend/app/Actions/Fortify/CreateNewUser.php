@@ -3,7 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Actions\Notification\SendAdminTelegramNotificationAction;
-use Domains\Access\Models\Role;
+use Domains\User\Actions\AssignDefaultUserRoleAction;
 use Domains\User\Actions\ResolveRegistrationUserNameFromEmailAction;
 use Domains\User\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -15,8 +15,6 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules;
-
-    public const DEFAULT_ROLE_SLUG = 'polzovatel';
 
     /**
      * Validate and create a newly registered user.
@@ -65,10 +63,7 @@ class CreateNewUser implements CreatesNewUsers
             'password' => Hash::make((string) ($input['password'] ?? '')),
         ]);
 
-        $defaultRole = Role::where('slug', self::DEFAULT_ROLE_SLUG)->first();
-        if ($defaultRole) {
-            $user->roles()->attach($defaultRole->id);
-        }
+        app(AssignDefaultUserRoleAction::class)($user);
 
         app(SendAdminTelegramNotificationAction::class)(
             'Зарегистрирован новый пользователь. Способ регистрации: email.',

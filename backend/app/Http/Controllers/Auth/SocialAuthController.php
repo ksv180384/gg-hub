@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\Notification\SendAdminTelegramNotificationAction;
 use App\Http\Controllers\Controller;
+use Domains\User\Actions\AssignDefaultUserRoleAction;
 use Domains\User\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,6 +64,7 @@ class SocialAuthController extends Controller
                 'avatar' => $socialUser->getAvatar(),
                 'email_verified_at' => now(),
             ]);
+            app(AssignDefaultUserRoleAction::class)($user);
             app(SendAdminTelegramNotificationAction::class)(
                 'Зарегистрирован новый пользователь через социальную сеть.',
             );
