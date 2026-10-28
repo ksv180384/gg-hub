@@ -9,10 +9,19 @@ RUN apt-get update && apt-get install -y zlib1g-dev g++ git libicu-dev zip libzi
     && docker-php-ext-install intl opcache pdo pdo_mysql \
     && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
     && docker-php-ext-install gd \
-    && pecl install apcu \
-    && docker-php-ext-enable apcu \
     && docker-php-ext-configure zip \
     && docker-php-ext-install zip
+
+# Download over HTTPS directly: PECL channel discovery can fail on the build host.
+# Keep this separate so a download retry reuses compiled PHP extensions.
+RUN curl --fail --show-error --location \
+        --retry 5 --retry-delay 3 --retry-all-errors \
+        --connect-timeout 20 --max-time 120 \
+        https://pecl.php.net/get/apcu-5.1.28.tgz -o /tmp/apcu.tgz \
+    && pecl install /tmp/apcu.tgz \
+    && docker-php-ext-enable apcu \
+    && php -r 'exit(extension_loaded("apcu") ? 0 : 1);' \
+    && rm /tmp/apcu.tgz
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1

@@ -5,6 +5,16 @@ import { checkRuntimes, isPatched } from './check-runtime-security.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
+test('APCu installation bypasses PECL discovery and verifies the loaded extension', () => {
+  const source = read('_docker/php/php.dockerfile');
+  assert.doesNotMatch(source, /pecl install apcu(?:\s|$)/);
+  assert.match(source, /https:\/\/pecl\.php\.net\/get\/apcu-5\.1\.28\.tgz -o \/tmp\/apcu\.tgz/);
+  assert.match(source, /--retry 5 --retry-delay 3 --retry-all-errors/);
+  assert.match(source, /&& pecl install \/tmp\/apcu\.tgz/);
+  assert.match(source, /&& docker-php-ext-enable apcu/);
+  assert.match(source, /&& php -r 'exit\(extension_loaded\("apcu"\) \? 0 : 1\);'/);
+});
+
 test('rejects vulnerable releases, unsupported branches and prereleases', () => {
   const floors = {
     php: ['8.2.35', '8.3.36', '8.4.27', '8.5.12'],
