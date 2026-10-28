@@ -34,6 +34,7 @@
 | Рейды, составы и заявки | [raids.md](raids.md) |
 | Объединение серверов | [server-merge.md](server-merge.md) |
 | Миграции на проде | [migrate.md](migrate.md) |
+| Обновление PHP, Node.js и nginx | [runtime-security-update.md](runtime-security-update.md) |
 | Функционал (краткий обзор) | [features.md](features.md) |
 | Домены backend (кратко) | [../backend/Domains/README.md](../backend/Domains/README.md) |
 

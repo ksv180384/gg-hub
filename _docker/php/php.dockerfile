@@ -1,8 +1,10 @@
-FROM php:8.4-fpm
+FROM node:22.23.4-trixie-slim AS node_runtime
+
+FROM php:8.4.27-fpm-trixie
 
 WORKDIR /var/www/gg
 
-RUN apt-get update && apt-get install -y nodejs npm zlib1g-dev g++ git libicu-dev zip libzip-dev zip \
+RUN apt-get update && apt-get install -y zlib1g-dev g++ git libicu-dev zip libzip-dev \
     libpng-dev libjpeg-dev libwebp-dev libfreetype6-dev \
     && docker-php-ext-install intl opcache pdo pdo_mysql \
     && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
@@ -15,13 +17,13 @@ RUN apt-get update && apt-get install -y nodejs npm zlib1g-dev g++ git libicu-de
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Node.js
-RUN curl -sL https://deb.nodesource.com/setup_current.x -o nodesource_setup.sh
-RUN bash nodesource_setup.sh
-RUN apt-get install nodejs -y
-RUN npm install npm@latest -g
-RUN command -v node
-RUN command -v npm
+# Use the same patched Node.js branch as frontend and socket server.
+COPY --from=node_runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node_runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && node --version \
+    && npm --version
 
 COPY ./backend /var/www/gg
 #COPY ./_docker/php /var/www/gg/php

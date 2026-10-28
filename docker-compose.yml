@@ -2,7 +2,7 @@ services:
     # nginx
     gg-nginx:
         container_name: gg-nginx-container
-        image: nginx:stable-alpine
+        image: nginx:1.30.6-alpine
         ports:
             - "${NGINX_TO_PORT}:${NGINX_FROM_PORT}"
             - "${NGINX_TO_PORT_SSL}:${NGINX_FROM_PORT_SSL}"
@@ -192,6 +192,7 @@ services:
         volumes:
             - roundcube_data:/var/roundcube/db
             - ./_docker/roundcube/custom.inc.php:/var/roundcube/config/custom.inc.php:ro
+            - ./_docker/php/security.ini:/usr/local/etc/php/conf.d/zz-security.ini:ro
         environment:
             ROUNDCUBEMAIL_DEFAULT_HOST: ssl://mail778.gg-hub.ru
             ROUNDCUBEMAIL_DEFAULT_PORT: 993

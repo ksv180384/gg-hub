@@ -6,6 +6,8 @@ import { RouterLink, type RouteLocationRaw } from 'vue-router';
 import { formatRelativeTime } from '@/shared/lib/relativeTime';
 import { useVideoPlaybackTracking } from '@/shared/lib/useVideoPlaybackTracking';
 import DeletedGuildMarker from './DeletedGuildMarker.vue';
+import PostPreviewContent from './PostPreviewContent.vue';
+import { ArrowUpRight, Eye, MessageSquare } from '@lucide/vue';
 
 interface Props {
   post: Post;
@@ -82,12 +84,12 @@ useVideoPlaybackTracking(previewContainerRef, {
 
 <template>
   <article
-    class="overflow-hidden bg-accent/30 rounded-[calc(var(--radius)-2px)] border shadow-sm transition-colors hover:bg-accent/30"
+    class="post-card overflow-hidden rounded-2xl border bg-card text-card-foreground"
   >
-    <header class="flex items-start justify-between gap-3 p-4 pb-2">
+    <header class="flex items-start justify-between gap-3 px-5 pt-5 pb-4 sm:px-6 sm:pt-6">
       <div class="flex min-w-0 items-start gap-3">
         <Avatar
-          class="h-10 w-10 rounded-full shrink-0"
+          class="h-10 w-10 shrink-0 rounded-full ring-4 ring-muted/60"
           :src="avatarUrl || undefined"
           :alt="displayName"
           :fallback="avatarFallback"
@@ -109,9 +111,9 @@ useVideoPlaybackTracking(previewContainerRef, {
             />
           </div>
           <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span class="text-xs text-muted-foreground">
+            <time :datetime="displayIso ?? undefined" class="text-xs text-muted-foreground">
               {{ displayTime }}
-            </span>
+            </time>
             <span
               v-if="showGame && post.game_name"
               class="text-xs text-muted-foreground"
@@ -142,15 +144,15 @@ useVideoPlaybackTracking(previewContainerRef, {
       </div>
     </header>
 
-    <div class="px-4 pb-2">
+    <div class="px-5 pb-4 sm:px-6">
       <h3
-        class="text-[18px] leading-snug font-semibold text-foreground/95 line-clamp-2"
+        class="post-card-title text-xl leading-snug font-semibold tracking-tight text-foreground sm:text-2xl"
         :title="post.title ?? ''"
       >
         <RouterLink
           v-if="postTo"
           :to="postTo"
-          class="text-inherit hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+          class="text-inherit transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
         >
           {{ post.title }}
         </RouterLink>
@@ -160,89 +162,76 @@ useVideoPlaybackTracking(previewContainerRef, {
       </h3>
     </div>
 
-    <div
-      v-if="isPreviewHtml"
-      ref="previewContainerRef"
-      class="px-4 pb-3 prose prose-sm max-w-none text-md dark:prose-invert [&_p]:my-1.5 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_a]:text-blue-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:[content-visibility:auto] [&_img]:[contain-intrinsic-size:320px_200px] [&_iframe]:max-w-full"
-      v-html="displayBody()"
-    />
-    <p v-else class="px-4 pb-3 text-sm text-muted-foreground leading-relaxed line-clamp-3">
-      {{ displayBody() }}
-    </p>
-    <div
-      v-if="post.views_count != null || post.comments_count != null || $slots.footerRight"
-      class="flex items-center justify-between gap-4 border-t bg-card px-4 py-3 text-xs text-muted-foreground"
+    <div ref="previewContainerRef" class="px-5 pb-5 sm:px-6 sm:pb-6">
+      <PostPreviewContent
+        :content="displayBody()"
+        :is-html="isPreviewHtml"
+        :post-to="postTo"
+      />
+    </div>
+
+    <footer
+      v-if="post.views_count != null || post.comments_count != null || postTo || $slots.footerRight"
+      class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-border/70 px-5 py-4 sm:px-6"
     >
-      <div class="flex items-center gap-4">
-        <div
+      <div class="flex items-center gap-5 text-xs font-medium text-muted-foreground">
+        <span
           v-if="post.views_count != null"
-          class="flex items-center gap-1.5"
+          class="inline-flex items-center gap-2"
+          :aria-label="`Просмотры: ${post.views_count}`"
           title="Просмотры"
         >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="shrink-0"
-        >
-          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-        <span>{{ post.views_count }}</span>
-      </div>
-        <RouterLink
-          v-if="post.comments_count != null && commentsTo"
-          :to="commentsTo"
-          class="flex items-center gap-1.5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+          <Eye class="size-4" aria-hidden="true" />
+          {{ post.views_count }}
+        </span>
+        <component
+          :is="commentsTo ? RouterLink : 'span'"
+          v-if="post.comments_count != null"
+          :to="commentsTo || undefined"
+          class="inline-flex items-center gap-2 rounded-sm"
+          :class="{ 'transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-ring': commentsTo }"
+          :aria-label="`Комментарии: ${post.comments_count}`"
           title="Комментарии"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="shrink-0"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          <span>{{ post.comments_count }}</span>
-        </RouterLink>
-        <div
-          v-else-if="post.comments_count != null"
-          class="flex items-center gap-1.5"
-          title="Комментарии"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="shrink-0"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          <span>{{ post.comments_count }}</span>
-        </div>
+          <MessageSquare class="size-4" aria-hidden="true" />
+          {{ post.comments_count }}
+        </component>
       </div>
-      <div v-if="$slots.footerRight" class="shrink-0">
+      <div class="flex flex-wrap items-center gap-3">
         <slot name="footerRight" />
+        <RouterLink
+          v-if="postTo"
+          :to="postTo"
+          class="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3.5 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-primary/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          :aria-label="`Читать пост: ${post.title ?? ''}`"
+        >
+          Читать пост
+          <ArrowUpRight class="size-4 text-primary" aria-hidden="true" />
+        </RouterLink>
       </div>
-    </div>
+    </footer>
   </article>
 </template>
+
+<style scoped>
+.post-card {
+  box-shadow: 0 2px 8px -4px rgb(15 23 42 / 0.12);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.post-card:hover {
+  border-color: color-mix(in oklab, var(--primary) 25%, var(--border));
+  box-shadow: 0 8px 24px -12px rgb(15 23 42 / 0.2);
+}
+
+.post-card-title {
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-card,
+  .post-card :deep(a) {
+    transition: none;
+  }
+}
+</style>
