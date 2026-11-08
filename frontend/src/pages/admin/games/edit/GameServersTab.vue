@@ -285,7 +285,7 @@ async function resumeMerge(loc: Localization) {
         <h4 class="font-medium">{{ loc.code }}: {{ loc.name }}</h4>
 
         <div>
-          <h5 class="mb-2 text-sm font-medium text-muted-foreground">Сервера</h5>
+          <h5 class="mb-2 text-sm font-medium text-muted-foreground">Сервера ({{ loc.servers?.length ?? 0 }})</h5>
           <ul v-if="loc.servers?.length" class="mb-2 flex flex-wrap gap-2">
             <li
               v-for="srv in loc.servers"
